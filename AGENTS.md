@@ -9,7 +9,7 @@
 ## Publication d'une version
 Chaque livraison terminée et testée reçoit un numéro inédit. Une livraison peut regrouper plusieurs commits avant sa publication finale.
 1. Numéro : correctif ou commentaires → correctif suivant ; nouvelle fonction → version mineure suivante. Demander en cas de doute.
-2. Mettre à jour les références de version, notamment package.json, les Compose et les guides, ainsi que le changelog en français avec les issues fermées. Exclure les dépendances installées et package-lock.json des remplacements globaux.
+2. Mettre à jour les références de version dans package.json, le CHANGELOG et les guides de livraison, ainsi que le changelog en français avec les issues fermées. Exclure les dépendances installées et package-lock.json des remplacements globaux.
 3. En local : tests Python, contrôle JavaScript et check_publication.py, comme dans la CI. Les tests Docker s’exécutent uniquement dans GitHub Actions ; ne pas installer de moteur Docker local pour les lancer. Arrêter en cas d’échec.
 4. Un push sur main lance uniquement les tests. Une branche de travail, une pull request ou une fusion ne doit publier aucune image.
 5. Pour une livraison explicitement autorisée : commit « Version X.Y.Z : <résumé> », puis tag inédit vX.Y.Z correspondant exactement à package.json et à une entrée unique du CHANGELOG. Ne jamais déplacer un tag publié ni réutiliser un numéro d’image.

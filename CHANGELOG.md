@@ -2,6 +2,8 @@
 
 ## À publier
 
+- Compose unique avec réseau local ou proxy externe sélectionné par PROXY_NETWORK, image latest par défaut et données sous ./appdata sans réglage (#27).
+
 - Actions GitHub mises à jour après validation individuelle des CI Dependabot, sans publication d’image sur les fusions (#26).
 
 - Nom de téléchargement du modèle d’environnement précisé pour les pièces jointes de release (#25).
