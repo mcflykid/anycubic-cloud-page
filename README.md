@@ -8,6 +8,12 @@ Version **1.1.0**. [Changements](CHANGELOG.md).
 [![Licence GPL-3.0-or-later](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue)](LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue)](Dockerfile)
 
+[![Dernière release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
+[![Issues ouvertes](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
+[![Issues fermées](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
+[![Milestone 1.2.0](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/1)](https://github.com/mcflykid/anycubic-cloud-page/milestone/1)
+[![Dernier commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
+
 [English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md)
 
 Ce projet transforme les fonctions d’atelier du cloud Anycubic en une interface web indépendante : suivi d’impression, ACE et bobines, fichiers, envoi de G-code, caméra, historique et réglages. Le serveur Python dialogue avec Anycubic par HTTP et MQTT ; le navigateur n’a pas besoin de lancer le slicer. Aucun Home Assistant requis.
@@ -30,6 +36,10 @@ Docker Compose suffit. L’application prépare ses données au démarrage.
 `BIND_ADDRESS=127.0.0.1` et `WEB_PORT=8080` règlent l’écoute locale. Toutes les données persistantes restent dans `APPDATA_DIR=./appdata`. Dans Compose, écrivez `$$` pour un `$` littéral dans un mot de passe ; dans `.env`, utilisez des quotes simples. Ne publiez pas vos fichiers personnalisés.
 
 **N’exposez jamais ce port HTTP directement sur Internet.** Utilisez votre propre proxy HTTPS et réglez `PUBLIC_ORIGIN` sur l’origine publique exacte du navigateur. Le [guide reverse proxy](docs/REVERSE-PROXY.md) fournit les exemples Caddy, Nginx et Traefik, sur l’hôte ou en conteneur. Un proxy en conteneur utilise l’option [`compose.proxy.yaml`](compose.proxy.yaml), avec `PROXY_NETWORK` et aucun port hôte. [Guide d’installation complet](docs/INSTALLATION.md).
+
+## Suivi des travaux
+
+Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.2.0](https://github.com/mcflykid/anycubic-cloud-page/milestone/1) regroupe les travaux de la prochaine version et leurs critères de validation.
 
 ## Les sept onglets
 

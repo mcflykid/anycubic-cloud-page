@@ -2,6 +2,10 @@
 
 ## À publier
 
+- Nom de téléchargement du modèle d’environnement précisé pour les pièces jointes de release (#25).
+
+- Liens de suivi, règles de contribution et badges de release, issues, milestone et dernier commit dans les README (#18).
+
 - Publication des images et releases réservée aux tags de version, après validation du numéro, du changelog et de tous les tests (#17).
 
 ## 1.1.0 — 2026-11-05
