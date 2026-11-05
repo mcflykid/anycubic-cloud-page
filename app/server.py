@@ -353,7 +353,7 @@ class Engine:
    handle=hashlib.sha256(str(f.id).encode()).hexdigest()[:20];self.cloudfiles[handle]=f
    rows.append({'handle':handle,'name':f.old_filename,'size_mb':f.size_mb,'printable':f.gcode_id is not None})
   store=await self.api.get_user_cloud_store()
-  return {'files':rows,'page':page,'store':{k:serial(safeget(store,k)) for k in ['total_bytes','used_bytes','available_bytes']}}
+  return {'files':rows,'page':page,'has_more':len(rows)==20,'store':{k:serial(safeget(store,k)) for k in ['total_bytes','used_bytes','available_bytes']}}
  async def print_history(self,page):
   """Renvoie les notifications paginées filtrées ; lève ValueError si le cloud refuse la lecture."""
   from anycubic_cloud_api.models.http import AnycubicAPIEndpoint,HTTP_METHODS
@@ -615,7 +615,9 @@ async def history_delete(req):
  engine=request_engine(req)
  verify_origin(req);data=await req.json()
  if data.get('all') is not True and not re.fullmatch(r'[a-f0-9]{20}',str(data.get('key',''))):raise ValueError('Notification invalide')
- async with engine.lock:return web.json_response(await engine.delete_history(data.get('key'),data.get('all') is True),headers={'Cache-Control':'no-store'})
+ async with engine.lock:
+  if not engine.api:raise ValueError('Connexion en cours')
+  return web.json_response(await engine.delete_history(data.get('key'),data.get('all') is True),headers={'Cache-Control':'no-store'})
 async def ai_settings(req):
  """Renvoie les réglages IA en JSON ; lève ValueError sans machine ou connexion disponible."""
  engine=request_engine(req)
@@ -699,6 +701,9 @@ async def camera(req):
   if viewer:
    engine.camera_owner=viewer
    engine.camera_viewers.add(viewer)
+  elif hasattr(engine,'camera_viewers'):
+   # Un client ancien sans référence de spectateur ne permet pas de confirmer son départ.
+   engine.camera_viewers.add('legacy')
   return web.json_response(engine.camera,headers={'Cache-Control':'no-store'})
 
 async def close_idle_camera(engine,target):

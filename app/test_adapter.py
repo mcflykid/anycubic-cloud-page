@@ -174,6 +174,22 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(adapter.axis_payload(3,2,0),{'axis':3,'move_type':2,'distance':0})
   with self.assertRaises(ValueError):adapter.axis_payload(1,1,1000)
   with self.assertRaises(ValueError):adapter.axis_payload(5,1,50)
+ async def test_missing_ai_status_has_no_previous_flags(self):
+  """Une réponse partielle autorise le réglage sans erreur de conversion."""
+  data={'spaghetti':True,'foreign':False}
+  for previous in ({},{'status':None}):
+   self.assertEqual(adapter.ai_payload(data,previous)['ai_settings']['status'],1)
+  with self.assertRaisesRegex(ValueError,'État IA précédent invalide'):
+   adapter.ai_payload(data,{'status':'fixture-malformed'})
+ async def test_history_delete_without_cloud_rejects_before_mutation(self):
+  """Une suppression hors connexion ne doit pas être présentée comme un résultat incertain."""
+  from unittest.mock import patch
+  self.e.api=None;self.e.delete_history=AsyncMock()
+  req=SimpleNamespace(headers={},json=AsyncMock(return_value={'all':True}))
+  with patch.object(adapter,'engine',self.e):
+   with self.assertRaisesRegex(ValueError,'Connexion en cours'):
+    await adapter.history_delete(req)
+  self.e.delete_history.assert_not_awaited()
  async def test_ai_payload_preserves_unrelated_flags(self):
   """Vérifie que les réglages IA conservent les bits non concernés."""
   result=adapter.ai_payload({'spaghetti':True,'foreign':False,'spaghetti_level':2,'foreign_level':1,'pause':True},{'status':4,'sensitivity_level':[1,1,2],'notice_type':[0,0,1]})['ai_settings']

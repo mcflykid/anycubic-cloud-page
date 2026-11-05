@@ -28,3 +28,16 @@ test('le cloud choisi pendant une lecture locale est chargé après la réponse 
  await login(page);await page.getByRole('button',{name:'Fichiers',exact:true}).click();await waiting;await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();release();
  await expect(page.getByText('cloud-seul.gcode',{exact:true})).toBeVisible();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);expect(cloudReads).toBe(1);
 });
+
+test('les fichiers non imprimables et la dernière page désactivent les actions',async({page})=>{
+ await page.route('**/imprimante-api/files/cloud?**',route=>route.fulfill({json:{
+  files:[{name:'fixture.3mf',handle:'fixture',printable:false}],
+  has_more:false,
+  store:{used_bytes:0,total_bytes:1024}
+ }}));
+ await login(page);
+ await page.getByRole('button',{name:'Fichiers',exact:true}).click();
+ await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();
+ await expect(page.locator('#file-rows').getByRole('button',{name:'Imprimer',exact:true})).toBeDisabled();
+ await expect(page.locator('#next-page')).toBeDisabled();
+});

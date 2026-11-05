@@ -28,5 +28,10 @@ def ai_payload(data,previous=None):
  pause=data.get('pause',False)
  if not isinstance(pause,bool):raise ValueError('Action de détection invalide')
  notices[1]=(1 if pause else 2) if spaghetti else 0
- status=(int(previous.get('status',0))&~3)|(1 if spaghetti else 0)|(2 if foreign else 0)
+ raw_status=previous.get('status')
+ if raw_status is None:
+  raw_status=0
+ if type(raw_status) is not int and not (isinstance(raw_status,str) and raw_status.isdecimal()):
+  raise ValueError('État IA précédent invalide. Actualisez les réglages avant de réessayer.')
+ status=(int(raw_status)&~3)|(1 if spaghetti else 0)|(2 if foreign else 0)
  return {'ai_settings':{'status':status,'type':2 if spaghetti or foreign else 1,'count':60 if spaghetti or foreign else 1,'sensitivity_level':levels,'notice_type':notices}}
