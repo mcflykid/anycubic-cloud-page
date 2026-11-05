@@ -15,12 +15,18 @@ def claims(token):
   return data if isinstance(data,dict) else {}
  except (ValueError,IndexError,TypeError):return {}
 
+class AccountLoginRejected(RuntimeError):
+ """Refus explicite du compte : une intervention est nécessaire avant un nouvel envoi du mot de passe."""
+
+class AccountRefreshRejected(RuntimeError):
+ """Session de renouvellement refusée explicitement ; une nouvelle connexion peut être nécessaire."""
+
 class AccountAuth:
  """Gère la session du compte et son repli sur un jeton local privé."""
  def __init__(self,credentials='/appdata/private/anycubic-account',state='/appdata/state/account-session.json',fallback='/appdata/private/anycubic-token'):
   """Charge les chemins privés des identifiants, de la session et du jeton de repli, sans connexion réseau."""
   self.credentials=pathlib.Path(credentials);self.path=pathlib.Path(state);self.fallback=pathlib.Path(fallback)
-  self.lock=asyncio.Lock();self.retry_after=0;self.state={}
+  self.lock=asyncio.Lock();self.retry_after=0;self.state={};self.retry_failures=0;self.credentials_revision=None;self.login_blocked=False;self.notice=None
   with contextlib.suppress(OSError,ValueError):self.state=json.loads(self.path.read_text())
  def valid(self,token,margin=300):
   """Teste identité et expiration finie avec une marge en secondes ; ne vérifie pas la signature et refuse un schéma illisible."""
@@ -40,6 +46,9 @@ class AccountAuth:
  async def post(self,session,path,*,data=None,params=None,body=None):
   """Renvoie le JSON du centre utilisateur ; lève RuntimeError si la connexion est refusée ou illisible."""
   async with session.post(UC+path,data=data,json=body,params=params,headers={'User-Agent':'Mozilla/5.0'},timeout=__import__('aiohttp').ClientTimeout(total=25)) as response:
+   if response.status in (401,403):
+    if path=='/api/login':raise AccountLoginRejected('Connexion Anycubic refusée : vérifiez les identifiants ou les contrôles du compte, puis mettez à jour la configuration.')
+    if path.endswith('/refresh_token'):raise AccountRefreshRejected('Renouvellement Anycubic refusé')
    try:result=await response.json()
    except (ValueError,__import__('aiohttp').ContentTypeError):raise RuntimeError('Réponse de connexion Anycubic illisible') from None
    if response.status!=200 or not isinstance(result,dict):raise RuntimeError('Connexion au compte Anycubic refusée')
@@ -51,6 +60,7 @@ class AccountAuth:
   challenge=base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
   params={'clientId':CLIENT_ID,'responseType':'code','redirectUri':REDIRECT,'type':'code','scope':'read','state':secrets.token_urlsafe(24),'code_challenge_method':'S256','code_challenge':challenge}
   response=await self.post(session,'/api/login',params=params,body={'application':'ac_slicer_next','organization':'anycubic','username':c['email'],'password':c['password'],'type':'code','autoSignin':True})
+  if response.get('status') in ('error','fail','failed'):raise AccountLoginRejected('Connexion Anycubic refusée : vérifiez les identifiants ou les contrôles du compte, puis mettez à jour la configuration.')
   code=response.get('data')
   if response.get('status')!='ok' or not isinstance(code,str) or not code or len(code)>2048:raise RuntimeError('Connexion au compte Anycubic refusée')
   result=await self.post(session,'/api/login/oauth/access_token',data={'grant_type':'authorization_code','client_id':CLIENT_ID,'code':code,'code_verifier':verifier,'redirect_uri':REDIRECT})
@@ -58,46 +68,65 @@ class AccountAuth:
  async def refresh(self,session):
   """Renouvelle et persiste la session, en conservant le refresh_token si le serveur l’omet."""
   result=await self.post(session,'/api/login/oauth/refresh_token',body={'grant_type':'refresh_token','refresh_token':self.state['refresh_token'],'scope':'read','client_id':CLIENT_ID})
+  if result.get('status') in ('error','fail','failed') or result.get('error')=='invalid_grant':raise AccountRefreshRejected('Renouvellement Anycubic refusé')
   if not result.get('refresh_token'):result['refresh_token']=self.state['refresh_token']
   self.save(result)
+ def check_retry(self):
+  """Réarme après changement de configuration ; refuse sans réseau un compte bloqué ou un délai non écoulé."""
+  revision=hashlib.sha256(self.credentials.read_bytes()).digest()
+  if revision!=self.credentials_revision:
+   self.credentials_revision=revision;self.login_blocked=False;self.retry_after=0;self.retry_failures=0;self.notice=None
+  if self.login_blocked:raise AccountLoginRejected(self.notice)
+  if time.time()<self.retry_after:raise RuntimeError('Connexion Anycubic en attente après un échec temporaire')
+ def retry_failed(self,error):
+  """Stoppe sur refus explicite ; les pannes temporaires suivent un délai de 30 secondes à 30 minutes."""
+  if isinstance(error,AccountLoginRejected):
+   self.login_blocked=True;self.notice=str(error)
+  else:
+   self.retry_failures=min(self.retry_failures+1,7);self.retry_after=time.time()+min(1800,30*2**(self.retry_failures-1))
+   self.notice='Connexion Anycubic temporairement indisponible. Nouvelle tentative différée.'
+ def retry_succeeded(self):
+  """Efface les délais et avertissements après une session obtenue avec succès."""
+  self.retry_after=0;self.retry_failures=0;self.login_blocked=False;self.notice=None
  async def token(self,session):
   """Renvoie un jeton utilisable ; lève RuntimeError si aucun repli valide ne survit à l’échec."""
   async with self.lock:
    if not self.credentials.exists():return self.fallback.read_text().strip()
    token=self.state.get('access_token','');current=self.valid(token)
+   try:self.check_retry()
+   except RuntimeError:
+    if current:return token
+    raise
    # Le jeton de renouvellement expire avant le jeton d’accès : le renouveler chaque semaine.
    due=not current or time.time()-self.state.get('obtained_at',0)>7*86400
    if not due:return token
-   if time.time()<self.retry_after:
-    if current:return token
-    raise RuntimeError('Connexion Anycubic en attente')
    try:
     if self.state.get('refresh_token'):
      try:await self.refresh(session)
-     except (RuntimeError,TimeoutError,__import__('aiohttp').ClientError):await self.login(session)
+     except AccountRefreshRejected:await self.login(session)
     else:await self.login(session)
-    self.retry_after=0
+    self.retry_succeeded()
     return self.state['access_token']
-   except (OSError,ValueError,RuntimeError,TimeoutError,__import__('aiohttp').ClientError):
-    self.retry_after=time.time()+300
+   except (OSError,ValueError,RuntimeError,TimeoutError,__import__('aiohttp').ClientError) as error:
+    self.retry_failed(error)
     if current:return token
-    raise RuntimeError('Connexion au compte Anycubic indisponible') from None
+    raise RuntimeError(self.notice) from None
 
  async def renew_after_rejection(self,session):
   """Renvoie un nouveau jeton après un refus explicite ; lève RuntimeError si le renouvellement échoue."""
   async with self.lock:
-   if time.time()<self.retry_after:raise RuntimeError('Connexion Anycubic en attente')
    if not self.credentials.exists():
     token=self.fallback.read_text().strip()
     if not token:raise RuntimeError('Token absent. Reconnectez le slicer puis relancez la récupération locale.')
     return token
+   self.check_retry()
    try:
     if self.state.get('refresh_token'):
      try:await self.refresh(session)
-     except (RuntimeError,TimeoutError,__import__('aiohttp').ClientError):await self.login(session)
+     except AccountRefreshRejected:await self.login(session)
     else:await self.login(session)
-    self.retry_after=0
+    self.retry_succeeded()
     return self.state['access_token']
-   except (OSError,ValueError,RuntimeError,TimeoutError,__import__('aiohttp').ClientError):
-    self.retry_after=time.time()+300
-    raise RuntimeError('Connexion au compte Anycubic indisponible') from None
+   except (OSError,ValueError,RuntimeError,TimeoutError,__import__('aiohttp').ClientError) as error:
+    self.retry_failed(error)
+    raise RuntimeError(self.notice) from None

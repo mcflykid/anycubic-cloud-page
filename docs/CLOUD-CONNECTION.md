@@ -80,3 +80,9 @@ Pour lire les réglages, le client constructeur envoie l’ordre `1242` avec `pr
 Le `msgid` machine différait de celui de l’acquittement cloud. Le serveur accepte donc cette réponse uniquement pendant une consultation active de 30 secondes, depuis le topic de l’imprimante sélectionnée, avec le type et l’action attendus. Une réponse d’une autre machine, un message `set` ou un rapport hors fenêtre est refusé. Cette stratégie ne prétend pas distinguer deux consultations simultanées faites par deux clients externes sur la même machine ; le serveur sérialise ses propres consultations.
 
 La lecture réelle et l’activation du formulaire ont été vérifiées. L’écriture des réglages n’a pas été testée physiquement pour cette publication.
+
+
+## Refus du compte et reprise différée (#60)
+Un refus explicite de la connexion par mot de passe (HTTP 401/403 ou réponse de connexion `status: error|fail|failed`) suspend les nouvelles tentatives automatiques. L’atelier affiche un message demandant de vérifier les identifiants ou les contrôles du compte et de mettre à jour la configuration. Une modification du fichier privé d’identifiants ou un redémarrage réarme cette tentative ; un simple polling ne la relance pas. Aucun message brut du fournisseur n’est affiché.
+
+Une panne réseau ou une réponse illisible ne prouve pas un mauvais mot de passe : les délais augmentent de 30 secondes à 30 minutes. Une panne de renouvellement ne renvoie plus automatiquement le mot de passe ; seule une session de renouvellement explicitement refusée permet cette nouvelle connexion. Un jeton encore valide peut rester utilisable pendant une panne, avec l’avertissement visible ; un jeton explicitement rejeté ne sert pas de repli.

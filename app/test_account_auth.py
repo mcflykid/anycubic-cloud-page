@@ -1,7 +1,7 @@
 """Tests isolés : account auth, sans commande physique ni connexion au cloud."""
 import asyncio,base64,hashlib,json,pathlib,tempfile,time,unittest
-from unittest.mock import AsyncMock
-from account_auth import AccountAuth
+from unittest.mock import AsyncMock,MagicMock
+from account_auth import AccountAuth,AccountLoginRejected,AccountRefreshRejected
 
 def token(sub='owner',exp=None):
  """Renvoie un JWT fictif non signé ; sub et exp pilotent l’identité et l’expiration du scénario."""
@@ -33,7 +33,7 @@ class AccountTests(unittest.IsolatedAsyncioTestCase):
  async def test_refresh_failure_falls_back_to_login(self):
   """Vérifie que un renouvellement refusé déclenche une connexion complète."""
   self.a.save({'access_token':token(),'refresh_token':'test-refresh'});self.a.state['obtained_at']=0
-  self.a.refresh=AsyncMock(side_effect=TimeoutError());self.a.login=AsyncMock()
+  self.a.refresh=AsyncMock(side_effect=AccountRefreshRejected());self.a.login=AsyncMock()
   await self.a.token(None);self.a.login.assert_awaited_once()
  async def test_valid_session_survives_provider_outage_with_backoff(self):
   """Vérifie que une session valide reste utilisable pendant le délai de repli."""
@@ -73,7 +73,7 @@ class AccountTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(self.a.state['refresh_token'],'fixture-refresh');self.assertEqual(self.a.state['access_token'],replacement);self.assertEqual(self.a.path.stat().st_mode&0o777,0o600)
  async def test_rejected_account_switch_keeps_original_session_and_sanitizes_error(self):
   """Le refus explicite ne permet ni un changement de compte ni un retour du jeton rejeté."""
-  self.a.save({'access_token':token(),'refresh_token':'fixture-private-refresh'});before=self.a.path.read_text();self.a.refresh=AsyncMock(side_effect=RuntimeError('fixture-private-provider'))
+  self.a.save({'access_token':token(),'refresh_token':'fixture-private-refresh'});before=self.a.path.read_text();self.a.refresh=AsyncMock(side_effect=AccountRefreshRejected('fixture-private-provider'))
   async def login(session):
    """Le faux fournisseur tente de répondre avec une autre identité."""
    self.a.save({'access_token':token('fixture-other-account')})
@@ -93,4 +93,31 @@ class AccountTests(unittest.IsolatedAsyncioTestCase):
   self.a.post=AsyncMock(return_value={'status':'error','data':None})
   with self.assertRaises(RuntimeError):await self.a.login(None)
   self.assertEqual(self.a.post.await_count,1);self.assertFalse(self.a.path.exists())
+ async def test_explicit_refusal_stops_password_retries_until_configuration_changes(self):
+  """Un refus reste bloqué même longtemps après ; une configuration corrigée permet un essai."""
+  self.a.post=AsyncMock(return_value={'status':'error','data':None})
+  for _ in range(3):
+   self.a.retry_after=0
+   with self.assertRaisesRegex(RuntimeError,'vérifiez les identifiants'):await self.a.token(None)
+  self.assertEqual(self.a.post.await_count,1);self.assertTrue(self.a.login_blocked)
+  self.a.credentials.write_text(json.dumps({'email':'test@example.test','password':'corrected-fixture-only'}))
+  self.a.post=AsyncMock(side_effect=[{'status':'ok','data':'fixture-code'},{'access_token':token(),'refresh_token':'fixture-refresh'}])
+  await self.a.token(None);self.assertFalse(self.a.login_blocked);self.assertIsNone(self.a.notice)
+ async def test_network_refresh_failure_never_resubmits_password_and_backs_off(self):
+  """Les pannes réseau gardent le refresh et augmentent le délai, sans connexion par mot de passe."""
+  self.a.state={'access_token':token(exp=time.time()-1),'refresh_token':'fixture-refresh','obtained_at':0}
+  self.a.refresh=AsyncMock(side_effect=TimeoutError());self.a.login=AsyncMock()
+  for expected in [30,60,120,240,480,960,1800,1800]:
+   self.a.retry_after=0;before=time.time()
+   with self.assertRaises(RuntimeError):await self.a.token(None)
+   self.assertGreaterEqual(self.a.retry_after,before+expected);self.assertLess(self.a.retry_after,time.time()+expected+1)
+   with self.assertRaises(RuntimeError):await self.a.token(None)
+  self.assertEqual(self.a.refresh.await_count,8);self.a.login.assert_not_awaited()
+ async def test_http_refusal_is_distinct_from_server_outage(self):
+  """Les statuts de refus n’exigent aucun message fournisseur et les 5xx restent temporaires."""
+  for status in [401,403,503]:
+   session=MagicMock();response=MagicMock();response.status=status;response.json=AsyncMock(return_value={'message':'fixture-private-detail'})
+   session.post.return_value.__aenter__=AsyncMock(return_value=response)
+   with self.assertRaises(RuntimeError) as caught:await self.a.post(session,'/api/login')
+   self.assertEqual(isinstance(caught.exception,AccountLoginRejected),status in [401,403]);self.assertNotIn('fixture-private',str(caught.exception))
 if __name__=='__main__':unittest.main()

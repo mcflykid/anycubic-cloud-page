@@ -194,7 +194,7 @@ class Engine:
      try:await self.print_history(1);self.notifications_error=None
      except Exception:self.notifications_error='Messages temporairement indisponibles'
    except Exception as e:
-    self.ok=False;self.error='Connexion Anycubic indisponible ('+type(e).__name__+').'
+    self.ok=False;self.error=getattr(self.account,'notice',None) or 'Connexion Anycubic indisponible ('+type(e).__name__+').' 
     if 'Auth' in type(e).__name__ and type(e).__name__!='CloudSessionAuthError':
      owner=getattr(getattr(self,'fleet_registry',None),'default',self);owner.reconnect_required=True
      # Conserver le client jusqu’à la fin du fil permet de réessayer sa fermeture au cycle suivant.
@@ -222,6 +222,7 @@ class Engine:
   """Renvoie l’état sérialisé et filtré pour le navigateur, sans identifiants de compte."""
   p=self.printer
   base={'ok':self.ok,'message':self.error,'updated_at':self.updated,'mqtt_updated_at':self.mqtt_update,'mqtt_connected':bool(self.api and self.api._mqtt_client and self.api._mqtt_client.is_connected()),'public_commands':False,'upstream':'hass-anycubic_cloud_v3','events':list(self.events),'presets':self.presets}
+  base['account_message']=getattr(self.account,'notice',None)
   base['notifications']=getattr(self,'history_cache',{}).get(1,(None,None))[1]
   base['notifications_error']=getattr(self,'notifications_error',None)
   base['camera_diagnostic']=self.camera_diagnostic
