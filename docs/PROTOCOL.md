@@ -72,3 +72,7 @@ Un type inconnu ne rafraîchit pas artificiellement l’état de l’imprimante.
 Les rapports synthétiques couvrent les champs ACE omis (`temp`, `feed_status`), les phases de préparation et de changement de filament, `fan/query`, `extrudeControl/getInfo`, `properties/report`, `extfilbox/auto|getInfo` et `video/startCapture/pushFailed`. Les préparations marquent la machine occupée sans réactiver un projet terminé après un rapport tardif. Les réglages globaux de trajet du filament ne créent aucune bobine.
 
 La Kobra X est reconnue par le type constructeur 20030 ou son nom exact. Ses phases 19/26/27/29/30 et son décompte de séchage restent spécifiques à ce modèle ; la conversion secondes/minutes suit les conditions du client amont 0.4.5, pas une hypothèse appliquée aux S1. Cette couverture est simulée : aucun matériel supplémentaire ni commande physique n’a été validé.
+
+
+## Fraîcheur avant pause, reprise ou arrêt (#19)
+L’interface transmet la référence opaque du projet affiché au moment de demander confirmation. Sous les verrous d’opération et de lecture, le serveur exige la même référence, relit le modèle par HTTP avec une limite de dix secondes et contrôle de nouveau identité, état actif et pause avant l’envoi. La méthode constructeur reçoit explicitement le projet vérifié. Une lecture échouée, une tâche remplacée ou une transition de pause annule l’envoi ; une activité MQTT sans rapport ne constitue pas une preuve de fraîcheur. Aucun ordre n’est répété automatiquement après un résultat incertain.

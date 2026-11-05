@@ -196,6 +196,22 @@ class Engine:
     self.ok=False;self.error='Connexion Anycubic indisponible ('+type(e).__name__+').'
     if 'Auth' in type(e).__name__ and type(e).__name__!='CloudSessionAuthError':self.api=None;self.printer=None
    await asyncio.sleep(60)
+ def command_project_key(self):
+  """Renvoie une référence opaque du projet affiché, liée à la machine ; None si le contexte manque."""
+  p=self.printer;project=getattr(p,'latest_project',None)
+  identifier=getattr(project,'id',None)
+  return printer_key(str(p.id)+':'+str(identifier)) if p and identifier is not None else None
+ async def verify_active_project(self,name,expected):
+  """Relit le projet sous le verrou de commande ; ValueError refuse une identité ou un état devenus différents."""
+  p=self.printer
+  if not expected or expected!=self.command_project_key():raise ValueError('Le projet a changé ou sa référence manque. Actualisez ; aucune commande envoyée.')
+  try:await asyncio.wait_for(p.update_info_from_api(),timeout=10)
+  except Exception:raise ValueError('État récent de l’impression indisponible. Aucune commande envoyée.') from None
+  if self.printer is not p or expected!=self.command_project_key():raise ValueError('Le projet a changé pendant la vérification. Aucune commande envoyée.')
+  if not p.printer_online or not p.latest_project or not p.latest_project_print_in_progress:raise ValueError('Aucune impression active confirmée. Aucune commande envoyée.')
+  if name=='pause' and p.latest_project_print_is_paused or name=='resume' and not p.latest_project_print_is_paused:raise ValueError('L’état de pause a changé. Actualisez ; aucune commande envoyée.')
+  self.updated=now()
+  return p.latest_project
  def snapshot(self):
   """Renvoie l’état sérialisé et filtré pour le navigateur, sans identifiants de compte."""
   p=self.printer
@@ -208,7 +224,7 @@ class Engine:
   fields={k:serial(safeget(p,v)) for k,v in FIELDS.items()}
   # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
   fields.pop('job_image_url',None)
-  fields['firmware']=safeget(p,'fw_version.firmware_version');fields['firmware_available']=safeget(p,'fw_version.available_version');fields['ace_available']=[safeget(p,'primary_multi_color_box_fw_available_version'),safeget(p,'secondary_multi_color_box_fw_available_version')]
+  fields['command_project']=self.command_project_key();fields['firmware']=safeget(p,'fw_version.firmware_version');fields['firmware_available']=safeget(p,'fw_version.available_version');fields['ace_available']=[safeget(p,'primary_multi_color_box_fw_available_version'),safeget(p,'secondary_multi_color_box_fw_available_version')]
   fields['firmware_update_available']=safeget(p,'fw_version.update_available')
   fields['ace_updates']=[{'current':safeget(fw,'firmware_version'),'target':safeget(fw,'available_version'),'available':safeget(fw,'update_available'),'progress':safeget(fw,'total_progress')} for fw in (safeget(p,'multi_color_box_fw_version') or [])]
   fields['supported_functions']=safeget(p,'supported_function_strings');fields['camera_light']=safeget(p,'camera_light_on')
@@ -438,8 +454,8 @@ class Engine:
    await a._send_anycubic_order(AnycubicProjectOrderRequest(order_id=order,printer_id=p.id,project_id=0,order_data=payload))
    return 'Commande transmise à Anycubic ; vérifiez son application sur la machine'
   if name in ['pause','resume','cancel']:
-   if not p.latest_project or not p.latest_project_print_in_progress:raise ValueError('Aucune impression active')
-   result=await getattr(p,name+'_print')()
+   project=await self.verify_active_project(name,d.get('project_key'))
+   result=await getattr(p,name+'_print')(project=project)
   elif name=='light':
    enabled=bool(d['enabled']);channel=2 if p.machine_name=='Anycubic Kobra S1' else p.camera_light_type
    started=time.monotonic()

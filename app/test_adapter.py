@@ -54,7 +54,8 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
   self.assertFalse(data['spools'][1]['rfid']);self.assertNotIn('sku',str(data))
  async def test_pause_uses_upstream(self):
   """Vérifie que la pause passe par la méthode de la bibliothèque constructeur."""
-  self.p.pause_print=AsyncMock(return_value='accepted');await self.e.action('pause',{});self.p.pause_print.assert_awaited_once_with()
+  self.p.id=1;self.p.latest_project=SimpleNamespace(id=10);self.p.printer_online=True;self.p.latest_project_print_is_paused=False;self.p.update_info_from_api=AsyncMock()
+  self.p.pause_print=AsyncMock(return_value='accepted');await self.e.action('pause',{'project_key':self.e.command_project_key()});self.p.pause_print.assert_awaited_once_with(project=self.p.latest_project)
  async def test_no_project_does_not_send(self):
   """Vérifie que aucune commande d’impression ne part sans projet actif."""
   self.p.latest_project=None;self.p.pause_print=AsyncMock()
