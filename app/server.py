@@ -119,7 +119,7 @@ class Engine:
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
   self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False;self.transport_only=False
   self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1;self.reconnect_required=False
-  self.camera_viewers=set();self.camera_owner=None;self.camera_close_task=None
+  self.camera_viewers=set();self.camera_departures=collections.OrderedDict();self.camera_owner=None;self.camera_close_task=None
   self.command_lock=asyncio.Lock()
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
  def event(self,action,state):"""Ajoute un événement horodaté au journal local borné.""";self.events.appendleft({'time':now(),'action':action,'state':state})
@@ -711,6 +711,8 @@ async def camera(req):
  if not engine.printer:raise ValueError('Connexion en cours')
  async with engine.lock:
   verify_printer_target(req,engine)
+  if viewer and engine.camera_departures.get(viewer,0)>time.monotonic():
+   raise ValueError('Cet onglet a déjà fermé sa session vidéo')
   if viewer and len(engine.camera_viewers)>=32 and viewer not in engine.camera_viewers:raise ValueError('Trop de sessions vidéo ouvertes')
   if not engine.camera or time.time()-engine.last_session>5 or (viewer and engine.camera_owner!=viewer):
    engine.camera_message_id=None;engine.camera_diagnostic=None;engine.camera_stage=-1
@@ -755,6 +757,13 @@ async def camera_close(req):
  if not viewer or not re.fullmatch(r'[a-f0-9-]{36}',viewer):raise ValueError('Session vidéo invalide')
  async with engine.lock:
   verify_printer_target(req,engine)
+  # Un départ peut parvenir avant l’ouverture lorsque le navigateur ferme l’onglet.
+  now_monotonic=time.monotonic()
+  while engine.camera_departures and next(iter(engine.camera_departures.values()))<=now_monotonic:
+   engine.camera_departures.popitem(last=False)
+  engine.camera_departures.pop(viewer,None)
+  engine.camera_departures[viewer]=now_monotonic+120
+  while len(engine.camera_departures)>128:engine.camera_departures.popitem(last=False)
   if viewer in engine.camera_viewers:
    engine.camera_viewers.remove(viewer)
    if not engine.camera_viewers and engine.printer:

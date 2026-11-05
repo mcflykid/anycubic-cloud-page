@@ -77,6 +77,18 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
   engine.api._send_anycubic_order.assert_awaited_once()
   order=engine.api._send_anycubic_order.call_args.kwargs['order_request']
   self.assertEqual(order.order_request_data,{'order_id':1002,'printer_id':42})
+ async def test_departure_before_open_prevents_an_orphaned_stream(self):
+  """Un départ arrivé avant la requête d’ouverture bloque cette ouverture tardive."""
+  engine=adapter.Engine()
+  engine.printer=types.SimpleNamespace(id=42,get_camera_session=AsyncMock())
+  request=types.SimpleNamespace(headers={'Origin':adapter.ALLOWED_ORIGIN,'X-Camera-Viewer':'a'*36})
+  with patch.object(adapter,'engine',engine):
+   await adapter.camera_close(request)
+   with self.assertRaisesRegex(ValueError,'déjà fermé'):
+    await adapter.camera(request)
+  engine.printer.get_camera_session.assert_not_awaited()
+  self.assertIsNone(engine.camera_close_task)
+
  def test_tls_error_takes_precedence_over_transport_context(self):
   """Une panne TLS ne devient pas réessayable parce qu’elle comporte une cause de connexion."""
   error=ssl.SSLError('fixture');error.__context__=aiohttp.ClientConnectionError('fixture')
