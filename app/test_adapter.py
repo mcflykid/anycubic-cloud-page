@@ -128,7 +128,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
  async def test_history_does_not_label_interruption_as_success(self):
   """Vérifie que une interruption n’est pas présentée comme une impression réussie."""
   entry=adapter.history_entry({'print_status':3,'read':1})
-  self.assertEqual(entry['kind'],'interrupted');self.assertEqual(entry['result'],'Impression interrompue');self.assertFalse(entry['unread'])
+  self.assertEqual(entry['kind'],'interrupted');self.assertEqual(entry['result'],'Impression arrêtée');self.assertFalse(entry['unread'])
  async def test_temperature_history_bounds_missing_values_and_duplicates(self):
   """Vérifie que l’historique filtre les températures invalides et les doublons."""
   import tempfile

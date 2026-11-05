@@ -57,8 +57,8 @@ def filepath(value):
 def history_entry(row):
  """Renvoie une notification affichable avec référence opaque et libellé français."""
  code=row.get('print_status')
- labels={2:'Impression terminée',3:'Impression interrompue'}
- title=labels.get(code) or {'Print complete':'Impression terminée','Print to terminate':'Impression interrompue','Print failed':'Échec de l’impression'}.get(row.get('title'),'Notification d’impression')
+ labels={2:'Impression terminée',3:'Impression arrêtée'}
+ title=labels.get(code) or {'Print complete':'Impression terminée','Print to terminate':'Impression arrêtée','Print failed':'Échec de l’impression'}.get(row.get('title'),'Notification d’impression')
  return {'key':hashlib.sha256(str(row.get('id','')).encode()).hexdigest()[:20],'name':str(row.get('project_name') or 'Impression sans nom')[:300],'printer':str(row.get('printer_name') or 'Kobra S1')[:100],'time':row.get('create_time'),'result':title,'kind':'success' if code==2 else 'interrupted' if code==3 else 'info','unread':row.get('read')==0}
 
 class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):

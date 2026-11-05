@@ -98,7 +98,7 @@ class CloudExtras:
   for r in rows:
    taskid=r.get('task_id') or r.get('taskid') or r.get('id');r={**lookup.get((str(r.get('printer_id')),str(taskid)),{}),**r,'taskid':taskid};r.setdefault('id',taskid)
    k=key(str(r.get('printer_id'))+':'+str(taskid));self.tasks[k]=r
-   status=r.get('print_status');outcome={0:'En préparation',1:'Impression en cours',2:'Impression terminée',3:'Impression interrompue'}.get(status,'État non renseigné')
+   status=r.get('print_status');outcome={0:'En préparation',1:'Impression en cours',2:'Impression terminée',3:'Impression arrêtée'}.get(status,'État non renseigné')
    items.append({'key':k,'name':clean_text(r.get('task_name') or r.get('gcode_name') or r.get('model') or 'Impression',300),'start':r.get('start_time') or r.get('create_time'),'end':r.get('end_time'),'status':outcome,'status_code':status,'elapsed_minutes':history_minutes(r),'progress':number(r.get('progress')),'reason':diagnostic_text(r.get('reason')),'can_reprint':bool(number(r.get('gcode_id'),0)>0),'evaluated':bool(r.get('is_comment')),'printer':clean_text(r.get('printer_name') or getattr(allowed[str(r.get('printer_id'))],'name','Imprimante'),100),'printer_key':key(r.get('printer_id'))})
   while len(self.tasks)>500:self.tasks.pop(next(iter(self.tasks)))
   items.sort(key=lambda r:number(r.get('start'),0),reverse=True)
