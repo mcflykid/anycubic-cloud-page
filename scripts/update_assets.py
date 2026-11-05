@@ -1,9 +1,23 @@
-"""Actualisation des versions et empreintes d’intégrité HTML après modification du JavaScript ou des CSS."""
+"""Actualisation des versions et empreintes d’intégrité des ressources de l’atelier."""
 from pathlib import Path
-import base64,hashlib,re
-root=Path(__file__).resolve().parents[1]/'web';file=root/'imprimante.html';html=file.read_text()
-for folder,name in [('css','imprimante.css'),('css','landing.css'),('js','imprimante.js')]:
- digest=hashlib.sha256((root/folder/name).read_bytes()).hexdigest()[:12]
- html=re.sub(r'/'+folder+'/'+re.escape(name)+r'\?v=[^"\s]+','/'+folder+'/'+name+'?v='+digest,html)
-# Le navigateur bloque le JavaScript si l’empreinte SRI ne correspond plus, même après un simple commentaire.
-digest=base64.b64encode(hashlib.sha256((root/'js/imprimante.js').read_bytes()).digest()).decode();html=re.sub(r'integrity="sha256-[^"]+"','integrity="sha256-'+digest+'"',html);file.write_text(html)
+import base64
+import hashlib
+import re
+
+root = Path(__file__).resolve().parents[1] / 'web'
+for page in ('imprimante.html', 'login.html'):
+    file = root / page
+    html = file.read_text()
+    for name in ('imprimante.css', 'landing.css'):
+        digest = hashlib.sha256((root / 'css' / name).read_bytes()).hexdigest()[:12]
+        path = '/css/' + name
+        html = re.sub(re.escape(path) + r'\?v=[^"\s]+', path + '?v=' + digest, html)
+    for name in ('imprimante.js', 'ui-language.js'):
+        path = '/js/' + name
+        digest = hashlib.sha256((root / 'js' / name).read_bytes())
+        version = digest.hexdigest()[:12]
+        integrity = base64.b64encode(digest.digest()).decode()
+        # Chaque script doit conserver sa propre empreinte SRI après modification.
+        pattern = r'<script src="' + re.escape(path) + r'(?:\?v=[^"]*)?"[^>]*>'
+        html = re.sub(pattern, f'<script src="{path}?v={version}" integrity="sha256-{integrity}" crossorigin="anonymous">', html)
+    file.write_text(html)

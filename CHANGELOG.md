@@ -1,6 +1,6 @@
 # Changements
 
-## 1.2.10 — en préparation
+## 1.2.8 — en préparation
 
 - Conservation de l’imprimante par défaut pendant la reconnexion du compte et reprise des relevés de température des imprimantes secondaires (#48, #56).
 - Transfert des G-code depuis un fichier temporaire avec lecture bornée. Un envoi signé refusé déclenche la demande de libération du quota (#58, #24).
@@ -10,6 +10,14 @@
 - Aperçus de notifications préservés lors du rafraîchissement de l’historique, et message explicite lorsque la connexion empêche une suppression (#36, #52).
 - Préréglage de la durée de séchage si la valeur est valide et gestion des réponses cloud incomplètes (#53, #50).
 - Calcul de la période de 90 jours de l’historique en jours calendaires, y compris autour des changements d’heure.
+- Détails d’historique par groupe, consommation estimée, présentation compacte sur mobile, évaluation et réimpression depuis les fiches éligibles (#39, #40, #42, #49).
+- Sélecteur déroulant du pas de déplacement, croix XY et commandes Z séparées. Les boutons d’éclairage se trouvent dans l’onglet Caméra (#44).
+- Compteurs du constructeur, visuels adaptés aux modèles explicitement identifiés et pictogrammes sur les libellés (#37, #38, #41).
+- Motifs connus et regroupement des notifications qui partagent une machine, une tâche et un motif explicites (#45).
+- Version installée et liens Confidentialité, Conditions, Cookies et Crédits dans le pied de page. Boutons de connexion centrés (#35, #71 à #75).
+- Recherche et pagination des timelapses lorsque le firmware fournit la liste. Les références de miniatures et les liens de téléchargement restent à confirmer (#30).
+- Choix français, anglais ou espagnol mémorisé. La connexion, la navigation et une partie des libellés et confirmations sont traduites. La couverture complète reste suivie dans #55.
+- Les dossiers cloud et les déplacements restent suivis dans #31. Le lien entre les références de fichiers et l’arborescence reste à confirmer.
 
 ## 1.2.5 — 2026-11-05
 

@@ -1,7 +1,7 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 import argparse,base64,math,os,pathlib,re,time
 from aiohttp import web
-from web_host import ROOT,about,render_page,home_url,display_timezone,access_control,install_access,ACCESS_KEY
+from web_host import ROOT,install_information,render_page,home_url,display_timezone,access_control,install_access,ACCESS_KEY
 T=time.time()
 NOTICES=web.AppKey('notices',list)
 PRINT_TASKS=web.AppKey('print_tasks',list)
@@ -9,9 +9,9 @@ NOTICE_FIXTURES=[{'key':format(i+1,'020x'),'name':name,'printer':'Kobra S1 · D�
 SVG=b'<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240"><rect width="320" height="240" rx="20" fill="#f4f7fb"/><path d="M160 45 235 85v80l-75 40-75-40V85Z" fill="#b4cbe2"/><path d="m85 85 75 40 75-40M160 125v80" fill="none" stroke="#4e79a2" stroke-width="5"/><path d="m105 142 35 18m-35-38 35 18m40 20 35-18m-35-2 35-18" stroke="#4e79a2" stroke-width="4"/></svg>'
 IMAGE='data:image/svg+xml;base64,'+base64.b64encode(SVG).decode()
 SPOOLS=[{'slot':i+1,'local_slot':i+1,'display_slot':i+1,'material_type':'PLA','color':c,'spool_loaded':True,'remaining_percent':v,'rfid':i!=1,'brand':'Anycubic' if i!=1 else None} for i,(c,v) in enumerate([([235,235,235],76),([38,91,145],62),([214,134,64],91),([56,56,59],48)])]
-BOX={'box_id':0,'index':0,'spools':SPOOLS,'auto_feed':True,'temperature':42,'humidity':18,'loaded_slot':1,'drying':{'is_drying':True,'target_temperature':45,'total_duration':240,'remaining_time':96}}
+BOX={'model':'ACE 2 Pro','box_id':0,'index':0,'spools':SPOOLS,'auto_feed':True,'temperature':42,'humidity':18,'loaded_slot':1,'drying':{'is_drying':True,'target_temperature':45,'total_duration':240,'remaining_time':96}}
 PARAMS={'layer_height':0.2,'fill_density':15,'enable_support':False,'perimeters':3,'temperature':210,'bed_temperature':60,'outer_wall_speed':80,'travel_speed':200}
-PRINTER={'name':'Kobra S1 · Démonstration','machine_name':'Anycubic Kobra S1','printer_online':True,'is_available':True,'is_busy':False,'job_in_progress':False,'job_is_paused':False,'job_name':'Cube de calibration · PLA','job_state':'finished','job_progress':100,'job_time_elapsed':46,'job_time_remaining':0,'job_current_layer':100,'job_total_layers':100,'curr_nozzle_temp':28,'target_nozzle_temp':0,'curr_hotbed_temp':26,'target_hotbed_temp':0,'fan_speed_pct':0,'aux_fan_speed_pct':0,'box_fan_level':0,'firmware':'2.7.2.7','firmware_available':'2.7.2.7','firmware_update_available':False,'multi_color_box_fw_version':'1.1.36','ace_updates':[{'current':'1.1.36','target':'1.1.36','available':False}],'ace_available':['1.1.36',None],'connected_ace_units':1,'boxes':[BOX],'statistics':{'hours':124,'material':'2.4 kg'},'task_details':{'dimensions':[20,20,20],'layers':100,'estimated_time':'46m','material_grams':12.6,'parameters':PARAMS},'axes_supported':True,'foreign_detection_supported':True,'speed_modes':[{'mode':0,'description':'Quiet'},{'mode':1,'description':'Standard'},{'mode':2,'description':'Sport'}]}
+PRINTER={'name':'Kobra S1 · Démonstration','machine_name':'Anycubic Kobra S1','printer_online':True,'is_available':True,'is_busy':False,'job_in_progress':False,'job_is_paused':False,'job_name':'Cube de calibration · PLA','job_state':'finished','job_progress':100,'job_time_elapsed':46,'job_time_remaining':0,'job_current_layer':100,'job_total_layers':100,'curr_nozzle_temp':28,'target_nozzle_temp':0,'curr_hotbed_temp':26,'target_hotbed_temp':0,'fan_speed_pct':0,'aux_fan_speed_pct':0,'box_fan_level':0,'firmware':'2.7.2.7','firmware_available':'2.7.2.7','firmware_update_available':False,'multi_color_box_fw_version':'1.1.36','ace_updates':[{'current':'1.1.36','target':'1.1.36','available':False}],'ace_available':['1.1.36',None],'connected_ace_units':1,'boxes':[BOX],'statistics':{'hours':124,'material':'2.4 kg','print_count':36},'task_details':{'dimensions':[20,20,20],'layers':100,'estimated_time':'46m','material_grams':12.6,'parameters':PARAMS},'axes_supported':True,'foreign_detection_supported':True,'speed_modes':[{'mode':0,'description':'Quiet'},{'mode':1,'description':'Standard'},{'mode':2,'description':'Sport'}]}
 TASKS=[{'key':str(i),'name':name,'start':T-days*86400,'end':None if status==1 else T-days*86400+2760,'status':{1:'Impression en cours',2:'Impression terminée',3:'Impression arrêtée'}[status],'status_code':status,'elapsed_minutes':46,'progress':50 if status==1 else 100,'reason':'','can_reprint':status!=1,'evaluated':False,'printer':'Kobra S1 · Démonstration','printer_key':'demo-printer'} for i,(name,days,status) in enumerate([('Cube de calibration · PLA',1,2),('Boîte de rangement · PLA',2,3),('Support de téléphone · PETG',3,1),('Vase décoratif · PLA',120,2),('Guide-câble · PETG',5,2),('Porte-crayons · PLA',6,2),('Ancien support · PLA',180,3)],1)]
 FILES=[{'name':name,'size_mb':size,'is_dir':False,'path':'/','handle':str(i)} for i,(name,size) in enumerate([('Cube de calibration.gcode',2.6),('Boîte de rangement.gcode',8.4),('Support de téléphone.gcode',5.1)])]
 
@@ -49,7 +49,7 @@ async def api(request):
  elif path=='extras/storage':d={'total':2*1024**3,'used':184*1024**2,'free':2*1024**3-184*1024**2}
  elif path=='extras/tasks':
   page=max(1,int(request.query.get('page',1)));offset=(page-1)*3;d={'items':tasks[offset:offset+3],'page':page,'has_more':offset+3<len(tasks)}
- elif path=='extras/task':d={'name':TASKS[0]['name'],'reason':'','reason_code':'','help_url':None,'dimensions':{'length':20,'width':20,'height':20},'layers':100,'estimated_seconds':2760,'material_grams':12.6,'parameters':PARAMS}
+ elif path=='extras/task':d={'name':TASKS[0]['name'],'reason':'','reason_code':'','help_url':None,'dimensions':{'length':20,'width':20,'height':20},'layers':100,'estimated_seconds':2760,'reported_minutes':46,'material_grams':12.6,'materials':[{'material':'PLA','grams':12.1,'color':'#305c91'}],'parameters':PARAMS}
  elif path=='history':d={'items':notices,'page':1,'total':len(notices),'unread':sum(x['unread'] for x in notices),'has_more':False}
  elif path=='ai-settings':d={'settings':{'status':3,'sensitivity_level':[1,2,0],'notice_type':[0,2,0]}}
  elif path=='extras/device':d={'message':None,'calibrations':[],'assistance':[],'screen':[],'hardware':{},'bed':{},'factory_reset':False,'timelapse':False}
@@ -63,7 +63,7 @@ def create_demo(authenticated=False):
  """Renvoie une démonstration sans cloud ; authenticated active la connexion web réelle."""
  app=web.Application(middlewares=[access_control] if authenticated else []);app[NOTICES]=[dict(x) for x in NOTICE_FIXTURES];app[PRINT_TASKS]=[dict(x) for x in TASKS]
  if authenticated:install_access(app)
- app.router.add_get('/',demo_index);app.router.add_get('/imprimante.html',demo_index);app.router.add_get('/about',about)
+ app.router.add_get('/',demo_index);app.router.add_get('/imprimante.html',demo_index);install_information(app)
  for folder in ['css','js','icons']:app.router.add_static('/'+folder+'/',ROOT/folder,show_index=False)
  app.router.add_route('*','/imprimante-api/{tail:.*}',api);return app
 if __name__=='__main__':

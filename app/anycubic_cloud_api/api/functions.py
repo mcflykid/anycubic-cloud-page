@@ -1904,8 +1904,10 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         cloud_file_id: int,
         ams_box_mapping: list[AnycubicMaterialMapping] | None = None,
         temp_file: bool = False,
+        *,
+        allow_retry: bool = True,
     ) -> str | None:
-        """Renvoie l’identifiant de demande ou None ; ams_box_mapping associe les matériaux aux bobines ACE. Lève AnycubicAPIError si les données ou l’état requis sont invalides."""
+        """Renvoie l’identifiant de demande ou None ; ams_box_mapping associe les matériaux aux bobines ACE. allow_retry=False limite l’envoi à une tentative. Lève AnycubicAPIError si les données ou l’état sont invalides."""
         if printer is None:
             raise AnycubicAPIError(ErrorsGeneral.no_printer_to_print)
 
@@ -1923,7 +1925,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         result = None
         try_count = 0
 
-        while result is None and try_count < 3:
+        while result is None and try_count < (3 if allow_retry else 1):
             try:
                 result = await self._send_order_start_print(
                     printer=printer,
@@ -1931,6 +1933,8 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
                     ams_box_mapping=ams_box_mapping,
                 )
             except AnycubicFileNotFoundError:
+                if not allow_retry:
+                    raise
                 await asyncio.sleep(3)
 
             try_count += 1
@@ -1943,6 +1947,8 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         gcode_id: int,
         slot_index_list: list[int] | None = None,
         file_name: str | None = None,
+        *,
+        allow_retry: bool = True,
     ) -> AnycubicPrintResponse:
         """Renvoie une réponse d’impression ; slot_index_list suit l’ordre des matériaux du G-code. Lève AnycubicAPIError, AnycubicGcodeParsingError si les données ou l’état requis sont invalides."""
         if printer is None:
@@ -1984,10 +1990,11 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
             printer=printer,
             cloud_file_id=proj.id,
             ams_box_mapping=ams_box_mapping,
+            allow_retry=allow_retry,
         )
 
         return AnycubicPrintResponse(
-            order_msg_id=str(order_msg_id),
+            order_msg_id=order_msg_id,
             printer_id=printer.id,
             saved_in_cloud=True,
             file_name=file_name,

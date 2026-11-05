@@ -82,6 +82,60 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
   self.task();self.e.printer.latest_project_print_in_progress=True;self.e.printer.print_with_cloud_gcode_id=AsyncMock()
   with self.assertRaises(ValueError):await self.x.action('task-reprint',{'key':'key'})
   self.e.printer.print_with_cloud_gcode_id.assert_not_called()
+ async def test_reprint_refresh_refuses_changed_status(self):
+  """Une imprimante devenue occupée après l’ouverture de la fiche ne reçoit aucun ordre."""
+  self.task()
+  async def refresh():
+   self.e.printer.latest_project_print_in_progress=True
+  self.e.printer.update_info_from_api=AsyncMock(side_effect=refresh)
+  self.e.printer.print_with_cloud_gcode_id=AsyncMock()
+  with self.assertRaisesRegex(ValueError,'en ligne et libre'):
+   await self.x.action('task-reprint',{'key':'key'})
+  self.e.printer.print_with_cloud_gcode_id.assert_not_awaited()
+
+ async def test_reprint_confirms_file_and_never_repeats_an_uncertain_send(self):
+  """Le G-code doit être lié à la fiche et un échec de transmission ne lance aucun second ordre."""
+  self.task()
+  self.e.printer.update_info_from_api=AsyncMock()
+  send=AsyncMock(side_effect=TimeoutError)
+  self.e.printer.print_with_cloud_gcode_id=send
+  with self.assertRaises(TimeoutError):
+   await self.x.action('task-reprint',{'key':'key'})
+  send.assert_awaited_once_with(80,[0],allow_retry=False)
+  self.x.tasks['key']['gcode_id']=None
+  with self.assertRaisesRegex(ValueError,'plus disponible'):
+   await self.x.action('task-reprint',{'key':'key'})
+  self.x.tasks['key']['printer_id']=8
+  with self.assertRaisesRegex(ValueError,'autre imprimante'):
+   await self.x.action('task-reprint',{'key':'key'})
+  self.assertEqual(send.await_count,1)
+
+ async def test_cloud_print_without_ack_does_not_repeat_when_retry_disabled(self):
+  """Le client ne transforme pas un acquittement absent en deuxième ordre."""
+  from anycubic_cloud_api.api.functions import AnycubicAPIFunctions
+  transport=SimpleNamespace(_send_order_start_print=AsyncMock(return_value=None))
+  printer=SimpleNamespace(primary_multi_color_box=None)
+  result=await AnycubicAPIFunctions.print_with_cloud_file_id(transport,printer,80,allow_retry=False)
+  self.assertIsNone(result)
+  transport._send_order_start_print.assert_awaited_once()
+
+ async def test_timelapse_list_does_not_expose_storage_references(self):
+  """Une liste fictive est paginée sans divulguer les clés et distingue un format non reconnu."""
+  self.e.direct_request=AsyncMock()
+  self.assertFalse((await self.x.videos())['available'])
+  self.e.direct_request.assert_not_awaited()
+  self.e.raw_info['features']=[{'name':'camera_timelapse_support','value':True}]
+  record={'filename':'video.mp4','size':128,'duration':5,'file_key':'reference-fictive'}
+  self.e.direct_request.return_value={'data':{'records':[record]*20}}
+  result=await self.x.videos(2,'cube')
+  self.e.direct_request.assert_awaited_once_with('file','listVideo',{'page_num':2,'page_size':20,'path':'/','keyword':'cube'})
+  self.assertTrue(result['has_more'])
+  self.assertNotIn('file_key',result['items'][0])
+  self.e.direct_request.return_value={'data':{'records':[]}}
+  self.assertTrue((await self.x.videos())['available'])
+  self.e.direct_request.return_value={'data':{'records':{}}}
+  self.assertFalse((await self.x.videos())['available'])
+
  async def test_reset_needs_capability_and_code(self):
   """Vérifie que la réinitialisation exige la capacité annoncée et un code valide."""
   self.x.device=AsyncMock(return_value={'factory_reset':False});self.x.order=AsyncMock()
@@ -196,6 +250,15 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
   """Vérifie que la référence doit correspondre à un projet unique de la machine courante."""
   self.e.notification_rows={'a':{'id':1,'project_id':44}};self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}]);self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':8},{'id':44,'printer_id':7,'taskid':55,'img':'https://anycubic.com/a.png'}])
   self.assertTrue((await self.x.notification_preview('a'))['image']);self.assertEqual(self.x.preview_row.await_args.args[1]['printer_id'],7)
+ async def test_preview_uses_the_printer_explicitly_named_by_the_notification(self):
+  """Un numéro de tâche réutilisé sur une autre machine ne change pas la miniature."""
+  self.e.known_printers=[SimpleNamespace(id=8)]
+  self.e.notification_rows={'a':{'id':1,'project_id':44,'printer_id':8}}
+  self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}])
+  self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'id':44,'printer_id':8}])
+  self.assertTrue((await self.x.notification_preview('a'))['image'])
+  self.assertEqual(self.x.preview_row.await_args.args[1]['printer_id'],8)
+
  async def test_ambiguous_reference_keeps_preview_unavailable(self):
   """Vérifie que une référence ambiguë ne fournit aucun aperçu."""
   self.e.notification_rows={'a':{'project_id':44}};self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'taskid':44,'printer_id':7}])

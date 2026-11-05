@@ -9,6 +9,7 @@ LABEL org.opencontainers.image.source="https://github.com/mcflykid/anycubic-clou
       org.opencontainers.image.licenses="GPL-3.0-or-later"
 COPY app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY package.json /app/package.json
 COPY app /app/app
 COPY web /app/web
 COPY scripts /app/scripts

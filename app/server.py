@@ -61,10 +61,26 @@ def filepath(value):
 
 def history_entry(row):
  """Renvoie une notification affichable avec référence opaque et libellé français."""
+ from cloud_extras import diagnostic_text,key as history_task_key
  code=row.get('print_status')
  labels={2:'Impression terminée',3:'Impression arrêtée'}
- title=labels.get(code) or {'Print complete':'Impression terminée','Print to terminate':'Impression arrêtée','Print failed':'Échec de l’impression'}.get(row.get('title'),'Notification d’impression')
- return {'key':hashlib.sha256(str(row.get('id','')).encode()).hexdigest()[:20],'name':str(row.get('project_name') or 'Impression sans nom')[:300],'printer':str(row.get('printer_name') or 'Kobra S1')[:100],'time':row.get('create_time'),'result':title,'kind':'success' if code==2 else 'interrupted' if code==3 else 'info','unread':row.get('read')==0}
+ title=labels.get(code) or {'Print complete':'Impression terminée','Print to terminate':'Impression arrêtée','Print failed':'Échec de l’impression','Print to paused':'Impression en pause'}.get(row.get('title'),'Notification d’impression')
+ reason=next((text for value in (row.get('reason_desc'),row.get('reason')) if (text:=diagnostic_text(value))), '')
+ reason={'User Initiated':'Pause demandée par l’utilisateur','Abnormal consumables, please reload consumables':'Problème de filament. Rechargez le filament.'}.get(reason,reason)
+ reason_code=diagnostic_text(row.get('reason_id'))
+ printer=row.get('printer_id')
+ task=next((row[field] for field in ('task_id','taskid','project_id') if isinstance(row.get(field),(str,int)) and row[field] not in ('','0',0)),None)
+ group=printer and task and (reason or reason_code)
+ task_id=row.get('task_id') or row.get('taskid')
+ return {
+  'key':hashlib.sha256(str(row.get('id','')).encode()).hexdigest()[:20],
+  'name':str(row.get('project_name') or 'Impression sans nom')[:300],
+  'printer':str(row.get('printer_name') or 'Imprimante')[:100],
+  'time':row.get('create_time'),'result':title,'kind':'success' if code==2 else 'interrupted' if code==3 else 'info',
+  'unread':row.get('read')==0,'reason':reason,'reason_code':reason_code,
+  'task_key':history_task_key(str(printer)+':'+str(task_id)) if printer and isinstance(task_id,(int,str)) and task_id not in ('','0',0) else None,
+  'group':hashlib.sha256(json.dumps([str(printer),str(task),title,reason,reason_code]).encode()).hexdigest()[:20] if group else None,
+ }
 
 class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):
  """Relie les réponses MQTT et le renouvellement de session au moteur web."""
@@ -258,7 +274,14 @@ class Engine:
   if isinstance(rawboxes,dict):rawboxes=[rawboxes]
   for i,b in enumerate(boxes):
    if i<len(rawboxes):
-    b['humidity']=rawboxes[i].get('humidity')
+    raw_box=rawboxes[i]
+    if not isinstance(raw_box,dict):continue
+    b['humidity']=raw_box.get('humidity')
+    for field in ('model','name'):
+     label=raw_box.get(field)
+     if isinstance(label,str) and (label:=label.removeprefix('Anycubic ')) in {'ACE Pro','ACE 2 Pro'}:
+      b['model']=label
+      break
     for j,spool in enumerate(b['spools'] or []):
      rawslots=rawboxes[i].get('slots') or []
      if j<len(rawslots):

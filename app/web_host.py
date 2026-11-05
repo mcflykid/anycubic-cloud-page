@@ -1,10 +1,12 @@
 """Ressources de l’interface et contrôle d’accès de la distribution autonome."""
-import asyncio,hashlib,hmac,html,ipaddress,os,pathlib,re,secrets,time
+import asyncio,hashlib,hmac,html,ipaddress,json,os,pathlib,re,secrets,time
 from dataclasses import dataclass
 from urllib.parse import urlsplit,parse_qs
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 from aiohttp import web
 ROOT=pathlib.Path(__file__).resolve().parents[1]/'web'
+APP_VERSION=json.loads((ROOT.parent/'package.json').read_text())['version']
+INFORMATION_PAGES={'/about':'privacy.html','/conditions':'terms.html','/cookies':'cookies.html','/credits':'credits.html'}
 HOME_URL_KEY=web.AppKey('home_url',str)
 TIME_ZONE_KEY=web.AppKey('time_zone',str)
 def display_timezone():
@@ -91,7 +93,7 @@ def install_access(app):
 async def access_control(request,handler):
  """Protège l’atelier par cookie, garde health public et applique Origin aux écritures authentifiées."""
  try:
-  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg'}:
+  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg','/js/ui-language.js'}:
    response=await handler(request)
   else:
    username,password,fingerprint=credentials()
@@ -161,7 +163,7 @@ async def logout(request):
 
 def render_page(destination,time_zone):
  """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
- content=(ROOT/'imprimante.html').read_text()
+ content=(ROOT/'imprimante.html').read_text().replace('<!-- APP_VERSION -->',html.escape(APP_VERSION))
  # Le fuseau explicite évite que le navigateur et l’historique utilisent deux heures différentes.
  content=content.replace('<html lang="fr">','<html lang="fr" data-time-zone="'+html.escape(time_zone,quote=True)+'">',1)
  if destination:content=re.sub(r'(<a class="document-brand" href=")[^"]*(")',lambda match:match[1]+html.escape(destination,quote=True)+match[2],content)
@@ -171,11 +173,18 @@ def render_page(destination,time_zone):
 async def index(request):
  """Renvoie l’interface avec les destinations et le fuseau validés au démarrage."""
  return web.Response(text=render_page(request.app[HOME_URL_KEY],request.app[TIME_ZONE_KEY]),content_type='text/html')
-async def about(request):"""Renvoie la notice sur l’hébergement et les services externes utilisés.""";return web.Response(text='Anycubic Cloud Page — application auto-hébergée indépendante. Les requêtes sont traitées par votre serveur et Anycubic. Aucun outil de mesure ajouté. Les sessions caméra sont établies avec Agora. Conservez le dossier appdata privé.',content_type='text/plain')
+async def about(request):
+ """Sert uniquement les notices statiques déclarées par l’application."""
+ return web.Response(text=(ROOT/INFORMATION_PAGES[request.path]).read_text(),content_type='text/html')
+
+def install_information(app):
+ """Ajoute les routes du pied de page dans l’atelier et en démonstration."""
+ for path in INFORMATION_PAGES:app.router.add_get(path,about)
+
 def install_static(app):
  """Ajoute les routes des ressources statiques, sans exposer les fichiers privés du serveur."""
  install_access(app)
  app[HOME_URL_KEY]=home_url(os.environ.get('HOME_URL','/imprimante.html'))
  app[TIME_ZONE_KEY]=display_timezone()
- app.router.add_get('/',index);app.router.add_get('/imprimante.html',index);app.router.add_get('/about',about)
+ app.router.add_get('/',index);app.router.add_get('/imprimante.html',index);install_information(app)
  for folder in ['css','js','icons']:app.router.add_static('/'+folder+'/',ROOT/folder,show_index=False)

@@ -3,6 +3,7 @@
 import asyncio,base64,contextlib,hashlib,hmac,json,math,pathlib,re,secrets,time,urllib.parse
 import aiohttp
 from aiohttp import web
+from native_controls import PARAMS
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint,HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest,AnycubicBaseProjectOrderRequest
 
@@ -153,6 +154,10 @@ class CloudExtras:
   """Renvoie l’image de la notification ou d’une référence explicite unique ; ValueError si inconnue."""
   row=getattr(self.e,'notification_rows',{}).get(str(k))
   if row is None:raise ValueError('Actualisez les notifications avant de consulter leur aperçu')
+  printer_id=str(row.get('printer_id') or self.e.printer.id)
+  allowed={str(printer.id) for printer in self.account_printers()}
+  allowed.add(str(self.e.printer.id))
+  if printer_id not in allowed:return {'image':None}
   cachekey='notification:'+str(k)
   direct=await self.preview_row(cachekey,row,lookup_detail=False)
   if direct['image']:return direct
@@ -160,7 +165,7 @@ class CloudExtras:
   refs={str(row[f]) for f in ['task_id','taskid','project_id'] if row.get(f) not in (None,'',0,'0')}
   if not refs:return {'image':None}
   projects=await self.api('/work/project/getProjects',query={'page':1,'limit':100},method='GET')
-  matches=[r for r in projects if isinstance(r,dict) and str(r.get('printer_id'))==str(self.e.printer.id) and refs.intersection(str(r[f]) for f in ['id','taskid','task_id'] if r.get(f) is not None)] if isinstance(projects,list) else []
+  matches=[r for r in projects if isinstance(r,dict) and str(r.get('printer_id'))==printer_id and refs.intersection(str(r[f]) for f in ['id','taskid','task_id'] if r.get(f) is not None)] if isinstance(projects,list) else []
   if len(matches)!=1:return {'image':None}
   self.previews.pop(cachekey,None)
   return await self.preview_row(cachekey,matches[0])
@@ -174,8 +179,27 @@ class CloudExtras:
   reason=next((text for value in [d.get('reason_desc'),d.get('reason'),r.get('reason'),d.get('material_warning')] if (text:=diagnostic_text(value))), '')
   help_url=d.get('reason_help_url');params=d.get('print_params') or d.get('slice_param') or r.get('slice_param') or {}
   if not isinstance(params,dict):params={}
-  allowed=['layer_height','fill_density','enable_support','perimeters','temperature','bed_temperature','outer_wall_speed','travel_speed']
-  return {'name':clean_text(d.get('file_name') or d.get('name') or r.get('task_name') or r.get('model'),300),'reason':reason,'reason_code':diagnostic_text(d.get('reason_id')),'help_url':help_url if trusted_url(help_url) else None,'parameters':{f:params[f] for f in allowed if f in params},'dimensions':d.get('model_dimensions') if isinstance(d.get('model_dimensions'),dict) else None,'layers':number(d.get('layer_count') or (d.get('slice_result') or {}).get('total_layers')),'estimated_seconds':number(d.get('estimated_time_s')),'material_grams':number(d.get('total_filament_used'))}
+  slice_params=d.get('slice_param')
+  paint=slice_params.get('paint_infos') if isinstance(slice_params,dict) else None
+  materials=[]
+  if isinstance(paint,list):
+   for entry in paint[:16]:
+    if not isinstance(entry,dict):continue
+    material=entry.get('material_type');grams=number(entry.get('filament_used'))
+    color=entry.get('color')
+    color=color if isinstance(color,str) and re.fullmatch(r'#[0-9a-fA-F]{6}',color) else None
+    if isinstance(material,str) or grams is not None or color:
+     materials.append({'material':clean_text(material,48) if isinstance(material,str) else None,'grams':grams,'color':color})
+  result=d.get('slice_result')
+  return {
+   'name':clean_text(d.get('file_name') or d.get('name') or r.get('task_name') or r.get('model'),300),
+   'reason':reason,'reason_code':diagnostic_text(d.get('reason_id')),'help_url':help_url if trusted_url(help_url) else None,
+   'parameters':{field:params[field] for field in PARAMS if field in params},
+   'dimensions':d.get('model_dimensions') if isinstance(d.get('model_dimensions'),dict) else None,
+   'layers':number(d.get('layer_count'),number(result.get('total_layers')) if isinstance(result,dict) else None),
+   'estimated_seconds':number(d.get('estimated_time_s')),'material_grams':number(d.get('total_filament_used')),
+   'reported_minutes':number(r.get('print_time')),'materials':materials,
+  }
  def files(self,handles):
   """Résout toute la sélection avant action ; lève ValueError si une référence est absente ou dupliquée."""
   if not isinstance(handles,list) or not 1<=len(handles)<=100 or len(set(handles))!=len(handles):raise ValueError('Sélectionnez entre 1 et 100 fichiers différents')
@@ -202,14 +226,19 @@ class CloudExtras:
    ticket=secrets.token_urlsafe(24);self.downloads[ticket]={'url':url,'expires':now+300,'name':clean_text(row.old_filename or 'fichier',200)}
    links.append({'name':self.downloads[ticket]['name'],'url':'/imprimante-api/download/'+ticket+'?printer='+key(self.e.printer.id)})
   return {'downloads':links}
- async def videos(self):
-  """Renvoie les vidéos annoncées ou un état d’indisponibilité, sans supposer un téléchargement possible."""
-  if not self.features().get('camera_timelapse_support'):return {'available':False,'items':[],'message':'Le timelapse n’est pas annoncé par cette imprimante.'}
-  try:reply=await self.e.direct_request('file','listVideo',{'page_num':1,'page_size':20,'path':'/','keyword':''})
-  except ValueError:return {'available':False,'items':[],'message':'La S1 annonce le timelapse, mais ne répond pas à la consultation des vidéos par le Cloud.'}
-  payload=reply.get('data') or {};rows=payload.get('records') if isinstance(payload,dict) else None
-  if not isinstance(rows,list):return {'available':False,'items':[],'message':'La liste des vidéos n’est pas fournie par ce firmware.'}
-  return {'available':True,'items':[{'name':clean_text(r.get('filename'),200),'size':number(r.get('size')),'duration':number(r.get('duration')),'created':r.get('createTime')} for r in rows if isinstance(r,dict)],'message':'Les vidéos sont répertoriées. Leur téléchargement distant n’est pas fourni par ce protocole.' if rows else 'Aucun timelapse présent dans la mémoire de l’imprimante.'}
+ async def videos(self,page=1,keyword=''):
+  """Liste les vidéos avec les paramètres connus, sans renvoyer de référence de stockage."""
+  if not self.features().get('camera_timelapse_support'):
+   return {'available':False,'items':[],'message':'Le timelapse n’est pas annoncé par cette imprimante.'}
+  try:reply=await self.e.direct_request('file','listVideo',{'page_num':page,'page_size':20,'path':'/','keyword':keyword})
+  except ValueError:
+   return {'available':False,'items':[],'message':'L’imprimante ne répond pas à la consultation des vidéos par le Cloud.'}
+  payload=reply.get('data') if isinstance(reply,dict) else None
+  rows=payload.get('records') if isinstance(payload,dict) else None
+  if not isinstance(rows,list):
+   return {'available':False,'items':[],'message':'La liste des vidéos n’est pas fournie par ce firmware.'}
+  items=[{'name':clean_text(r.get('filename'),200),'size':number(r.get('size')),'duration':number(r.get('duration')),'created':r.get('createTime')} for r in rows if isinstance(r,dict)]
+  return {'available':True,'items':items,'has_more':len(rows)==20,'message':'Lecture et téléchargement non disponibles par ce protocole.' if items else 'Aucun timelapse trouvé.'}
  async def rating(self,k):
   """Renvoie la disponibilité de l’évaluation ; lève ValueError pour une tâche non terminée."""
   r=self.task(k)
@@ -276,11 +305,17 @@ class CloudExtras:
   if name=='task-reprint':
    self.idle();r=self.task(d.get('key'));gid=int(r.get('gcode_id') or 0)
    if gid<=0:raise ValueError('Le G-code de cette tâche n’est plus disponible')
-   result=await self.e.printer.print_with_cloud_gcode_id(gid,self.e.slots(d))
-   if not result or not getattr(result,'order_msg_id',None):raise ValueError('Anycubic n’a pas accepté cette réimpression')
+   printer=self.e.printer
+   try:await asyncio.wait_for(printer.update_info_from_api(),timeout=10)
+   except Exception:raise ValueError('État récent de l’imprimante indisponible. Aucune commande envoyée.') from None
+   if self.e.printer is not printer:raise ValueError('L’imprimante a changé. Aucune commande envoyée.')
+   self.idle()
+   result=await printer.print_with_cloud_gcode_id(gid,self.e.slots(d),allow_retry=False)
+   if not result or not getattr(result,'order_msg_id',None):raise ValueError('Anycubic n’a pas confirmé la réimpression. Vérifiez l’imprimante avant tout nouvel envoi.')
    return 'Réimpression transmise à Anycubic ; vérifiez la machine'
   if name=='task-rate':
-   r=self.task(d.get('key'));await self.rating(d.get('key'));star=d.get('stars')
+   r=self.task(d.get('key'));rating=await self.rating(d.get('key'));star=d.get('stars')
+   if not rating['available'] or rating['already_rated']:raise ValueError('Évaluation indisponible ou déjà envoyée')
    if isinstance(star,bool) or not isinstance(star,int) or not 1<=star<=5:raise ValueError('Choisissez une note entre 1 et 5')
    await self.api('/v3/work/sumbitComment',{'project_id':r.get('taskid') or r['id'],'star':star});r['is_comment']=True
    return 'Votre note a été envoyée à Anycubic'
@@ -321,7 +356,7 @@ async def load(req):
   elif section=='notification-preview':result=await e.notification_preview(req.query.get('key'))
   elif section=='device':result=await e.device()
   elif section=='rating':result=await e.rating(req.query.get('key'))
-  elif section=='videos':result=await e.videos()
+  elif section=='videos':result=await e.videos(max(1,min(1000,int(req.query.get('page',1)))),clean_text(req.query.get('keyword'),120))
   else:raise web.HTTPNotFound()
  return web.json_response(result,headers={'Cache-Control':'no-store'})
 

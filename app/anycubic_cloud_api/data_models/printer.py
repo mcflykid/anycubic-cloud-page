@@ -3199,12 +3199,15 @@ class AnycubicPrinter:
         self,
         gcode_id: int,
         slot_index_list: list[int] | None = None,
+        *,
+        allow_retry: bool = True,
     ) -> AnycubicPrintResponse:
-        """Renvoie une réponse d’impression ; slot_index_list suit l’ordre des matériaux du G-code."""
+        """Renvoie une réponse d’impression ; slot_index_list suit l’ordre des matériaux du G-code. allow_retry=False limite l’envoi à une tentative."""
         return await self._api_parent.print_with_cloud_gcode_id(
             printer=self,
             gcode_id=gcode_id,
             slot_index_list=slot_index_list,
+            allow_retry=allow_retry,
         )
 
     async def print_and_upload_save_in_cloud(
