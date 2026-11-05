@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.2.0**. [Changements](CHANGELOG.md).
+Version **1.2.5**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -11,7 +11,7 @@ Version **1.2.0**. [Changements](CHANGELOG.md).
 [![Dernière release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
 [![Issues ouvertes](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
 [![Issues fermées](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
-[![Milestone 1.2.0](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/1)](https://github.com/mcflykid/anycubic-cloud-page/milestone/1)
+[![Milestone 1.3.0](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/2)](https://github.com/mcflykid/anycubic-cloud-page/milestone/2)
 [![Dernier commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
 
 [English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md)
@@ -44,7 +44,7 @@ L’image suit `latest` ; remplacez-la par un tag publié dans compose.yaml pour
 
 ## Suivi des travaux
 
-Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.2.0](https://github.com/mcflykid/anycubic-cloud-page/milestone/1) regroupe les travaux de la prochaine version et leurs critères de validation.
+Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.3.0](https://github.com/mcflykid/anycubic-cloud-page/milestone/2) regroupe les travaux de la prochaine version et leurs critères de validation.
 
 ## Les sept onglets
 

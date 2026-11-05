@@ -1,6 +1,6 @@
 # Changements
 
-## En développement — non publié
+## 1.2.5 — 2026-11-05
 
 - Les réponses de fichiers périmées sont écartées ; les actions restent liées à leur source et à leur dossier (#47).
 - Rapports MQTT récents repris de l’amont 0.4.5, avec états ACE partiels, préparation, ventilation, échec vidéo et particularités Kobra X (#63).
