@@ -19,7 +19,7 @@ class MQTTFixtures(unittest.TestCase):
  def setUp(self):
   """Crée un client non connecté et remplace explicitement toutes les sorties réseau par des doublures."""
   self.log=Mock();self.client=AnycubicMQTTAPI(None,None,debug_logger=self.log);self.client._fetch_api_resp=AsyncMock();self.client._mqtt_publish_to_printer=Mock();self.client.connect_mqtt=Mock();self.client._mqtt_callback_printer_update=Mock()
-  self.printer=types.SimpleNamespace(is_available=True,is_busy=False,_multi_color_box=[])
+  self.printer=types.SimpleNamespace(is_available=True,is_busy=False,is_kobra_x=False,_multi_color_box=[])
   self.printer.process_mqtt_update=types.MethodType(AnycubicPrinter.process_mqtt_update,self.printer)
   self.printer._process_mqtt_update_multicolorbox=types.MethodType(AnycubicPrinter._process_mqtt_update_multicolorbox,self.printer)
   self.printer._multi_color_box_index_by_id=types.MethodType(AnycubicPrinter._multi_color_box_index_by_id,self.printer)
@@ -33,7 +33,7 @@ class MQTTFixtures(unittest.TestCase):
   self.client._mqtt_message_router(types.SimpleNamespace(topic=self.topic,payload=json.dumps(payload).encode()))
  def tearDown(self):
   """Vérifie systématiquement qu’aucune lecture réseau ni commande n’est partie du banc de test."""
-  self.client._fetch_api_resp.assert_not_awaited();self.client._mqtt_publish_to_printer.assert_not_called();self.client.connect_mqtt.assert_not_called()
+  self.client._fetch_api_resp.assert_not_awaited();self.client._mqtt_publish_to_printer.assert_not_called();self.client.connect_mqtt.assert_not_called();self.assertEqual(self.client.mqtt_diagnostics['processing_errors'],0)
  def test_ace_update_before_initial_list_is_safe_then_targets_correct_box(self):
   """Un rapport reçu avant la liste initiale ne crée pas un faux boîtier et n’écrase pas son voisin."""
   self.send({'type':'multiColorBox','action':'autoUpdateInfo','state':'done','data':{'id':1,'loaded_slot':3}})

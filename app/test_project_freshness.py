@@ -45,3 +45,10 @@ class ProjectFreshness(unittest.IsolatedAsyncioTestCase):
   """Une ancienne interface sans référence ne peut envoyer une commande physique."""
   with self.assertRaises(ValueError):await self.e.action('cancel',{})
   self.p.update_info_from_api.assert_not_awaited();self.p.cancel_print.assert_not_awaited()
+
+ async def test_same_project_with_new_attempt_cannot_reuse_confirmation(self):
+  """Une nouvelle exécution du même projet invalide aussi la référence de confirmation."""
+  self.p.latest_project=SimpleNamespace(id=10,_taskid=100,created_timestamp=50,_start_time=60);key=self.e.command_project_key()
+  self.p.latest_project._start_time=80
+  with self.assertRaisesRegex(ValueError,'projet a changé'):await self.e.action('cancel',{'project_key':key})
+  self.p.cancel_print.assert_not_awaited()

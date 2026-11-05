@@ -162,7 +162,7 @@ class Engine:
   self.printer=candidates[0] if candidates else None
   if self.printer:self.pinned_id=str(self.printer.id)
   if self.printer is None:
-   if self.catalogue_source and getattr(self,'fleet_registry',None):self.transport_only=True;self.mqtt_start();return
+   if self.catalogue_source and getattr(self,'fleet_registry',None):self.transport_only=True;self.reconnect_required=False;self.mqtt_start();return
    raise RuntimeError('Imprimante absente')
   await self.printer.update_info_from_api()
   self.reconnect_required=False
@@ -183,7 +183,7 @@ class Engine:
    try:
     async with self.lock:
      primary=not getattr(self,'fleet_registry',None) or self is self.fleet_registry.default
-     if self.catalogue_source and self.api:await self.refresh_catalogue()
+     if self.catalogue_source and self.api and not self.reconnect_required:await self.refresh_catalogue()
      reconnect=self.reconnect_required or not self.api or (not self.printer and not self.transport_only) or primary and await self.account.token(self.session)!=self.account_token
      if reconnect:await self.connect()
      elif self.printer:await self.printer.update_info_from_api()
@@ -194,7 +194,7 @@ class Engine:
      try:await self.print_history(1);self.notifications_error=None
      except Exception:self.notifications_error='Messages temporairement indisponibles'
    except Exception as e:
-    self.ok=False;self.error=getattr(self.account,'notice',None) or 'Connexion Anycubic indisponible ('+type(e).__name__+').' 
+    self.ok=False;self.error=getattr(self.account,'notice',None) or 'Connexion Anycubic indisponible ('+type(e).__name__+').'
     if 'Auth' in type(e).__name__ and type(e).__name__!='CloudSessionAuthError':
      owner=getattr(getattr(self,'fleet_registry',None),'default',self);owner.reconnect_required=True
      # Conserver le client jusqu’à la fin du fil permet de réessayer sa fermeture au cycle suivant.
@@ -206,7 +206,8 @@ class Engine:
   """Renvoie une référence opaque du projet affiché, liée à la machine ; None si le contexte manque."""
   p=self.printer;project=getattr(p,'latest_project',None)
   identifier=getattr(project,'id',None)
-  return printer_key(str(p.id)+':'+str(identifier)) if p and identifier is not None else None
+  attempt=[getattr(project,name,None) for name in ('_taskid','created_timestamp','_start_time')]
+  return printer_key(json.dumps([p.id,identifier,*attempt])) if p and identifier is not None else None
  async def verify_active_project(self,name,expected):
   """Relit le projet sous le verrou de commande ; ValueError refuse une identité ou un état devenus différents."""
   p=self.printer
@@ -215,7 +216,8 @@ class Engine:
   except Exception:raise ValueError('État récent de l’impression indisponible. Aucune commande envoyée.') from None
   if self.printer is not p or expected!=self.command_project_key():raise ValueError('Le projet a changé pendant la vérification. Aucune commande envoyée.')
   if not p.printer_online or not p.latest_project or not p.latest_project_print_in_progress:raise ValueError('Aucune impression active confirmée. Aucune commande envoyée.')
-  if name=='pause' and p.latest_project_print_is_paused or name=='resume' and not p.latest_project_print_is_paused:raise ValueError('L’état de pause a changé. Actualisez ; aucune commande envoyée.')
+  paused=p.latest_project_print_is_paused
+  if name in ('pause','resume') and (not isinstance(paused,bool) or paused!=(name=='resume')):raise ValueError('L’état de pause a changé. Actualisez ; aucune commande envoyée.')
   self.updated=now()
   return p.latest_project
  def snapshot(self):

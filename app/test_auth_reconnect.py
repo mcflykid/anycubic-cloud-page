@@ -26,3 +26,14 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
    with self.assertRaisesRegex(RuntimeError,'en attente'):await e.connect()
    factory.assert_not_called()
   self.assertIs(e.api,old);old.disconnect_mqtt.assert_called_once();e.mqtt_thread.join.assert_called_once_with(3)
+
+ async def test_failed_catalogue_does_not_prevent_required_reconnect(self):
+  """Un catalogue servi par l’ancien client ne doit pas précéder la reconnexion exigée."""
+  e=server.Engine();e.catalogue_source=True;e.reconnect_required=True;e.printer=None;e.api=SimpleNamespace(printer_info_for_id=AsyncMock(return_value={'data':{}}));e.refresh_catalogue=AsyncMock(side_effect=AnycubicAuthError('fixture-only'));e.print_history=AsyncMock();e.mqtt_start=Mock()
+  async def connect():
+   """Remplace la connexion sans réseau pour vérifier l’ordre du cycle suivant."""
+   e.printer=SimpleNamespace(id=1);e.reconnect_required=False
+  e.connect=AsyncMock(side_effect=connect)
+  with patch.object(server.asyncio,'sleep',side_effect=asyncio.CancelledError):
+   with self.assertRaises(asyncio.CancelledError):await e.poll()
+  e.connect.assert_awaited_once();e.refresh_catalogue.assert_not_awaited();self.assertTrue(e.ok)

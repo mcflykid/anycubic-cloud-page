@@ -1,5 +1,15 @@
 # Changements
 
+## En développement — non publié
+
+- Les réponses de fichiers périmées sont écartées ; les actions restent liées à leur source et à leur dossier (#47).
+- Rapports MQTT récents repris de l’amont 0.4.5, avec états ACE partiels, préparation, ventilation, échec vidéo et particularités Kobra X (#63).
+- Pause, reprise et arrêt vérifient par HTTP le même projet et son état avant tout envoi (#19).
+- Le client MQTT reste récupérable après rejet d’authentification pour permettre sa fermeture puis la reconnexion (#46).
+- Compteurs de connexion bornés sans blocage global ; séparation des clients derrière des proxys explicitement fiables via TRUSTED_PROXIES (#59).
+- Suspension des connexions après refus explicite du compte et reprise progressive après panne temporaire (#60).
+- Délais d’envoi adaptés à la taille ; résultat incertain explicite et identifiant conservé lors d’un nouvel essai manuel dans la même page (#57).
+
 ## 1.2.0 — 2026-11-05
 
 Suivi de livraison : #33.
