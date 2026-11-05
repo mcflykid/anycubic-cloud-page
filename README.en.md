@@ -4,6 +4,12 @@ Version **1.1.0**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 
+[![Latest release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
+[![Open issues](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
+[![Closed issues](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
+[![Milestone 1.2.0](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/1)](https://github.com/mcflykid/anycubic-cloud-page/milestone/1)
+[![Last commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
+
 [Français / full screenshot gallery](README.md) · [Cloud authentication and token recovery](docs/CLOUD-CONNECTION.md) · [Compatibility](docs/COMPATIBILITY.md)
 
 A self-hosted Python/aiohttp application with a responsive French interface: printer status, ACE/filament management, local/USB/cloud files, G-code upload, Agora camera, print history and settings. Home Assistant is not required.
@@ -20,6 +26,10 @@ Docker Compose is sufficient; the project provides a single application service 
 `BIND_ADDRESS=127.0.0.1` and `WEB_PORT=8080` control the host listener. `APPDATA_DIR=./appdata` contains all persistent data. In Compose, write `$$` for a literal `$` in passwords; in `.env`, single-quote the values. Never publish customized credential files.
 
 **Never expose this HTTP port directly to the Internet.** Use your own HTTPS proxy and set `PUBLIC_ORIGIN` to the exact public browser origin. The [reverse proxy guide](docs/REVERSE-PROXY.md) provides Caddy, Nginx and Traefik examples for host and container proxies. A container proxy uses the optional [`compose.proxy.yaml`](compose.proxy.yaml), with `PROXY_NETWORK` and no host port. [Full installation guide](docs/INSTALLATION.md).
+
+## Work tracking
+
+[Open issues](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) describe proposed fixes and improvements. The [1.2.0 milestone](https://github.com/mcflykid/anycubic-cloud-page/milestone/1) groups work for the next release and its acceptance criteria.
 
 ## Screens
 
