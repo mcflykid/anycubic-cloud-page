@@ -2,7 +2,7 @@
 import asyncio,pathlib,sys,tempfile,time,unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock,patch
-from cloud_extras import CloudExtras,ResetChallenges,trusted_url
+from cloud_extras import CloudExtras,ResetChallenges,trusted_url,history_minutes
 
 class ResetTests(unittest.TestCase):
  """Vérifications des codes de confirmation temporaires de réinitialisation."""
@@ -24,6 +24,11 @@ class ResetTests(unittest.TestCase):
   for _ in range(3):
    with self.assertRaises(ValueError):r.consume(d['ticket'],'invalid',1)
   with self.assertRaises(ValueError):r.consume(d['ticket'],d['code'],1)
+ def test_history_duration_never_fabricates_an_end(self):
+  """Des horodatages présents donnent des minutes ; une fin absente ou antérieure reste inconnue."""
+  self.assertEqual(history_minutes({'create_time':1000,'end_time':1120}),2)
+  self.assertIsNone(history_minutes({'create_time':1000}))
+  self.assertIsNone(history_minutes({'create_time':1000,'end_time':999}))
  def test_remote_links_are_vendor_only(self):
   """Vérifie que seules les URL du stockage autorisé sont acceptées."""
   self.assertTrue(trusted_url('https://bucket.s3.amazonaws.com/file?signature=test'))
@@ -37,6 +42,23 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
   self.e=SimpleNamespace(api=SimpleNamespace(_fetch_api_resp=AsyncMock(return_value={'code':1,'data':{}})),printer=SimpleNamespace(id=7,printer_online=True,is_available=True,latest_project_print_in_progress=False),raw_info={'features':[]},cloudfiles={},slots=lambda d:[0])
   self.x=CloudExtras(self.e)
  def task(self,status=2):"""Installe une tâche fictive pour tester les restrictions d’évaluation et de réimpression.""";self.x.tasks['key']={'id':99,'taskid':123,'printer_id':7,'print_status':status,'gcode_id':80}
+ async def test_history_deletion_validates_all_keys_before_mutating_cloud(self):
+  """Une référence inconnue ou étrangère annule tout le lot avant le premier envoi."""
+  self.task();self.x.tasks['other']={'taskid':124,'printer_id':8}
+  for keys in [[],['key','absent'],['key','other'],['key','key'],[True]]:
+   with self.assertRaises(ValueError):await self.x.delete_tasks(keys)
+  self.e.api._fetch_api_resp.assert_not_awaited()
+ async def test_history_deletion_uses_native_id_and_keeps_cloud_files(self):
+  """La route d’historique reçoit un identifiant natif ; aucun ordre ni effacement de fichier n’est invoqué."""
+  self.task();self.x.tasks['second']={'taskid':124,'printer_id':7};self.e.cloudfiles={'file':object()};self.x.api=AsyncMock(return_value={})
+  result=await self.x.delete_tasks(['key','second'])
+  self.assertIn('2 fiche(s)',result);self.assertEqual(self.x.api.await_count,2)
+  self.assertEqual([c.args for c in self.x.api.await_args_list],[('/work/project/unsetprojects',{'id':123,'checkSign':False}),('/work/project/unsetprojects',{'id':124,'checkSign':False})]);self.assertEqual(list(self.e.cloudfiles),['file']);self.assertFalse(self.x.tasks)
+ async def test_history_deletion_stops_after_uncertain_result_without_retry(self):
+  """Un timeout de mutation n’autorise ni répétition ni effacement local de la fiche incertaine."""
+  self.task();self.x.tasks.update({'second':{'taskid':124,'printer_id':7},'third':{'taskid':125,'printer_id':7}});self.x.api=AsyncMock(side_effect=[{},TimeoutError()])
+  result=await self.x.delete_tasks(['key','second','third'])
+  self.assertIn('1 fiche(s) retirée(s) sur 3',result);self.assertEqual(self.x.api.await_count,2);self.assertNotIn('key',self.x.tasks);self.assertIn('second',self.x.tasks);self.assertIn('third',self.x.tasks)
  async def test_rating_uses_device_taskid(self):
   """Vérifie que la note utilise la référence de tâche attendue par le cloud."""
   self.task();self.x.api=AsyncMock(side_effect=[{},{}]);await self.x.action('task-rate',{'key':'key','stars':4})

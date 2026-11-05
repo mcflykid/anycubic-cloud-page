@@ -14,6 +14,13 @@ def number(v,default=None):
   return n if math.isfinite(n) else default
  except (TypeError,ValueError):return default
 
+def history_minutes(row):
+ """Renvoie la durée connue en minutes ; les horodatages ne remplacent pas une fin absente."""
+ reported=number(row.get('print_time'))
+ if reported is not None:return reported
+ start=number(row.get('start_time') or row.get('create_time'));end=number(row.get('end_time'))
+ return (end-start)/60 if start is not None and end is not None and end>=start else None
+
 def trusted_url(url):
  """Indique si une URL HTTPS appartient au stockage autorisé, sans identifiants ni port inhabituel."""
  try:
@@ -85,7 +92,7 @@ class CloudExtras:
    r.setdefault('id',taskid)
    k=key(taskid);self.tasks[k]=r
    status=r.get('print_status');outcome={0:'En préparation',1:'Impression en cours',2:'Impression terminée',3:'Impression interrompue'}.get(status,'État non renseigné')
-   items.append({'key':k,'name':clean_text(r.get('task_name') or r.get('gcode_name') or r.get('model') or 'Impression',300),'start':r.get('start_time') or r.get('create_time'),'end':r.get('end_time'),'status':outcome,'status_code':status,'elapsed_minutes':number(r.get('print_time')),'progress':number(r.get('progress')),'reason':diagnostic_text(r.get('reason')),'can_reprint':bool(number(r.get('gcode_id'),0)>0),'evaluated':bool(r.get('is_comment'))})
+   items.append({'key':k,'name':clean_text(r.get('task_name') or r.get('gcode_name') or r.get('model') or 'Impression',300),'start':r.get('start_time') or r.get('create_time'),'end':r.get('end_time'),'status':outcome,'status_code':status,'elapsed_minutes':history_minutes(r),'progress':number(r.get('progress')),'reason':diagnostic_text(r.get('reason')),'can_reprint':bool(number(r.get('gcode_id'),0)>0),'evaluated':bool(r.get('is_comment')),'printer':clean_text(r.get('printer_name') or getattr(self.e.printer,'name','Imprimante'),100),'printer_key':key(r.get('printer_id'))})
   while len(self.tasks)>500:self.tasks.pop(next(iter(self.tasks)))
   return {'items':items,'page':page,'has_more':len(rows)>=20}
  def task(self,k):
@@ -228,8 +235,22 @@ class CloudExtras:
   if result is None:raise ValueError('Commande non acceptée par Anycubic')
   self.device_cache=None
   return 'Commande transmise à Anycubic ; confirmation machine en attente'
+ async def delete_tasks(self,keys):
+  """Retire seulement les fiches validées ; arrête un lot au premier résultat incertain, sans répétition."""
+  if not isinstance(keys,list) or not keys or len(keys)>100 or any(not isinstance(k,str) for k in keys) or len(set(keys))!=len(keys):raise ValueError('Choisissez entre une et cent fiches distinctes')
+  rows=[(k,self.task(k)) for k in keys]
+  identifiers=[r.get('taskid') or r.get('task_id') or r.get('id') for _,r in rows]
+  if any(isinstance(v,bool) or not isinstance(v,int) or v<=0 for v in identifiers) or len(set(identifiers))!=len(identifiers):raise ValueError('Références de fiches non valides')
+  removed=0
+  for (k,row),identifier in zip(rows,identifiers):
+   try:await self.api('/work/project/unsetprojects',{'id':identifier,'checkSign':False})
+   except Exception:
+    return f'{removed} fiche(s) retirée(s) sur {len(rows)}. Résultat suivant non confirmé : opération arrêtée. Actualisez et vérifiez l’historique avant tout nouvel essai.'
+   removed+=1;self.tasks.pop(k,None);self.previews.pop(k,None)
+  return f'{removed} fiche(s) retirée(s) de l’historique Anycubic. La liste est relue depuis le cloud.'
  async def action(self,name,d):
   """Valide puis exécute une action complémentaire ; lève ValueError si non autorisée ou non confirmée."""
+  if name=='task-delete-many':return await self.delete_tasks(d.get('keys'))
   if name=='cloud-rename':
    rows=self.files([d.get('handle')]);value=str(d.get('name','')).strip()
    if not value or len(value)>200 or re.search(r'[/\\\x00-\x1f]',value):raise ValueError('Nom de fichier invalide')

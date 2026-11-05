@@ -45,7 +45,7 @@ The image follows `latest`; pin a published image tag in compose.yaml if you nee
 | Files | Printer memory, USB and cloud file operations | [View](screenshots/03-fichiers.png) |
 | Upload / print | G-code upload and ACE mapping | [View](screenshots/04-envoyer-imprimer.png) |
 | Camera | Agora video, zoom, lights and guarded axis controls | [View](screenshots/05-camera.png) |
-| History | Tasks, previews, details and notifications | [View](screenshots/06-historique.png) |
+| History | Status/date/name filters, preview cards, details and confirmed cloud history removal; notifications in the top-bar bell | [View](screenshots/06-historique.png) |
 | Settings | Connection, AI settings and update eligibility | [View](screenshots/07-reglages.png) |
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.

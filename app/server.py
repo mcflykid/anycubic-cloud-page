@@ -374,7 +374,7 @@ class Engine:
   """Renvoie le résultat textuel d’une commande validée ; lève ValueError si interdite ou non acceptée."""
   p=self.printer;a=self.api
   if not p or not a:raise ValueError('Imprimante non connectée')
-  if name in ['cloud-rename','cloud-delete-many','task-reprint','calibrate','hardware','assist','screen','factory-reset','task-rate','timelapse']:
+  if name in ['cloud-rename','cloud-delete-many','task-delete-many','task-reprint','calibrate','hardware','assist','screen','factory-reset','task-rate','timelapse']:
    return await self.extras.action(name,d)
   box=integer(d.get('box',0),0,max(0,p.connected_ace_units-1));slot=integer(d.get('slot',1),1,4)-1
   if name in ['axis','axis-off','ai-settings']:
