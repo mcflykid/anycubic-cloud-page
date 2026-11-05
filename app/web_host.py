@@ -1,5 +1,5 @@
 """Ressources de l’interface et contrôle d’accès de la distribution autonome."""
-import asyncio,hashlib,hmac,html,os,pathlib,re,secrets,time
+import asyncio,hashlib,hmac,html,ipaddress,os,pathlib,re,secrets,time
 from dataclasses import dataclass
 from urllib.parse import urlsplit,parse_qs
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
@@ -46,6 +46,20 @@ class AccessState:
 
 ACCESS_KEY=web.AppKey('access',AccessState)
 ORIGIN_KEY=web.AppKey('public_origin',str)
+TRUSTED_PROXIES_KEY=web.AppKey('trusted_proxies',tuple)
+
+def client_address(request):
+ """Résout le premier pair non fiable depuis la droite de X-Forwarded-For ; sans proxy déclaré, ignore l’en-tête."""
+ remote=request.remote or 'unknown';trusted=request.app[TRUSTED_PROXIES_KEY]
+ try:
+  peer=ipaddress.ip_address(remote)
+  if not any(peer in network for network in trusted):return remote
+  chain=[ipaddress.ip_address(part.strip()) for part in request.headers.get('X-Forwarded-For','').split(',')]
+  for candidate in reversed(chain):
+   if not any(peer in network for network in trusted):break
+   peer=candidate
+  return str(peer)
+ except ValueError:return remote
 
 def credentials():
  """Renvoie identifiant, mot de passe et empreinte ; HTTPServiceUnavailable si la configuration est inutilisable."""
@@ -67,6 +81,9 @@ def install_access(app):
   parsed=urlsplit(origin)
   if parsed.scheme not in {'http','https'} or not parsed.netloc or parsed.path or parsed.query or parsed.fragment or parsed.username or parsed.password or parsed.port==0:raise ValueError
  except ValueError:raise ValueError('PUBLIC_ORIGIN doit être une origine HTTP(S), sans chemin.') from None
+ try:trusted=tuple(ipaddress.ip_network(value.strip(),strict=False) for value in os.environ.get('TRUSTED_PROXIES','').split(',') if value.strip())
+ except ValueError:raise ValueError('TRUSTED_PROXIES doit contenir des adresses ou réseaux IP séparés par des virgules.') from None
+ app[TRUSTED_PROXIES_KEY]=trusted
  app[ORIGIN_KEY]=origin;app[ACCESS_KEY]=AccessState()
  app.router.add_get('/login',login);app.router.add_post('/login',login);app.router.add_post('/logout',logout)
 
@@ -106,10 +123,11 @@ async def login(request):
  """Vérifie le formulaire de taille bornée ; renvoie 401 en cas d’échec ou 429 après cinq échecs en cinq minutes."""
  if request.method in {'GET','HEAD'}:return login_page()
  require_origin(request)
- state=request.app[ACCESS_KEY];state.prune();client=request.remote or 'unknown'
- # Une adresse fournie par le client dans X-Forwarded-For ne doit pas contourner la limitation.
+ state=request.app[ACCESS_KEY];state.prune();client=client_address(request)
+ # Le compteur reste individuel uniquement derrière des proxys explicitement déclarés fiables.
+
  failures,until=state.failures.get(client,(0,time.monotonic()+FAILURE_SECONDS))
- if failures>=FAILURE_LIMIT or len(state.failures)>=1024 and client not in state.failures:
+ if failures>=FAILURE_LIMIT:
   response=login_page('Trop de tentatives. Réessayez dans quelques minutes.',429);response.headers['Retry-After']=str(max(1,int(until-time.monotonic())+1));return response
  if request.content_type!='application/x-www-form-urlencoded':raise web.HTTPUnsupportedMediaType()
  try:raw=await request.content.readexactly(4097)
@@ -122,7 +140,8 @@ async def login(request):
  valid_user=hmac.compare_digest(supplied_user.encode(),username.encode())
  valid_password=hmac.compare_digest(supplied_password.encode(),password.encode())
  if not (valid_user and valid_password):
-  state.failures[client]=(failures+1,until)
+  if client not in state.failures and len(state.failures)>=1024:state.failures.pop(next(iter(state.failures)))
+  state.failures.pop(client,None);state.failures[client]=(failures+1,until)
   return login_page('Identifiant ou mot de passe incorrect.',401)
  state.failures.pop(client,None)
  if len(state.sessions)>=128:state.sessions.pop(next(iter(state.sessions)))

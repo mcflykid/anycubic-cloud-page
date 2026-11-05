@@ -155,6 +155,6 @@ Code sous **GPL-3.0-or-later**, avec conservation du moteur amont et de sa licen
 
 ## Connexion à l’atelier
 
-La page `/login` remplace la fenêtre du navigateur. La session est limitée à huit heures, avec cookie HttpOnly, SameSite=Strict et Secure lorsque `PUBLIC_ORIGIN` utilise HTTPS. Le bouton « Se déconnecter » révoque la session. Cinq échecs dans une fenêtre de cinq minutes limitent les tentatives par adresse de connexion ; derrière un proxy, cette limite peut être partagée entre utilisateurs. Les sessions sont aussi invalidées au redémarrage ou après changement du mot de passe web.
+La page `/login` remplace la fenêtre du navigateur. La session est limitée à huit heures, avec cookie HttpOnly, SameSite=Strict et Secure lorsque `PUBLIC_ORIGIN` utilise HTTPS. Le bouton « Se déconnecter » révoque la session. Cinq échecs dans une fenêtre de cinq minutes limitent les tentatives par adresse de connexion ; derrière un proxy, configurez `TRUSTED_PROXIES` selon le [guide reverse proxy](docs/REVERSE-PROXY.md#compteurs-de-connexion-et-proxys-de-confiance) pour séparer les compteurs des utilisateurs. Les sessions sont aussi invalidées au redémarrage ou après changement du mot de passe web.
 
 ![Page de connexion — démonstration](screenshots/00-connexion.jpg)

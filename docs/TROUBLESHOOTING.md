@@ -11,7 +11,7 @@
 | IA indisponible | Réessayer lorsque la machine est libre. Une réponse doit venir du bon topic et de la fenêtre active. Ne pas enlever les garde-fous pour forcer l’écriture. |
 | Firmware : version cible identique | Lire l’indicateur officiel de mise à jour. Une version cible renseignée ne suffit pas à activer le bouton. |
 | Aperçu indisponible | Le fournisseur n’a pas fourni d’image exploitable, le fichier a disparu ou la référence n’est pas résolue de façon unique. |
-| Connexion429 | Attendre la fin de la fenêtre de cinq minutes. Un proxy peut partager le compteur entre les utilisateurs ; les en-têtes client ne permettent pas de le contourner. |
+| Connexion429 | Attendre la fin de la fenêtre de cinq minutes. Sans TRUSTED_PROXIES, un proxy partage le compteur entre les utilisateurs. Déclarer uniquement ses adresses fiables pour séparer les clients ; voir le guide reverse proxy. |
 | Caméra ne démarre pas | Vérifier HTTPS/localhost, les accès Agora et la disponibilité du navigateur. Le statut MQTT ne prouve pas qu’un flux vidéo est ouvert. |
 | Connexion depuis un autre domaine refusée | Définir l’origine exacte dans `PUBLIC_ORIGIN`, puis recréer le service web. |
 | Données anciennes | Lire la date d’actualisation, l’état cloud et MQTT. Le cache ne prouve pas que la machine est encore dans cet état. |

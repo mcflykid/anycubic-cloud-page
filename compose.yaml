@@ -46,6 +46,8 @@ services:
       - "WEB_PASSWORD=${WEB_PASSWORD:-}"
       # Origine exacte du navigateur, protocole et port compris, sans chemin.
       - "PUBLIC_ORIGIN=${PUBLIC_ORIGIN:-http://localhost:8080}"
+      # Limiter aux adresses des proxys qui ajoutent un X-Forwarded-For fiable.
+      - "TRUSTED_PROXIES=${TRUSTED_PROXIES:-}"
       # Une valeur vide masque les liens ; HTTP(S) ou chemin relatif uniquement.
       - "HOME_URL=${HOME_URL-/imprimante.html}"
       - "PRINTER_ID=${PRINTER_ID:-}"

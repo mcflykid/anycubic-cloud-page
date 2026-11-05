@@ -180,3 +180,9 @@ La santé attendue est 200. Elle prouve HTTP, pas la connexion cloud. Vérifiez 
 Une recréation interrompt brièvement HTTP et invalide les sessions. Les lectures en cours peuvent recevoir 502 ; attendez healthy, reconnectez-vous et distinguez les erreurs de cette fenêtre des nouvelles erreurs. Conservez les traces, sans les effacer ni les noyer. Ne rejouez jamais automatiquement une commande physique après un résultat incertain.
 
 Références : [réseaux externes Compose](https://docs.docker.com/reference/compose-file/networks/#external), [Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy), [Nginx proxy](https://nginx.org/en/docs/http/ngx_http_proxy_module.html), [Traefik HTTP](https://doc.traefik.io/traefik/reference/routing-configuration/http/routing/router/).
+
+
+## Compteurs de connexion et proxys de confiance
+Par défaut, la limitation de connexion utilise l’adresse du pair HTTP et ignore `X-Forwarded-For`. Derrière un proxy, renseignez `TRUSTED_PROXIES` avec l’adresse IP exacte de ce proxy (ou son réseau strictement maîtrisé), puis recréez le service. Le proxy doit remplacer l’en-tête client ou lui ajouter le pair réel selon une chaîne de confiance connue. La résolution parcourt la chaîne depuis la droite et s’arrête au premier pair non déclaré fiable ; une valeur mal formée revient au pair HTTP. Ne faites pas confiance à tous les réseaux ni aux clients finaux.
+
+Une adresse ayant cinq échecs reste temporairement limitée, même avec le bon mot de passe ; les autres adresses ne partagent plus son compteur si le proxy est correctement déclaré. La saturation des compteurs ne bloque plus globalement les nouvelles adresses. Cette configuration n’influence ni `PUBLIC_ORIGIN` ni les cookies Secure.

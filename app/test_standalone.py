@@ -3,7 +3,7 @@ import os,pathlib,tempfile,time,unittest
 from unittest.mock import patch
 from aiohttp import web
 from aiohttp.test_utils import TestClient,TestServer
-from web_host import access_control,install_access,ACCESS_KEY,COOKIE_NAME
+from web_host import access_control,install_access,ACCESS_KEY,COOKIE_NAME,TRUSTED_PROXIES_KEY
 from demo import create_demo
 
 class WebBoundary(unittest.IsolatedAsyncioTestCase):
@@ -80,6 +80,18 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
   response=await self.sign_in();self.assertEqual(response.status,429);self.assertGreater(int(response.headers['Retry-After']),0)
   for key in self.app[ACCESS_KEY].failures:self.app[ACCESS_KEY].failures[key]=(5,time.monotonic()-1)
   self.assertEqual((await self.sign_in()).status,303)
+ async def test_counter_saturation_does_not_block_new_valid_client(self):
+  """Un millier d’échecs d’autres adresses ne bloque plus le propriétaire."""
+  state=self.app[ACCESS_KEY];state.failures={f'fixture-address-{i}':(1,time.monotonic()+300) for i in range(1024)}
+  self.assertEqual((await self.sign_in()).status,303)
+  self.assertEqual((await self.sign_in(password='wrong')).status,401);self.assertLessEqual(len(state.failures),1024)
+ async def test_trusted_proxy_isolates_clients_and_stops_at_untrusted_hop(self):
+  """Le proxy connu sépare les compteurs ; un préfixe injecté ne contourne pas le pair réel."""
+  self.app[TRUSTED_PROXIES_KEY]=(__import__('ipaddress').ip_network('127.0.0.1/32'),)
+  for _ in range(5):self.assertEqual((await self.sign_in(password='wrong',headers={'X-Forwarded-For':'192.0.2.1'})).status,401)
+  self.assertEqual((await self.sign_in(headers={'X-Forwarded-For':'192.0.2.2'})).status,303)
+  self.assertEqual((await self.sign_in(headers={'X-Forwarded-For':'192.0.2.99, 192.0.2.1'})).status,429)
+  self.assertEqual((await self.sign_in(headers={'X-Forwarded-For':'invalid'})).status,303)
  async def test_health_stays_public_even_without_secret(self):
   """La supervision reste indépendante du secret ; les routes privées échouent fermées."""
   self.path.unlink();self.assertEqual((await self.client.get('/imprimante-api/health')).status,200)
