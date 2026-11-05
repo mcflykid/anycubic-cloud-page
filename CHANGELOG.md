@@ -1,5 +1,16 @@
 # Changements
 
+## 1.2.10 — en préparation
+
+- Conservation de l’imprimante par défaut pendant la reconnexion du compte et reprise des relevés de température des imprimantes secondaires (#48, #56).
+- Transfert des G-code depuis un fichier temporaire avec lecture bornée. Un envoi signé refusé déclenche la demande de libération du quota (#58, #24).
+- Diagnostic des réponses d’ouverture vidéo et demande de fermeture au départ du dernier spectateur connu de l’atelier. Le protocole a été vérifié sur des échanges simulés (#20, #64).
+- Déplacement des sessions historiques vers le dossier privé, refus du changement de compte sur un dossier déjà associé, et lecture des journaux du slicer par fenêtres de taille fixe (#62, #61, #51).
+- Pagination des fichiers cloud, disponibilité des actions d’impression et nouvelles tentatives bornées pour l’aperçu du projet courant (#54).
+- Aperçus de notifications préservés lors du rafraîchissement de l’historique, et message explicite lorsque la connexion empêche une suppression (#36, #52).
+- Préréglage de la durée de séchage si la valeur est valide et gestion des réponses cloud incomplètes (#53, #50).
+- Calcul de la période de 90 jours de l’historique en jours calendaires, y compris autour des changements d’heure.
+
 ## 1.2.5 — 2026-11-05
 
 - Les réponses de fichiers périmées sont écartées ; les actions restent liées à leur source et à leur dossier (#47).
