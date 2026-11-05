@@ -2,6 +2,8 @@
 
 ## À publier
 
+- Inventaire sourcé des capacités cloud, de leur couverture et des paramètres inconnus, établi sans essai sur le cloud (#29).
+
 - Notifications déplacées dans une cloche accessible, avec filtres, recherche et compteur actualisé par le statut habituel (#16).
 
 - Bouton de déconnexion accessible dans la barre du haut ; HOME_URL ne pilote plus que le lien de marque (#14).
