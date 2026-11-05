@@ -93,11 +93,11 @@ print(json.dumps(servers))
 
 def run_variant(variant):
  """Installe depuis un dossier vide ; nettoie ses seuls conteneurs de test, même en cas d’erreur."""
- env=os.environ.copy();env.update({'PUID':str(os.getuid()),'PGID':str(os.getgid()),'TZ':'Europe/Paris','APPDATA_DIR':'./appdata','BIND_ADDRESS':'127.0.0.1','WEB_PORT':'8080','PUBLIC_ORIGIN':'http://localhost:8080','HOME_URL':'/imprimante.html','WEB_USER':'admin','PROXY_NETWORK':'cloud-page-ci-proxy'})
+ env=os.environ.copy();env.update({'PUID':str(os.getuid()),'PGID':str(os.getgid()),'TZ':'Europe/Paris','APPDATA_DIR':'./appdata','BIND_ADDRESS':'127.0.0.1','WEB_PORT':'8080','PUBLIC_ORIGIN':'http://localhost:8080','HOME_URL':'/imprimante.html','WEB_USER':'admin','PROXY_NETWORK':'cloud-page-ci-proxy','PROXY_NETWORK_EXTERNAL':'true'})
  with tempfile.TemporaryDirectory(prefix='cloud-page-ci-') as temporary:
   directory=pathlib.Path(temporary)
   filenames=['compose.yaml']
-  if variant=='host':env.pop('PROXY_NETWORK',None)
+  if variant=='host':env.pop('PROXY_NETWORK',None);env.pop('PROXY_NETWORK_EXTERNAL',None)
   filenames.append('compose.ci.yaml')
   for filename in filenames:shutil.copy2(ROOT/filename,directory/filename)
   for name in ['ANYCUBIC_EMAIL','ANYCUBIC_PASSWORD','ANYCUBIC_TOKEN','WEB_PASSWORD']:env.pop(name,None)

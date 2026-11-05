@@ -62,5 +62,5 @@ services:
 networks:
   proxy:
     name: "${PROXY_NETWORK:-anycubic-cloud-page}"
-    # Une valeur fournie désigne un réseau géré ailleurs ; vide laisse Compose le créer.
-    external: "${PROXY_NETWORK:+true}"
+    # Le nom ne suffit pas : external empêche Compose de supprimer le réseau du proxy.
+    external: "${PROXY_NETWORK_EXTERNAL:-false}"
