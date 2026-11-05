@@ -62,7 +62,7 @@ class CloudExtras:
  """Adapte les fonctions cloud complémentaires aux données autorisées pour le navigateur."""
  def __init__(self,engine):
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
-  self.e=engine;self.tasks={};self.previews={};self.downloads={};self.resets=ResetChallenges();self.device_cache=None
+  self.e=engine;self.tasks={};self.previews={};self.downloads={};self.resets=ResetChallenges();self.device_cache=None;self.notification_projects=None
  async def api(self,path,data=None,query=None,method='POST'):
   """Renvoie data après succès cloud ; lève ValueError si la connexion ou l’opération est refusée."""
   if not self.e.api:raise ValueError('Connexion Anycubic en cours')
@@ -121,16 +121,16 @@ class CloudExtras:
   if cached and time.monotonic()-cached[0]<300:return {'image':cached[1]}
   def image_url(row):
    """Retient uniquement une URL d’image autorisée, pour éviter une requête vers un hôte arbitraire."""
-   for field in ['img','image_url','thumbnail']:
+   for field in ('img','image_url','thumbnail','thumbnail_url'):
     url=row.get(field)
     if isinstance(url,str) and trusted_url(url):return url
    params=row.get('slice_param')
-   if isinstance(params,dict):
-    image_id=params.get('image_id')
-    if isinstance(image_id,str) and image_id:
+   for image_id in (row.get('image_id'),params.get('image_id') if isinstance(params,dict) else None):
+    if not isinstance(image_id,str) or not image_id:continue
+    if trusted_url(image_id):return image_id
+    if re.fullmatch(r'[A-Za-z0-9_./%+~-]+',image_id) and not image_id.startswith('/') and '..' not in image_id.split('/'):
      from anycubic_cloud_api.const.const import PROJECT_IMAGE_URL_BASE
-     url=PROJECT_IMAGE_URL_BASE+image_id
-     if trusted_url(url):return url
+     return PROJECT_IMAGE_URL_BASE+image_id
   url=image_url(r);image=None
   if not url and lookup_detail:
    with contextlib.suppress(Exception):
@@ -159,13 +159,34 @@ class CloudExtras:
   allowed.add(str(self.e.printer.id))
   if printer_id not in allowed:return {'image':None}
   cachekey='notification:'+str(k)
+  cached=self.previews.get(cachekey)
+  if cached and time.monotonic()-cached[0]<300:return {'image':cached[1]}
   direct=await self.preview_row(cachekey,row,lookup_detail=False)
   if direct['image']:return direct
-  # Un nom de fichier ou une notification ne suffit pas à identifier une tâche : exiger une référence explicite.
-  refs={str(row[f]) for f in ['task_id','taskid','project_id'] if row.get(f) not in (None,'',0,'0')}
-  if not refs:return {'image':None}
-  projects=await self.api('/work/project/getProjects',query={'page':1,'limit':100},method='GET')
-  matches=[r for r in projects if isinstance(r,dict) and str(r.get('printer_id'))==printer_id and refs.intersection(str(r[f]) for f in ['id','taskid','task_id'] if r.get(f) is not None)] if isinstance(projects,list) else []
+  # Les identifiants de tâche et de projet ont des espaces distincts.
+  task_id=str(row.get('task_id') or row.get('taskid') or '')
+  project_id=str(row.get('project_id') or '')
+  if task_id in ('','0') and project_id in ('','0'):return {'image':None}
+  task_id=task_id if task_id!='0' else ''
+  project_id=project_id if project_id!='0' else ''
+  matches=[]
+  if task_id:
+   task=self.tasks.get(key(printer_id+':'+task_id))
+   if task and (not project_id or str(task.get('id'))==project_id):
+    matches=[task]
+  if not matches:
+   if not self.notification_projects or time.monotonic()-self.notification_projects[0]>=30:
+    try:projects=await self.api('/work/project/getProjects',query={'page':1,'limit':100},method='GET')
+    except (ValueError,aiohttp.ClientError,asyncio.TimeoutError):
+     self.previews.pop(cachekey,None)
+     return {'image':None}
+    self.notification_projects=(time.monotonic(),projects if isinstance(projects,list) else [])
+   matches=[
+    project for project in self.notification_projects[1]
+    if isinstance(project,dict) and str(project.get('printer_id'))==printer_id
+    and (not task_id or task_id==str(project.get('taskid') or project.get('task_id')))
+    and (not project_id or project_id==str(project.get('id') or project.get('project_id')))
+   ]
   if len(matches)!=1:return {'image':None}
   self.previews.pop(cachekey,None)
   return await self.preview_row(cachekey,matches[0])

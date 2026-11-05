@@ -259,9 +259,26 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
   self.assertTrue((await self.x.notification_preview('a'))['image'])
   self.assertEqual(self.x.preview_row.await_args.args[1]['printer_id'],8)
 
+ async def test_task_reference_never_matches_a_project_id(self):
+  """Les aperçus de deux impressions distinctes ne sont pas interchangeables."""
+  self.e.notification_rows={'a':{'task_id':44,'printer_id':7}}
+  self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}])
+  self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'id':55,'taskid':44,'printer_id':7}])
+  self.assertTrue((await self.x.notification_preview('a'))['image'])
+  self.assertEqual(self.x.preview_row.await_args.args[1]['id'],55)
+
+ async def test_recent_catalogue_is_shared_by_two_notification_lookups(self):
+  """Deux miniatures absentes ne provoquent pas deux lectures du même catalogue."""
+  self.e.notification_rows={'a':{'task_id':44},'b':{'task_id':55}}
+  self.x.preview_row=AsyncMock(return_value={'image':None})
+  self.x.api=AsyncMock(return_value=[])
+  await self.x.notification_preview('a')
+  await self.x.notification_preview('b')
+  self.x.api.assert_awaited_once()
+
  async def test_ambiguous_reference_keeps_preview_unavailable(self):
   """Vérifie que une référence ambiguë ne fournit aucun aperçu."""
-  self.e.notification_rows={'a':{'project_id':44}};self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'taskid':44,'printer_id':7}])
+  self.e.notification_rows={'a':{'project_id':44}};self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'project_id':44,'printer_id':7}])
   self.assertEqual(await self.x.notification_preview('a'),{'image':None});self.x.preview_row.assert_awaited_once()
 
 if __name__=='__main__':unittest.main()

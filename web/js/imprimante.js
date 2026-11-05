@@ -317,12 +317,16 @@ async function deleteHistory(key,allItems,button){if(!await confirmAction(allIte
 const taskPreviewCache=new Map();
 /** Renvoie une promesse d’image mise en cache ; sépare les références de notifications de celles des tâches. */
 function taskPreview(t){
- if(!taskPreviewCache.has(t.key)){
-  /* Une notification et une tâche peuvent partager une clé : garder leurs espaces de cache distincts. */const pending=request('/extras/'+(t.notification?'notification-preview':'task-preview')+'?key='+encodeURIComponent(t.notification?t.key.slice(13):t.key)).then(d=>d.image||null).catch(()=>{taskPreviewCache.delete(t.key);return null;});
-  taskPreviewCache.set(t.key,pending);
-  while(taskPreviewCache.size>40)taskPreviewCache.delete(taskPreviewCache.keys().next().value);
- }
- return taskPreviewCache.get(t.key);
+ const cached=taskPreviewCache.get(t.key);
+ if(cached&&cached.expires>Date.now())return cached.pending;
+ const entry={expires:Infinity};
+ entry.pending=request('/extras/'+(t.notification?'notification-preview':'task-preview')+'?key='+encodeURIComponent(t.notification?t.key.slice(13):t.key))
+  .then(data=>data.image||null)
+  .catch(()=>null)
+  .then(src=>{entry.expires=Date.now()+(src?300000:30000);return src;});
+ taskPreviewCache.set(t.key,entry);
+ while(taskPreviewCache.size>40)taskPreviewCache.delete(taskPreviewCache.keys().next().value);
+ return entry.pending;
 }
 /** Ouvre l’aperçu d’une notification et ignore la réponse si son dialogue a changé entre-temps. */
 async function openNotificationPreview(item){
@@ -337,8 +341,14 @@ async function openNotificationPreview(item){
  dialog.showModal();
  const src=await taskPreview({...item,key:'notification:'+item.key,notification:true});
  if(!dialog.open||dialog.dataset.notification!==item.key)return;
- if(src){image.src=src;image.hidden=false;set('notification-preview-state',translate(item.result));}
- else set('notification-preview-state','Aperçu indisponible pour cette notification.');
+ const unavailable=()=>set('notification-preview-state','Aperçu indisponible pour cette notification.');
+ if(!src){unavailable();return;}
+ image.src=src;
+ try{await image.decode();}catch{
+  if(dialog.open&&dialog.dataset.notification===item.key)unavailable();
+  return;
+ }
+ if(dialog.open&&dialog.dataset.notification===item.key){image.hidden=false;set('notification-preview-state',translate(item.result));}
 }
 /** Chaque liste possède son observateur pour que le rafraîchissement de l’historique préserve les notifications. */
 function previewObserver(){
