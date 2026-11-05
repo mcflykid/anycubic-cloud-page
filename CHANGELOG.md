@@ -1,6 +1,6 @@
 # Changements
 
-## 1.2.8 — en préparation
+## 1.2.8 — 2026-11-06
 
 - Conservation de l’imprimante par défaut pendant la reconnexion du compte et reprise des relevés de température des imprimantes secondaires (#48, #56).
 - Transfert des G-code depuis un fichier temporaire avec lecture bornée. Un envoi signé refusé déclenche la demande de libération du quota (#58, #24).
