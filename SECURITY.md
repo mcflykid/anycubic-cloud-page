@@ -11,3 +11,6 @@ Pour signaler une vulnérabilité, utilisez le signalement privé GitHub si disp
 La CI et `scripts/check_publication.py` apportent des contrôles ciblés ; ils ne constituent pas une certification de sécurité exhaustive.
 
 La saisie des identifiants dans le Compose ou `.env` est un choix d’installation local : ces valeurs sont visibles aux administrateurs Docker du conteneur. Elles ne sont pas incluses dans l’image et ne sont pas écrites dans les logs pendant la préparation.
+
+
+Le mot de passe web est actuellement conservé dans un fichier privé en mode 0600. Une migration vers une empreinte doit conserver les mots de passe existants, notamment les valeurs longues et la rotation des sessions. La limite d’entrée de bcrypt et la compatibilité entre versions doivent être traitées avant une conversion automatique.

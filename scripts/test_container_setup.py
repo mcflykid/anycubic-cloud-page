@@ -20,6 +20,22 @@ class Setup(unittest.TestCase):
   self.run_setup();self.run_setup();self.assertEqual(self.prepares,1)
   data=json.loads((self.secrets/'anycubic-account').read_text());self.assertEqual(data['email'],'fixture@example.test')
   self.assertEqual((self.secrets/'web-password').stat().st_mode&0o777,0o600);self.assertEqual(self.secrets.stat().st_mode&0o777,0o700)
+ def test_legacy_session_is_migrated_to_private(self):
+  """La session existante reste utilisable et sort des données de diagnostic."""
+  self.run_setup()
+  old=self.state/'account-session.json'
+  old.write_text('{"fixture":true}')
+  self.run_setup()
+  self.assertFalse(old.exists())
+  self.assertEqual((self.secrets/'account-session.json').read_text(),'{"fixture":true}')
+ def test_switch_account_with_password_preserves_existing_account(self):
+  """Un autre compte exige un espace séparé avant toute écriture de secrets."""
+  self.run_setup()
+  target=self.secrets/'anycubic-account'
+  previous=target.read_bytes()
+  with self.assertRaisesRegex(ValueError,'nouvel APPDATA_DIR'):
+   self.run_setup({**self.env,'ANYCUBIC_EMAIL':'other@example.test'})
+  self.assertEqual(target.read_bytes(),previous)
  def test_appdata_groups_all_persistent_directories(self):
   """Une installation vide regroupe les données privées et applique leurs droits."""
   appdata=self.root/'appdata'

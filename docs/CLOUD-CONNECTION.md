@@ -41,7 +41,7 @@ python3 scripts/extract_token.py --log-dir /chemin/des/journaux
 
 Le script recherche les marqueurs `accessToken =` et `id_token=`, décode les claims localement et retient un token d’accès User Center non expiré. Un marqueur `id_token` ne suffit pas : le contenu doit bien annoncer `tokenType=access-token`. Les journaux sont parcourus du plus récent au plus ancien, avec une limite de taille par fichier.
 
-Le résultat est écrit dans un fichier privé (le volume partagé pour le watcher Docker, ou `appdata/private/anycubic-token` pour le script local), jamais dans le terminal. `--watch` recommence toutes les 30 secondes et remplace le fichier seulement si le token change. Le serveur détecte ensuite le changement lors du polling et reconnecte sa session.
+Le résultat est écrit dans un fichier privé (le dossier isolé `appdata/private/slicer-token/` pour le lecteur Docker, ou `appdata/private/anycubic-token` pour le script local), jamais dans le terminal. `--watch` recommence toutes les 30 secondes et remplace le fichier seulement si le token change. Le serveur détecte ensuite le changement lors du polling et reconnecte sa session.
 
 **Limite :** lire un token existant ne crée pas une session User Center. Si les journaux ne contiennent rien de valide, reconnectez-vous dans le slicer ou choisissez la méthode A. L’emplacement macOS a été vérifié ; les emplacements proposés pour Windows/Linux sont des conventions à adapter avec `--log-dir`.
 

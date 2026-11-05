@@ -27,6 +27,8 @@ def initialize(secret_dir='/appdata/private',state_dir='/appdata/state',environ=
   except (ValueError,TypeError):raise ValueError('Le compte enregistré est illisible ou incomplet.') from None
  saved_token=(secret/'anycubic-token').read_text().strip() if (secret/'anycubic-token').is_file() else ''
  if not env.get('WEB_USER','admin').strip():raise ValueError('WEB_USER ne peut pas être vide.')
+ if email and saved_account and saved_account['email'].casefold()!=email.casefold():
+  raise ValueError('Un autre compte Anycubic est enregistré. Utilisez un nouvel APPDATA_DIR pour changer de compte.')
  if password and not email:raise ValueError('Renseignez ANYCUBIC_EMAIL avec ANYCUBIC_PASSWORD.')
  if email and not password and (not saved_account or saved_account['email']!=email):raise ValueError('Renseignez le mot de passe pour ce compte Anycubic non enregistré.')
  if not (email and password) and not token and not saved_account and not saved_token:raise ValueError('Renseignez le compte Anycubic dans le Compose ou le fichier .env.')
@@ -37,6 +39,17 @@ def initialize(secret_dir='/appdata/private',state_dir='/appdata/state',environ=
  else:effective_password=web_password.strip()
  if len(effective_password)<6:raise ValueError('WEB_PASSWORD doit contenir au moins 6 caractères.')
  for root in roots:root.mkdir(parents=True,exist_ok=True)
+ legacy_session=state/'account-session.json'
+ private_session=secret/'account-session.json'
+ if legacy_session.is_file():
+  if private_session.exists() and legacy_session.read_bytes()!=private_session.read_bytes():
+   raise ValueError('Deux sessions Anycubic différentes sont présentes. Vérifiez la migration du dossier privé.')
+  if not private_session.exists():
+   os.chmod(legacy_session,0o600)
+   legacy_session.replace(private_session)
+  else:
+   legacy_session.unlink()
+ (secret/'slicer-token').mkdir(mode=0o700,exist_ok=True)
  if email and password:private_write(secret/'anycubic-account',json.dumps({'email':email,'password':password}).encode())
  elif token:private_write(secret/'anycubic-token',token.encode())
  if web_password:private_write(secret/'web-password',web_password.encode())

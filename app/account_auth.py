@@ -23,7 +23,7 @@ class AccountRefreshRejected(RuntimeError):
 
 class AccountAuth:
  """Gère la session du compte et son repli sur un jeton local privé."""
- def __init__(self,credentials='/appdata/private/anycubic-account',state='/appdata/state/account-session.json',fallback='/appdata/private/anycubic-token'):
+ def __init__(self,credentials='/appdata/private/anycubic-account',state='/appdata/private/account-session.json',fallback='/appdata/private/anycubic-token'):
   """Charge les chemins privés des identifiants, de la session et du jeton de repli, sans connexion réseau."""
   self.credentials=pathlib.Path(credentials);self.path=pathlib.Path(state);self.fallback=pathlib.Path(fallback)
   self.lock=asyncio.Lock();self.retry_after=0;self.state={};self.retry_failures=0;self.credentials_revision=None;self.login_blocked=False;self.notice=None
@@ -88,10 +88,17 @@ class AccountAuth:
  def retry_succeeded(self):
   """Efface les délais et avertissements après une session obtenue avec succès."""
   self.retry_after=0;self.retry_failures=0;self.login_blocked=False;self.notice=None
+ def slicer_token(self):
+  """Prend la dernière écriture valide entre le dépôt du lecteur isolé et le jeton historique."""
+  watched=self.fallback.parent/'slicer-token'/'anycubic-token'
+  sources=[path for path in (self.fallback,watched) if path.is_file() and path.stat().st_size]
+  if not sources:
+   return ''
+  return max(sources,key=lambda path:path.stat().st_mtime_ns).read_text().strip()
  async def token(self,session):
   """Renvoie un jeton utilisable ; lève RuntimeError si aucun repli valide ne survit à l’échec."""
   async with self.lock:
-   if not self.credentials.exists():return self.fallback.read_text().strip()
+   if not self.credentials.exists():return self.slicer_token()
    token=self.state.get('access_token','');current=self.valid(token)
    try:self.check_retry()
    except RuntimeError:
@@ -116,7 +123,7 @@ class AccountAuth:
   """Renvoie un nouveau jeton après un refus explicite ; lève RuntimeError si le renouvellement échoue."""
   async with self.lock:
    if not self.credentials.exists():
-    token=self.fallback.read_text().strip()
+    token=self.slicer_token()
     if not token:raise RuntimeError('Token absent. Reconnectez le slicer puis relancez la récupération locale.')
     return token
    self.check_retry()

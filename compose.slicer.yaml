@@ -22,7 +22,7 @@ services:
         max-file: "3"
     volumes:
       - "${SLICER_LOG_DIR:?Définissez SLICER_LOG_DIR dans .env}:/slicer-logs:ro"
-      - "${APPDATA_DIR:-./appdata}:/appdata"
+      - "${APPDATA_DIR:-./appdata}/private/slicer-token:/slicer-token"
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       - "TZ=${TZ:-Europe/Paris}"
@@ -31,4 +31,4 @@ services:
       anycubic-cloud-page:
         condition: "service_healthy"
     entrypoint: ["python", "/app/scripts/extract_token.py"]
-    command: ["--log-dir", "/slicer-logs", "--output", "/appdata/private/anycubic-token", "--watch"]
+    command: ["--log-dir", "/slicer-logs", "--output", "/slicer-token/anycubic-token", "--watch"]

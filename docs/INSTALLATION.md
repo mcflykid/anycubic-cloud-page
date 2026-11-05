@@ -67,7 +67,7 @@ Toutes les données sont sous `APPDATA_DIR` :
 
 Les temporaires restent en mémoire et les logs sont gérés par Docker. Aucun volume nommé n’est créé. Sauvegardez tout `appdata`, services arrêtés, avant une migration. Un autre `APPDATA_DIR` permet d’isoler un autre compte ; changer seulement le nom du projet Compose ne sépare pas ces données.
 
-Pour reprendre des données existantes : sauvegardez-les et arrêtez les services, puis copiez leurs fichiers privés vers `appdata/private/` et leur état vers `appdata/state/`. Gardez les noms et les formats de `account-session.json`, `temperatures.json` et `presets.json`. Si les formats diffèrent, vérifiez leur compatibilité avant de poursuivre. Pour des volumes Docker, relevez les points de montage avec `docker volume inspect`, sans afficher les fichiers privés. Au prochain `docker compose up -d`, la préparation rétablit les droits. Contrôlez santé et cloud avant de retirer les sources de la copie. Ne lancez pas `down -v` pendant une migration.
+Pour reprendre des données existantes : sauvegardez-les et arrêtez les services, puis copiez leurs fichiers privés vers `appdata/private/` et leur état vers `appdata/state/`. Gardez les noms et les formats de `account-session.json`, `temperatures.json` et `presets.json`. La session du compte va dans `appdata/private/`. Au démarrage, une session historique dans `appdata/state/` est déplacée vers le dossier privé. Si les formats diffèrent, vérifiez leur compatibilité avant de poursuivre. Pour des volumes Docker, relevez les points de montage avec `docker volume inspect`, sans afficher les fichiers privés. Au prochain `docker compose up -d`, la préparation rétablit les droits. Contrôlez santé et cloud avant de retirer les sources de la copie. Ne lancez pas `down -v` pendant une migration.
 
 Les valeurs du Compose et de `.env` sont accessibles aux administrateurs Docker. Elles ne sont jamais incluses dans l’image ni affichées par la préparation. La notice `/about` décrit les services externes utilisés ; le proxy doit la transmettre comme les autres routes.
 
@@ -75,7 +75,7 @@ Les valeurs du Compose et de `.env` sont accessibles aux administrateurs Docker.
 
 Pour un token existant, laissez `ANYCUBIC_EMAIL` et `ANYCUBIC_PASSWORD` vides et renseignez `ANYCUBIC_TOKEN`. Un compte déjà enregistré n’est pas remplacé implicitement par ce mode.
 
-Pour surveiller les journaux du slicer, téléchargez [`compose.slicer.yaml`](../compose.slicer.yaml), définissez `SLICER_LOG_DIR`, fournissez un token initial et lancez :
+Le lecteur auxiliaire écrit uniquement dans `appdata/private/slicer-token/`. Mettez à jour le Compose auxiliaire avec celui de la même version que l’application. Pour surveiller les journaux du slicer, téléchargez [`compose.slicer.yaml`](../compose.slicer.yaml), définissez `SLICER_LOG_DIR`, fournissez un token initial et lancez :
 
 ```sh
 docker compose -f compose.yaml -f compose.slicer.yaml up -d
@@ -149,3 +149,8 @@ rm -f "$COOKIE_JAR"
 Adaptez le nom web et PASSWORD_FILE à votre configuration. Le statut doit contenir `ok: true` et une actualisation cohérente ; les indicateurs cloud et MQTT restent distincts. La liste des fichiers doit répondre 200 avec `files`, qui peut être vide. Un code 200 seul ne valide pas un JSON d’erreur. Ne partagez ni ces réponses, ni le fichier de cookies, ni les secrets.
 
 Une recréation interrompt brièvement HTTP et invalide les sessions web. Reconnectez-vous après healthy. Des lectures peuvent recevoir 502 durant cette fenêtre ; corrélez les journaux à l’heure de démarrage et vérifiez l’absence de nouvelles erreurs après disponibilité, sans effacer les anciennes traces. Aucun ordre d’impression n’est nécessaire pour contrôler une installation.
+
+
+### Changer de compte Anycubic
+
+Un dossier appdata reste associé à son compte enregistré. Pour changer de compte, sauvegardez ce dossier, choisissez un nouvel `APPDATA_DIR` et renseignez les identifiants de ce compte. La préparation refuse de remplacer le compte d’un dossier existant.
