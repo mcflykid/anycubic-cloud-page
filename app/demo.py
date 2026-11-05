@@ -45,7 +45,7 @@ async def api(request):
  elif path=='status':d={'ok':True,'demo':True,'printer':PRINTER,'updated_at':T,'mqtt_updated_at':T,'mqtt_connected':True,'presets':[{'name':n,'temperature':t,'hours':h} for n,t,h in [('PLA',45,4),('PETG',55,6),('ABS / ASA',60,6),('PA',65,8)]],'notifications':{'items':notices,'page':1,'total':len(notices),'unread':sum(x['unread'] for x in notices),'has_more':False},'events':[{'time':T-600,'action':'Démonstration','state':'Impression terminée'}]}
  elif path=='preview' or path in ['extras/task-preview','extras/notification-preview']:d={'image':IMAGE}
  elif path=='temperatures':d={'readings':[{'time':int(T)-i*30,'nozzle':round(28+182*(1-math.exp(-i/30)),1),'bed':round(26+34*(1-math.exp(-i/45)),1),'ace':42,'nozzle_target':0,'bed_target':0,'ace_target':45} for i in range(120,-1,-1)],'hours':1,'retention_hours':24}
- elif path.startswith('files/'):d={'files':FILES,'page':1,'has_more':False,'path':'/'}
+ elif path.startswith('files/'):d={'files':FILES,'page':1,'has_more':False,'path':'/','store':{'used_bytes':184*1024**2,'total_bytes':2*1024**3}}
  elif path=='extras/storage':d={'total':2*1024**3,'used':184*1024**2,'free':2*1024**3-184*1024**2}
  elif path=='extras/tasks':
   page=max(1,int(request.query.get('page',1)));offset=(page-1)*3;d={'items':tasks[offset:offset+3],'page':page,'has_more':offset+3<len(tasks)}
