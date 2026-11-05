@@ -1,6 +1,6 @@
 # Changements
 
-## 1.2.0 — À publier
+## 1.2.0 — 2026-11-05
 
 Suivi de livraison : #33.
 
