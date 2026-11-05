@@ -9,10 +9,20 @@
 ## Publication d'une version
 Chaque livraison terminée et testée reçoit un numéro inédit. Une livraison peut regrouper plusieurs commits avant sa publication finale.
 1. Numéro : correctif ou commentaires → correctif suivant ; nouvelle fonction → version mineure suivante. Demander en cas de doute.
-2. Mettre à jour les références de version et le changelog en français.
-3. En local : tests Python, contrôle JavaScript et contrôle de publication. Les tests Docker s'exécutent uniquement dans GitHub Actions ; ne pas installer de moteur Docker pour les lancer localement.
-4. Respecter les branches et les validations demandées. Une branche de travail ne doit pas publier d'image ni déclencher de déploiement.
-5. Lors d'une publication explicitement autorisée : commit et tag de version, suivi des workflows avec `gh run watch`, puis vérification de l'image publiée. Arrêter la procédure en cas d'échec.
+2. Mettre à jour les références de version, notamment package.json, les Compose et les guides, ainsi que le changelog en français avec les issues fermées. Exclure les dépendances installées et package-lock.json des remplacements globaux.
+3. En local : tests Python, contrôle JavaScript et check_publication.py, comme dans la CI. Les tests Docker s’exécutent uniquement dans GitHub Actions ; ne pas installer de moteur Docker local pour les lancer. Arrêter en cas d’échec.
+4. Un push sur main lance uniquement les tests. Une branche de travail, une pull request ou une fusion ne doit publier aucune image.
+5. Pour une livraison explicitement autorisée : commit « Version X.Y.Z : <résumé> », puis tag inédit vX.Y.Z correspondant exactement à package.json et à une entrée unique du CHANGELOG. Ne jamais déplacer un tag publié ni réutiliser un numéro d’image.
+6. Pousser main et suivre ses tests avec gh run watch ; une fois verts, pousser le tag. Seul le tag déclenche Publish Docker image, qui valide la version, exécute tous les tests puis construit et publie l’image. Arrêter en cas d’échec.
+7. Suivre ce workflow avec gh run watch. Il vérifie l’accès anonyme à l’image amd64/arm64, puis crée la release GitHub à partir du CHANGELOG et joint compose.yaml et .env.example.
+8. Vérifier la release, ses pièces jointes et le téléchargement public de l’image. Après un simple push sur main, vérifier qu’aucune publication n’a eu lieu. Les changements de présentation explicitement demandés sans tag restent destinés à la prochaine livraison.
+
+## Suivi des travaux
+- Tout travail technique public est suivi dans une issue GitHub, rattachée à la milestone de la prochaine version.
+- Un commit qui règle une issue contient « Fixes #N » pour sa fermeture automatique sur main. Si une issue est réglée sans commit, la fermer avec un commentaire qui explique pourquoi.
+- Chaque nouveau bug ou nouvelle idée découvert en travaillant donne une issue, pas une note dans le code.
+- Le CHANGELOG de chaque version cite les issues fermées (#N).
+- Les notes de travail locales ne contiennent que les informations qui ne peuvent pas être publiques ; le suivi public reste dans les issues.
 
 ## Confidentialité et périmètre public
 - Ne publier ni identifiant privé, ni domaine d'exploitation, ni adresse privée, ni chemin personnel. Les documents et données propres à une installation restent hors du dépôt public et de l'image.
