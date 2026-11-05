@@ -97,7 +97,7 @@ class Engine:
  def __init__(self):
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
   self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False;self.transport_only=False
-  self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1
+  self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1;self.reconnect_required=False
   self.command_lock=asyncio.Lock()
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
  def event(self,action,state):"""Ajoute un événement horodaté au journal local borné.""";self.events.appendleft({'time':now(),'action':action,'state':state})
@@ -165,6 +165,7 @@ class Engine:
    if self.catalogue_source and getattr(self,'fleet_registry',None):self.transport_only=True;self.mqtt_start();return
    raise RuntimeError('Imprimante absente')
   await self.printer.update_info_from_api()
+  self.reconnect_required=False
   self.api.mqtt_add_subscribed_printer(self.printer)
   self.mqtt_start()
  async def refresh_catalogue(self):
@@ -183,7 +184,7 @@ class Engine:
     async with self.lock:
      primary=not getattr(self,'fleet_registry',None) or self is self.fleet_registry.default
      if self.catalogue_source and self.api:await self.refresh_catalogue()
-     reconnect=not self.api or (not self.printer and not self.transport_only) or primary and await self.account.token(self.session)!=self.account_token
+     reconnect=self.reconnect_required or not self.api or (not self.printer and not self.transport_only) or primary and await self.account.token(self.session)!=self.account_token
      if reconnect:await self.connect()
      elif self.printer:await self.printer.update_info_from_api()
      self.raw_info=(await self.api.printer_info_for_id(self.printer.id,raw_data=True)).get('data') or {} if self.printer else {}
@@ -194,7 +195,12 @@ class Engine:
      except Exception:self.notifications_error='Messages temporairement indisponibles'
    except Exception as e:
     self.ok=False;self.error='Connexion Anycubic indisponible ('+type(e).__name__+').'
-    if 'Auth' in type(e).__name__ and type(e).__name__!='CloudSessionAuthError':self.api=None;self.printer=None
+    if 'Auth' in type(e).__name__ and type(e).__name__!='CloudSessionAuthError':
+     owner=getattr(getattr(self,'fleet_registry',None),'default',self);owner.reconnect_required=True
+     # Conserver le client jusqu’à la fin du fil permet de réessayer sa fermeture au cycle suivant.
+     if owner.api:
+      with contextlib.suppress(Exception):owner.api.disconnect_mqtt()
+     self.printer=None
    await asyncio.sleep(60)
  def command_project_key(self):
   """Renvoie une référence opaque du projet affiché, liée à la machine ; None si le contexte manque."""
