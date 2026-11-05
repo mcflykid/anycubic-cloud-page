@@ -1,0 +1,57 @@
+name: "anycubic-cloud-page"
+services:
+  # ============================================================================
+  # Anycubic Cloud Page — prépare les données puis sert l’atelier sans droits root.
+  # ============================================================================
+  anycubic-cloud-page:
+    image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:1.1.0}"
+    container_name: "anycubic-cloud-page"
+    cpus: "0.5"
+    mem_limit: "512m"
+    mem_reservation: "64m"
+    pids_limit: 100
+    init: true
+    read_only: true
+    tmpfs:
+      - "/tmp:size=128m,mode=1777"
+    cap_drop: ["ALL"]
+    # Ces capacités servent à la préparation ; setpriv les abandonne avec l’identité root.
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETUID", "SETGID"]
+    security_opt: ["no-new-privileges=true"]
+    restart: "unless-stopped"
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Pour un proxy conteneur, compose.proxy.yaml ajoute PROXY_NETWORK et retire ce port.
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:8080/tcp"
+    volumes:
+      # APPDATA_DIR est le seul emplacement persistant inscriptible.
+      - "${APPDATA_DIR:-./appdata}:/appdata"
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      - "TZ=${TZ:-Europe/Paris}"
+      - "PUID=${PUID:-1000}"
+      - "PGID=${PGID:-1000}"
+      # Après un premier démarrage réussi, les mots de passe peuvent être vidés.
+      - "ANYCUBIC_EMAIL=${ANYCUBIC_EMAIL:-}"
+      - "ANYCUBIC_PASSWORD=${ANYCUBIC_PASSWORD:-}"
+      - "ANYCUBIC_TOKEN=${ANYCUBIC_TOKEN:-}"
+      - "WEB_USER=${WEB_USER-admin}"
+      - "WEB_PASSWORD=${WEB_PASSWORD:-}"
+      # Origine exacte du navigateur, protocole et port compris, sans chemin.
+      - "PUBLIC_ORIGIN=${PUBLIC_ORIGIN:-http://localhost:8080}"
+      # Une valeur vide masque les liens ; HTTP(S) ou chemin relatif uniquement.
+      - "HOME_URL=${HOME_URL-/imprimante.html}"
+      - "PRINTER_ID=${PRINTER_ID:-}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/imprimante-api/health', timeout=5)"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
+      start_period: "30s"
+    # Nécessite un outil externe de surveillance ; ce label est volontairement désactivé.
+    # labels:
+    #   - "deunhealth.restart.on.unhealthy=true"

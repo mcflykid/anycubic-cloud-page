@@ -1,0 +1,3304 @@
+"""État agrégé d’une imprimante et adaptation de ses rapports HTTP et MQTT."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from ..const.enums import (
+    AnycubicFunctionID,
+    AnycubicPrinterMaterialType,
+    AnycubicPrintStatus,
+)
+from ..exceptions.error_strings import (
+    ErrorsDataParsing,
+    ErrorsGeneral,
+    ErrorsMQTTUpdate,
+)
+from ..exceptions.exceptions import (
+    AnycubicAPIError,
+    AnycubicDataParsingError,
+    AnycubicMQTTUnhandledData,
+    AnycubicMQTTUnknownUpdate,
+)
+from ..helpers.helpers import (
+    get_part_from_mqtt_topic,
+    time_duration_string_to_delta,
+    timedelta_to_dhm_string,
+    timedelta_to_total_hours,
+)
+from .consumable import AnycubicConsumableData
+from .files import AnycubicFile
+from .printer_properties import (
+    AnycubicMachineColorInfo,
+    AnycubicMachineData,
+    AnycubicMachineExternalShelves,
+    AnycubicMachineFirmwareInfo,
+    AnycubicMachineParameter,
+    AnycubicMachineToolInfo,
+    AnycubicMaterialColor,
+    AnycubicMultiColorBox,
+)
+from .printing_settings import AnycubicPrintingSettings
+from .project import AnycubicProject
+
+if TYPE_CHECKING:
+    from datetime import timedelta
+
+    from ..anycubic_api import AnycubicAPI
+    from .orders import AnycubicCameraSession
+    from .print_response import AnycubicPrintResponse
+    from .printer_properties import AnycubicDryingStatus, AnycubicMaterialMapping
+
+
+class AnycubicPrinter:
+    """État local d’une imprimante, alimenté par HTTP et par ses rapports MQTT."""
+    __slots__ = (
+        "_ignore_init_errors",
+        "_initialisation_error",
+        "_api_parent",
+        "_machine_type",
+        "_machine_name",
+        "_machine_img",
+        "_net_function_ids",
+        "_net_default_function",
+        "_id",
+        "_user_id",
+        "_name",
+        "_nonce",
+        "_key",
+        "_user_img",
+        "_description",
+        "_printer_type",
+        "_device_status",
+        "_ready_status",
+        "_is_printing",
+        "_reason",
+        "_video_taskid",
+        "_msg",
+        "_material_used",
+        "_total_print_time",
+        "_total_print_time_delta",
+        "_total_print_time_hrs",
+        "_total_print_time_dhm_str",
+        "_print_count",
+        "_status",
+        "_machine_mac",
+        "_delete",
+        "_create_time",
+        "_delete_time",
+        "_last_update_time",
+        "_machine_data",
+        "_type_function_ids",
+        "_material_type",
+        "_parameter",
+        "_fw_version",
+        "_available",
+        "_color",
+        "_advance",
+        "_tools",
+        "_multi_color_box_fw_version",
+        "_external_shelves",
+        "_multi_color_box",
+        "_latest_project",
+        "_fan_speed",
+        "_aux_fan_speed_pct",
+        "_box_fan_level",
+        "_print_speed_pct",
+        "_print_speed_mode",
+        "_local_file_list",
+        "_udisk_file_list",
+        "_local_file_list_path",
+        "_udisk_file_list_path",
+        "_pending_local_file_list_path",
+        "_pending_udisk_file_list_path",
+        "_has_peripheral_camera",
+        "_has_peripheral_multi_color_box",
+        "_has_peripheral_udisk",
+        "_camera_light_on",
+        "_camera_light_brightness",
+        "_camera_light_type",
+        "_is_bound_to_user",
+        "_job_download_progress",
+    )
+
+    def __init__(
+        self,
+        api_parent: AnycubicAPI,
+        machine_type: int,
+        machine_name: str,
+        machine_img: str | None = None,
+        net_function_ids: list[int] | None = None,
+        net_default_function: int | None = None,
+        id: int | None = None,
+        user_id: int | None = None,
+        name: str | None = None,
+        nonce: str | int | None = None,
+        key: str | None = None,
+        user_img: str | None = None,
+        description: str | None = None,
+        printer_type: str | None = None,
+        device_status: int | None = None,
+        ready_status: int | None = None,
+        is_printing: int | None = None,
+        reason: str | None = None,
+        video_taskid: int | None = None,
+        msg: str | None = None,
+        material_used: str | None = None,
+        print_totaltime: str | None = None,
+        print_count: int | None = None,
+        status: int | None = None,
+        machine_mac: str | None = None,
+        delete: int | None = None,
+        create_time: int | None = None,
+        delete_time: int | None = None,
+        last_update_time: int | None = None,
+        machine_data: dict[str, Any] | None = None,
+        type_function_ids: list[int] | None = None,
+        material_type: str | None = None,
+        parameter: dict[str, Any] | None = None,
+        fw_version: dict[str, Any] | None = None,
+        available: int | None = None,
+        color: list[list[int]] | None = None,
+        advance: list[Any] | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        multi_color_box_fw_version: list[dict[str, Any]] | None = None,
+        external_shelves: dict[str, Any] | None = None,
+        multi_color_box: list[dict[str, Any]] | dict[str, Any] | None = None,
+        ignore_init_errors: bool = False,
+    ) -> None:
+        """Initialise l’état reçu du cloud ; api_parent porte les appels réseau et ignore_init_errors tolère certaines erreurs de données."""
+        self._ignore_init_errors: bool = ignore_init_errors
+        self._initialisation_error: bool = False
+
+        self._api_parent: AnycubicAPI = api_parent
+        self._machine_type = machine_type
+        self._machine_name = machine_name
+        self._machine_img = machine_img
+        self._net_function_ids = net_function_ids
+        self._net_default_function = net_default_function
+        self._id = id
+        self._user_id = user_id
+        self._name = name
+        self._nonce = nonce
+        self._key = key
+        self._user_img = user_img
+        self._description = description
+        self._printer_type = printer_type
+        self._device_status = device_status
+        self._ready_status = ready_status
+        self._is_printing: int = int(is_printing) if is_printing is not None else 1
+        self._reason = reason
+        self._video_taskid = video_taskid
+        self._msg = msg
+        self._material_used = material_used
+        self._set_total_print_time(print_totaltime)
+        self._print_count = print_count
+        self._status = status
+        self._machine_mac = machine_mac
+        self._delete = delete
+        self._create_time = create_time
+        self._delete_time = delete_time
+        self._last_update_time = last_update_time
+        self._set_machine_data(machine_data)
+        self._set_type_function_ids(type_function_ids)
+        self._set_material_type(material_type)
+        self._set_parameter(parameter)
+        self._set_fw_version(fw_version)
+        self._available = available
+        self._set_color(color)
+        self._advance = advance
+        self._set_tools(tools)
+        self._set_multi_color_box_fw_version(multi_color_box_fw_version)
+        self._set_external_shelves(external_shelves)
+        self._set_multi_color_box(multi_color_box)
+
+        self._latest_project: AnycubicProject | None = None
+        self._fan_speed: int = 0
+        self._aux_fan_speed_pct: int | None = None
+        self._box_fan_level: int | None = None
+        self._print_speed_pct: int = 0
+        self._print_speed_mode: int = 0
+        self._local_file_list: list[AnycubicFile] | None = None
+        self._udisk_file_list: list[AnycubicFile] | None = None
+        self._local_file_list_path: str = "/"
+        self._udisk_file_list_path: str = "/"
+        self._pending_local_file_list_path: str | None = None
+        self._pending_udisk_file_list_path: str | None = None
+        self._has_peripheral_camera: bool = False
+        self._has_peripheral_multi_color_box: bool = False
+        self._has_peripheral_udisk: bool = False
+        self._camera_light_on: bool | None = None
+        self._camera_light_brightness: int | None = None
+        self._camera_light_type: int | None = None
+        self._is_bound_to_user: bool = True
+        self._job_download_progress: int = 0
+
+        self._ignore_init_errors = False
+
+    def _set_job_download_progress(self, job_download_progress: int | None) -> None:
+        self._job_download_progress = int(job_download_progress) if job_download_progress is not None else 0
+
+    def _set_total_print_time(self, print_totaltime: str | None) -> None:
+        self._total_print_time: str | None = print_totaltime
+        self._total_print_time_delta: timedelta = time_duration_string_to_delta(print_totaltime)
+        self._total_print_time_hrs: int = int(timedelta_to_total_hours(self._total_print_time_delta))
+        self._total_print_time_dhm_str: str = timedelta_to_dhm_string(self._total_print_time_delta)
+
+    def set_has_peripheral_camera(self, has_peripheral: bool) -> None:
+        """Mémorise la présence de caméra rapportée par la machine, sans interrogation réseau."""
+        self._has_peripheral_camera = bool(has_peripheral)
+
+    def set_has_peripheral_multi_color_box(self, has_peripheral: bool) -> None:
+        """Mémorise la présence de l’ACE rapportée par la machine, sans interrogation réseau."""
+        self._has_peripheral_multi_color_box = bool(has_peripheral)
+
+    def set_has_peripheral_udisk(self, has_peripheral: bool) -> None:
+        """Mémorise la présence de clé USB rapportée par la machine, sans interrogation réseau."""
+        self._has_peripheral_udisk = bool(has_peripheral)
+
+    @staticmethod
+    def _coerce_light_status(light_on: bool | int | str | None) -> bool | None:
+        if light_on is None:
+            return None
+        if isinstance(light_on, bool):
+            return light_on
+        if isinstance(light_on, int):
+            return bool(light_on)
+        if isinstance(light_on, str):
+            normalized = light_on.strip().lower()
+            if normalized in ("1", "on", "true", "enabled"):
+                return True
+            if normalized in ("0", "off", "false", "disabled"):
+                return False
+        return None
+
+    def update_camera_light(
+        self,
+        light_on: bool | int | str | None,
+        brightness: int | None = None,
+        light_type: int | None = None,
+    ) -> None:
+        """Applique un rapport d’éclairage au modèle local, sans envoyer de commande."""
+        light_status = self._coerce_light_status(light_on)
+        if light_status is not None:
+            self._camera_light_on = light_status
+        if brightness is not None:
+            self._camera_light_brightness = int(brightness)
+        if light_type is not None:
+            self._camera_light_type = int(light_type)
+
+    def _set_type_function_ids(self, type_function_ids: list[int] | None) -> None:
+        if isinstance(type_function_ids, list):
+            self._type_function_ids = type_function_ids
+        else:
+            self._type_function_ids = list()
+
+    def _set_material_type(self, material_type: str | None) -> None:
+        self._material_type: AnycubicPrinterMaterialType | str | None = None
+
+        if material_type and isinstance(material_type, str):
+            try:
+                self._material_type = AnycubicPrinterMaterialType(material_type.title())
+
+            except ValueError:
+                self._material_type = material_type
+
+    @staticmethod
+    def _normalise_file_list_path(file_path: str | None) -> str:
+        if not file_path:
+            return "/"
+
+        normalised_path = str(file_path).replace("\\", "/").strip()
+        if not normalised_path:
+            return "/"
+
+        if not normalised_path.startswith("/"):
+            normalised_path = f"/{normalised_path}"
+
+        while "//" in normalised_path:
+            normalised_path = normalised_path.replace("//", "/")
+
+        if len(normalised_path) > 1:
+            normalised_path = normalised_path.rstrip("/")
+
+        return normalised_path
+
+    def _set_local_file_list(self, file_list: list[dict[str, Any]] | None, file_path: str | None = None) -> None:
+        if file_list is None:
+            return
+
+        file_path = self._normalise_file_list_path(file_path)
+        self._local_file_list_path = file_path
+        self._local_file_list = list()
+        for x in file_list:
+            file = AnycubicFile.from_json(x, path=file_path)
+            if file:
+                self._local_file_list.append(file)
+            else:
+                raise AnycubicDataParsingError(ErrorsDataParsing.local_file_list.format(file_list))
+
+    def _set_udisk_file_list(self, file_list: list[dict[str, Any]] | None, file_path: str | None = None) -> None:
+        if file_list is None:
+            return
+
+        file_path = self._normalise_file_list_path(file_path)
+        self._udisk_file_list_path = file_path
+        self._udisk_file_list = list()
+        for x in file_list:
+            file = AnycubicFile.from_json(x, path=file_path)
+            if file:
+                self._udisk_file_list.append(file)
+            else:
+                raise AnycubicDataParsingError(ErrorsDataParsing.udisk_file_list.format(file_list))
+
+    def _set_multi_color_box(self, multi_color_box: list[dict[str, Any]] | dict[str, Any] | None) -> None:
+        try:
+            if multi_color_box is None or isinstance(multi_color_box, list):
+                multi_color_box_list = multi_color_box
+            else:
+                multi_color_box_list = list([multi_color_box])
+
+            existing_multi_color_box = getattr(self, "_multi_color_box", None)
+
+            if (
+                existing_multi_color_box is not None and
+                len(existing_multi_color_box) > 1 and
+                multi_color_box_list is not None and
+                len(multi_color_box_list) == 1
+            ):
+                # Un rapport MQTT peut ne contenir que l’ACE modifié : conserver les autres boîtiers connus.
+                updated_box = AnycubicMultiColorBox.from_json(multi_color_box_list[0])
+                if not updated_box:
+                    raise AnycubicDataParsingError(ErrorsDataParsing.ace.format(multi_color_box))
+
+                for box_index, existing_box in enumerate(existing_multi_color_box):
+                    if existing_box.box_id == updated_box.box_id:
+                        existing_multi_color_box[box_index] = updated_box
+                        return
+
+                existing_multi_color_box[0] = updated_box
+                return
+
+            self._multi_color_box: list[AnycubicMultiColorBox] | None = None
+            if multi_color_box_list is not None:
+                self._multi_color_box = list()
+                for x in multi_color_box_list:
+                    ace = AnycubicMultiColorBox.from_json(x)
+                    if ace:
+                        self._multi_color_box.append(ace)
+                    else:
+                        raise AnycubicDataParsingError(ErrorsDataParsing.ace.format(multi_color_box))
+
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _multi_color_box_index_by_id(self, box_id: int) -> int | None:
+        if not self._multi_color_box:
+            return None
+
+        for box_index, box in enumerate(self._multi_color_box):
+            if box.box_id == box_id:
+                return box_index
+
+        return None
+
+    def _set_machine_data(
+        self,
+        machine_data: dict[str, Any] | None,
+    ) -> None:
+        try:
+            self._machine_data = AnycubicMachineData.from_json(machine_data)
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _set_parameter(
+        self,
+        parameter: dict[str, Any] | None,
+    ) -> None:
+        try:
+            self._parameter = AnycubicMachineParameter.from_json(parameter)
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _set_fw_version(
+        self,
+        fw_version: dict[str, Any] | None,
+    ) -> None:
+        try:
+            self._fw_version = AnycubicMachineFirmwareInfo.from_json(fw_version)
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _set_color(
+        self,
+        color: list[list[int]] | None,
+    ) -> None:
+        try:
+            self._color = AnycubicMachineColorInfo.from_json(color)
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _set_tools(
+        self,
+        tools: list[dict[str, Any]] | None,
+    ) -> None:
+        self._tools: list[AnycubicMachineToolInfo] | None = None
+        try:
+            if tools is not None:
+                self._tools = list()
+                for x in tools:
+                    tool = AnycubicMachineToolInfo.from_json(x)
+                    if tool:
+                        self._tools.append(tool)
+                    else:
+                        raise AnycubicDataParsingError(ErrorsDataParsing.tools.format(tools))
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _set_multi_color_box_fw_version(
+        self,
+        multi_color_box_fw_version: list[dict[str, Any]] | dict[str, Any] | None,
+    ) -> None:
+        self._multi_color_box_fw_version: list[AnycubicMachineFirmwareInfo] | None = None
+        try:
+            if multi_color_box_fw_version is None or isinstance(multi_color_box_fw_version, list):
+                multi_color_box_fw_version_list = multi_color_box_fw_version
+            else:
+                multi_color_box_fw_version_list = list([multi_color_box_fw_version])
+            if multi_color_box_fw_version_list is not None:
+                self._multi_color_box_fw_version = list()
+                for x in multi_color_box_fw_version_list:
+                    ace = AnycubicMachineFirmwareInfo.from_json(x)
+                    if ace:
+                        self._multi_color_box_fw_version.append(ace)
+                    else:
+                        raise AnycubicDataParsingError(
+                            ErrorsDataParsing.ace_fw_version.format(multi_color_box_fw_version)
+                        )
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _set_external_shelves(
+        self,
+        external_shelves: dict[str, Any] | None,
+    ) -> None:
+        try:
+            self._external_shelves = AnycubicMachineExternalShelves.from_json(external_shelves)
+        except Exception as e:
+            self._initialisation_error = True
+            if not self._ignore_init_errors:
+                raise e
+
+    def _update_fw_version_from_json(
+        self,
+        fw_version: dict[str, Any] | None,
+    ) -> None:
+        if fw_version is None:
+            return
+
+        if self._fw_version:
+            self._fw_version.update_from_json(fw_version)
+        else:
+            self._set_fw_version(fw_version)
+
+    def _update_multi_color_box_fw_version_from_json(
+        self,
+        multi_color_box_fw_version: list[dict[str, Any]] | dict[str, Any] | None,
+    ) -> None:
+        if multi_color_box_fw_version is not None and not isinstance(multi_color_box_fw_version, list):
+            multi_color_box_fw_version = list([multi_color_box_fw_version])
+
+        if (
+            multi_color_box_fw_version is None or
+            not isinstance(multi_color_box_fw_version, list) or
+            len(multi_color_box_fw_version) < 1
+        ):
+            return
+
+        if self._multi_color_box_fw_version and len(self._multi_color_box_fw_version) > 0:
+            for x, fwver in enumerate(self._multi_color_box_fw_version):
+                if fwver and len(multi_color_box_fw_version) >= x + 1:
+                    fwver.update_from_json(multi_color_box_fw_version[x])
+        else:
+            self._set_multi_color_box_fw_version(multi_color_box_fw_version)
+
+    @classmethod
+    def from_basic_json(
+        cls,
+        api_parent: AnycubicAPI,
+        data: dict[str, Any],
+    ) -> AnycubicPrinter:
+        """Construit une machine depuis le catalogue ; lève KeyError si un champ requis de data manque."""
+        return cls(
+            api_parent=api_parent,
+            machine_type=data['machine_type'],
+            machine_name=data['name'],
+            machine_img=data['img'],
+            net_function_ids=data['net_function_ids'],
+            net_default_function=data['net_default_function'],
+        )
+
+    @classmethod
+    def from_status_json(
+        cls,
+        api_parent: AnycubicAPI,
+        data: dict[str, Any],
+        ignore_init_errors: bool = False,
+    ) -> AnycubicPrinter:
+        """Construit une machine depuis l’état cloud ; ignore_init_errors tolère certaines erreurs de conversion, KeyError si un champ requis manque."""
+        return cls(
+            api_parent=api_parent,
+            id=data['id'],
+            user_id=data['user_id'],
+            name=data['name'],
+            nonce=data['nonce'],
+            key=data['key'],
+            machine_type=data['machine_type'],
+            machine_name=data['model'],
+            user_img=data.get('img'),
+            description=data.get('description'),
+            printer_type=data['type'],
+            device_status=data['device_status'],
+            ready_status=data['ready_status'],
+            is_printing=data['is_printing'],
+            reason=data.get('reason'),
+            video_taskid=data.get('video_taskid'),
+            msg=data.get('msg'),
+            material_used=data.get('material_used'),
+            print_totaltime=data.get('print_totaltime'),
+            status=data['status'],
+            machine_mac=data.get('machine_mac'),
+            delete=data['delete'],
+            create_time=data.get('create_time'),
+            delete_time=data['delete_time'],
+            last_update_time=data['last_update_time'],
+            machine_data=data['machine_data'],
+            type_function_ids=data['type_function_ids'],
+            material_type=data.get('material_type'),
+            parameter=data.get('parameter'),
+            fw_version=data['version'],
+            available=data.get('available'),
+            color=data.get('color'),
+            ignore_init_errors=ignore_init_errors,
+        )
+
+    @classmethod
+    def from_info_json(
+        cls,
+        api_parent: AnycubicAPI,
+        data: dict[str, Any],
+        ignore_init_errors: bool = False,
+    ) -> AnycubicPrinter:
+        """Construit une machine depuis les détails cloud ; ignore_init_errors tolère certaines erreurs de conversion, KeyError si un champ requis manque."""
+        try:
+            extra_data = data.get('base', {})
+            return cls(
+                api_parent=api_parent,
+                id=data['id'],
+                name=data['name'],
+                key=data['key'],
+                machine_type=data['machine_type'],
+                machine_name=data['model'],
+                user_img=data.get('img'),
+                description=extra_data.get('description'),
+                device_status=data['device_status'],
+                is_printing=data['is_printing'],
+                material_used=extra_data.get('material_used'),
+                print_totaltime=extra_data.get('print_totaltime'),
+                print_count=extra_data.get('print_count'),
+                machine_mac=extra_data.get('machine_mac'),
+                create_time=extra_data.get('create_time'),
+                machine_data=data.get('machine_data'),
+                type_function_ids=data['type_function_ids'],
+                material_type=extra_data.get('material_type'),
+                parameter=data.get('parameter'),
+                fw_version=data['version'],
+                tools=data.get('tools'),
+                multi_color_box_fw_version=data.get('multi_color_box_version'),
+                external_shelves=data.get('external_shelves'),
+                multi_color_box=data.get('multi_color_box'),
+                ignore_init_errors=ignore_init_errors,
+            )
+        except Exception:
+            # Les réponses brutes contiennent des identifiants privés de compte et de machine.
+            raise
+
+    def update_from_info_json(self, data: dict[str, Any] | None) -> None:
+        """Applique les détails cloud au modèle existant, sans commande physique."""
+        if data is None:
+            return
+
+        if str(self._id) != str(data['id']):
+            return
+
+        extra_data = data.get('base', {})
+
+        self._name = data['name']
+        self._key = data['key']
+        self._machine_type = data['machine_type']
+        self._machine_name = data['model']
+        self._user_img = data['img']
+        self._description = extra_data.get('description')
+        self._device_status = data['device_status']
+        self._is_printing = data['is_printing']
+        self._material_used = extra_data.get('material_used')
+        self._set_total_print_time(extra_data.get('print_totaltime'))
+        self._print_count = extra_data.get('print_count')
+        self._machine_mac = extra_data.get('machine_mac')
+        self._create_time = extra_data.get('create_time')
+        self._set_machine_data(data.get('machine_data'))
+        self._set_type_function_ids(data['type_function_ids'])
+        self._set_material_type(extra_data.get('material_type'))
+        self._set_parameter(data.get('parameter'))
+        self._update_fw_version_from_json(data['version'])
+        self._set_tools(data.get('tools'))
+        self._update_multi_color_box_fw_version_from_json(data.get('multi_color_box_version'))
+        self._set_external_shelves(data.get('external_shelves'))
+        self._set_multi_color_box(data.get('multi_color_box'))
+
+    def _check_latest_project_id_valid(
+        self,
+        incoming_project_id: int,
+    ) -> bool:
+        try:
+            project_id = int(incoming_project_id)
+        except Exception:
+            project_id = -1
+
+        return (
+            self._latest_project is not None
+            and (
+                project_id < 0
+                or project_id == self._latest_project.id
+            )
+        )
+
+    def _update_latest_project_with_mqtt_print_status_data(
+        self,
+        incoming_project_id: int,
+        print_status: AnycubicPrintStatus,
+        mqtt_data: AnycubicConsumableData | None = None,
+        paused: int | None = None,
+        reason: str | None = None,
+    ) -> bool:
+        self._set_job_download_progress(0)
+
+        if self._check_latest_project_id_valid(incoming_project_id):
+            assert self._latest_project
+            self._latest_project.update_with_mqtt_print_status_data(
+                print_status,
+                mqtt_data,
+                paused=paused,
+                reason=reason,
+            )
+
+            return True
+
+        elif mqtt_data:
+            mqtt_data.force_empty()
+
+        return False
+
+    def _update_latest_project_with_mqtt_download_status_data(
+        self,
+        incoming_project_id: int,
+        mqtt_data: AnycubicConsumableData,
+    ) -> bool:
+        self._set_job_download_progress(int(mqtt_data['progress']))
+
+        if self._check_latest_project_id_valid(incoming_project_id):
+            assert self._latest_project
+            self._latest_project.update_with_mqtt_download_status_data(
+                mqtt_data,
+            )
+
+            return True
+
+        return False
+
+    def _update_latest_project_with_mqtt_checking_status_data(
+        self,
+        incoming_project_id: int,
+    ) -> bool:
+        self._set_job_download_progress(0)
+
+        if self._check_latest_project_id_valid(incoming_project_id):
+            assert self._latest_project
+            self._latest_project.update_with_mqtt_checking_status_data()
+
+            return True
+
+        return False
+
+    def _update_latest_project_slice_param(
+        self,
+        incoming_project_id: int,
+        new_slice_param: str | dict[str, Any] | None,
+    ) -> bool:
+        if self._check_latest_project_id_valid(incoming_project_id):
+            assert self._latest_project
+            self._latest_project.set_slice_param(
+                new_slice_param,
+            )
+
+            return True
+
+        return False
+
+    def _update_latest_project_target_temps(
+        self,
+        incoming_project_id: int,
+        new_target_hotbed_temp: int,
+        new_target_nozzle_temp: int,
+    ) -> bool:
+        if self._check_latest_project_id_valid(incoming_project_id):
+            assert self._latest_project
+            self._latest_project.update_target_temps(
+                new_target_hotbed_temp,
+                new_target_nozzle_temp,
+            )
+
+            return True
+
+        return False
+
+    def _process_mqtt_update_lastwill(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'onlineReport' and state == 'online':
+            self._device_status = 1
+            return
+        elif action == 'onlineReport' and state == 'offline':
+            self._device_status = 2
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.lastwill)
+
+    def _process_mqtt_update_user(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'bindQuery' and state == 'done':
+            self._is_bound_to_user = True
+            return
+        elif action == 'unbind' and state == 'done':
+            self._is_bound_to_user = False
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.user)
+
+    def _process_mqtt_update_status(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'workReport' and state == 'free':
+            self._is_printing = 1
+            return
+        elif action == 'workReport' and state == 'busy':
+            self._is_printing = 2
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.printer_status)
+
+    def _process_mqtt_update_ota_multicolorbox(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+        box_id: int,
+    ) -> None:
+        data = payload.get('data', {})
+        if (
+            self.multi_color_box_fw_version is None or
+            len(self.multi_color_box_fw_version) < (box_id + 1)
+        ):
+            return
+
+        if action == 'update' and state == 'start':
+            self.multi_color_box_fw_version[box_id].set_is_updating(True)
+            return
+        elif action == 'update' and state in ['update-success', 'updateSuccessProcessed']:
+            # Une réinstallation peut rapporter la même version ; le succès termine aussi cet état transitoire.
+            firmware = self.multi_color_box_fw_version[box_id]
+            firmware.set_is_updating(False)
+            firmware.set_is_downloading(False)
+            firmware.set_download_progress(0)
+            firmware.set_update_progress(0)
+            return
+        elif action == 'reportVersion' and state == 'done':
+            data.get('device_unionid')
+            data.get('machine_version')
+            data.get('peripheral_version')
+            data.get('model_id')
+            self.multi_color_box_fw_version[box_id].update_version(data['firmware_version'])
+            return
+        elif action == 'update' and state == 'downloading':
+            self.multi_color_box_fw_version[box_id].set_is_updating(True)
+            self.multi_color_box_fw_version[box_id].set_is_downloading(True)
+            self.multi_color_box_fw_version[box_id].set_download_progress(data['progress'])
+            return
+        elif action == 'update' and state == 'updating':
+            self.multi_color_box_fw_version[box_id].set_is_updating(True)
+            self.multi_color_box_fw_version[box_id].set_is_downloading(False)
+            self.multi_color_box_fw_version[box_id].set_update_progress(data['current_progress'])
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.ota_ace)
+
+    def _process_mqtt_update_ota_printer(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        data = payload.get('data', {})
+
+        if action == 'reportVersion' and state == 'done':
+            data.get('device_unionid')
+            data.get('machine_version')
+            data.get('peripheral_version')
+            data.get('model_id')
+            if self.fw_version is not None:
+                self.fw_version.update_version(data['firmware_version'])
+            return
+        elif action == 'update' and state == 'start':
+            if self.fw_version is not None:
+                self.fw_version.set_is_updating(True)
+            return
+        elif action == 'update' and state == 'downloading':
+            if self.fw_version is not None:
+                self.fw_version.set_is_updating(True)
+                self.fw_version.set_is_downloading(True)
+                self.fw_version.set_download_progress(data['progress'])
+            return
+        elif action == 'update' and state == 'updating':
+            if self.fw_version is not None:
+                self.fw_version.set_is_updating(True)
+                self.fw_version.set_is_downloading(False)
+                self.fw_version.set_update_progress(data['current_progress'])
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.ota_printer)
+
+    def _process_mqtt_update_temperature(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'auto' and state == 'done':
+            data = payload['data']
+
+            if self.parameter:
+                self.parameter.update_current_temps(
+                    data['curr_hotbed_temp'],
+                    data['curr_nozzle_temp'],
+                )
+            if self._latest_project:
+                self._latest_project.update_target_temps(
+                    data['target_hotbed_temp'],
+                    data['target_nozzle_temp'],
+                )
+
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.temperature)
+
+    def _process_mqtt_update_fan(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'auto' and state == 'done':
+            data = payload['data']
+
+            if 'fan_speed_pct' in data:
+                self._fan_speed = int(data['fan_speed_pct'])
+            if 'aux_fan_speed_pct' in data:
+                self._aux_fan_speed_pct = int(data['aux_fan_speed_pct'])
+            if 'box_fan_level' in data:
+                self._box_fan_level = int(data['box_fan_level'])
+
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.fan)
+
+    def _process_mqtt_update_print(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        project_id = payload.get('data', {}).get('taskid', -1)
+        if action == 'start' and state == 'printing':
+            data = payload['data']
+            self._is_printing = 2
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Printing,
+                data,
+            )
+            return
+        elif action == 'start' and state == 'downloading':
+            data = payload['data']
+            self._is_printing = 2
+            self._update_latest_project_with_mqtt_download_status_data(
+                project_id,
+                data,
+            )
+            return
+        elif action == 'start' and state == 'checking':
+            self._is_printing = 2
+            self._update_latest_project_with_mqtt_checking_status_data(
+                project_id,
+            )
+            return
+        elif action == 'start' and state == 'preheating':
+            data = payload['data']
+            self._is_printing = 2
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Preheating,
+                data,
+            )
+            return
+        elif action == 'start' and state == 'finished':
+            data = payload['data']
+            self._is_printing = 1
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Complete,
+                data,
+            )
+            return
+        elif action == 'pause' and state in ['pausing', 'paused']:
+            data = payload['data']
+            self._is_printing = 2
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Printing,
+                data,
+                paused=1,
+            )
+            return
+        elif action == 'resume' and state in ['resuming', 'resumed']:
+            data = payload['data']
+            self._is_printing = 2
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Printing,
+                data,
+                paused=0 if state == 'resumed' else 1,
+            )
+            return
+        elif action in ['start', 'stop'] and state in ['stoped', 'stopping']:
+            data = payload['data']
+            self._is_printing = 1
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Cancelled,
+                data,
+            )
+            return
+        elif action == 'getSliceParam' and state == 'done':
+            data = payload['data']['slice_param']
+            self._update_latest_project_slice_param(
+                project_id,
+                data,
+            )
+            return
+        elif action in ['start', 'update'] and state == 'updated':
+            data = payload['data']
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Printing,
+                data,
+            )
+            if self.parameter and 'curr_hotbed_temp' in data and 'curr_nozzle_temp' in data:
+                self.parameter.update_current_temps(
+                    data['curr_hotbed_temp'],
+                    data['curr_nozzle_temp'],
+                )
+            settings = data.get('settings', {})
+            if 'fan_speed_pct' in settings:
+                self._fan_speed = int(settings['fan_speed_pct'])
+            if 'aux_fan_speed_pct' in settings:
+                self._aux_fan_speed_pct = int(settings['aux_fan_speed_pct'])
+            if 'box_fan_level' in settings:
+                self._box_fan_level = int(settings['box_fan_level'])
+            if 'print_speed_pct' in settings:
+                self._print_speed_pct = int(settings['print_speed_pct'])
+            if 'print_speed_mode' in settings:
+                self._print_speed_mode = int(settings['print_speed_mode'])
+            settings.get('z_comp')
+            if 'target_hotbed_temp' in settings and 'target_nozzle_temp' in settings:
+                self._update_latest_project_target_temps(
+                    project_id,
+                    settings['target_hotbed_temp'],
+                    settings['target_nozzle_temp'],
+                )
+            if isinstance(settings, AnycubicConsumableData) and settings.is_empty:
+                data.get('settings')
+            return
+        elif action in ['start', 'stop'] and state in ['failed']:
+            err_msg = payload.get('msg')
+            self._is_printing = 1
+            self._update_latest_project_with_mqtt_print_status_data(
+                project_id,
+                AnycubicPrintStatus.Cancelled,
+                reason=err_msg,
+            )
+            raise AnycubicAPIError(ErrorsGeneral.print_failed.format(err_msg))
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.job_status)
+
+    def _process_mqtt_update_multicolorbox(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'getInfo' and state == 'success':
+            payload_data = payload['data']
+            data = payload_data['multi_color_box']
+            payload_data.get('head_tools_model')
+            self._set_multi_color_box(data)
+            return
+        elif action in ['setInfo', 'refresh'] and state == 'success':
+            data = payload['data']['multi_color_box']
+            for box in data:
+                box_id = int(box['id'])
+                box_index = self._multi_color_box_index_by_id(box_id)
+                if box_index is None:
+                    continue
+                assert self._multi_color_box
+                self._multi_color_box[box_index].update_slots_with_mqtt_data(box['slots'])
+            return
+
+        elif action == 'autoUpdateInfo' and state == 'done':
+            data = payload['data']
+            box_id = int(data['id'])
+            loaded_slot = int(data['loaded_slot'])
+            box_index = self._multi_color_box_index_by_id(box_id)
+            if box_index is None:
+                return
+
+            assert self._multi_color_box
+            self._multi_color_box[box_index].set_slot_loaded(loaded_slot)
+            return
+        elif action in ['autoUpdateDryStatus', 'setDry'] and state == 'success':
+            data = payload['data']['multi_color_box']
+            for box in data:
+                box_id = int(box['id'])
+                box_index = self._multi_color_box_index_by_id(box_id)
+                if box_index is None:
+                    continue
+
+                assert self._multi_color_box
+                self._multi_color_box[box_index].set_current_temperature(box['temp'])
+                self._multi_color_box[box_index].set_drying_status(box['drying_status'])
+            return
+        elif action == 'feedFilament' and state == 'done':
+            data = payload['data']['multi_color_box']
+            for box in data:
+                box_id = int(box['id'])
+                box_index = self._multi_color_box_index_by_id(box_id)
+                if box_index is None:
+                    continue
+
+                loaded_slot = int(box['loaded_slot'])
+
+                assert self._multi_color_box
+                self._multi_color_box[box_index].set_slot_loaded(loaded_slot)
+                self._multi_color_box[box_index].set_feed_status(box['feed_status'])
+            return
+        elif action == 'setAutoFeed' and state == 'done':
+            data = payload['data']['multi_color_box']
+            for box in data:
+                box_id = int(box['id'])
+                box_index = self._multi_color_box_index_by_id(box_id)
+                if box_index is None:
+                    continue
+
+                assert self._multi_color_box
+                self._multi_color_box[box_index].set_auto_feed(box['auto_feed'])
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.ace)
+
+    def _process_mqtt_update_shelves(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'reportInfo' and state == 'success':
+            data = payload['data']
+            if self.external_shelves:
+                self.external_shelves.update_with_mqtt_data(data)
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.shelves)
+
+    def _process_mqtt_update_file(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'listLocal' and state == 'done':
+            data = payload['data']
+            records = data.get('records', [])
+            data.get('list_mode')
+            file_path = data.get('path', self._pending_local_file_list_path)
+            self._pending_local_file_list_path = None
+            self._set_local_file_list(records, file_path=file_path)
+            return
+        elif action == 'deleteLocal' and state == 'success':
+            # Les listes sont remplacées sur leur rapport dédié ; l’interface les redemande après suppression.
+            return
+        elif action == 'listUdisk' and state == 'done':
+            data = payload['data']
+            records = data.get('records', [])
+            data.get('list_mode')
+            file_path = data.get('path', self._pending_udisk_file_list_path)
+            self._pending_udisk_file_list_path = None
+            self._set_udisk_file_list(records, file_path=file_path)
+            return
+        elif action == 'deleteUdisk' and state == 'success':
+            # Les listes sont remplacées sur leur rapport dédié ; l’interface les redemande après suppression.
+            return
+        elif action == 'cloudRecommendList' and state == 'done':
+            # Aucune vue ne consomme ces recommandations ; leur format constructeur reste à confirmer.
+            payload.force_empty()
+            return
+        elif action == 'videoThumbnailList' and state == 'done':
+            # Des firmwares récents émettent ces aperçus au démarrage ; aucun affichage local ne les exploite.
+            payload.force_empty()
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.file)
+
+    def _process_mqtt_update_peripherals(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'query' and state == 'done':
+            data = payload['data']
+
+            if 'camera' in data:
+                self.set_has_peripheral_camera(data['camera'])
+
+            if 'multiColorBox' in data:
+                self.set_has_peripheral_multi_color_box(data['multiColorBox'])
+
+            if 'udisk' in data:
+                self.set_has_peripheral_udisk(data['udisk'])
+
+            data.get('mount_path')
+            data.get('ret_code')
+            data.get('usb_path')
+
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.peripherals)
+
+    def _process_mqtt_update_light(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'control' and state == 'failed':
+            payload.get('data')
+            payload.force_empty()
+            return
+        if action in ('query', 'control') and state == 'done':
+            data = payload.get('data')
+            if isinstance(data, AnycubicConsumableData):
+                status = data.get('status')
+                if status is None:
+                    status = data.get('light')
+                brightness = data.get('brightness')
+                light_type = data.get('type')
+                data.get('ret_code')
+                data.force_empty()
+                self.update_camera_light(status, brightness, light_type)
+            payload.force_empty()
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format('light'))
+
+    def _process_mqtt_update_video(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if action == 'startCapture' and state in ('initSuccess', 'joinSuccess', 'pushStarted', 'pushStoped', 'done'):
+            payload.force_empty()
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format('video'))
+
+    def _process_mqtt_update_buried(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        if state == 'done':
+            payload.force_empty()
+            return
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format('buried'))
+
+    def process_mqtt_update(
+        self,
+        topic: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        """Applique un rapport MQTT au modèle ; les champs non consommés signalent un protocole inconnu. Lève AnycubicMQTTUnhandledData, AnycubicMQTTUnknownUpdate si les données ou l’état requis sont invalides."""
+        msg_type = payload['type']
+        action = payload['action']
+        state = payload.get('state')
+        multi_color_topic = bool('multiColorBox' in topic)
+
+        if msg_type == 'lastWill':
+            self._process_mqtt_update_lastwill(action, state, payload)
+
+        elif msg_type == 'user':
+            self._process_mqtt_update_user(action, state, payload)
+
+        elif msg_type == 'status':
+            self._process_mqtt_update_status(action, state, payload)
+
+        elif msg_type == 'ota' and multi_color_topic:
+            box_id_str = get_part_from_mqtt_topic(topic, 9)
+            box_id = int(box_id_str) if box_id_str and box_id_str.isdigit() else 0
+            self._process_mqtt_update_ota_multicolorbox(action, state, payload, box_id)
+
+        elif msg_type == 'ota':
+            self._process_mqtt_update_ota_printer(action, state, payload)
+
+        elif msg_type == 'tempature':
+            self._process_mqtt_update_temperature(action, state, payload)
+
+        elif msg_type == 'fan':
+            self._process_mqtt_update_fan(action, state, payload)
+
+        elif msg_type == 'print':
+            self._process_mqtt_update_print(action, state, payload)
+
+        elif msg_type == 'multiColorBox':
+            self._process_mqtt_update_multicolorbox(action, state, payload)
+
+        elif msg_type == 'extfilbox':
+            self._process_mqtt_update_shelves(action, state, payload)
+
+        elif msg_type == 'file':
+            self._process_mqtt_update_file(action, state, payload)
+
+        elif msg_type == 'peripherie':
+            self._process_mqtt_update_peripherals(action, state, payload)
+
+        elif msg_type == 'light':
+            self._process_mqtt_update_light(action, state, payload)
+
+        elif msg_type == 'video':
+            self._process_mqtt_update_video(action, state, payload)
+
+        elif msg_type == 'buried':
+            self._process_mqtt_update_buried(action, state, payload)
+
+        elif msg_type in ('info', 'hardwareProfile', 'aiSettings'):
+            # Ces rapports informatifs de démarrage ne modifient aucun état exposé : les consommer évite les fausses alertes.
+            payload.force_empty()
+
+        else:
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format(msg_type))
+
+        remaining_data: AnycubicConsumableData | None = payload.get('data')
+
+        if remaining_data:
+            remaining_data.get('taskid')
+            remaining_data.get('localtask')
+
+        payload.get('data')
+        payload.get('msg')
+        payload.get('timestamp')
+        payload.get('msgid')
+        payload.get('code')
+
+        if not payload.is_empty:
+            raise AnycubicMQTTUnhandledData(
+                "process_mqtt_update",
+                unhandled_mqtt_data=payload.remaining_data,
+                unhandled_mqtt_type=msg_type,
+                unhandled_mqtt_action=action,
+                unhandled_mqtt_state=state,
+            )
+
+    @property
+    def initialisation_error(self) -> bool:
+        """Indique si des données invalides ont été tolérées à l’initialisation."""
+        return self._initialisation_error
+
+    @property
+    def machine_type(self) -> int:
+        """Code constructeur du modèle utilisé notamment par MQTT."""
+        return self._machine_type
+
+    @property
+    def model(self) -> str:
+        """Nom ou référence de modèle annoncé pour le projet."""
+        return self._machine_name
+
+    @property
+    def machine_name(self) -> str:
+        """Nom constructeur du modèle d’imprimante."""
+        return self._machine_name
+
+    @property
+    def machine_img(self) -> str | None:
+        """URL de l’illustration du modèle d’imprimante."""
+        return self._machine_img
+
+    @property
+    def net_function_ids(self) -> list[int] | None:
+        """Codes des fonctions réseau annoncées par le constructeur."""
+        return self._net_function_ids
+
+    @property
+    def net_default_function(self) -> int | None:
+        """Fonction réseau par défaut annoncée par le constructeur."""
+        return self._net_default_function
+
+    @property
+    def id(self) -> int:
+        """Identifiant constructeur de cet objet. Lève AnycubicAPIError si les données requises manquent."""
+        if self._id is None:
+            raise AnycubicAPIError(ErrorsGeneral.noid_printer)
+        return self._id
+
+    @property
+    def user_id(self) -> int | None:
+        """Identifiant du compte associé à cet objet constructeur."""
+        return self._user_id
+
+    @property
+    def name(self) -> str | None:
+        """Nom affichable fourni par ce modèle."""
+        return self._name
+
+    @property
+    def nonce(self) -> str | int | None:
+        """Valeur de diversification des signatures de requêtes."""
+        return self._nonce
+
+    @property
+    def key(self) -> str | None:
+        """Clé constructeur de la machine utilisée dans les sujets MQTT."""
+        return self._key
+
+    @property
+    def user_img(self) -> str | None:
+        """URL de l’avatar du compte associé à la machine."""
+        return self._user_img
+
+    @property
+    def description(self) -> str | None:
+        """Description fournie par le constructeur ou le fichier."""
+        return self._description
+
+    @property
+    def printer_type(self) -> str | None:
+        """Famille d’imprimante déclarée par le constructeur."""
+        return self._printer_type
+
+    @property
+    def device_status(self) -> int | None:
+        """Code brut de connexion de l’imprimante."""
+        return self._device_status
+
+    @property
+    def printer_online(self) -> bool:
+        """Indique si le cloud rapporte la machine comme connectée."""
+        return self._device_status == 1
+
+    @property
+    def ready_status(self) -> int | None:
+        """Code brut de disponibilité rapporté par la machine."""
+        return self._ready_status
+
+    @property
+    def is_printing(self) -> int:
+        """État brut d’impression conservé par le modèle."""
+        return self._is_printing
+
+    @property
+    def is_available(self) -> bool:
+        """Indique si le modèle considère la machine libre pour une opération."""
+        return self.printer_online and self._is_printing == 1
+
+    @property
+    def is_busy(self) -> bool:
+        """Indique si la machine est occupée selon son état connu."""
+        return self.printer_online and self._is_printing == 2
+
+    @property
+    def reason(self) -> str | None:
+        """Motif brut associé à l’état du projet ou de la machine."""
+        return self._reason
+
+    @property
+    def current_status(self) -> str:
+        """Renvoie busy, available ou unknown selon la connexion et le code de disponibilité de la machine."""
+        if self.is_busy:
+            return "busy"
+        elif self.is_available:
+            return "available"
+        else:
+            return "unknown"
+
+    @property
+    def video_taskid(self) -> int | None:
+        """Référence de tâche vidéo rapportée par le constructeur."""
+        return self._video_taskid
+
+    @property
+    def msg(self) -> str | None:
+        """Message brut associé à l’état constructeur."""
+        return self._msg
+
+    @property
+    def material_used(self) -> str | None:
+        """Quantité totale de matériau consommé selon le cloud."""
+        return self._material_used
+
+    @property
+    def total_print_time(self) -> str | None:
+        """Durée cumulée brute des impressions de la machine."""
+        return self._total_print_time
+
+    @property
+    def total_print_time_delta(self) -> timedelta:
+        """Durée cumulée des impressions sous forme de timedelta."""
+        return self._total_print_time_delta
+
+    @property
+    def total_print_time_hrs(self) -> int:
+        """Durée cumulée des impressions en heures."""
+        return self._total_print_time_hrs
+
+    @property
+    def total_print_time_dhm_str(self) -> str:
+        """Durée cumulée au format jours:heures:minutes."""
+        return self._total_print_time_dhm_str
+
+    @property
+    def print_count(self) -> int | None:
+        """Nombre d’impressions rapporté par le cloud."""
+        return self._print_count
+
+    @property
+    def status(self) -> int | None:
+        """Code d’état conservé par le modèle constructeur."""
+        return self._status
+
+    @property
+    def machine_mac(self) -> str | None:
+        """Adresse MAC rapportée par le cloud ; donnée d’identité privée."""
+        return self._machine_mac
+
+    @property
+    def delete(self) -> int | None:
+        """Indicateur brut de suppression du constructeur."""
+        return self._delete
+
+    @property
+    def create_time(self) -> int | None:
+        """Date de création brute annoncée par le cloud."""
+        return self._create_time
+
+    @property
+    def delete_time(self) -> int | None:
+        """Date brute de suppression annoncée par le cloud."""
+        return self._delete_time
+
+    @property
+    def last_update_time(self) -> int | None:
+        """Date brute de dernière mise à jour cloud."""
+        return self._last_update_time
+
+    @property
+    def machine_data(self) -> AnycubicMachineData | None:
+        """Caractéristiques matérielles détaillées de la machine."""
+        return self._machine_data
+
+    @property
+    def type_function_ids(self) -> list[int]:
+        """Codes des capacités propres au modèle d’imprimante."""
+        return self._type_function_ids
+
+    @property
+    def supports_function_axle_movement(self) -> bool:
+        """Indique si les capacités annoncées incluent le déplacement d’axes."""
+        return AnycubicFunctionID.AXLE_MOVEMENT in self._type_function_ids
+
+    @property
+    def supports_function_file_manager(self) -> bool:
+        """Indique si les capacités annoncées incluent la gestion des fichiers."""
+        return AnycubicFunctionID.FILE_MANAGER in self._type_function_ids
+
+    @property
+    def supports_function_exposure_test(self) -> bool:
+        """Indique si les capacités annoncées incluent le test d’exposition."""
+        return AnycubicFunctionID.EXPOSURE_TEST in self._type_function_ids
+
+    @property
+    def supports_function_lcd_peer_video(self) -> bool:
+        """Indique si les capacités annoncées incluent la vidéo LCD."""
+        return AnycubicFunctionID.LCD_PEER_VIDEO in self._type_function_ids
+
+    @property
+    def supports_function_fdm_axis_move(self) -> bool:
+        """Indique si les capacités annoncées incluent le déplacement d’axes FDM."""
+        return AnycubicFunctionID.FDM_AXIS_MOVE in self._type_function_ids
+
+    @property
+    def supports_function_fdm_peer_video(self) -> bool:
+        """Indique si les capacités annoncées incluent la vidéo FDM."""
+        return AnycubicFunctionID.FDM_PEER_VIDEO in self._type_function_ids
+
+    @property
+    def supports_function_device_startup_self_test(self) -> bool:
+        """Indique si les capacités annoncées incluent l’autotest au démarrage de la machine."""
+        return AnycubicFunctionID.DEVICE_STARTUP_SELF_TEST in self._type_function_ids
+
+    @property
+    def supports_function_print_startup_self_test(self) -> bool:
+        """Indique si les capacités annoncées incluent l’autotest avant impression."""
+        return AnycubicFunctionID.PRINT_STARTUP_SELF_TEST in self._type_function_ids
+
+    @property
+    def supports_function_automatic_operation(self) -> bool:
+        """Indique si les capacités annoncées incluent les opérations automatiques."""
+        return AnycubicFunctionID.AUTOMATIC_OPERATION in self._type_function_ids
+
+    @property
+    def supports_function_residue_clean(self) -> bool:
+        """Indique si les capacités annoncées incluent le nettoyage des résidus."""
+        return AnycubicFunctionID.RESIDUE_CLEAN in self._type_function_ids
+
+    @property
+    def supports_function_novice_guide(self) -> bool:
+        """Indique si les capacités annoncées incluent le guide de démarrage."""
+        return AnycubicFunctionID.NOVICE_GUIDE in self._type_function_ids
+
+    @property
+    def supports_function_release_film(self) -> bool:
+        """Indique si les capacités annoncées incluent le suivi du film de démoulage."""
+        return AnycubicFunctionID.RELEASE_FILM in self._type_function_ids
+
+    @property
+    def supports_function_task_mode(self) -> bool:
+        """Indique si les capacités annoncées incluent le mode de tâche."""
+        return AnycubicFunctionID.TASK_MODE in self._type_function_ids
+
+    @property
+    def supports_function_lcd_intelligent_materials_box(self) -> bool:
+        """Indique si les capacités annoncées incluent le boîtier intelligent de résine."""
+        return AnycubicFunctionID.LCD_INTELLIGENT_MATERIALS_BOX in self._type_function_ids
+
+    @property
+    def supports_function_lcd_auto_out_in_materials(self) -> bool:
+        """Indique si les capacités annoncées incluent le chargement et retrait automatique de résine."""
+        return AnycubicFunctionID.LCD_AUTO_OUT_IN_MATERIALS in self._type_function_ids
+
+    @property
+    def supports_function_m7pro_automatic_operation(self) -> bool:
+        """Indique si les capacités annoncées incluent les opérations automatiques M7 Pro."""
+        return AnycubicFunctionID.M7PRO_AUTOMATIC_OPERATION in self._type_function_ids
+
+    @property
+    def supports_function_multi_color_box(self) -> bool:
+        """Indique si les capacités annoncées incluent le boîtier multicolore."""
+        return AnycubicFunctionID.MULTI_COLOR_BOX in self._type_function_ids
+
+    @property
+    def supports_function_ai_detection(self) -> bool:
+        """Indique si les capacités annoncées incluent la détection IA."""
+        return AnycubicFunctionID.AI_DETECTION in self._type_function_ids
+
+    @property
+    def supports_function_auto_leveler(self) -> bool:
+        """Indique si les capacités annoncées incluent le nivellement automatique."""
+        return AnycubicFunctionID.AUTO_LEVELER in self._type_function_ids
+
+    @property
+    def supports_function_vibration_compensation(self) -> bool:
+        """Indique si les capacités annoncées incluent la compensation des vibrations."""
+        return AnycubicFunctionID.VIBRATION_COMPENSATION in self._type_function_ids
+
+    @property
+    def supports_function_time_lapse(self) -> bool:
+        """Indique si les capacités annoncées incluent le timelapse."""
+        return AnycubicFunctionID.TIME_LAPSE in self._type_function_ids
+
+    @property
+    def supports_function_video_light(self) -> bool:
+        """Indique si les capacités annoncées incluent l’éclairage vidéo."""
+        return AnycubicFunctionID.VIDEO_LIGHT in self._type_function_ids
+
+    @property
+    def supports_function_box_light(self) -> bool:
+        """Indique si les capacités annoncées incluent l’éclairage de l’enceinte."""
+        return AnycubicFunctionID.BOX_LIGHT in self._type_function_ids
+
+    @property
+    def supported_function_strings(self) -> list[str]:
+        """Noms des capacités dont les codes sont reconnus par le client."""
+        func_ids = list()
+        for func_int in self._type_function_ids:
+            try:
+                func_ids.append(AnycubicFunctionID(int(func_int)))
+            except ValueError:
+                pass
+
+        return list([
+            func_id.name for func_id in func_ids
+        ])
+
+    @property
+    def has_peripheral_camera(self) -> bool:
+        """Présence de caméra rapportée par la machine."""
+        return self._has_peripheral_camera
+
+    @property
+    def has_peripheral_multi_color_box(self) -> bool:
+        """Présence de boîtier ACE rapportée par la machine."""
+        return self._has_peripheral_multi_color_box or self.connected_ace_units > 0
+
+    @property
+    def is_kobra_x(self) -> bool:
+        """Indique si la machine utilise la disposition spécifique de la Kobra X."""
+        return self._machine_type == 20030 or self._machine_name == "Anycubic Kobra X"
+
+    @property
+    def has_peripheral_udisk(self) -> bool:
+        """Présence de clé USB rapportée par la machine."""
+        return self._has_peripheral_udisk
+
+    @property
+    def camera_light_on(self) -> bool | None:
+        """État connu de l’éclairage caméra."""
+        return self._camera_light_on
+
+    @property
+    def camera_light_type(self) -> int:
+        """Canal d’éclairage annoncé par le firmware."""
+        if self._camera_light_type is not None:
+            return self._camera_light_type
+        if self.is_kobra_x:
+            return 3
+        if self.supports_function_box_light:
+            return 2
+        return 1
+
+    @property
+    def connected_peripherals(self) -> dict[str, bool]:
+        """Périphériques annoncés par l’imprimante."""
+        return {
+            "camera": self.has_peripheral_camera,
+            "ace": self.has_peripheral_multi_color_box,
+            "usb_disk": self.has_peripheral_udisk,
+        }
+
+    @property
+    def material_type(self) -> AnycubicPrinterMaterialType | str | None:
+        """Type de matériau rapporté par le constructeur."""
+        return self._material_type
+
+    @property
+    def parameter(self) -> AnycubicMachineParameter | None:
+        """Paramètres matériels de l’imprimante."""
+        if not self._parameter:
+            return None
+
+        return self._parameter
+
+    @property
+    def fw_version(self) -> AnycubicMachineFirmwareInfo | None:
+        """Modèle des versions du micrologiciel de l’imprimante."""
+        return self._fw_version
+
+    @property
+    def available(self) -> int | None:
+        """Valeur brute de disponibilité annoncée par le cloud."""
+        return self._available
+
+    @property
+    def color(self) -> AnycubicMachineColorInfo | None:
+        """Couleur telle que représentée par ce modèle constructeur."""
+        return self._color
+
+    @property
+    def advance(self) -> list[Any] | None:
+        """Données avancées brutes du constructeur."""
+        return self._advance
+
+    @property
+    def tools(self) -> list[AnycubicMachineToolInfo] | None:
+        """Têtes ou outils annoncés par la machine."""
+        return self._tools
+
+    @property
+    def multi_color_box_fw_version(self) -> list[AnycubicMachineFirmwareInfo] | None:
+        """Versions des micrologiciels des boîtiers ACE."""
+        return self._multi_color_box_fw_version
+
+    @property
+    def external_shelves(self) -> AnycubicMachineExternalShelves | None:
+        """État du support de bobine externe."""
+        return self._external_shelves
+
+    @property
+    def multi_color_box(self) -> list[AnycubicMultiColorBox] | None:
+        """Boîtiers multicolores connus de l’imprimante."""
+        return self._multi_color_box
+
+    @property
+    def kobra_x_internal_material_rack(self) -> AnycubicMultiColorBox | None:
+        """Support interne de la Kobra X, annoncé comme boîtier -1."""
+        if self.is_kobra_x and self._multi_color_box and len(self._multi_color_box) > 0:
+            return self._multi_color_box[0]
+
+        return None
+
+    @property
+    def connected_ace_units(self) -> int:
+        """Nombre de boîtiers ACE connus du modèle local."""
+        if self._multi_color_box is None:
+            return 0
+
+        if self.kobra_x_internal_material_rack is not None:
+            return len(self._multi_color_box) - 1
+
+        return len(self._multi_color_box)
+
+    @property
+    def primary_multi_color_box(self) -> AnycubicMultiColorBox | None:
+        """État du premier boîtier ACE."""
+        if self.connected_ace_units > 0:
+            assert self._multi_color_box
+            if self.kobra_x_internal_material_rack is not None:
+                return self._multi_color_box[1]
+            return self._multi_color_box[0]
+
+        return None
+
+    @property
+    def secondary_multi_color_box(self) -> AnycubicMultiColorBox | None:
+        """État du second boîtier ACE."""
+        if self.connected_ace_units > 1:
+            assert self._multi_color_box
+            box_offset = 1 if self.kobra_x_internal_material_rack is not None else 0
+            return self._multi_color_box[box_offset + 1]
+
+        return None
+
+    @property
+    def primary_drying_status(self) -> AnycubicDryingStatus | None:
+        """État détaillé du séchage ACE ; premier boîtier ACE."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return self.primary_multi_color_box.drying_status
+
+    @property
+    def secondary_drying_status(self) -> AnycubicDryingStatus | None:
+        """État détaillé du séchage ACE ; second boîtier ACE."""
+        if self.secondary_multi_color_box is None:
+            return None
+
+        return self.secondary_multi_color_box.drying_status
+
+    @property
+    def latest_project(self) -> AnycubicProject | None:
+        """Dernier projet associé à l’imprimante, s’il est connu."""
+        return self._latest_project
+
+    @property
+    def local_file_list_object(self) -> list[dict[str, str | float | bool]] | None:
+        """Fichiers de la mémoire interne sérialisés pour l’affichage."""
+        if self._local_file_list is None:
+            return None
+
+        file_list = list([
+            file.data_object for file in self._local_file_list
+        ])
+        return file_list
+
+    @property
+    def local_file_list_path(self) -> str:
+        """Dossier correspondant à la dernière liste de fichiers internes."""
+        return self._local_file_list_path
+
+    @property
+    def udisk_file_list_object(self) -> list[dict[str, str | float | bool]] | None:
+        """Fichiers USB sérialisés pour l’affichage."""
+        if self._udisk_file_list is None:
+            return None
+
+        file_list = list([
+            file.data_object for file in self._udisk_file_list
+        ])
+        return file_list
+
+    @property
+    def udisk_file_list_path(self) -> str:
+        """Dossier correspondant à la dernière liste de fichiers USB."""
+        return self._udisk_file_list_path
+
+    @property
+    def primary_multi_color_box_fw_firmware_version(self) -> str | None:
+        """Version de micrologiciel actuellement rapportée ; premier boîtier ACE."""
+        if (
+            self.multi_color_box_fw_version and
+            len(self.multi_color_box_fw_version) > 0
+        ):
+            return self.multi_color_box_fw_version[0].firmware_version
+
+        return None
+
+    @property
+    def primary_multi_color_box_fw_available_version(self) -> str | None:
+        """Version de micrologiciel proposée par le constructeur ; premier boîtier ACE."""
+        if (
+            self.multi_color_box_fw_version and
+            len(self.multi_color_box_fw_version) > 0
+        ):
+            return self.multi_color_box_fw_version[0].available_version
+
+        return None
+
+    @property
+    def primary_multi_color_box_fw_total_progress(self) -> int | float | bool | None:
+        """Avancement combiné du téléchargement et de l’installation du micrologiciel ; premier boîtier ACE."""
+        if (
+            self.multi_color_box_fw_version and
+            len(self.multi_color_box_fw_version) > 0
+        ):
+            return self.multi_color_box_fw_version[0].total_progress
+
+        return None
+
+    @property
+    def primary_multi_color_box_auto_feed(self) -> int | None:
+        """État du remplacement automatique de bobine annoncé par l’ACE ; premier boîtier ACE."""
+        if self.primary_multi_color_box:
+            return self.primary_multi_color_box.auto_feed
+
+        return None
+
+    @property
+    def primary_multi_color_box_spool_info_object(self) -> list[dict[str, Any]] | None:
+        """Bobines sérialisées pour l’affichage ; premier boîtier ACE."""
+        if self.primary_multi_color_box:
+            display_slot_start = 4 if self.kobra_x_internal_material_rack else 1
+            return self._multi_color_box_spool_info_object(
+                self.primary_multi_color_box,
+                display_slot_start=display_slot_start,
+            )
+
+        return None
+
+    @property
+    def kobra_x_internal_material_rack_spool_info_object(self) -> list[dict[str, Any]] | None:
+        """Bobines du support interne Kobra X sérialisées pour l’affichage."""
+        if self.kobra_x_internal_material_rack:
+            spool_info = self.kobra_x_internal_material_rack.spool_info_object
+            if not spool_info:
+                return None
+
+            kobra_x_spool_info = list()
+            for slot_index, spool in enumerate(spool_info, start=1):
+                slot = dict(spool)
+                slot["local_slot"] = slot_index
+                slot["slot"] = slot_index
+                slot["display_slot"] = slot_index
+                slot["source"] = "internal"
+                slot["reserved_by_ace"] = slot_index == 4 and self.connected_ace_units > 0
+                kobra_x_spool_info.append(slot)
+
+            return kobra_x_spool_info
+
+        return None
+
+    @property
+    def external_material_rack_spool_info_object(self) -> list[dict[str, Any]] | None:
+        """Bobines du support externe sérialisées pour l’affichage."""
+        if self.external_shelves:
+            return self.external_shelves.spool_info_object
+
+        return None
+
+    @property
+    def material_rack_spool_info_object(self) -> list[dict[str, Any]] | None:
+        """Bobines du support actif sérialisées selon la disposition de la machine."""
+        if self.kobra_x_internal_material_rack_spool_info_object:
+            return self.kobra_x_internal_material_rack_spool_info_object
+
+        if self.primary_multi_color_box_spool_info_object:
+            return None
+
+        return self.external_material_rack_spool_info_object
+
+    @property
+    def primary_multi_color_box_current_temperature(self) -> int:
+        """Température actuelle du périphérique en degrés Celsius ; premier boîtier ACE."""
+        if self.primary_multi_color_box:
+            return self.primary_multi_color_box.current_temperature
+
+        return 0
+
+    @property
+    def primary_multi_color_box_loaded_slot(self) -> int | None:
+        """Numéro constructeur de l’emplacement actuellement chargé ; premier boîtier ACE."""
+        if self.primary_multi_color_box:
+            return self.primary_multi_color_box.loaded_slot
+
+        return None
+
+    @property
+    def primary_drying_status_is_drying(self) -> bool | None:
+        """Indique si le séchage ACE est actif ; premier boîtier ACE."""
+        if self.primary_drying_status:
+            return self.primary_drying_status.is_drying
+
+        return None
+
+    @property
+    def primary_drying_status_raw_status_code(self) -> int | None:
+        """Code brut d’état transmis par le périphérique ; premier boîtier ACE."""
+        if self.primary_drying_status:
+            return self.primary_drying_status.raw_status_code
+
+        return None
+
+    @property
+    def primary_drying_status_target_temperature(self) -> int:
+        """Consigne de température de séchage ACE en degrés Celsius ; premier boîtier ACE."""
+        if self.primary_drying_status:
+            return self.primary_drying_status.target_temperature
+
+        return 0
+
+    @property
+    def primary_drying_status_total_duration(self) -> int:
+        """Durée de séchage ACE programmée en minutes ; premier boîtier ACE."""
+        if self.primary_drying_status:
+            return self.primary_drying_status.total_duration
+
+        return 0
+
+    @property
+    def primary_drying_status_remaining_time(self) -> int:
+        """Temps de séchage restant en minutes ; premier boîtier ACE."""
+        if self.primary_drying_status:
+            return self.primary_drying_status.remaining_time
+
+        return 0
+
+    @property
+    def secondary_multi_color_box_fw_firmware_version(self) -> str | None:
+        """Version de micrologiciel actuellement rapportée ; second boîtier ACE."""
+        if (
+            self.multi_color_box_fw_version and
+            len(self.multi_color_box_fw_version) > 1
+        ):
+            return self.multi_color_box_fw_version[1].firmware_version
+
+        return None
+
+    @property
+    def secondary_multi_color_box_fw_available_version(self) -> str | None:
+        """Version de micrologiciel proposée par le constructeur ; second boîtier ACE."""
+        if (
+            self.multi_color_box_fw_version and
+            len(self.multi_color_box_fw_version) > 1
+        ):
+            return self.multi_color_box_fw_version[1].available_version
+
+        return None
+
+    @property
+    def secondary_multi_color_box_fw_total_progress(self) -> int | float | bool | None:
+        """Avancement combiné du téléchargement et de l’installation du micrologiciel ; second boîtier ACE."""
+        if (
+            self.multi_color_box_fw_version and
+            len(self.multi_color_box_fw_version) > 1
+        ):
+            return self.multi_color_box_fw_version[1].total_progress
+
+        return None
+
+    @property
+    def secondary_multi_color_box_auto_feed(self) -> int | None:
+        """État du remplacement automatique de bobine annoncé par l’ACE ; second boîtier ACE."""
+        if self.secondary_multi_color_box:
+            return self.secondary_multi_color_box.auto_feed
+
+        return None
+
+    @property
+    def secondary_multi_color_box_spool_info_object(self) -> list[dict[str, Any]] | None:
+        """Bobines sérialisées pour l’affichage ; second boîtier ACE."""
+        if self.secondary_multi_color_box:
+            display_slot_start = 8 if self.kobra_x_internal_material_rack else 5
+            return self._multi_color_box_spool_info_object(
+                self.secondary_multi_color_box,
+                display_slot_start=display_slot_start,
+            )
+
+        return None
+
+    def _multi_color_box_spool_info_object(
+        self,
+        box: AnycubicMultiColorBox,
+        display_slot_start: int,
+    ) -> list[dict[str, Any]] | None:
+        spool_info = box.spool_info_object
+        if not spool_info:
+            return None
+
+        ace_spool_info = list()
+        for local_slot_index, spool in enumerate(spool_info, start=1):
+            display_slot = display_slot_start + local_slot_index - 1
+            slot = dict(spool)
+            slot["local_slot"] = local_slot_index
+            slot["slot"] = display_slot
+            slot["display_slot"] = display_slot
+            slot["source"] = "ace"
+            slot["box_id"] = box.box_id
+            ace_spool_info.append(slot)
+
+        return ace_spool_info
+
+    @property
+    def secondary_multi_color_box_current_temperature(self) -> int:
+        """Température actuelle du périphérique en degrés Celsius ; second boîtier ACE."""
+        if self.secondary_multi_color_box:
+            return self.secondary_multi_color_box.current_temperature
+
+        return 0
+
+    @property
+    def secondary_drying_status_is_drying(self) -> bool | None:
+        """Indique si le séchage ACE est actif ; second boîtier ACE."""
+        if self.secondary_drying_status:
+            return self.secondary_drying_status.is_drying
+
+        return None
+
+    @property
+    def secondary_drying_status_raw_status_code(self) -> int | None:
+        """Code brut d’état transmis par le périphérique ; second boîtier ACE."""
+        if self.secondary_drying_status:
+            return self.secondary_drying_status.raw_status_code
+
+        return None
+
+    @property
+    def secondary_drying_status_target_temperature(self) -> int:
+        """Consigne de température de séchage ACE en degrés Celsius ; second boîtier ACE."""
+        if self.secondary_drying_status:
+            return self.secondary_drying_status.target_temperature
+
+        return 0
+
+    @property
+    def secondary_drying_status_total_duration(self) -> int:
+        """Durée de séchage ACE programmée en minutes ; second boîtier ACE."""
+        if self.secondary_drying_status:
+            return self.secondary_drying_status.total_duration
+
+        return 0
+
+    @property
+    def secondary_drying_status_remaining_time(self) -> int:
+        """Temps de séchage restant en minutes ; second boîtier ACE."""
+        if self.secondary_drying_status:
+            return self.secondary_drying_status.remaining_time
+
+        return 0
+
+    @property
+    def latest_project_name(self) -> str | None:
+        """Nom affichable fourni par ce modèle ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.name
+
+        return None
+
+    @property
+    def latest_project_image_url(self) -> str | None:
+        """URL de l’aperçu fourni par le cloud ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.image_url
+
+        return None
+
+    @property
+    def latest_project_progress_percentage(self) -> int | None:
+        """Avancement du projet en pourcentage ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.progress_percentage
+
+        return None
+
+    @property
+    def latest_project_created_timestamp(self) -> int | None:
+        """Horodatage de création converti depuis les données cloud ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.created_timestamp
+
+        return None
+
+    @property
+    def latest_project_finished_timestamp(self) -> int | None:
+        """Horodatage de fin du projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.finished_timestamp
+
+        return None
+
+    @property
+    def latest_project_print_time_elapsed_minutes(self) -> float | None:
+        """Durée écoulée du projet en minutes ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.get_print_time_elapsed_minutes(self.machine_type)
+
+        return None
+
+    @property
+    def latest_project_print_time_remaining_minutes(self) -> int | None:
+        """Durée restante estimée du projet en minutes ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_time_remaining_minutes
+
+        return None
+
+    @property
+    def latest_project_print_status_message(self) -> str | None:
+        """Message associé à l’état d’impression interprété ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_status_message
+
+        return None
+
+    @property
+    def latest_project_print_total_time(self) -> str | None:
+        """Durée totale brute annoncée pour le projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_total_time
+
+        return None
+
+    @property
+    def latest_project_print_total_time_delta(self) -> timedelta | None:
+        """Durée totale du projet sous forme de timedelta ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_total_time_delta
+
+        return None
+
+    @property
+    def latest_project_print_total_time_minutes(self) -> int | None:
+        """Durée totale du projet en minutes ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_total_time_minutes
+
+        return None
+
+    @property
+    def latest_project_print_total_time_dhm_str(self) -> str | None:
+        """Durée totale du projet au format jours:heures:minutes ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_total_time_dhm_str
+
+        return None
+
+    @property
+    def latest_project_print_in_progress(self) -> bool | None:
+        """Indique si l’état du projet appartient aux phases d’impression actives ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_in_progress
+
+        return None
+
+    @property
+    def latest_project_print_complete(self) -> bool | None:
+        """Indique si le projet est déclaré terminé ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_complete
+
+        return None
+
+    @property
+    def latest_project_print_failed(self) -> bool | None:
+        """Indique si le projet est déclaré interrompu ou en échec ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_failed
+
+        return None
+
+    @property
+    def latest_project_print_is_paused(self) -> bool | None:
+        """Indique si le projet actif est en pause ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_is_paused
+
+        return None
+
+    @property
+    def latest_project_print_status(self) -> str | None:
+        """État d’impression interprété depuis les données constructeur ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_status
+
+        return None
+
+    @property
+    def latest_project_print_approximate_completion_time(self) -> int | None:
+        """Heure estimée de fin calculée depuis le temps restant ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_approximate_completion_time
+
+        return None
+
+    @property
+    def latest_project_print_current_layer(self) -> int | None:
+        """Numéro de la couche actuellement imprimée ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_current_layer
+
+        return None
+
+    @property
+    def latest_project_print_supplies_usage(self) -> int | None:
+        """Consommation annoncée pour le projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_supplies_usage
+
+        return None
+
+    @property
+    def latest_project_print_total_layers(self) -> int | None:
+        """Nombre total de couches du projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_total_layers
+
+        return None
+
+    @property
+    def latest_project_target_nozzle_temp(self) -> int | None:
+        """Consigne de température de buse en degrés Celsius ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.target_nozzle_temp
+
+        return None
+
+    @property
+    def latest_project_temp_min_nozzle(self) -> int | None:
+        """Limite basse annoncée pour la température de buse ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.temp_min_nozzle
+
+        return None
+
+    @property
+    def latest_project_temp_max_nozzle(self) -> int | None:
+        """Limite haute annoncée pour la température de buse ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.temp_max_nozzle
+
+        return None
+
+    @property
+    def latest_project_target_hotbed_temp(self) -> int | None:
+        """Consigne de température du plateau en degrés Celsius ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.target_hotbed_temp
+
+        return None
+
+    @property
+    def latest_project_temp_min_hotbed(self) -> int | None:
+        """Limite basse annoncée pour la température du plateau ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.temp_min_hotbed
+
+        return None
+
+    @property
+    def latest_project_temp_max_hotbed(self) -> int | None:
+        """Limite haute annoncée pour la température du plateau ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.temp_max_hotbed
+
+        return None
+
+    @property
+    def latest_project_print_speed_mode(self) -> int | None:
+        """Code du mode de vitesse courant du projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_speed_mode
+
+        return None
+
+    @property
+    def latest_project_print_speed_mode_string(self) -> str | None:
+        """Libellé du mode de vitesse courant du projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_speed_mode_string
+
+        return None
+
+    @property
+    def latest_project_print_speed_pct(self) -> int | None:
+        """Vitesse d’impression en pourcentage de la consigne de tranche ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_speed_pct
+
+        return None
+
+    @property
+    def latest_project_z_thick(self) -> float | None:
+        """Épaisseur de couche annoncée pour le projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.z_thick
+
+        return None
+
+    @property
+    def latest_project_fan_speed_pct(self) -> int | None:
+        """Vitesse du ventilateur de pièce en pourcentage ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.fan_speed_pct
+
+        return None
+
+    @property
+    def aux_fan_speed_pct(self) -> int | None:
+        """Vitesse du ventilateur auxiliaire en pourcentage."""
+        return self._aux_fan_speed_pct
+
+    @property
+    def box_fan_level(self) -> int | None:
+        """Niveau du ventilateur de l’enceinte, distinct d’un pourcentage."""
+        return self._box_fan_level
+
+    @property
+    def latest_project_raw_print_status(self) -> int | None:
+        """Code brut d’état d’impression, avant interprétation locale ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.raw_print_status
+
+        return None
+
+    @property
+    def latest_project_available_print_speed_modes_data_object(self) -> list[dict[str, str | int]] | None:
+        """Modes de vitesse sérialisés pour l’affichage ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.available_print_speed_modes_data_object
+
+        return None
+
+    @property
+    def latest_project_print_model_height(self) -> float | None:
+        """Hauteur du modèle rapportée par le projet ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_model_height
+
+        return None
+
+    @property
+    def latest_project_print_anti_alias_count(self) -> int | None:
+        """Niveau d’anticrénelage annoncé pour l’impression résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_anti_alias_count
+
+        return None
+
+    @property
+    def latest_project_print_on_time(self) -> float | None:
+        """Durée d’exposition du projet résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_on_time
+
+        return None
+
+    @property
+    def latest_project_print_off_time(self) -> float | None:
+        """Délai sans exposition du projet résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_off_time
+
+        return None
+
+    @property
+    def latest_project_print_bottom_time(self) -> float | None:
+        """Durée d’exposition des couches de base du projet résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_bottom_time
+
+        return None
+
+    @property
+    def latest_project_print_bottom_layers(self) -> int | None:
+        """Nombre de couches de base du projet résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_bottom_layers
+
+        return None
+
+    @property
+    def latest_project_print_z_up_height(self) -> float | None:
+        """Hauteur de levée Z annoncée pour l’impression résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_z_up_height
+
+        return None
+
+    @property
+    def latest_project_print_z_up_speed(self) -> int | None:
+        """Vitesse de levée Z annoncée pour l’impression résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_z_up_speed
+
+        return None
+
+    @property
+    def latest_project_print_z_down_speed(self) -> int | None:
+        """Vitesse de descente Z annoncée pour l’impression résine ; valeur du dernier projet connu."""
+        if self.latest_project:
+            return self.latest_project.print_z_down_speed
+
+        return None
+
+    @property
+    def latest_project_download_progress_percentage(self) -> int:
+        """Avancement du téléchargement en pourcentage ; valeur du dernier projet connu."""
+        if self._job_download_progress:
+            return self._job_download_progress
+        elif self.latest_project:
+            return self.latest_project.download_progress_percentage
+
+        return 0
+
+    @property
+    def curr_nozzle_temp(self) -> int | None:
+        """Température actuelle de la buse en degrés Celsius."""
+        if self.parameter:
+            return self.parameter.curr_nozzle_temp
+
+        return None
+
+    @property
+    def curr_hotbed_temp(self) -> int | None:
+        """Température actuelle du plateau en degrés Celsius."""
+        if self.parameter:
+            return self.parameter.curr_hotbed_temp
+
+        return None
+
+    def build_mapping_for_material_list(
+        self,
+        slot_index_list: list[int],
+        material_list: list[dict[str, Any]],
+    ) -> list[AnycubicMaterialMapping]:
+        """Renvoie la correspondance ACE dans l’ordre des matériaux ; slot_index_list contient les indices internes. Lève AnycubicAPIError si les données ou l’état requis sont invalides."""
+        if not self._multi_color_box:
+            return list()
+
+        highest_box = max(slot_index_list) // 4
+
+        material_source_units = len(self._multi_color_box)
+        if material_source_units < highest_box + 1:
+            raise AnycubicAPIError(ErrorsGeneral.insufficent_ace_units.format(
+                highest_box + 1
+            ))
+
+        ams_box_mapping = list()
+
+        for mcb in self._multi_color_box:
+
+            ams_box_mapping.extend(
+                mcb.build_mapping_for_material_list(
+                    slot_index_list=slot_index_list,
+                    material_list=material_list,
+                )
+            )
+
+        return sorted(ams_box_mapping, key=lambda x: x.paint_index)
+
+    async def update_info_from_api(
+        self,
+        with_project: bool = True,
+    ) -> None:
+        """Actualise les détails cloud et, si with_project est vrai, le dernier projet ; lève AnycubicAPIError sans identifiant de machine."""
+        if self._id is None:
+            raise AnycubicAPIError(ErrorsGeneral.noid_update_info_from_api)
+
+        await self._api_parent.printer_info_for_id(self._id, self)
+
+        if with_project:
+            self._latest_project = await self._api_parent.get_latest_project(
+                printer_id=self.id,
+                project_to_update=self._latest_project
+            )
+
+    async def request_local_file_list(
+        self,
+        file_path: str = "/",
+    ) -> str | None:
+        """Demande la liste en mémoire interne ; le contenu du dossier est reçu par MQTT."""
+        file_path = self._normalise_file_list_path(file_path)
+        self._pending_local_file_list_path = file_path
+
+        return await self._api_parent._send_order_list_local_files(
+            self,
+            file_path=file_path,
+        )
+
+    async def request_udisk_file_list(
+        self,
+        file_path: str = "/",
+    ) -> str | None:
+        """Demande la liste USB ; le contenu du dossier est reçu par MQTT."""
+        file_path = self._normalise_file_list_path(file_path)
+        self._pending_udisk_file_list_path = file_path
+
+        return await self._api_parent._send_order_list_udisk_files(
+            self,
+            file_path=file_path,
+        )
+
+    async def get_camera_session(
+        self,
+    ) -> AnycubicCameraSession | None:
+        """Renvoie la session vidéo fournie par le cloud, ou None sans imprimante."""
+        session = await self._api_parent.get_camera_session(
+            self,
+        )
+        if isinstance(session, dict):
+            return None
+        return session
+
+    async def delete_local_file(
+        self,
+        file_name: str,
+        file_path: str = "/",
+    ) -> str | None:
+        """Renvoie l’identifiant de demande d’effacement du fichier en mémoire interne."""
+        file_path = self._normalise_file_list_path(file_path)
+
+        return await self._api_parent._send_order_delete_local_file(
+            self,
+            file_name=file_name,
+            file_path=file_path,
+        )
+
+    async def delete_udisk_file(
+        self,
+        file_name: str,
+        file_path: str = "/",
+    ) -> str | None:
+        """Renvoie l’identifiant de demande d’effacement du fichier sur clé USB."""
+        file_path = self._normalise_file_list_path(file_path)
+
+        return await self._api_parent._send_order_delete_udisk_file(
+            self,
+            file_name=file_name,
+            file_path=file_path,
+        )
+
+    def _build_manual_ams_mapping(
+        self,
+        slot_index_list: list[int] | None,
+    ) -> list[AnycubicMaterialMapping] | None:
+        if not slot_index_list:
+            return None
+
+        if not self._multi_color_box:
+            raise AnycubicAPIError(ErrorsGeneral.no_ace_for_slot_list)
+
+        material_list = list()
+        for paint_index, slot_index in enumerate(slot_index_list):
+            box_id = slot_index // 4
+            local_slot_index = slot_index - (4 * box_id)
+            material_type = "UNKNOWN"
+
+            box_index = self._multi_color_box_index_by_id(box_id)
+            if box_index is not None:
+                box_slots = self._multi_color_box[box_index].slots
+                if 0 <= local_slot_index < len(box_slots):
+                    material_type = box_slots[local_slot_index].material_type
+
+            material_list.append(
+                {
+                    "filament_used": 0,
+                    "material_type": material_type,
+                    "paint_index": paint_index,
+                }
+            )
+
+        return self.build_mapping_for_material_list(
+            slot_index_list=slot_index_list,
+            material_list=material_list,
+        )
+
+    def print_slot_numbers_to_indices(
+        self,
+        slot_number_list: list[int],
+    ) -> list[int]:
+        """Renvoie les indices internes correspondant aux numéros affichés, selon la disposition ACE ou Kobra X."""
+        if self.is_kobra_x:
+            # La Kobra X code le support interne en boîtier -1 et le premier ACE en 0.
+            # Les numéros affichés 1 à 3 ciblent le support ; l’ACE commence au numéro 4.
+            return [
+                slot_number - 5 if slot_number < 4 else slot_number - 4
+                for slot_number in slot_number_list
+            ]
+
+        return [slot_number - 1 for slot_number in slot_number_list]
+
+    async def print_local_file(
+        self,
+        file_name: str,
+        file_path: str = "/",
+        slot_index_list: list[int] | None = None,
+    ) -> str | None:
+        """Renvoie l’identifiant de demande d’impression depuis la mémoire interne, avec correspondance ACE éventuelle. slot_index_list suit l’ordre des matériaux avec des indices internes."""
+        file_path = self._normalise_file_list_path(file_path).strip("/")
+        ams_box_mapping = self._build_manual_ams_mapping(slot_index_list)
+
+        return await self._api_parent._send_order_print_local_file(
+            self,
+            file_name=file_name,
+            file_path=file_path,
+            ams_box_mapping=ams_box_mapping,
+        )
+
+    async def print_udisk_file(
+        self,
+        file_name: str,
+        file_path: str = "/",
+        slot_index_list: list[int] | None = None,
+    ) -> str | None:
+        """Renvoie l’identifiant de demande d’impression USB, avec correspondance ACE éventuelle. slot_index_list suit l’ordre des matériaux avec des indices internes."""
+        file_path = self._normalise_file_list_path(file_path).strip("/")
+        ams_box_mapping = self._build_manual_ams_mapping(slot_index_list)
+
+        return await self._api_parent._send_order_print_udisk_file(
+            self,
+            file_name=file_name,
+            file_path=file_path,
+            ams_box_mapping=ams_box_mapping,
+        )
+
+    async def multi_color_box_drying_start(
+        self,
+        duration: int,
+        target_temp: int,
+        box_id: int = 0,
+    ) -> str | None:
+        """Renvoie l’identifiant de démarrage du séchage ; duration est en minutes, target_temp en degrés Celsius. box_id cible le boîtier."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return await self._api_parent.multi_color_box_drying_start(
+            self,
+            duration=duration,
+            target_temp=target_temp,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_drying_stop(
+        self,
+        box_id: int = -1,
+    ) -> str | None:
+        """Renvoie l’identifiant de demande d’arrêt du séchage ou None sans ACE ; box_id négatif construit un arrêt pour tous les boîtiers."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return await self._api_parent.multi_color_box_drying_stop(
+            self,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_auto_feed(
+        self,
+        enabled: bool,
+        box_id: int = -1,
+    ) -> str | None:
+        """Met à jour l’état local et renvoie l’identifiant de commande de remplacement automatique. box_id cible le boîtier (-1 sélectionne le premier ACE)."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return await self._api_parent.multi_color_box_set_auto_feed(
+            self,
+            enabled=enabled,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_toggle_auto_feed(
+        self,
+        box_id: int = -1,
+    ) -> str | None:
+        """Inverse l’état local connu et renvoie l’identifiant de commande, ou None sans ACE. box_id cible le boîtier (-1 sélectionne le premier ACE)."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return await self._api_parent.multi_color_box_toggle_auto_feed(
+            self,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_switch_on_auto_feed(
+        self,
+        box_id: int = -1,
+    ) -> str | None:
+        """Renvoie l’identifiant de commande d’activation, ou None si déjà actif ou sans ACE. box_id cible le boîtier (-1 sélectionne le premier ACE)."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return await self._api_parent.multi_color_box_switch_on_auto_feed(
+            self,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_switch_off_auto_feed(
+        self,
+        box_id: int = -1,
+    ) -> str | None:
+        """Renvoie l’identifiant de commande d’arrêt, ou None si déjà inactif ou sans ACE. box_id cible le boîtier (-1 sélectionne le premier ACE)."""
+        if self.primary_multi_color_box is None:
+            return None
+
+        return await self._api_parent.multi_color_box_switch_off_auto_feed(
+            self,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor | None = None,
+        slot_material_type: str = "PLA",
+        slot_color_red: int | None = None,
+        slot_color_green: int | None = None,
+        slot_color_blue: int | None = None,
+        box_id: int = 0,
+    ) -> str | None:
+        """Renvoie l’identifiant de commande des propriétés de bobine ; slot_index est un indice interne. box_id cible le boîtier."""
+        return await self._api_parent.multi_color_box_set_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            slot_material_type=slot_material_type,
+            slot_color_red=slot_color_red,
+            slot_color_green=slot_color_green,
+            slot_color_blue=slot_color_blue,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_pla_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine PLA ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_pla_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_petg_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine PETG ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_petg_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_abs_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine ABS ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_abs_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_pacf_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine PACF ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_pacf_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_pc_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine PC ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_pc_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_asa_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine ASA ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_asa_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_hips_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine HIPS ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_hips_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_pa_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine PA ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_pa_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_set_pla_se_slot(
+        self,
+        slot_index: int,
+        slot_color: AnycubicMaterialColor,
+        box_id: int = 0,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de commande de bobine PLA SE ; slot_index est un indice interne, box_id le boîtier cible."""
+        return await self._api_parent.multi_color_box_set_pla_se_slot(
+            printer=self,
+            slot_index=slot_index,
+            slot_color=slot_color,
+            box_id=box_id,
+        )
+
+    async def pause_print(
+        self,
+        project: AnycubicProject | None = None,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de demande de pause du projet, ou None si le contexte manque."""
+        return await self._api_parent.pause_print(
+            self,
+            project=project,
+        )
+
+    async def resume_print(
+        self,
+        project: AnycubicProject | None = None,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de demande de reprise du projet, ou None si le contexte manque."""
+        return await self._api_parent.resume_print(
+            self,
+            project=project,
+        )
+
+    async def cancel_print(
+        self,
+        project: AnycubicProject | None = None,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de demande d’arrêt du projet, ou None si le contexte manque."""
+        return await self._api_parent.cancel_print(
+            self,
+            project=project,
+        )
+
+    async def multi_color_box_feed_filament(
+        self,
+        slot_index: int,
+        box_id: int = -1,
+        finish: bool = False,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de chargement ; slot_index est à partir de zéro, box_id cible l’ACE. Une commande finish=True doit terminer le chargement."""
+        return await self._api_parent.multi_color_box_feed_filament(
+            self,
+            slot_index=slot_index,
+            box_id=box_id,
+            finish=finish,
+        )
+
+    async def multi_color_box_retract_filament(
+        self,
+        box_id: int = -1,
+    ) -> str | None:
+
+        """Renvoie l’identifiant de demande de retrait du filament ACE. box_id cible le boîtier (-1 sélectionne le premier ACE)."""
+        return await self._api_parent.multi_color_box_retract_filament(
+            self,
+            box_id=box_id,
+        )
+
+    async def multi_color_box_request_info(
+        self,
+    ) -> str | None:
+
+        """Demande les informations ACE ; le nouvel état est reçu par MQTT."""
+        return await self._api_parent.multi_color_box_request_info(self)
+
+    async def update_printer_firmware(
+        self,
+    ) -> str | None:
+
+        """Renvoie la version cible si la demande est acceptée, sinon None ; ne garantit pas la fin physique de la mise à jour."""
+        return await self._api_parent.update_printer_firmware(
+            self,
+        )
+
+    async def update_printer_multi_color_box_firmware(
+        self,
+        box_id: int = -1,
+    ) -> str | None:
+
+        """Renvoie la version cible confirmée par le cloud, sinon None ; box_id=-1 choisit le premier ACE."""
+        return await self._api_parent.update_printer_multi_color_box_firmware(
+            self,
+            box_id=box_id,
+        )
+
+    async def update_printer_all_multi_color_box_firmware(
+        self,
+    ) -> list[str | None] | None:
+
+        """Renvoie les versions cibles acceptées par boîtier, ou None sans version connue, sans attendre la fin physique des mises à jour."""
+        return await self._api_parent.update_printer_all_multi_color_box_firmware(
+            self,
+        )
+
+    async def print_with_cloud_file_id(
+        self,
+        cloud_file_id: int,
+        ams_box_mapping: list[AnycubicMaterialMapping] | None = None,
+        temp_file: bool = False,
+    ) -> str | None:
+        """Renvoie l’identifiant de demande ou None ; ams_box_mapping associe les matériaux aux bobines ACE."""
+        return await self._api_parent.print_with_cloud_file_id(
+            printer=self,
+            cloud_file_id=cloud_file_id,
+            ams_box_mapping=ams_box_mapping,
+            temp_file=temp_file,
+        )
+
+    async def print_with_cloud_gcode_id(
+        self,
+        gcode_id: int,
+        slot_index_list: list[int] | None = None,
+    ) -> AnycubicPrintResponse:
+        """Renvoie une réponse d’impression ; slot_index_list suit l’ordre des matériaux du G-code."""
+        return await self._api_parent.print_with_cloud_gcode_id(
+            printer=self,
+            gcode_id=gcode_id,
+            slot_index_list=slot_index_list,
+        )
+
+    async def print_and_upload_save_in_cloud(
+        self,
+        full_file_path: str | None = None,
+        file_name: str | None = None,
+        file_bytes: bytes | None = None,
+        slot_index_list: list[int] | None = None,
+    ) -> AnycubicPrintResponse:
+        """Transfère puis demande l’impression ; renvoie une réponse gardant la référence du fichier cloud. slot_index_list suit l’ordre des matériaux avec des indices internes."""
+        return await self._api_parent.print_and_upload_save_in_cloud(
+            printer=self,
+            full_file_path=full_file_path,
+            file_name=file_name,
+            file_bytes=file_bytes,
+            slot_index_list=slot_index_list,
+        )
+
+    async def print_and_upload_no_cloud_save(
+        self,
+        full_file_path: str | None = None,
+        file_name: str | None = None,
+        file_bytes: bytes | None = None,
+        slot_index_list: list[int] | None = None,
+    ) -> AnycubicPrintResponse:
+        """Transfère temporairement puis demande l’impression ; renvoie une réponse sans conservation cloud. slot_index_list suit l’ordre des matériaux avec des indices internes."""
+        return await self._api_parent.print_and_upload_no_cloud_save(
+            printer=self,
+            full_file_path=full_file_path,
+            file_name=file_name,
+            file_bytes=file_bytes,
+            slot_index_list=slot_index_list,
+        )
+
+    async def change_print_setting_speed_mode(
+        self,
+        new_speed: int
+    ) -> str | None:
+        """Demande un nouveau réglage : code du mode de vitesse courant du projet. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                print_speed_mode=new_speed,
+            ),
+        )
+
+    async def change_print_setting_target_nozzle_temp(
+        self,
+        new_temperature: int
+    ) -> str | None:
+        """Demande un nouveau réglage : consigne de température de buse en degrés Celsius. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                target_nozzle_temp=new_temperature,
+            ),
+        )
+
+    async def change_print_setting_target_hotbed_temp(
+        self,
+        new_temperature: int
+    ) -> str | None:
+        """Demande un nouveau réglage : consigne de température du plateau en degrés Celsius. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                target_hotbed_temp=new_temperature,
+            ),
+        )
+
+    async def change_print_setting_fan_speed_pct(
+        self,
+        new_pct: int
+    ) -> str | None:
+        """Demande un nouveau réglage : vitesse du ventilateur de pièce en pourcentage. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                fan_speed_pct=new_pct,
+            ),
+        )
+
+    async def change_print_setting_aux_fan_speed_pct(
+        self,
+        new_pct: int
+    ) -> str | None:
+        """Demande un nouveau réglage : vitesse du ventilateur auxiliaire en pourcentage. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                aux_fan_speed_pct=new_pct,
+            ),
+        )
+
+    async def change_print_setting_box_fan_level(
+        self,
+        new_level: int
+    ) -> str | None:
+        """Demande un nouveau réglage : niveau du ventilateur de l’enceinte, distinct d’un pourcentage. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                box_fan_level=new_level,
+            ),
+        )
+
+    async def change_print_setting_bottom_layers(
+        self,
+        new_layers: int
+    ) -> str | None:
+        """Demande un nouveau réglage : nombre de couches de base demandé pour l’impression résine. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                bottom_layers=new_layers,
+            ),
+        )
+
+    async def change_print_setting_bottom_time(
+        self,
+        new_time: float
+    ) -> str | None:
+        """Demande un nouveau réglage : durée d’exposition des couches de base selon le protocole résine. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                bottom_time=new_time,
+            ),
+        )
+
+    async def change_print_setting_off_time(
+        self,
+        new_time: float
+    ) -> str | None:
+        """Demande un nouveau réglage : délai sans exposition demandé pour l’impression résine. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                off_time=new_time,
+            ),
+        )
+
+    async def change_print_setting_on_time(
+        self,
+        new_time: float
+    ) -> str | None:
+        """Demande un nouveau réglage : durée d’exposition demandée pour l’impression résine. Renvoie l’identifiant de commande ou None sans projet."""
+        return await self._api_parent._send_order_change_print_settings(
+            printer=self,
+            print_settings=AnycubicPrintingSettings(
+                on_time=new_time,
+            ),
+        )
+
+    async def query_printer_options(
+        self,
+        project: AnycubicProject | None = None,
+    ) -> None:
+        """Demande périphériques et éclairage ; les résultats arrivent par MQTT, sans réponse d’état immédiate."""
+        return await self._api_parent.query_printer_options(
+            printer=self,
+            project=project,
+        )
+
+    async def query_camera_light_status(self) -> str | None:
+        """Demande l’état de l’éclairage ; la confirmation est reçue par MQTT."""
+        return await self._api_parent._send_order_get_light_status(
+            printer=self,
+        )
+
+    async def set_camera_light(
+        self,
+        light_on: bool,
+        light_type: int | None = None,
+    ) -> str | None:
+        """Renvoie l’identifiant de commande d’éclairage ; light_type choisit le canal constructeur."""
+        response = await self._api_parent._send_order_set_light_status(
+            printer=self,
+            light_on=light_on,
+            light_type=light_type if light_type is not None else self.camera_light_type,
+        )
+        if response is not None:
+            self._camera_light_on = bool(light_on)
+            self._camera_light_brightness = 100 if light_on else 0
+            if light_type is not None:
+                self._camera_light_type = int(light_type)
+        return response
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        if self._id is None:
+            return f"AnycubicPrinter(machine_type={self._machine_type}, machine_name={self._machine_name})"
+        else:
+            return (
+                f"AnycubicPrinter(machine_type={self._machine_type}, machine_name={self._machine_name},\n "
+                f"id={self.id}, name={self.name}, key={self.key}, printer_type={self.printer_type}, status={self.status}, "
+                f"available={self.available},\n "
+                f"device_status={self.device_status}, printer_online={self.printer_online}, ready_status={self.ready_status}, "
+                f"is_printing={self.is_printing}, reason={self.reason},\n "
+                f"machine_data=\n{self.machine_data},\n "
+                f"parameter=\n{self.parameter},\n "
+                f"fw_version=\n{self.fw_version},\n "
+                f"color=\n{self.color},\n "
+                f"tools=\n{self.tools},\n "
+                f"multi_color_box_fw_version=\n{self.multi_color_box_fw_version},\n "
+                f"external_shelves=\n{self.external_shelves},\n "
+                f"multi_color_box=\n{self.multi_color_box},\n "
+                f"primary_drying_status=\n{self.primary_drying_status},\n "
+                f"secondary_drying_status=\n{self.secondary_drying_status},\n "
+                f")")

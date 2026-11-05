@@ -1,0 +1,42 @@
+name: Tests and publication safety
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r app/requirements.txt
+      - run: python -m unittest discover -s app -p 'test_*.py' -q
+      - run: python -m unittest discover -s scripts -p 'test_*.py' -q
+      - run: node --check web/js/imprimante.js
+      - name: Check publication without private configuration
+        run: python scripts/check_publication.py
+      - name: Check publication with private CI rules
+        env:
+          PUBLICATION_PRIVATE_PATTERNS: ${{ secrets.PUBLICATION_PRIVATE_PATTERNS }}
+        run: python scripts/check_publication.py
+      - run: docker compose config --quiet
+  docker:
+    name: Installation vide (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [host, proxy-network]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: docker build -t anycubic-cloud-page:test .
+      - run: docker run --rm --network none --entrypoint python anycubic-cloud-page:test -m unittest discover -s app -p 'test_*.py' -q
+      - name: Démarrage, PUID/PGID, droits, appdata et redémarrage sans mots de passe
+        run: python scripts/ci_compose.py "${{ matrix.variant }}"

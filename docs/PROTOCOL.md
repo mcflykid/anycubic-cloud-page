@@ -1,0 +1,54 @@
+# Notes de protocole et adaptations
+
+Cette note accompagne le code et la [connexion cloud](CLOUD-CONNECTION.md). Les observations ont été réalisées sur une Kobra S1 Combo et un ACE 2 Pro ; les autres modèles restent à tester.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser[Navigateur web] -->|Mot de passe de la page| Web[Serveur aiohttp]
+    Web --> Auth[User Center / PKCE]
+    Auth --> Session[Session workbench]
+    Web <-->|HTTP signé + MQTT| Cloud[Anycubic Cloud]
+    Cloud <--> Printer[Kobra S1 / ACE]
+    Browser <-->|Jeton caméra temporaire| Agora[Agora / caméra]
+    Private[Fichiers appdata privés] --> Web
+```
+
+`app/anycubic_cloud_api/` dérive du client GPL existant ; `server.py`, `cloud_extras.py`, `account_auth.py`, `session_api.py`, les helpers et le frontend forment l’adaptation autonome. Le moteur reste côté serveur. La page web ne possède pas de token de compte et n’accède pas directement aux identifiants de l’imprimante.
+
+## Parcours utiles
+
+| Besoin | Mécanisme |
+| --- | --- |
+| État | Polling cloud toutes les 60s et messages MQTT ; lecture du cache par le navigateur toutes les 3s. |
+| Miniature d’un fichier local/USB | Ordre `1239`, référence au chemin et au plateau ; réponse MQTT corrélée, puis extraction de `file_details.thumbnail` ou `png_image`. |
+| Historique natif | `GET /v2/project/printHistory`, distinct des messages de notification. |
+| Détail d’une tâche | `/v5/project/printHistory/detail`, avec repli sur le détail projet lorsque disponible. |
+| Aperçus d’historique | Référence de tâche/projet et image native ; aucun rapprochement approximatif par nom de fichier. |
+| Notifications | `/v2/message/getMessages`, compteurs, lecture et suppression dédiés ; aperçu propre à la notification ou référence explicite de projet. |
+| Téléchargement cloud | `/work/index/getDownloadUrls`, appelé par identifiant pour éviter une association incorrecte lorsque la réponse est réordonnée. |
+| Détection IA | Ordre de lecture `1242`, écriture `1243` ; voir la différence de `msgid` dans le guide de connexion. |
+| Firmware | Indicateur `update_available` du constructeur ; une simple version cible ne signifie pas qu’une mise à jour est disponible. |
+
+Ces chemins désignent l’API du fournisseur, pas l’API locale du projet. L’API locale est sous `/imprimante-api/`.
+
+## Fiabilité des actions
+
+Le serveur valide les valeurs, la disponibilité de l’imprimante et les références connues avant les opérations. Les demandes portent un identifiant pour limiter les doubles soumissions. Les actions dangereuses de l’interface demandent une confirmation ; la réinitialisation, lorsqu’elle est annoncée par un modèle, possède une étape supplémentaire à code temporaire.
+
+Les réponses « commande acceptée » signifient que le transport a accepté la demande. Elles ne prouvent ni le déplacement d’un axe, ni une température atteinte, ni une impression ou une mise à jour terminée. Aucun timeout ambigu ne déclenche une seconde commande automatique.
+
+## Images et téléchargements
+
+Les miniatures distantes sont récupérées côté serveur. Schéma HTTPS, domaines autorisés, type MIME, taille maximale et absence de redirection sont contrôlés. Les URLs signées d’images ne sont pas renvoyées au navigateur ; l’interface reçoit une image encodée. Les liens de téléchargement cloud sont temporaires et limités aux domaines fournisseur autorisés.
+
+Le cache des aperçus est borné. Un aperçu indisponible est signalé ; une image d’un autre projet ne lui est pas substituée. Un code de diagnostic zéro ne devient pas un texte d’erreur ; les messages non vides et codes non nuls sont conservés.
+
+## TLS MQTT
+
+Le client d’origine utilise des certificats historiques signés en SHA-1. Le contexte fourni réduit localement le niveau de sécurité OpenSSL pour accepter ces certificats tout en conservant TLS1.2 minimum, la CA constructeur, la vérification de validité et la vérification du nom d’hôte. Cette compatibilité est limitée au client MQTT ; elle ne désactive pas les vérifications HTTPS globales.
+
+## Ce qui reste inconnu
+
+Les services étant privés et évolutifs, les noms de champs, capacités de firmware, conditions de connexion, disponibilité des vidéos et politiques de session peuvent changer. Les réglages avancés non confirmés sont masqués. Le timelapse annoncé par la machine n’a pas fourni de liste de vidéos exploitable via le cloud au contrôle. Les notifications réelles étaient absentes lors du test d’aperçu.

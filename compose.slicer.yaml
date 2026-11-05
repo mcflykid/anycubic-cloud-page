@@ -1,0 +1,34 @@
+services:
+  # ============================================================================
+  # Lecteur du slicer — observe les journaux et actualise le jeton sans l’afficher.
+  # ============================================================================
+  anycubic-cloud-page-token-watcher:
+    image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:1.1.0}"
+    container_name: "anycubic-cloud-page-token-watcher"
+    cpus: "0.1"
+    mem_limit: "96m"
+    mem_reservation: "64m"
+    pids_limit: 100
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges=true"]
+    restart: "unless-stopped"
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - "${SLICER_LOG_DIR:?Définissez SLICER_LOG_DIR dans .env}:/slicer-logs:ro"
+      - "${APPDATA_DIR:-./appdata}:/appdata"
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      - "TZ=${TZ:-Europe/Paris}"
+    user: "${PUID:-1000}:${PGID:-1000}"
+    depends_on:
+      anycubic-cloud-page:
+        condition: "service_healthy"
+    entrypoint: ["python", "/app/scripts/extract_token.py"]
+    command: ["--log-dir", "/slicer-logs", "--output", "/appdata/private/anycubic-token", "--watch"]

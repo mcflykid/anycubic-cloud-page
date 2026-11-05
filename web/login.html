@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Connexion — Anycubic Cloud Page</title>
+<link rel="icon" href="/icons/cloud-page.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/landing.css">
+<link rel="stylesheet" href="/css/imprimante.css">
+</head>
+<body class="login-body">
+<main class="login-card">
+<img src="/icons/cloud-page.svg" width="52" height="52" alt="">
+<p class="login-brand">Anycubic Cloud Page</p>
+<h1>Retrouver mon atelier</h1>
+<p class="muted">Connectez-vous avec les identifiants de cette page, distincts de votre compte Anycubic.</p>
+<!-- LOGIN_MESSAGE -->
+<form action="/login" method="post">
+<label for="username">Identifiant</label>
+<input id="username" name="username" autocomplete="username" maxlength="256" required autofocus>
+<label for="password">Mot de passe</label>
+<input id="password" name="password" type="password" autocomplete="current-password" maxlength="2048" required>
+<button type="submit" class="primary">Se connecter</button>
+</form>
+<p class="login-note">Votre session reste ouverte pendant huit heures au maximum.</p>
+</main>
+</body>
+</html>

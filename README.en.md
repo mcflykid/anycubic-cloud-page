@@ -1,0 +1,63 @@
+# Anycubic Cloud Page
+
+Version **1.1.0**. [Changelog](CHANGELOG.md).
+
+**A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
+
+[Français / full screenshot gallery](README.md) · [Cloud authentication and token recovery](docs/CLOUD-CONNECTION.md) · [Compatibility](docs/COMPATIBILITY.md)
+
+A self-hosted Python/aiohttp application with a responsive French interface: printer status, ACE/filament management, local/USB/cloud files, G-code upload, Agora camera, print history and settings. Home Assistant is not required.
+
+## Quick start
+
+Docker Compose is sufficient; the project provides a single application service with startup preparation.
+
+1. Download [`compose.yaml`](compose.yaml) into an empty directory.
+2. Set `ANYCUBIC_EMAIL`, `ANYCUBIC_PASSWORD` and `WEB_PASSWORD` in `anycubic-cloud-page.environment`, or use [`.env.example`](.env.example). The web password requires at least six characters. `WEB_USER` defaults to `admin` and must not be empty.
+3. Run `docker compose up -d`.
+4. Open **http://localhost:8080/imprimante.html** and sign in with your web credentials.
+
+`BIND_ADDRESS=127.0.0.1` and `WEB_PORT=8080` control the host listener. `APPDATA_DIR=./appdata` contains all persistent data. In Compose, write `$$` for a literal `$` in passwords; in `.env`, single-quote the values. Never publish customized credential files.
+
+**Never expose this HTTP port directly to the Internet.** Use your own HTTPS proxy and set `PUBLIC_ORIGIN` to the exact public browser origin. The [reverse proxy guide](docs/REVERSE-PROXY.md) provides Caddy, Nginx and Traefik examples for host and container proxies. A container proxy uses the optional [`compose.proxy.yaml`](compose.proxy.yaml), with `PROXY_NETWORK` and no host port. [Full installation guide](docs/INSTALLATION.md).
+
+## Screens
+
+| Tab | Features | Screenshot |
+| --- | --- | --- |
+| Printer | State, preview, progress, temperatures and local charts | [View](screenshots/10-session.jpg) |
+| ACE / filaments | Spools, RFID information, remaining filament and drying | [View](screenshots/02-ace-filaments.png) |
+| Files | Printer memory, USB and cloud file operations | [View](screenshots/03-fichiers.png) |
+| Upload / print | G-code upload and ACE mapping | [View](screenshots/04-envoyer-imprimer.png) |
+| Camera | Agora video, zoom, lights and guarded axis controls | [View](screenshots/05-camera.png) |
+| History | Tasks, previews, details and notifications | [View](screenshots/06-historique.png) |
+| Settings | Connection, AI settings and update eligibility | [View](screenshots/07-reglages.png) |
+
+All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
+
+## Offline demo
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r app/requirements.txt
+python app/demo.py
+```
+
+Open `http://127.0.0.1:8081`. The demo never connects to Anycubic and rejects physical commands.
+
+## Scope and credits
+
+Initially exercised with a Kobra S1 Combo and ACE 2 Pro. Read operations, cloud file test operations and the original camera path have real observations; physical actions and firmware installation are not all validated. Cloud acceptance is not physical confirmation. See the [compatibility matrix](docs/COMPATIBILITY.md).
+
+The cloud engine derives from [ljschmitt/hass-anycubic_cloud_v3](https://github.com/ljschmitt/hass-anycubic_cloud_v3). This project does not claim to be the first implementation of Anycubic Cloud access. It provides a separate workshop UI and documents its authentication, session, preview and MQTT adaptations. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+GPL-3.0-or-later. Independent community project; not an official Anycubic product.
+
+`TZ` defaults to `Europe/Paris` and controls history, chart labels and application log times. `PUID`/`PGID` default to `1000`. Startup prepares `appdata` as root, then starts the server without root privileges. `init: true`, `pids_limit: 100`, resource limits, read-only root and privilege restrictions are enabled. `/etc/localtime` is mounted read-only. The unhealthy-restart label is commented out and requires an external tool.
+
+## Web sign-in
+
+The French `/login` form uses an eight-hour session cookie: HttpOnly, SameSite=Strict, and Secure when `PUBLIC_ORIGIN` is HTTPS. Sign-out revokes the session. Five failures per five-minute window limit attempts per connection address; users behind a proxy may share this limit. Restarting the application or changing the web password invalidates sessions.
+
+![Sign-in page — synthetic demo](screenshots/00-connexion.jpg)
