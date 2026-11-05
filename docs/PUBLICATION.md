@@ -38,3 +38,12 @@ publication. Utiliser des données de démonstration pour les illustrations.
 Pour JPEG, les commentaires, les champs textuels EXIF (dont Unicode) et les textes/attributs XMP sont décodés. Les XMP étendus sont reconstitués même si les segments sont réordonnés. Une métadonnée tronquée, un encodage non pris en charge, un offset incohérent ou une taille excessive bloque le contrôle. Les champs GPS EXIF/XMP sont refusés même lorsqu’ils ne contiennent aucun texte reconnu comme privé. Les entités XML externes ne sont jamais interprétées.
 
 Ce contrôle porte sur les formats textuels reconnus ; il ne décode pas les formats propriétaires internes des fabricants et ne remplace pas l’audit visuel. Références : [Exif, CIPA](https://www.cipa.jp/std/documents/e/DC-X008-Translation-2019-E.pdf) et [stockage XMP, Adobe](https://github.com/adobe/xmp-docs).
+
+
+## Images et releases
+
+Un push sur main ou une fusion lance les tests, sans publier d’image. Pour publier, mettre à jour la version de package.json et son entrée du CHANGELOG, puis pousser un nouveau tag vX.Y.Z après validation des tests de main. Le numéro doit être inédit ; une image existante bloque la publication.
+
+Le workflow Publish Docker image vérifie le tag, appelle tous les tests du workflow de CI (dont les deux installations Docker), puis publie les images amd64 et arm64. Après vérification anonyme de l’image, il crée la release GitHub à partir de l’entrée correspondante du CHANGELOG, avec compose.yaml et .env.example en pièces jointes. Une erreur de version, de changelog, de registre ou de test arrête la procédure.
+
+Suivre les exécutions avec gh run watch et vérifier ensuite les fichiers de la release et l’accès public à l’image. Ne jamais déplacer un tag ni relancer une publication sous un numéro déjà utilisé. Les améliorations en attente sont suivies dans les issues et dans l’entrée « À publier » du changelog.

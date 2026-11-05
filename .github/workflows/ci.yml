@@ -1,5 +1,12 @@
 name: Tests and publication safety
-on: [push, pull_request]
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+    secrets:
+      PUBLICATION_PRIVATE_PATTERNS:
+        required: false
 permissions:
   contents: read
 jobs:

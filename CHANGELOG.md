@@ -1,5 +1,9 @@
 # Changements
 
+## À publier
+
+- Publication des images et releases réservée aux tags de version, après validation du numéro, du changelog et de tous les tests (#17).
+
 ## 1.1.0 — 2026-11-05
 
 - Connexion française par formulaire, sessions limitées, déconnexion, limitation des échecs et protection Origin.
