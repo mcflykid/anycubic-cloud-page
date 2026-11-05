@@ -143,6 +143,8 @@ class Engine:
      self.raw_info=(await self.api.printer_info_for_id(self.printer.id,raw_data=True)).get('data') or {};self.updated=now();self.ok=True;self.error=None
      if self.mqtt_auth_pending:await self.restart_mqtt_auth(self.api)
      self.mqtt_start()
+     try:await self.print_history(1);self.notifications_error=None
+     except Exception:self.notifications_error='Messages temporairement indisponibles'
    except Exception as e:
     self.ok=False;self.error='Connexion Anycubic indisponible ('+type(e).__name__+').'
     if 'Auth' in type(e).__name__ and type(e).__name__!='CloudSessionAuthError':self.api=None;self.printer=None
@@ -151,6 +153,8 @@ class Engine:
   """Renvoie l’état sérialisé et filtré pour le navigateur, sans identifiants de compte."""
   p=self.printer
   base={'ok':self.ok,'message':self.error,'updated_at':self.updated,'mqtt_updated_at':self.mqtt_update,'mqtt_connected':bool(self.api and self.api._mqtt_client and self.api._mqtt_client.is_connected()),'public_commands':False,'upstream':'hass-anycubic_cloud_v3','events':list(self.events),'presets':self.presets}
+  base['notifications']=getattr(self,'history_cache',{}).get(1,(None,None))[1]
+  base['notifications_error']=getattr(self,'notifications_error',None)
   if not p:return {**base,'printer':None}
   fields={k:serial(safeget(p,v)) for k,v in FIELDS.items()}
   # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
