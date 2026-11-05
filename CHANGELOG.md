@@ -1,6 +1,8 @@
 # Changements
 
-## À publier
+## 1.2.0 — À publier
+
+Suivi de livraison : #33.
 
 - Fixtures MQTT connues, inconnues et reçues avant initialisation ; compteurs bornés dans le statut, sans payload, topic ni exception brute dans les diagnostics (#23).
 
