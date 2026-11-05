@@ -145,7 +145,7 @@ Cette première passe a examiné quatre projets communautaires, la page locale d
 
 Restent à établir : les méthodes et schémas des routes signalées « inconnu », les appels exacts de certains boutons de l’interface native, les variantes régionales, les droits nécessaires aux fonctions de ferme, la différence entre miniatures et téléchargements de timelapse et les messages MQTT supplémentaires. Aucune de ces incertitudes ne justifie un essai automatique contre le cloud. Les évolutions de protocole ou de firmware peuvent invalider ces repères.
 
-## Cinq pistes à choisir, sans engagement de réalisation
+## Suivi des cinq pistes retenues
 
 1. **Suppression réelle de fiches d’impression** : nettoyer le même historique que dans le slicer, sans masquer localement une fiche encore présente dans le cloud.
 2. **Galerie et téléchargement des timelapses** : rendre accessibles les vidéos enregistrées, une fois la liste, les références et les droits établis.
@@ -153,4 +153,4 @@ Restent à établir : les méthodes et schémas des routes signalées « inconnu
 4. **Dossiers et rangement du stockage cloud** : organiser les fichiers existants plutôt que les retrouver dans une seule liste ; les mutations demanderaient confirmation.
 5. **Diagnostic détaillé de la caméra** : distinguer l’ouverture, la jonction et l’arrêt du flux à partir des rapports reconnus, sans afficher de secrets temporaires.
 
-Ces pistes ne créent pas chacune une issue. Leur choix et leur priorité restent à décider ; les éléments déjà suivis conservent leurs issues existantes.
+Le retrait d’historique (#15, #28), le diagnostic caméra (#21) et le sélecteur multi-imprimantes (#32) sont retenus pour la 1.2.0. Les timelapses (#30) et les dossiers cloud (#31) sont reportés à la 1.3.0. Les autres lignes de cet inventaire ne créent aucune issue automatiquement ; leurs priorités restent au choix du propriétaire.
