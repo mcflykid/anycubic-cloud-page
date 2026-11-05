@@ -191,6 +191,8 @@ class AnycubicAPIBase:
 
         try:
             async with h_coro as resp:
+                if method == HTTP_METHODS.PUT and not 200 <= resp.status < 300:
+                    raise ValueError('Transfert cloud refusé')
                 if is_json:
                     resp_data: dict[str, Any] | str = await resp.json()
                 else:
@@ -214,8 +216,9 @@ class AnycubicAPIBase:
                 f"Responses from server are taking over {MAX_API_FETCH_TIME_WARN}s (Took {int(time_diff)}s)"
             )
         if self._log_api_call_info:
+            destination = 'stockage cloud' if method == HTTP_METHODS.PUT else url
             self._log_to_debug(
-                f"Finished fetching {url} in {time_diff:.2f}s."
+                f"Finished fetching {destination} in {time_diff:.2f}s."
             )
 
         if return_url:

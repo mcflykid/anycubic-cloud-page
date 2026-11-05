@@ -44,23 +44,36 @@ class AnycubicGcodeFile(UserDict[str, Any]):
         """Renvoie les métadonnées d’un chemin local ou de file_bytes UTF-8, à partir du marqueur de filament. Lève AnycubicGcodeParsingError si les données ou l’état requis sont invalides."""
         data_found = False
         slicer_data = {}
+        metadata_size = 0
 
         def parse(line):
-            nonlocal data_found
+            nonlocal data_found, metadata_size
             if line.startswith(GCODE_STRING_FIRST_ATTR_LINE):
                 data_found = True
             if data_found:
-                slicer_data.update(gcode_key_value_pair_to_dict(REX_GCODE_DATA_KEY_VALUE, line))
+                fields = gcode_key_value_pair_to_dict(REX_GCODE_DATA_KEY_VALUE, line)
+                if fields:
+                    metadata_size += len(line)
+                    if metadata_size > 4 * 1024 * 1024:
+                        raise ValueError('Trop de métadonnées G-code')
+                    slicer_data.update(fields)
 
         if full_file_path is None and file_bytes is None:
             raise AnycubicGcodeParsingError(ErrorsGcodeParsing.invalid_path_and_bytes)
         try:
             if full_file_path is not None:
                 async with aio_file_open(full_file_path, mode='r') as source:
-                    while line := await source.readline(1024 * 1024 + 1):
-                        if len(line) > 1024 * 1024:
+                    tail = ''
+                    while chunk := await source.read(64 * 1024):
+                        *lines, tail = (tail + chunk).split('\n')
+                        if len(tail) > 1024 * 1024:
                             raise ValueError('Ligne G-code trop longue')
-                        parse(line)
+                        for line in lines:
+                            if len(line) > 1024 * 1024:
+                                raise ValueError('Ligne G-code trop longue')
+                            parse(line)
+                    if tail:
+                        parse(tail)
             else:
                 for line in file_bytes.decode('utf-8').split('\n'):
                     parse(line)
