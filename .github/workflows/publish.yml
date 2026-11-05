@@ -1,24 +1,41 @@
 name: Publish Docker image
 on:
-  workflow_run:
-    workflows: ['Tests and publication safety']
-    types: [completed]
-    branches: [main]
+  push:
+    tags: ['v*.*.*']
 permissions:
   contents: read
-  packages: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  publish:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+  metadata:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/checkout@v7
       - id: version
-        run: echo "value=$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')" >> "$GITHUB_OUTPUT"
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/release_metadata.py "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --check-unpublished >> "$GITHUB_OUTPUT"
+  tests:
+    needs: metadata
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+  publish:
+    needs: [metadata, tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Valider de nouveau le tag et préparer les notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/release_metadata.py "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --check-unpublished
       - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -31,10 +48,10 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/mcflykid/anycubic-cloud-page:${{ steps.version.outputs.value }}
+            ghcr.io/mcflykid/anycubic-cloud-page:${{ needs.metadata.outputs.version }}
             ghcr.io/mcflykid/anycubic-cloud-page:latest
           labels: |
-            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.revision=${{ github.sha }}
       - name: Download the published image anonymously and test the application
         env:
           IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
@@ -51,3 +68,8 @@ jobs:
           print('Image publique : linux/amd64 et linux/arm64 disponibles.')
           PY_MANIFEST
           python3 scripts/ci_compose.py host
+      - name: Créer la release GitHub et joindre les fichiers de démarrage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --latest compose.yaml ".env.example#.env.example"
