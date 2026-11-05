@@ -19,6 +19,20 @@ class AnycubicAPIParsingError(AnycubicAPIError):
     pass
 
 
+class AnycubicCameraSessionError(AnycubicAPIParsingError):
+    """Diagnostic caméra borné à des raisons connues, sans conserver la réponse ni ses secrets."""
+    MESSAGES = {
+        'missing_credentials': 'La réponse cloud ne contient pas les identifiants Agora nécessaires à la vidéo.',
+        'invalid_format': 'Le cloud a renvoyé une session caméra de format invalide.',
+        'unsupported_transport': 'Cette caméra utilise un transport vidéo non pris en charge par l’atelier (KVS).',
+    }
+
+    def __init__(self, reason: str) -> None:
+        """Conserve seulement une raison autorisée ; une valeur inconnue devient un format invalide."""
+        self.reason = reason if reason in self.MESSAGES else 'invalid_format'
+        super().__init__(self.MESSAGES[self.reason])
+
+
 class AnycubicFileNotFoundError(AnycubicAPIError):
     """Fichier demandé introuvable dans le stockage constructeur."""
     pass

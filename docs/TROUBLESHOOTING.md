@@ -43,3 +43,9 @@ Des 502 pendant une recréation ne sont pas des échecs persistants : attendez h
 ## Secrets conservés
 
 Le stockage privé est commun aux modes Docker et sources : APPDATA_DIR/private. En mode compte, gardez ANYCUBIC_TOKEN vide lorsque les mots de passe sont retirés de l’environnement ; un jeton hérité ne doit pas remplacer implicitement un compte enregistré. Ne recopiez pas les secrets dans un journal pour les vérifier. Une modification de APPDATA_DIR peut présenter un dossier vide au service sans supprimer les données du dossier précédent.
+
+## Diagnostic caméra
+
+Un manque d’identifiants Agora, une réponse cloud de format invalide et un transport KVS non pris en charge produisent des messages distincts. Le transport KVS n’est pas ouvert implicitement avec le lecteur Agora. Les erreurs et représentations de diagnostic ne contiennent ni canal, ni identifiant de session, ni clé ou jeton temporaire.
+
+Lorsqu’une référence de corrélation est disponible, les rapports MQTT de la session courante peuvent préciser l’initialisation, la jonction et le début ou l’arrêt d’envoi de vidéo. Un acquittement ne prouve pas qu’une image est visible. Les rapports d’une autre machine, d’une ancienne session ou reçus hors ordre ne remplacent pas une étape plus avancée.

@@ -19,7 +19,7 @@ from anycubic_cloud_api.models.auth import AnycubicAuthMode
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
 from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
-from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError,AnycubicAuthTokensExpired
+from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError,AnycubicAuthTokensExpired,AnycubicCameraSessionError
 
 ROOT=pathlib.Path(__file__).parent
 FIELDS=json.loads((ROOT/'fields.json').read_text())
@@ -78,6 +78,7 @@ class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):
     payload=json.loads(message.payload)
     if owner and owner.printer and get_part_from_mqtt_topic(str(message.topic),6)==str(owner.printer.key):
      owner.receive_ai_reply(str(message.topic),payload)
+     owner.receive_video_reply(str(message.topic),payload)
      if (payload.get('type')=='file' and payload.get('action') in ['listLocal','listUdisk','fileDetails','listVideo','videoThumbnailList']) or payload.get('type') in ['light','aiSettings']:
       owner.file_messages[str(payload.get('msgid'))]=payload
       if payload.get('type')=='light':owner.light_report=(time.monotonic(),payload)
@@ -96,9 +97,17 @@ class Engine:
  def __init__(self):
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
   self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False
+  self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1
   self.command_lock=asyncio.Lock()
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
  def event(self,action,state):"""Ajoute un événement horodaté au journal local borné.""";self.events.appendleft({'time':now(),'action':action,'state':state})
+ def receive_video_reply(self,topic,payload):
+  """Ne retient que l’étape connue de la session vidéo courante et de cette machine, sans payload privé."""
+  if not self.printer or get_part_from_mqtt_topic(topic,6)!=str(self.printer.key) or payload.get('type')!='video' or payload.get('action')!='startCapture':return
+  if self.camera_message_id is None or str(payload.get('msgid'))!=str(self.camera_message_id):return
+  stages={'done':(0,'Demande vidéo acquittée'),'initSuccess':(1,'Initialisation vidéo confirmée'),'joinSuccess':(2,'Jonction au canal vidéo confirmée'),'pushStarted':(3,'Envoi de la vidéo démarré'),'pushStoped':(4,'Envoi de la vidéo arrêté')}
+  stage=stages.get(payload.get('state'))
+  if stage and stage[0]>=self.camera_stage:self.camera_stage=stage[0];self.camera_diagnostic={'stage':payload['state'],'message':stage[1]}
  def mqtt_changed(self):"""Marque la fraîcheur des données lors d’une notification MQTT.""";self.mqtt_update=now()
  def mqtt_connected(self):"""Consigne l’établissement du suivi MQTT dans le journal affichable.""";self.event('MQTT','Connecté')
  def mqtt_run(self):
@@ -179,6 +188,7 @@ class Engine:
   base={'ok':self.ok,'message':self.error,'updated_at':self.updated,'mqtt_updated_at':self.mqtt_update,'mqtt_connected':bool(self.api and self.api._mqtt_client and self.api._mqtt_client.is_connected()),'public_commands':False,'upstream':'hass-anycubic_cloud_v3','events':list(self.events),'presets':self.presets}
   base['notifications']=getattr(self,'history_cache',{}).get(1,(None,None))[1]
   base['notifications_error']=getattr(self,'notifications_error',None)
+  base['camera_diagnostic']=self.camera_diagnostic
   if not p:return {**base,'printer':None}
   fields={k:serial(safeget(p,v)) for k,v in FIELDS.items()}
   # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
@@ -513,10 +523,13 @@ async def errors(request,handler):
  """Convertit les erreurs en réponses HTTP sans publier les détails internes des exceptions inattendues."""
  try:return await handler(request)
  except web.HTTPException:raise
+ except AnycubicCameraSessionError as e:
+  request_engine(request).event('Caméra',e.reason)
+  return web.json_response({'ok':False,'message':str(e),'camera_error':e.reason},status=409)
  except (ValueError,KeyError,TypeError) as e:return web.json_response({'ok':False,'message':str(e)[:200]},status=400)
  except Exception as e:
   request_engine(request).event('Erreur',type(e).__name__)
-  return web.json_response({'ok':False,'message':('La caméra ne répond pas pour le moment. Réessayez dans quelques secondes.' if request.path=='/camera-session' else 'Anycubic n’a pas confirmé cette opération. Vérifiez l’état de la machine avant un nouvel essai.')},status=409)
+  return web.json_response({'ok':False,'message':('La caméra ne répond pas pour le moment. Réessayez dans quelques secondes.' if request.path=='/imprimante-api/camera-session' else 'Anycubic n’a pas confirmé cette opération. Vérifiez l’état de la machine avant un nouvel essai.')},status=409)
 
 async def status(req):
  """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
@@ -611,7 +624,7 @@ def camera_transport_failure(error):
   seen.add(id(error));chain.append(error)
   error=error.__cause__ if error.__cause__ is not None else error.__context__
  # Le client embarqué enveloppe les erreurs : leur type reste exploitable sans lire de message sensible.
- if any(isinstance(item,(AnycubicAuthError,AnycubicAuthTokensExpired,ValueError,ssl.SSLError,aiohttp.ClientSSLError,aiohttp.ServerFingerprintMismatch)) for item in chain):return False
+ if any(isinstance(item,(AnycubicAuthError,AnycubicAuthTokensExpired,AnycubicCameraSessionError,ValueError,ssl.SSLError,aiohttp.ClientSSLError,aiohttp.ServerFingerprintMismatch)) for item in chain):return False
  return any(isinstance(item,(aiohttp.ClientConnectionError,asyncio.TimeoutError)) for item in chain)
 
 async def camera(req):
@@ -622,13 +635,14 @@ async def camera(req):
  async with engine.lock:
   verify_printer_target(req,engine)
   if not engine.camera or time.time()-engine.last_session>5:
+   engine.camera_message_id=None;engine.camera_diagnostic=None;engine.camera_stage=-1
    try:session=await engine.printer.get_camera_session()
    except Exception as error:
     # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
     if not camera_transport_failure(error):raise
     session=await engine.printer.get_camera_session()
    if session is None:raise ValueError('Caméra indisponible')
-   engine.camera=session.data;engine.last_session=time.time()
+   engine.camera=session.data;engine.camera_message_id=getattr(session,'msg_id',None);engine.last_session=time.time()
   return web.json_response(engine.camera,headers={'Cache-Control':'no-store'})
 
 async def upload(req):

@@ -419,6 +419,7 @@ class AnycubicCameraToken:
 class AnycubicCameraSession:
     """Réponse cloud décrivant une session caméra et ses références de stockage temporaires."""
     __slots__ = (
+        "_msg_id",
         "_appid",
         "_channel",
         "_rtc_token",
@@ -439,8 +440,10 @@ class AnycubicCameraSession:
         encryption_kdf_salt: str,
         encryption_key: str,
         encryption_mode: str,
+        msg_id: str | int | None = None,
     ) -> None:
         """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._msg_id = str(msg_id) if msg_id is not None else None
         self._appid = appid
         self._channel = channel
         self._rtc_token = rtc_token
@@ -449,6 +452,11 @@ class AnycubicCameraSession:
         self._encryption_kdf_salt = encryption_kdf_salt
         self._encryption_key = encryption_key
         self._encryption_mode = encryption_mode
+
+    @property
+    def msg_id(self) -> str | None:
+        """Référence privée de corrélation MQTT ; n’entre ni dans data ni dans les diagnostics."""
+        return self._msg_id
 
     @property
     def appid(self) -> str:
@@ -506,27 +514,17 @@ class AnycubicCameraSession:
 
     @property
     def safe_summary(self) -> dict[str, Any]:
-        """Résumé de session caméra conservant les identifiants de canal, mais masquant les jetons et clés de chiffrement."""
+        """Renvoie uniquement la présence des champs ; canaux, identifiants et clés restent privés."""
         return {
-            "appid": self.appid,
-            "channel": self.channel,
-            "has_rtc_token": bool(self.rtc_token),
-            "client_uid": self.client_uid,
-            "printer_uid": self.printer_uid,
-            "has_encryption_kdf_salt": bool(self.encryption_kdf_salt),
-            "has_encryption_key": bool(self.encryption_key),
-            "encryption_mode": self.encryption_mode,
+            'transport': 'Agora',
+            'has_appid': bool(self.appid),
+            'has_channel': bool(self.channel),
+            'has_rtc_token': bool(self.rtc_token),
+            'has_encryption_kdf_salt': bool(self.encryption_kdf_salt),
+            'has_encryption_key': bool(self.encryption_key),
+            'has_encryption_mode': bool(self.encryption_mode),
         }
 
     def __repr__(self) -> str:
-        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
-        return (
-            f"AnycubicCameraSession("
-            f"appid={self.appid}, "
-            f"channel={self.channel}, "
-            f"rtc_token=<redacted>, "
-            f"client_uid={self.client_uid}, "
-            f"printer_uid={self.printer_uid}, "
-            f"encryption_key=<redacted>, "
-            f"encryption_mode={self.encryption_mode})"
-        )
+        """Un diagnostic ne doit jamais sérialiser les références ou secrets temporaires du flux."""
+        return f'AnycubicCameraSession({self.safe_summary!r})'
