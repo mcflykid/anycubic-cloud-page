@@ -41,3 +41,20 @@ test('les fichiers non imprimables et la dernière page désactivent les actions
  await expect(page.locator('#file-rows').getByRole('button',{name:'Imprimer',exact:true})).toBeDisabled();
  await expect(page.locator('#next-page')).toBeDisabled();
 });
+
+test('un aperçu indisponible est redemandé après le délai',async({page})=>{
+ let reads=0;
+ await page.route('**/imprimante-api/preview',async route=>{
+  reads++;
+  if(reads===1)await route.fulfill({status:503,json:{ok:false,message:'Aperçu indisponible'}});
+  else await route.continue();
+ });
+ await login(page);
+ await expect.poll(()=>page.evaluate(()=>previewJob?.attempts===1&&!previewJob.pending)).toBe(true);
+ await expect(page.locator('#job-preview')).toBeHidden();
+ const now=await page.evaluate(()=>Date.now());
+ await page.clock.setSystemTime(now+11000);
+ await page.evaluate(()=>refresh());
+ await expect(page.locator('#job-preview')).toBeVisible();
+ expect(reads).toBe(2);
+});
