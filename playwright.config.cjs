@@ -1,0 +1,2 @@
+const {defineConfig}=require('@playwright/test');
+module.exports=defineConfig({testDir:'./tests/ui',workers:1,fullyParallel:false,use:{baseURL:'http://127.0.0.1:'+(process.env.UI_PORT||'8765'),viewport:{width:1280,height:900}},webServer:{command:'node scripts/ui_server.cjs',url:'http://127.0.0.1:'+(process.env.UI_PORT||'8765')+'/imprimante-api/health',reuseExistingServer:false,timeout:30000}});

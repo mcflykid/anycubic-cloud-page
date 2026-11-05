@@ -47,3 +47,19 @@ jobs:
       - run: docker run --rm --network none --entrypoint python anycubic-cloud-page:test -m unittest discover -s app -p 'test_*.py' -q
       - name: Démarrage, PUID/PGID, droits, appdata et redémarrage sans mots de passe
         run: python scripts/ci_compose.py "${{ matrix.variant }}"
+
+  ui:
+    name: Interface de démonstration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r app/requirements.txt
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test

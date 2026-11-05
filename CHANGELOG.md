@@ -2,6 +2,8 @@
 
 ## À publier
 
+- Bouton de déconnexion accessible dans la barre du haut ; HOME_URL ne pilote plus que le lien de marque (#14).
+
 - Guides complétés pour domaine partagé, rechargement Caddy, contrôles authentifiés, réseau externe, sondes filtrées, recréation et secrets persistants (#6, #7, #8, #9, #10, #11, #12, #13).
 
 - Compose unique avec réseau local ou proxy externe sélectionné par PROXY_NETWORK, image latest par défaut et données sous ./appdata sans réglage (#27).

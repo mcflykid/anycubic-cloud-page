@@ -106,3 +106,6 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .login-note{font-size:.82rem;color:var(--muted);margin:24px 0 0}
 .login-error{padding:12px;border:1px solid #dfb5ad;border-radius:10px;color:#853b31;background:#fff4f1}
 .logout-form{margin:0}.logout-form button{font:inherit;color:var(--muted);background:transparent;border:0;padding:4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* La barre conserve la marque à gauche et les actions de session au bord droit. */
+.nav-actions{display:flex;align-items:center;gap:.7rem;margin-left:auto}.portal-nav .logout-form{margin:0}.portal-nav .logout-form button{white-space:nowrap}

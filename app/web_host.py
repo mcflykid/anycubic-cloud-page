@@ -145,8 +145,8 @@ def render_page(destination,time_zone):
  content=(ROOT/'imprimante.html').read_text()
  # Le fuseau explicite évite que le navigateur et l’historique utilisent deux heures différentes.
  content=content.replace('<html lang="fr">','<html lang="fr" data-time-zone="'+html.escape(time_zone,quote=True)+'">',1)
- if destination:content=re.sub(r'(<a class="(?:document-brand|back-link)" href=")[^"]*(")',lambda match:match[1]+html.escape(destination,quote=True)+match[2],content)
- else:content=re.sub(r'<a class="(?:document-brand|back-link)" href="[^"]*">.*?</a>','',content,flags=re.S)
+ if destination:content=re.sub(r'(<a class="document-brand" href=")[^"]*(")',lambda match:match[1]+html.escape(destination,quote=True)+match[2],content)
+ else:content=re.sub(r'<a class="document-brand" href="[^"]*">.*?</a>','',content,flags=re.S)
  return content
 
 async def index(request):
