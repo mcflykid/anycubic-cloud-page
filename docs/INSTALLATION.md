@@ -4,15 +4,16 @@ Docker et son plugin Compose suffisent sur la machine de déploiement. Le projet
 
 ## Démarrage depuis un dossier vide
 
-1. Téléchargez [`compose.yaml`](../compose.yaml).
-2. Dans `anycubic-cloud-page.environment`, remplacez les expressions des lignes suivantes, ou conservez les expressions et renseignez un `.env` à partir de [`.env.example`](../.env.example) :
+1. Téléchargez les fichiers dans un dossier vide :
 
-```yaml
-- "ANYCUBIC_EMAIL=votre-compte@example.com"
-- "ANYCUBIC_PASSWORD=votre-mot-de-passe-anycubic"
-- "WEB_PASSWORD=choisissez-un-mot-de-passe-web"
-- "WEB_USER=admin"
+```sh
+curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/compose.yaml -o compose.yaml
+curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/default.env.example -o .env.example
+cp .env.example .env
+chmod 600 .env
 ```
+
+2. Renseignez ANYCUBIC_EMAIL, ANYCUBIC_PASSWORD, WEB_PASSWORD et éventuellement WEB_USER dans `.env`. Les mêmes réglages existent dans la section `environment` du service ; ce n’est pas un nom de fichier.
 
 Le mot de passe web est distinct du mot de passe Anycubic et contient au moins six caractères. `WEB_USER` est modifiable et ne peut pas être vide. Un `$` écrit directement dans Compose doit être doublé (`$$`) ; dans `.env`, utilisez des quotes simples pour garder la valeur littérale. Ne publiez pas vos fichiers personnalisés.
 
@@ -24,7 +25,7 @@ docker compose up -d
 
 4. Ouvrez **http://localhost:8080/imprimante.html** sur cet hôte et utilisez vos identifiants web.
 
-L’image `ghcr.io/mcflykid/anycubic-cloud-page:1.1.0` est fournie pour Linux amd64 et arm64 et téléchargée depuis le registre au démarrage. La préparation récupère le matériel client amont depuis une révision épinglée, crée les fichiers privés, puis lance le serveur sans privilèges root. L’application utilise le compte sans garder le slicer ouvert.
+L’image `ghcr.io/mcflykid/anycubic-cloud-page:latest` est fournie pour Linux amd64 et arm64 et téléchargée depuis le registre au démarrage. La préparation récupère le matériel client amont depuis une révision épinglée, crée les fichiers privés, puis lance le serveur sans privilèges root. L’application utilise le compte sans garder le slicer ouvert.
 
 **Ne publiez jamais ce port HTTP directement sur Internet.** Pour un accès distant, suivez le [guide reverse proxy](REVERSE-PROXY.md), avec HTTPS et `PUBLIC_ORIGIN` correspondant exactement à l’adresse publique.
 
@@ -41,11 +42,12 @@ L’image `ghcr.io/mcflykid/anycubic-cloud-page:1.1.0` est fournie pour Linux am
 | `BIND_ADDRESS` | `127.0.0.1`, accès depuis l’hôte uniquement. |
 | `WEB_PORT` | `8080` ; adapter aussi `PUBLIC_ORIGIN` si le port change. |
 | `PUBLIC_ORIGIN` | `http://localhost:8080` ; adresse exacte ouverte dans le navigateur, protocole et port compris. |
-| `HOME_URL` | `/imprimante.html` ; destination des deux liens de navigation. Vide masque les liens. HTTP(S) ou chemin relatif uniquement. |
+| `HOME_URL` | `/imprimante.html` ; destination du lien de marque. Vide masque ce lien. HTTP(S) ou chemin relatif uniquement. |
 | `APPDATA_DIR` | `./appdata`, relatif au dossier Compose. |
 | `PUID`, `PGID` | `1000` ; propriétaire des données persistantes. |
 | `PRINTER_ID` | Facultatif ; sélection explicite si plusieurs imprimantes compatibles sont présentes. |
 | `PROXY_NETWORK` | Nom du réseau du proxy ; renseigner aussi `PROXY_NETWORK_EXTERNAL=true`. |
+| `PROXY_NETWORK_EXTERNAL` | `false` ; `true` laisse le cycle de vie du réseau existant à son propriétaire. |
 | `APP_IMAGE` | Image de la livraison ; permet de tester une image construite depuis les sources. |
 
 Sans `PRINTER_ID`, une unique Kobra S1 est sélectionnée. Plusieurs correspondances sont refusées. Les limites CPU, mémoire, privilèges et écritures sont définies pour le service. L’entrée démarre en root pour initialiser les propriétaires, puis `setpriv` lance le serveur avec `PUID:PGID`.
@@ -117,10 +119,33 @@ docker compose stop
 
 Protégez `.env` avec `chmod 600 .env`. Au premier démarrage, le conteneur valide les réglages, crée `appdata/private` et `appdata/state`, écrit les secrets, applique les droits et les propriétaires `PUID:PGID` (1000 par défaut), puis abandonne les privilèges root avec `setpriv`. Le serveur refuse lui-même de démarrer en root. Si le conteneur est lancé directement en non-root, la préparation ne fait pas de chown : les dossiers doivent déjà être accessibles à cette identité.
 
-Après un premier démarrage réussi, videz `ANYCUBIC_PASSWORD` et `WEB_PASSWORD` dans `.env`, puis lancez `docker compose up -d --force-recreate`. Gardez le même email Anycubic ou videz-le également : le compte enregistré est conservé. Un email différent sans son mot de passe est refusé. Les secrets sont réutilisés depuis `appdata/private` ; ne supprimez donc pas ce dossier. Les tests vérifient cette reprise sans nouvelle préparation du matériel client.
+Après un premier démarrage réussi en mode compte, laissez `ANYCUBIC_TOKEN` vide et videz `ANYCUBIC_PASSWORD` et `WEB_PASSWORD` dans `.env`, puis lancez `docker compose up -d --force-recreate`. Gardez le même email Anycubic ou videz-le également : le compte enregistré est conservé. Un email différent sans son mot de passe est refusé. Les secrets sont réutilisés depuis `appdata/private` ; ne supprimez donc pas ce dossier. Les tests vérifient cette reprise sans nouvelle préparation du matériel client.
 
 Les mots de passe fournis au démarrage restent visibles dans `docker inspect` tant que le conteneur n’a pas été recréé avec les valeurs vides. Pour les changer, renseignez de nouvelles valeurs puis recréez le service.
 
 ## Connexion et déconnexion
 
 Le navigateur ouvre le formulaire français `/login`. La session dure huit heures au maximum et son cookie est HttpOnly, SameSite=Strict, Secure si `PUBLIC_ORIGIN` est HTTPS. Le bouton de déconnexion révoque la session côté serveur. Les échecs sont limités à cinq dans une fenêtre de cinq minutes, par adresse de connexion ; derrière un proxy, plusieurs utilisateurs peuvent partager cette limite. Un redémarrage ou un changement des identifiants invalide les sessions. Le contrôle Origin reste exigé sur les formulaires et les écritures API ; les lectures sans session renvoient 401 et l’interface propose une reconnexion sans rejouer de commande. `/imprimante-api/health` reste public.
+
+
+## Contrôles authentifiés en lecture
+
+La santé attendue est HTTP 200 ; elle ne prouve pas la connexion au fournisseur. Après démarrage, ouvrez /login, connectez-vous puis vérifiez les indicateurs Cloud/MQTT. Sans session, /imprimante.html redirige vers /login (303) et une lecture API répond 401. Une connexion correcte répond 303 ; la page authentifiée répond 200.
+
+Exemple de contrôles curl pour un administrateur ayant accès au secret persistant. Le mot de passe est lu par curl depuis un fichier, sans passer dans les arguments ; les réponses privées restent dans des fichiers protégés :
+
+```sh
+umask 077
+PUBLIC_ORIGIN=https://printer.example.com
+PASSWORD_FILE=./appdata/private/web-password
+COOKIE_JAR=$(mktemp)
+curl -A 'Mozilla/5.0' --silent --show-error -o /dev/null -w '%{url_effective} HTTP %{http_code}\n' "$PUBLIC_ORIGIN/login"
+curl -A 'Mozilla/5.0' --silent --show-error -c "$COOKIE_JAR" -H "Origin: $PUBLIC_ORIGIN" --data-urlencode username=admin --data-urlencode "password@$PASSWORD_FILE" -o /dev/null -w '%{url_effective} HTTP %{http_code}\n' "$PUBLIC_ORIGIN/login"
+curl -A 'Mozilla/5.0' --silent --show-error -b "$COOKIE_JAR" -H "Origin: $PUBLIC_ORIGIN" -o status.private.json -w '%{url_effective} HTTP %{http_code}\n' "$PUBLIC_ORIGIN/imprimante-api/status"
+curl -A 'Mozilla/5.0' --silent --show-error -b "$COOKIE_JAR" -H "Origin: $PUBLIC_ORIGIN" -o files.private.json -w '%{url_effective} HTTP %{http_code}\n' "$PUBLIC_ORIGIN/imprimante-api/files/cloud"
+rm -f "$COOKIE_JAR"
+```
+
+Adaptez le nom web et PASSWORD_FILE à votre configuration. Le statut doit contenir `ok: true` et une actualisation cohérente ; les indicateurs cloud et MQTT restent distincts. La liste des fichiers doit répondre 200 avec `files`, qui peut être vide. Un code 200 seul ne valide pas un JSON d’erreur. Ne partagez ni ces réponses, ni le fichier de cookies, ni les secrets.
+
+Une recréation interrompt brièvement HTTP et invalide les sessions web. Reconnectez-vous après healthy. Des lectures peuvent recevoir 502 durant cette fenêtre ; corrélez les journaux à l’heure de démarrage et vérifiez l’absence de nouvelles erreurs après disponibilité, sans effacer les anciennes traces. Aucun ordre d’impression n’est nécessaire pour contrôler une installation.

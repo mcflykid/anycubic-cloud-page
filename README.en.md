@@ -16,16 +16,21 @@ A self-hosted Python/aiohttp application with a responsive French interface: pri
 
 ## Quick start
 
-Docker Compose is sufficient; the project provides a single application service with startup preparation.
+Docker Compose is sufficient. From an empty directory, download the files of the latest release:
 
-1. Download [`compose.yaml`](compose.yaml) into an empty directory.
-2. Set `ANYCUBIC_EMAIL`, `ANYCUBIC_PASSWORD` and `WEB_PASSWORD` in `anycubic-cloud-page.environment`, or use [`.env.example`](.env.example). The web password requires at least six characters. `WEB_USER` defaults to `admin` and must not be empty.
-3. Run `docker compose up -d`.
-4. Open **http://localhost:8080/imprimante.html** and sign in with your web credentials.
+```sh
+curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/compose.yaml -o compose.yaml
+curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/default.env.example -o .env.example
+cp .env.example .env
+chmod 600 .env
+```
 
-`BIND_ADDRESS=127.0.0.1` and `WEB_PORT=8080` control the host listener. `APPDATA_DIR=./appdata` contains all persistent data. In Compose, write `$$` for a literal `$` in passwords; in `.env`, single-quote the values. Never publish customized credential files.
+1. Set ANYCUBIC_EMAIL, ANYCUBIC_PASSWORD and WEB_PASSWORD in `.env`. WEB_USER defaults to admin; the web password requires six characters.
+2. Run `docker compose config --quiet`, then `docker compose up -d`.
+3. Open **http://localhost:8080/imprimante.html** and sign in with your web credentials.
+4. For remote access, set the exact PUBLIC_ORIGIN and follow the [reverse proxy guide](docs/REVERSE-PROXY.md).
 
-**Never expose this HTTP port directly to the Internet.** Use your own HTTPS proxy and set `PUBLIC_ORIGIN` to the exact public browser origin. The [reverse proxy guide](docs/REVERSE-PROXY.md) provides Caddy, Nginx and Traefik examples for host and container proxies. A container proxy uses the same Compose with `PROXY_NETWORK` and `PROXY_NETWORK_EXTERNAL=true`. The host port remains local by default. [Full installation guide](docs/INSTALLATION.md).
+The image follows `latest`; pin a published image tag in compose.yaml if you need a fixed release. All persistent data stays under APPDATA_DIR (default `./appdata`). A container proxy uses the same file with PROXY_NETWORK and PROXY_NETWORK_EXTERNAL=true. The HTTP port remains bound to 127.0.0.1 by default. **Never expose it directly to the Internet.** See also the [central environment example](docs/REVERSE-PROXY.md#intégrer-à-une-stack-existante-avec-un-env-central-et-dockerdir) and the [installation guide](docs/INSTALLATION.md).
 
 ## Work tracking
 
