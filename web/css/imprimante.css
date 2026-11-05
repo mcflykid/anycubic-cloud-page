@@ -177,7 +177,8 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .camera-layout .axis-card .axis-step-control label{margin:0}
 #axis-step{width:100%}
 
-#interface-language{width:auto;min-height:44px;font-size:.82rem}
 @media(max-width:520px){
  .nav-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
 }
+
+#ace-model-preference{max-width:12rem;margin:0 auto 1rem}

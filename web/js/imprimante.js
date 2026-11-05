@@ -1,5 +1,7 @@
 'use strict';
-const {locale,text:translate,format:translateFormat}=workshopLocale;
+const locale='fr-FR';
+/** Insère des valeurs littérales dans les confirmations, sans interpréter leur contenu. */
+const formatText=(label,...values)=>label.replace(/\{(\d+)\}/g,(_,index)=>String(values[index]??''));
 const timeZone=document.documentElement.dataset.timeZone||'Europe/Paris';
 /** Renvoie l’élément HTML par identifiant ; les contrôles de cette page partagent ce point d’accès. */
 const $=id=>document.getElementById(id), api='/imprimante-api';
@@ -18,7 +20,7 @@ const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!=null)e.
 /** Affiche un retour horodaté ; error distingue une erreur sans exposer de détails internes. */
 function message(text,error=false){set('message-text',text?`${new Date().toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit',timeZone})} — ${text}`:'');$('message').hidden=!text;$('message').classList.toggle('error',error);}
 /** Renvoie une promesse booléenne ; une fermeture du dialogue annule l’action physique proposée. */
-function confirmAction(text){return new Promise(resolve=>{const d=$('confirm-dialog');set('confirm-text',translate(text));d.showModal();const finish=value=>{d.close();resolve(value);};$('confirm-no').onclick=()=>finish(false);$('confirm-yes').onclick=()=>finish(true);d.oncancel=()=>resolve(false);});}
+function confirmAction(text){return new Promise(resolve=>{const d=$('confirm-dialog');set('confirm-text',text);d.showModal();const finish=value=>{d.close();resolve(value);};$('confirm-no').onclick=()=>finish(false);$('confirm-yes').onclick=()=>finish(true);d.oncancel=()=>resolve(false);});}
 let fileContext=null,fileGeneration=0,fileReload=false,uploadAttempt=null;
 let cameraWanted=false,cameraViewer=null;
 let selectedPrinter='',printerCatalogueReady=false,printerCataloguePending=false;
@@ -30,9 +32,9 @@ $('printer-selector').onchange=choosePrinter;
 /** Renvoie le JSON ou rejette avec Error ; un 401 ouvre la connexion sans rejouer une action physique. */
 async function request(path,options={}){/* Un échec réseau ne prouve pas qu’une commande physique n’a pas été exécutée. */const {timeoutMs,...fetchOptions}=options,target=options.printerKey??selectedPrinter,read=!options.method||options.method==='GET'||path==='/camera-session';let r;for(let attempt=0;attempt<(read?2:1);attempt++){try{r=await fetch(api+path,{cache:'no-store',signal:AbortSignal.timeout(timeoutMs??(path.startsWith('/files/')?45000:90000)),...fetchOptions,headers:{...options.headers,...(target&&path!=='/printers'?{'X-Printer-Key':target}:{})}});}catch(e){if(read&&attempt===0)continue;throw new Error(path==='/upload'?'Résultat de l’envoi incertain. Vérifiez les fichiers du cloud et l’état de l’imprimante avant tout nouvel essai.':read?'Connexion au serveur interrompue. Nouvelle tentative automatique.':'Connexion interrompue. Vérifiez l’état de la machine avant de renvoyer cette commande.');}if(read&&[502,503,504].includes(r.status)&&attempt===0){await new Promise(resolve=>setTimeout(resolve,1200));continue;}break;}if(r.status===401){window.location.assign('/login');throw new Error('Session expirée. Reconnectez-vous avant toute nouvelle action.');}const raw=await r.text();let d;try{d=JSON.parse(raw);}catch{throw new Error(read?`Le service redémarre ou ne répond pas (HTTP ${r.status}). Nouvelle tentative automatique.`:`Le service n’a pas confirmé la commande (HTTP ${r.status}). Vérifiez l’état de la machine avant un nouvel essai.`);}if(!r.ok||d.ok===false&&path!='/status'){const error=new Error(d.message||`Erreur ${r.status}`);error.cameraReason=d.camera_error;throw error;}return d;}
 /** Renvoie le résultat ou null ; question demande confirmation et request_id empêche une répétition côté serveur. */
-async function command(action,data={},question){if(busy){message('Une opération est déjà en cours.',true);return null;}const target=selectedPrinter,projectKey=['pause','resume','cancel'].includes(action)?snapshot?.printer?.command_project:null;if(['pause','resume','cancel'].includes(action))data={...data,project_key:projectKey};if(!target){message('Attendez la découverte des imprimantes avant une commande.',true);return null;}if(question&&!await confirmAction(question))return null;if(target!==selectedPrinter){message('La cible a changé : commande annulée.',true);return null;}busy=true;message('Demande en cours…');try{const d=await request('/command',{printerKey:target,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data,request_id:crypto.randomUUID()})});message(translate(d.message));await refresh();return d;}catch(e){message(translate(e.message),true);return null;}finally{busy=false;}}
+async function command(action,data={},question){if(busy){message('Une opération est déjà en cours.',true);return null;}const target=selectedPrinter,projectKey=['pause','resume','cancel'].includes(action)?snapshot?.printer?.command_project:null;if(['pause','resume','cancel'].includes(action))data={...data,project_key:projectKey};if(!target){message('Attendez la découverte des imprimantes avant une commande.',true);return null;}if(question&&!await confirmAction(question))return null;if(target!==selectedPrinter){message('La cible a changé : commande annulée.',true);return null;}busy=true;message('Demande en cours…');try{const d=await request('/command',{printerKey:target,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data,request_id:crypto.randomUUID()})});message(d.message);await refresh();return d;}catch(e){message(e.message,true);return null;}finally{busy=false;}}
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
-function definition(target,values){const dl=$(target);dl.replaceChildren(...values.map(([label,value])=>{const div=node('div');const title=node('dt',translate(label));if(['temperatures','details','ace-stats'].includes(target))decorateMetric(title,metricIcons[label]);div.append(title,node('dd',value));return div;}));}
+function definition(target,values){const dl=$(target);dl.replaceChildren(...values.map(([label,value])=>{const div=node('div');const title=node('dt',label);if(['temperatures','details','ace-stats'].includes(target))decorateMetric(title,metricIcons[label]);div.append(title,node('dd',value));return div;}));}
 $('message-close').onclick=()=>message('');
 const metricPaths={
  nozzle:'M6 3h12v6l-6 5-6-5zM12 14v4m-6 3h12',
@@ -80,11 +82,31 @@ function renderJobPreview(printer){
   .catch(()=>{})
   .finally(()=>{current.pending=false;current.next=Date.now()+10000;});
 }
-/** Les images spécifiques suivent uniquement un modèle explicitement identifié. */
+const aceGenerations=['ACE Pro','ACE 2 Pro'];
+/** La préférence ne s’applique qu’à la machine sélectionnée et ne pilote aucune capacité. */
+function aceDisplayPreference(){
+ if(!selectedPrinter)return '';
+ try{
+  const value=localStorage.getItem('cloud-page-ace-model:'+selectedPrinter);
+  return aceGenerations.includes(value)?value:'';
+ }catch{return '';}
+}
+$('ace-display-model').onchange=event=>{
+ if(!selectedPrinter)return;
+ try{
+  const key='cloud-page-ace-model:'+selectedPrinter;
+  if(aceGenerations.includes(event.target.value))localStorage.setItem(key,event.target.value);
+  else localStorage.removeItem(key);
+ }catch{return;}
+ if(snapshot?.printer)renderHardware(snapshot.printer);
+};
+/** La Kobra S1 Combo conserve ses illustrations même si le rapport omet la génération d’ACE. */
 function renderHardware(printer){
  const model=printer.machine_name||printer.name||'Imprimante';
  const box=printer.boxes?.[0];
- const generation=box?.model;
+ const reported=aceGenerations.includes(box?.model)?box.model:'';
+ const preference=box&&!reported?aceDisplayPreference():'';
+ const generation=reported||preference;
  const aceName=box?(generation||'Module ACE'):'Aucun module ACE';
  const setImage=(id,source)=>{
   const image=$(id);
@@ -94,17 +116,20 @@ function renderHardware(printer){
  set('printer-accessory',aceName);
  $('printer-accessory').hidden=!box;
  const s1=/^(Anycubic )?Kobra S1$/i.test(model);
- setImage('printer-illustration',s1&&generation==='ACE 2 Pro'?'/icons/kobra-s1-ace2pro.png':'/icons/printer.svg');
- set('ace-model',translate(aceName));
+ const s1Combo=s1&&!!box&&(!generation||generation==='ACE 2 Pro');
+ setImage('printer-illustration',s1Combo?'/icons/kobra-s1-ace2pro.png':'/icons/printer.svg');
+ set('ace-model',aceName);
+ $('ace-model-preference').hidden=!box||!!reported||!selectedPrinter;
+ $('ace-display-model').value=preference;
  set('firmware-printer-model',model);
- set('firmware-ace-model',translate(aceName));
+ set('firmware-ace-model',aceName);
  set('chart-ace-name',box?(generation||'Module ACE'):'Module ACE');
  setImage('settings-printer-illustration',$('printer-illustration').getAttribute('src'));
  $('ace-illustration').hidden=!box;
- setImage('ace-illustration',generation==='ACE 2 Pro'?'/icons/ace2pro.png':generation==='ACE Pro'?'/icons/ace-pro.svg':'/icons/ace.svg');
+ setImage('ace-illustration',s1Combo||generation==='ACE 2 Pro'?'/icons/ace2pro.png':generation==='ACE Pro'?'/icons/ace-pro.svg':'/icons/ace.svg');
 }
 /** Affiche l’état courant et autorise les commandes selon le projet, sans assimiler l’absence de données à un succès. */
-function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?'Hors ligne':p.job_is_paused?'En pause':p.is_busy?'Impression en cours':'Disponible';set('printer-status',translate(state));$('job-name').dataset.tooltip=p.job_name||'Imprimante prête';set('job-name',p.job_name||(!p.printer_online?'L’imprimante est hors ligne.':p.is_busy?'Impression en cours':'Prête pour la prochaine création.'));set('job-state',translate(p.job_name?({printing:'Impression en cours',paused:'Impression en pause',finished:'Impression terminée',completed:'Impression terminée'}[p.job_state]||fmt(p.job_state)):p.is_busy?'Le cloud n’a pas encore fourni le projet.':'Aucune impression en cours.'));$('job-state').hidden=$('job-state').textContent===translate(state);$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}
+function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?'Hors ligne':p.job_is_paused?'En pause':p.is_busy?'Impression en cours':'Disponible';set('printer-status',state);$('job-name').dataset.tooltip=p.job_name||'Imprimante prête';set('job-name',p.job_name||(!p.printer_online?'L’imprimante est hors ligne.':p.is_busy?'Impression en cours':'Prête pour la prochaine création.'));set('job-state',p.job_name?({printing:'Impression en cours',paused:'Impression en pause',finished:'Impression terminée',completed:'Impression terminée'}[p.job_state]||fmt(p.job_state)):p.is_busy?'Le cloud n’a pas encore fourni le projet.':'Aucune impression en cours.');$('job-state').hidden=$('job-state').textContent===state;$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}
  definition('job-stats',[['Temps écoulé',mins(p.job_time_elapsed)],['Temps restant',mins(p.job_time_remaining)],['Couches',p.job_current_layer==null?'—':`${p.job_current_layer} / ${p.job_total_layers??'—'}`]]);
  definition('temperatures',[['Buse actuelle / cible',`${fmt(p.curr_nozzle_temp,' °C')} / ${fmt(p.target_nozzle_temp,' °C')}`],['Plateau actuel / cible',`${fmt(p.curr_hotbed_temp,' °C')} / ${fmt(p.target_hotbed_temp,' °C')}`],['Ventilation pièce',fmt(p.fan_speed_pct,' %')],['Ventilation auxiliaire',fmt(p.aux_fan_speed_pct,' %')],['Ventilation enceinte',fmt(p.box_fan_level)]]);
  definition('details',[['Modèle',p.machine_name||'—'],['Micrologiciel',fmt(p.firmware)],['Temps total',fmt(p.statistics?.hours,' h')],['Nombre d’impressions',fmt(p.statistics?.print_count)],['Filament utilisé',String(p.statistics?.material??'—').replace(/([0-9.]+)\s*(kg|g)$/,(_,n,u)=>Number(n).toLocaleString(locale,{maximumFractionDigits:2})+' '+u)],...Object.entries(detailNames).filter(([key])=>p[key]!=null).map(([key,label])=>[label,key==='job_eta'?date(p[key]):fmt(p[key])])]);
@@ -125,8 +150,8 @@ function renderFirmware(p){
   set(`firmware-${id}-status`,available===true?'Mise à jour disponible':available===false?'À jour':'À vérifier');
   $(`firmware-${id}-status`).className='firmware-status '+(available===true?'available':available===false?'current':'unknown');
  }
- printerButton.dataset.confirm=translateFormat('Installer la version {0} sur l’imprimante ? Ne coupez pas son alimentation pendant la mise à jour.',p.firmware_available||'—');
- aceButton.dataset.confirm=translateFormat('Installer la version {0} sur le module ACE ? Ne coupez pas son alimentation pendant la mise à jour.',ace?.target||'—');
+ printerButton.dataset.confirm=formatText('Installer la version {0} sur l’imprimante ? Ne coupez pas son alimentation pendant la mise à jour.',p.firmware_available||'—');
+ aceButton.dataset.confirm=formatText('Installer la version {0} sur le module ACE ? Ne coupez pas son alimentation pendant la mise à jour.',ace?.target||'—');
 }
 /** Renvoie le premier ACE connu, ou null ; cette interface ne propose pas de sélection de second boîtier. */
 function selectedBox(){return snapshot?.printer?.boxes?.[0]||null;}
@@ -144,7 +169,7 @@ function renderAce(p){
  $('dry-presets').replaceChildren(...snapshot.presets.map(pr=>{const b=node('button',`${pr.name} ${pr.temperature} °C · ${pr.hours} h`);b.type='button';b.onclick=()=>command('dry-start',{...boxData(),temperature:pr.temperature,hours:pr.hours},`Démarrer le séchage ${pr.name} à ${pr.temperature} °C pendant ${pr.hours} h ?`);return b;}));
 }
 /** Actualise l’interface depuis l’état serveur et signale les erreurs de connexion sans répéter de commande. */
-async function refresh(){try{if(!printerCatalogueReady)await loadPrinters();const d=await request('/status');if(connectionFailure&&d.ok){message('');connectionFailure=false;}snapshot=d;if(currentTab==='camera'&&cameraWanted&&!cameraTrack&&d.camera_diagnostic)set('camera-state',d.camera_diagnostic.message);if(d.notifications){updateNoticeCount(d.notifications.unread);const signature=JSON.stringify(d.notifications);if(signature!==noticeSignature){noticeSignature=signature;if(historyPage===1)noticeRows=d.notifications.items;else{const merged=new Map([...noticeRows,...d.notifications.items].map(x=>[x.key,x]));noticeRows=[...merged.values()].sort((a,b)=>b.time-a.time);}if(!$('notifications-panel').hidden)renderNotifications();}}const p=d.printer;set('connection',!d.ok?'Cloud indisponible':p?.printer_online?'En ligne':'Hors ligne');$('connection').classList.toggle('offline',!d.ok||!p?.printer_online);set('updated',`${translate('Dernière actualisation')} : ${date([d.updated_at,d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`);if(!d.ok&&d.message){connectionFailure=true;message(d.message,true);}if(d.account_message)message(d.account_message,true);if(!p)return;updateNativeControls(p);updateUploadButton();renderOverview(p);renderAce(p);$('events').replaceChildren(...d.events.map(e=>node('li',`${date(e.time)} — ${e.action} : ${e.state}`)));if(source!=='cloud'&&currentTab==='files')renderFiles();mqttSeen=d.mqtt_updated_at;}catch(e){connectionFailure=true;set('connection','Connexion indisponible');message('Connexion au serveur momentanément indisponible.',true);}}
+async function refresh(){try{if(!printerCatalogueReady)await loadPrinters();const d=await request('/status');if(connectionFailure&&d.ok){message('');connectionFailure=false;}snapshot=d;if(currentTab==='camera'&&cameraWanted&&!cameraTrack&&d.camera_diagnostic)set('camera-state',d.camera_diagnostic.message);if(d.notifications){updateNoticeCount(d.notifications.unread);const signature=JSON.stringify(d.notifications);if(signature!==noticeSignature){noticeSignature=signature;if(historyPage===1)noticeRows=d.notifications.items;else{const merged=new Map([...noticeRows,...d.notifications.items].map(x=>[x.key,x]));noticeRows=[...merged.values()].sort((a,b)=>b.time-a.time);}if(!$('notifications-panel').hidden)renderNotifications();}}const p=d.printer;set('connection',!d.ok?'Cloud indisponible':p?.printer_online?'En ligne':'Hors ligne');$('connection').classList.toggle('offline',!d.ok||!p?.printer_online);set('updated',`${'Dernière actualisation'} : ${date([d.updated_at,d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`);if(!d.ok&&d.message){connectionFailure=true;message(d.message,true);}if(d.account_message)message(d.account_message,true);if(!p)return;updateNativeControls(p);updateUploadButton();renderOverview(p);renderAce(p);$('events').replaceChildren(...d.events.map(e=>node('li',`${date(e.time)} — ${e.action} : ${e.state}`)));if(source!=='cloud'&&currentTab==='files')renderFiles();mqttSeen=d.mqtt_updated_at;}catch(e){connectionFailure=true;set('connection','Connexion indisponible');message('Connexion au serveur momentanément indisponible.',true);}}
 /** Change le panneau actif, charge ses données et ferme la session vidéo lorsque l’utilisateur quitte la caméra. */
 function showTab(name){currentTab=name;for(const panel of document.querySelectorAll('.tab-panel'))panel.hidden=panel.id!==`tab-${name}`;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}if(name==='files'){renderFiles();loadFiles();}if(name==='history')historyViewSet(historyView);if(name==='overview')loadTemperatures();if(name==='settings'&&!deviceOptions)loadDeviceOptions();if(name==='camera'){loadTimelapse();if(snapshot?.demo){const image=node('img');image.src='/icons/kobra-s1-ace2pro.png';image.alt='Illustration de la Kobra S1';$('camera-video').classList.add('demo-camera');$('camera-video').replaceChildren(image,node('p','Zone vidéo · Démonstration sans flux caméra'));}}if(name!=='camera')void closeCamera();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -181,7 +206,7 @@ async function loadFiles(){
  finally{filePending=false;if(fileReload){fileReload=false;void loadFiles();}}
 }
 document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{source=b.dataset.source;cloudPage=1;fileRows=null;document.querySelectorAll('[data-source]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('file-path').disabled=source==='cloud';$('parent-folder').disabled=source==='cloud';renderFiles();loadFiles();});$('files-form').onsubmit=e=>{e.preventDefault();loadFiles();};$('parent-folder').onclick=()=>{const parts=$('file-path').value.split('/').filter(Boolean);parts.pop();$('file-path').value='/'+parts.join('/');loadFiles();};$('prev-page').onclick=()=>{cloudPage=Math.max(1,cloudPage-1);loadFiles();};$('next-page').onclick=()=>{cloudPage++;loadFiles();};
-$('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const data=new FormData(e.target),file=data.get('file');if(file.size>100*1024*1024){message('Le fichier dépasse 100 Mo.',true);return;}try{data.set('slots',JSON.stringify(slots(data.get('slots'))));}catch(err){message(err.message,true);return;}if(!await confirmAction(translateFormat(data.get('mode')==='upload'?'Envoyer « {0} » dans votre espace cloud ?':'Envoyer « {0} » et lancer son impression ?',file.name)))return;const chosen=e.target.elements.file.files[0],intent=JSON.stringify([data.get('mode'),data.get('slots'),selectedPrinter]);if(!uploadAttempt||uploadAttempt.file!==chosen||uploadAttempt.intent!==intent)uploadAttempt={file:chosen,intent,id:crypto.randomUUID()};data.set('request_id',uploadAttempt.id);busy=true;set('upload-state','Envoi en cours. Ne fermez pas cette page.');try{const result=await request('/upload',{method:'POST',body:data,timeoutMs:Math.min(7200000,300000+file.size/32768*2000)});uploadAttempt=null;set('upload-state',result.message);message(result.message);}catch(err){set('upload-state',err.message);message(err.message,true);}finally{busy=false;}};
+$('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const data=new FormData(e.target),file=data.get('file');if(file.size>100*1024*1024){message('Le fichier dépasse 100 Mo.',true);return;}try{data.set('slots',JSON.stringify(slots(data.get('slots'))));}catch(err){message(err.message,true);return;}if(!await confirmAction(formatText(data.get('mode')==='upload'?'Envoyer « {0} » dans votre espace cloud ?':'Envoyer « {0} » et lancer son impression ?',file.name)))return;const chosen=e.target.elements.file.files[0],intent=JSON.stringify([data.get('mode'),data.get('slots'),selectedPrinter]);if(!uploadAttempt||uploadAttempt.file!==chosen||uploadAttempt.intent!==intent)uploadAttempt={file:chosen,intent,id:crypto.randomUUID()};data.set('request_id',uploadAttempt.id);busy=true;set('upload-state','Envoi en cours. Ne fermez pas cette page.');try{const result=await request('/upload',{method:'POST',body:data,timeoutMs:Math.min(7200000,300000+file.size/32768*2000)});uploadAttempt=null;set('upload-state',result.message);message(result.message);}catch(err){set('upload-state',err.message);message(err.message,true);}finally{busy=false;}};
 /** Affiche l’image autorisée par le serveur ; l’absence d’aperçu ne rend pas le fichier non imprimable. */
 async function filePreview(file,context=fileContext){if(!context)return;try{const d=await request('/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:context.source,handle:file.handle,name:file.name,path:context.path})});if(!d.image){message('L’imprimante et le cloud n’ont pas fourni d’image pour ce fichier. Son impression reste disponible.');return;}const dialog=document.createElement('dialog'),title=node('h2',file.name),img=node('img'),close=node('button','Fermer');img.src=d.image;img.alt=`Aperçu de ${file.name}`;img.style.width='100%';close.onclick=()=>{dialog.close();dialog.remove();};dialog.className='file-preview-dialog';const header=node('div',null,'dialog-top');header.append(title,close);dialog.append(header,img);dialog.oncancel=()=>dialog.remove();document.body.append(dialog);dialog.showModal();}catch(e){message(e.message,true);}}
 /** Renvoie une promesse partagée de chargement du lecteur Agora local ; rejette si le script est indisponible. */
@@ -270,9 +295,9 @@ async function markHistoryRead(key,allItems,button){button.disabled=true;try{con
 $('history-read-all').onclick=()=>markHistoryRead(null,true,$('history-read-all'));
 $('history-delete-all').onclick=()=>deleteHistory(null,true,$('history-delete-all'));
 
-const helpById={'camera-start':'Démarrer la vidéo en direct de l’imprimante.','camera-stop':'Fermer la vidéo sans interrompre l’impression.','light-on':'Allumer l’éclairage intérieur de l’imprimante.','light-off':'Éteindre l’éclairage intérieur de l’imprimante.','zoom-reset':'Revenir au zoom initial de la vidéo.','fullscreen':'Afficher la vidéo en plein écran.','go-spool':'Choisir un emplacement, son matériau et sa couleur.','go-drying':'Configurer la température et la durée de séchage de l’ACE.','feed':'Charger le filament de l’emplacement sélectionné.','feed-finish':'Valider la fin du chargement après la sortie du filament.','retract':'Retirer le filament de l’emplacement sélectionné.','parent-folder':'Remonter d’un niveau dans les fichiers de l’imprimante.','history-read-all':'Synchroniser toutes les notifications comme lues dans Anycubic.','temperature-hours':'Choisir la période affichée, parmi les relevés des dernières 24 heures.','file-slots':'Un numéro d’emplacement de l’ACE par couleur du G-code, dans l’ordre. Laissez vide pour utiliser la bobine externe.'};for(const [id,help]of Object.entries(helpById))if($(id))$(id).title=translate(help);
-const commandHelp={pause:'Mettre l’impression en cours en pause.',resume:'Reprendre une impression qui est en pause.',cancel:'Arrêter l’impression en cours après confirmation.',firmware:'Installer une nouvelle version lorsque l’imprimante est libre.','ace-firmware':'Mettre à jour l’ACE lorsque l’imprimante est libre.'};for(const b of document.querySelectorAll('[data-command]'))if(commandHelp[b.dataset.command])b.title=translate(commandHelp[b.dataset.command]);
-const fieldHelp={target_nozzle_temp:'Température cible de la buse, entre 0 et 320 °C.',target_hotbed_temp:'Température cible du plateau, entre 0 et 120 °C.',fan_speed_pct:'Ventilation de la pièce, entre 0 et 100 %. ',aux_fan_speed_pct:'Ventilateur auxiliaire, entre 0 et 100 %. ',box_fan_level:'Niveau de ventilation de l’enceinte accepté par Anycubic, de 0 à 3.',print_speed_mode:'Mode de vitesse appliqué à l’impression en cours.',slots:'Numéros des bobines de l’ACE, dans l’ordre des couleurs du G-code.',mode:'Choisir entre conserver le fichier dans le cloud et lancer son impression.'};for(const e of document.querySelectorAll('input[name],select[name]'))if(fieldHelp[e.name])e.title=translate(fieldHelp[e.name]);
+const helpById={'camera-start':'Démarrer la vidéo en direct de l’imprimante.','camera-stop':'Fermer la vidéo sans interrompre l’impression.','light-on':'Allumer l’éclairage intérieur de l’imprimante.','light-off':'Éteindre l’éclairage intérieur de l’imprimante.','zoom-reset':'Revenir au zoom initial de la vidéo.','fullscreen':'Afficher la vidéo en plein écran.','go-spool':'Choisir un emplacement, son matériau et sa couleur.','go-drying':'Configurer la température et la durée de séchage de l’ACE.','feed':'Charger le filament de l’emplacement sélectionné.','feed-finish':'Valider la fin du chargement après la sortie du filament.','retract':'Retirer le filament de l’emplacement sélectionné.','parent-folder':'Remonter d’un niveau dans les fichiers de l’imprimante.','history-read-all':'Synchroniser toutes les notifications comme lues dans Anycubic.','temperature-hours':'Choisir la période affichée, parmi les relevés des dernières 24 heures.','file-slots':'Un numéro d’emplacement de l’ACE par couleur du G-code, dans l’ordre. Laissez vide pour utiliser la bobine externe.'};for(const [id,help]of Object.entries(helpById))if($(id))$(id).title=help;
+const commandHelp={pause:'Mettre l’impression en cours en pause.',resume:'Reprendre une impression qui est en pause.',cancel:'Arrêter l’impression en cours après confirmation.',firmware:'Installer une nouvelle version lorsque l’imprimante est libre.','ace-firmware':'Mettre à jour l’ACE lorsque l’imprimante est libre.'};for(const b of document.querySelectorAll('[data-command]'))if(commandHelp[b.dataset.command])b.title=commandHelp[b.dataset.command];
+const fieldHelp={target_nozzle_temp:'Température cible de la buse, entre 0 et 320 °C.',target_hotbed_temp:'Température cible du plateau, entre 0 et 120 °C.',fan_speed_pct:'Ventilation de la pièce, entre 0 et 100 %. ',aux_fan_speed_pct:'Ventilateur auxiliaire, entre 0 et 100 %. ',box_fan_level:'Niveau de ventilation de l’enceinte accepté par Anycubic, de 0 à 3.',print_speed_mode:'Mode de vitesse appliqué à l’impression en cours.',slots:'Numéros des bobines de l’ACE, dans l’ordre des couleurs du G-code.',mode:'Choisir entre conserver le fichier dans le cloud et lancer son impression.'};for(const e of document.querySelectorAll('input[name],select[name]'))if(fieldHelp[e.name])e.title=fieldHelp[e.name];
 
 /** Préremplit la bobine sélectionnée ; les valeurs RFID restent consultables sans modification manuelle. */
 function fillSpool(slot){const form=$('spool-form'),data=selectedBox()?.spools?.find(s=>Number(s.local_slot||s.slot)===Number(slot));if(!data)return;form.elements.slot.value=String(slot);const material=form.elements.material;for(const option of [...material.options])if(option.dataset.detected)option.remove();if(data.material_type&&![...material.options].some(o=>o.value===data.material_type)){const option=new Option(data.material_type+' (détecté)',data.material_type);option.dataset.detected='true';option.disabled=true;material.add(option);}material.value=data.material_type||'PLA';form.elements.color.value='#'+(data.color||[150,150,150]).slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0)).toString(16).padStart(2,'0')).join('');set('spool-color-value',form.elements.color.value.toUpperCase());/* Les données RFID sont la référence de l’ACE et ne doivent pas être remplacées par le formulaire. */const automatic=data.rfid===true;form.elements.material.disabled=automatic;form.elements.color.disabled=automatic;form.querySelector('[type=submit]').hidden=automatic;set('spool-rfid-note',automatic?'Bobine Anycubic reconnue par RFID. Le matériau et la couleur sont fournis par l’ACE.':'');$('spool-rfid-note').hidden=!automatic;}
@@ -337,7 +362,7 @@ async function openNotificationPreview(item){
  dialog.showModal();
  const src=await taskPreview({...item,key:'notification:'+item.key,notification:true});
  if(!dialog.open||dialog.dataset.notification!==item.key)return;
- if(src){image.src=src;image.hidden=false;set('notification-preview-state',translate(item.result));}
+ if(src){image.src=src;image.hidden=false;set('notification-preview-state',item.result);}
  else set('notification-preview-state','Aperçu indisponible pour cette notification.');
 }
 /** Chaque liste possède son observateur pour que le rafraîchissement de l’historique préserve les notifications. */
@@ -362,7 +387,7 @@ const cloudSelected=new Set();let renameHandle=null,pastTaskKey=null,tasksPage=1
 /** Formate le quota en unités binaires, en préservant la distinction entre zéro et une donnée absente. */
 const bytes=v=>v==null?'—':Number(v)>=1073741824?(Number(v)/1073741824).toLocaleString(locale,{maximumFractionDigits:2})+' Go':Number(v)>=1048576?(Number(v)/1048576).toLocaleString(locale,{maximumFractionDigits:1})+' Mo':Number(v).toLocaleString(locale)+' octets';
 /** Renvoie un bouton non soumis à un formulaire, associé au rappel fn. */
-function extraButton(label,fn,cls){const b=node('button',translate(label),cls);b.type='button';b.onclick=fn;return b;}
+function extraButton(label,fn,cls){const b=node('button',label,cls);b.type='button';b.onclick=fn;return b;}
 /** Synchronise la sélection cloud et l’état indéterminé de la case de page. */
 function cloudSelectionState(){const n=cloudSelected.size;set('cloud-selected-count',`${n} sélection${n>1?'s':''}`);for(const id of ['cloud-download-selected','cloud-delete-selected','cloud-clear-selection'])$(id).disabled=!n;$('cloud-select-page').checked=cloudRows.length>0&&cloudRows.every(f=>cloudSelected.has(f.handle));$('cloud-select-page').indeterminate=cloudRows.some(f=>cloudSelected.has(f.handle))&&!$('cloud-select-page').checked;}
 /** Affiche le quota connu du cloud, sans déduire une capacité d’envoi d’une valeur absente. */
@@ -473,11 +498,11 @@ async function openPastTask(t){
    const available=fields.filter(([,key])=>params[key]!=null);
    if(!available.length)continue;
    const details=node('details'),list=node('dl',null,'task-data');
-   details.append(node('summary',translate(title)),list);
+   details.append(node('summary',title),list);
    for(const [label,key,unit] of available){
     const value=params[key];
     const row=node('div');
-    row.append(node('dt',translate(label)),node('dd',typeof value==='boolean'?translate(value?'Oui':'Non'):valueUnit(value,unit)));
+    row.append(node('dt',label),node('dd',typeof value==='boolean'?value?'Oui':'Non':valueUnit(value,unit)));
     list.append(row);
    }
    $('past-task-parameters').append(details);
@@ -498,7 +523,7 @@ $('task-reprint-form').onsubmit=async e=>{
   :'Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent au fichier.';
  submit.disabled=true;
  try{
-  const ok=await command('task-reprint',{key:pastTaskKey,slots:mapping},translateFormat(wording,$('reprint-task-name').textContent,$('reprint-target').textContent,mapping.join(', ')));
+  const ok=await command('task-reprint',{key:pastTaskKey,slots:mapping},formatText(wording,$('reprint-task-name').textContent,$('reprint-target').textContent,mapping.join(', ')));
   if(ok)$('task-reprint-dialog').close();
  }finally{submit.disabled=false;}
 };
@@ -520,12 +545,12 @@ async function loadTimelapse(page=1){
  const previous=$('timelapse-previous'),next=$('timelapse-next');
  previous.disabled=true;next.disabled=true;
  $('timelapse-list').replaceChildren();
- set('timelapse-state',translate('Lecture des vidéos…'));
+ set('timelapse-state','Lecture des vidéos…');
  try{
   const d=await request('/extras/videos?'+new URLSearchParams({page,keyword:timelapseKeyword}));
   if(generation!==timelapseGeneration)return;
   timelapsePage=page;
-  set('timelapse-state',translate(d.message||(!d.items?.length?'Aucune vidéo signalée':'')));
+  set('timelapse-state',d.message||(!d.items?.length?'Aucune vidéo signalée':''));
   previous.disabled=!d.available||page<=1;
   next.disabled=!d.available||!d.has_more;
   $('timelapse-list').replaceChildren(...(d.items||[]).map(v=>{

@@ -35,7 +35,7 @@ Le port reste publié sur `127.0.0.1:8080` par défaut, même dans ce mode ; cel
 
 ## Exemples pour un domaine dédié
 
-Remplacez `printer.example.com`. Ces exemples transmettent tout le site, sans retirer de préfixe : page, /login, /logout, /about, /imprimante-api/*, /css/*, /js/* et /icons/*.
+Remplacez `printer.example.com`. Ces exemples transmettent tout le site, sans retirer de préfixe : page, /login, /logout, /about, /conditions, /cookies, /credits, /imprimante-api/*, /css/*, /js/* et /icons/*.
 
 ### Caddy
 
@@ -112,7 +112,7 @@ Les chemins doivent appartenir sans ambiguïté à une application. L’atelier 
 
 ```caddyfile
 printer.example.com {
-    @atelier path /imprimante.html /login /logout /about /imprimante-api /imprimante-api/* /css/* /js/* /icons/*
+    @atelier path /imprimante.html /login /logout /about /conditions /cookies /credits /imprimante-api /imprimante-api/* /css/* /js/* /icons/*
     handle @atelier {
         reverse_proxy anycubic-cloud-page:8080
     }
@@ -176,6 +176,8 @@ curl -A 'Mozilla/5.0' --silent --show-error --output /dev/null --write-out '%{ur
 ```
 
 La santé attendue est 200. Elle prouve HTTP, pas la connexion cloud. Vérifiez ensuite la connexion, le statut cloud et les [lectures authentifiées](INSTALLATION.md#contrôles-authentifiés-en-lecture). Un 403 public avec une santé locale valide peut venir du filtrage du User-Agent : comparez avec le navigateur avant de modifier l’application. Un 502 avec une application healthy indique souvent un réseau ou une cible proxy incorrects. Ne désactivez ni le filtrage ni Origin pour faire passer une sonde.
+
+Après une mise à jour, vérifiez aussi les ressources et pages ajoutées à l’atelier. Avec une liste de chemins exacte, la 1.2.8 et les versions suivantes requièrent notamment `/icons/printer.svg`, `/icons/ace.svg`, `/icons/ace-pro.svg` et les pages `/conditions`, `/cookies`, `/credits`. La 1.2.8 requiert aussi `/js/ui-language.js`. Une ressource en 404 ou renvoyée par le site statique au lieu de l’atelier peut bloquer l’interface. Les trois notices doivent être servies en `text/html` après connexion.
 
 Une recréation interrompt brièvement HTTP et invalide les sessions. Les lectures en cours peuvent recevoir 502 ; attendez healthy, reconnectez-vous et distinguez les erreurs de cette fenêtre des nouvelles erreurs. Conservez les traces, sans les effacer ni les noyer. Ne rejouez jamais automatiquement une commande physique après un résultat incertain.
 

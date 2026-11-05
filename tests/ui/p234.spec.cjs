@@ -51,17 +51,24 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(page.locator('#task-reprint-dialog')).toBeVisible();
 });
 
-test('les choix anglais et espagnol persistent jusqu’à la page de connexion',async({page})=>{
+test('la Kobra S1 retrouve ses illustrations d’origine quand la génération ACE manque',async({page})=>{
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch();
+  const data=await response.json();
+  for(const box of data.printer.boxes)delete box.model;
+  await route.fulfill({response,json:data});
+ });
  await login(page);
- await expect(page.locator('#interface-language + .notifications #notifications-toggle')).toBeVisible();
- await expect(page.getByText('Langue de l’interface',{exact:true})).toHaveCount(0);
- await page.getByLabel('Langue de l’interface',{exact:true}).selectOption('en');
- await expect(page.locator('html')).toHaveAttribute('lang','en');
- await page.getByLabel('Interface language',{exact:true}).selectOption('es');
- await expect(page.locator('html')).toHaveAttribute('lang','es');
- await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
- await expect(page.locator('html')).toHaveAttribute('lang','es');
- await expect(page.getByLabel('Contraseña')).toBeVisible();
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src','/icons/kobra-s1-ace2pro.png');
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/icons/ace2pro.png');
+ await expect(page.locator('#ace-model')).toHaveText('Module ACE');
+ await page.locator('#ace-display-model').selectOption('ACE 2 Pro');
+ await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
+ await page.reload();
+ await expect(page.locator('#printer-accessory')).toHaveText('ACE 2 Pro');
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect(page.locator('#ace-display-model')).toHaveValue('ACE 2 Pro');
 });
 
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{

@@ -93,7 +93,7 @@ def install_access(app):
 async def access_control(request,handler):
  """Protège l’atelier par cookie, garde health public et applique Origin aux écritures authentifiées."""
  try:
-  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg','/js/ui-language.js'}:
+  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg'}:
    response=await handler(request)
   else:
    username,password,fingerprint=credentials()

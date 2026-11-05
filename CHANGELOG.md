@@ -1,5 +1,11 @@
 # Changements
 
+## 1.2.9 — en préparation
+
+- Rétablissement des illustrations d’origine dans Imprimante et ACE et filaments pour la Kobra S1 Combo, même lorsque la génération de l’ACE n’est pas fournie. Dans ce cas, le modèle affiché peut être choisi dans l’onglet ACE et mémorisé pour cette imprimante (#37).
+- Retrait temporaire du choix de langue et de sa dépendance JavaScript. La localisation complète reste suivie dans #55.
+- Guide reverse proxy complété pour les ressources statiques et les notices introduites en 1.2.8.
+
 ## 1.2.8 — 2026-11-06
 
 - Conservation de l’imprimante par défaut pendant la reconnexion du compte et reprise des relevés de température des imprimantes secondaires (#48, #56).
