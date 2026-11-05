@@ -1,6 +1,6 @@
 # Captures de l’interface
 
-Captures du mode `python app/demo.py`, avec actualisation de la connexion et de la session le 5 novembre 2026. Toutes les données sont fictives. Aucun compte utilisateur, token, identifiant d’imprimante ou flux vidéo privé n’est visible.
+Captures de la démonstration authentifiée, produites avec `scripts/capture_demo.cjs`. Toutes les données sont fictives. Aucun compte utilisateur, token, identifiant d’imprimante ou flux vidéo privé n’est visible.
 
 | Capture | Onglet / détail |
 | --- | --- |
@@ -11,11 +11,11 @@ Captures du mode `python app/demo.py`, avec actualisation de la connexion et de 
 | [03-fichiers.png](03-fichiers.png) | Navigation et actions sur les fichiers. |
 | [04-envoyer-imprimer.png](04-envoyer-imprimer.png) | Envoi de G-code et ordre des bobines. |
 | [05-camera.png](05-camera.png) | Lecteur, éclairage et axes ; illustration de démonstration, pas un flux réel. |
-| [06-historique.png](06-historique.png) | Tâches et aperçus. |
+| [06-historique.png](06-historique.png) | Cartes, statuts, dates, recherche et sélection de fiches. |
 | [07-reglages.png](07-reglages.png) | Connexion, versions et réglages. |
-| [08-notifications.png](08-notifications.png) | Notifications et aperçu associé. |
+| [08-notifications.png](08-notifications.png) | Cloche, compteurs, filtres, recherche et actions sur les messages. |
 | [09-detection-ia.png](09-detection-ia.png) | Fenêtre de détection IA. |
 
-Pour les refaire : lancer le mode démonstration, parcourir chaque onglet dans un navigateur, attendre les aperçus visibles puis enregistrer une capture de page entière. Utiliser une capture de fenêtre pour les modales. Ne pas utiliser le compte réel pour produire les images publiques.
+Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
-Les deux nouvelles captures utilisent `python app/demo.py --auth` avec un fichier de mot de passe fictif passé par `WEB_PASSWORD_FILE` et `PUBLIC_ORIGIN` égal à l’origine locale du navigateur. Elles n’utilisent aucun compte réel. Le mode sans `--auth` reste disponible pour explorer les données fictives.
+La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les modales sont capturées dans la fenêtre ; les onglets en page entière. Ne jamais utiliser un compte réel pour produire les images publiques.

@@ -16,7 +16,7 @@
 
 - Notifications déplacées dans une cloche accessible, avec filtres, recherche et compteur actualisé par le statut habituel (#16).
 
-- Bouton de déconnexion accessible dans la barre du haut ; HOME_URL ne pilote plus que le lien de marque (#14).
+- Bouton de déconnexion accessible, assorti aux autres actions de la barre du haut ; HOME_URL ne pilote plus que le lien de marque (#14).
 
 - Guides complétés pour domaine partagé, rechargement Caddy, contrôles authentifiés, réseau externe, sondes filtrées, recréation et secrets persistants (#6, #7, #8, #9, #10, #11, #12, #13).
 
