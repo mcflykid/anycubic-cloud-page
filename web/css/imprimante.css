@@ -123,3 +123,6 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 
 /* Une boîte dessinée pour l’atelier donne un repère décoratif aux listes vides. */
 .empty-message:before{content:'';width:64px;height:64px;margin:0 auto 12px;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 8 54 20v25L32 57 10 45V20Z' fill='%23dfebf6' stroke='%235780a8' stroke-width='2'/%3E%3Cpath d='m10 20 22 12 22-12M32 32v25M21 14l22 12' fill='none' stroke='%235780a8' stroke-width='2'/%3E%3C/svg%3E")}
+
+/* Le sélecteur disparaît avec une seule machine ; il reste compact dans la barre sur mobile. */
+.printer-selector select{max-width:210px;min-height:36px;padding:5px 8px;font-size:.8rem}.printer-selector[hidden]{display:none}@media(max-width:640px){.printer-selector select{max-width:125px}.portal-nav{flex-wrap:wrap}}

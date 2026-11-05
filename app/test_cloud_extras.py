@@ -106,7 +106,7 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
   result=await self.x.download(['b','a'])
   self.assertEqual([c.args[1] for c in self.x.api.await_args_list],[{'ids':[13]},{'ids':[12]}])
   for item,expected in zip(result['downloads'],['b','a']):
-   self.assertEqual(item['name'],expected+'.gcode');ticket=item['url'].split('/')[-1]
+   self.assertEqual(item['name'],expected+'.gcode');ticket=__import__('urllib.parse',fromlist=['urlsplit']).urlsplit(item['url']).path.split('/')[-1]
    self.assertEqual(self.x.downloads[ticket]['url'],'https://anycubic.com/'+expected)
  async def test_invalid_last_download_leaves_no_partial_tickets(self):
   """Vérifie que un lot de liens invalide ne laisse aucun ticket partiel."""
@@ -125,6 +125,14 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
   self.e.cloudfiles={'a':SimpleNamespace(id=12,old_filename='original.gcode')};self.x.api=AsyncMock()
   with self.assertRaises(ValueError):await self.x.action('cloud-rename',{'handle':'a','name':'.gcode'})
   self.x.api.assert_not_called()
+ async def test_all_printers_history_keeps_names_and_keys_separate(self):
+  """Des tâches portant la même référence dans deux machines ne partagent ni carte ni cache."""
+  self.e.known_printers=[SimpleNamespace(id=7,name='Machine A'),SimpleNamespace(id=8,name='Machine B')]
+  self.x.api=AsyncMock(side_effect=[[{'task_id':1,'printer_id':7,'gcode_name':'Cube A','print_status':2}],[{'task_id':1,'printer_id':8,'gcode_name':'Cube B','print_status':3}],[]])
+  result=await self.x.task_list(1,all_printers=True)
+  self.assertEqual([r['printer'] for r in result['items']],['Machine A','Machine B']);self.assertEqual(len({r['key'] for r in result['items']}),2);self.assertFalse(result['has_more'])
+  other=result['items'][1]['key'];self.assertEqual(self.x.task(other,allow_other=True)['printer_id'],8)
+  with self.assertRaises(ValueError):self.x.task(other)
  async def test_tasks_are_printer_scoped_and_paged(self):
   """Vérifie que l’historique reste paginé et limité à la machine courante."""
   self.x.api=AsyncMock(side_effect=[[{'task_id':1,'printer_id':8},{'task_id':2,'printer_id':7,'gcode_name':'piece','print_status':2}],[]]);d=await self.x.task_list(2)

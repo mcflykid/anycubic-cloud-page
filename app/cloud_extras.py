@@ -72,38 +72,48 @@ class CloudExtras:
   """Exige une imprimante connectée et libre ; lève ValueError sinon."""
   p=self.e.printer
   if not p or not p.printer_online or not p.is_available or p.latest_project_print_in_progress:raise ValueError('Cette action nécessite une imprimante en ligne et libre')
+ def account_printers(self):
+  """Le catalogue actuel du compte prévaut sur les anciennes découvertes d’un moteur secondaire."""
+  registry=getattr(self.e,'fleet_registry',None)
+  return registry.default.known_printers if registry else getattr(self.e,'known_printers',[])
  def features(self):"""Renvoie les capacités annoncées avec une valeur strictement booléenne vraie.""";return {r['name']:r.get('value') is True for r in self.e.raw_info.get('features',[]) if isinstance(r,dict) and 'name' in r}
  async def storage(self):
   """Renvoie les octets totaux, utilisés et libres du stockage cloud."""
   d=await self.api('/work/index/getUserStore')
   total=number(d.get('total_bytes'),0);used=number(d.get('used_bytes'),0)
   return {'total':total,'used':used,'free':max(0,total-used)}
- async def task_list(self,page):
-  """Renvoie une page d’impressions de la machine ; lève ValueError si l’historique est illisible."""
-  rows=await self.api('/v2/project/printHistory',query={'printer_id':self.e.printer.id,'page':page,'limit':20},method='GET')
+ async def task_list(self,page,all_printers=False):
+  """Renvoie les pages des machines autorisées ; all_printers agrège seulement des consultations, jamais une cible physique."""
+  printers=self.account_printers() if all_printers else [self.e.printer]
+  if not printers:printers=[self.e.printer]
+  allowed={str(p.id):p for p in printers};rows=[];more=False
+  for identifier in allowed:
+   page_rows=await self.api('/v2/project/printHistory',query={'printer_id':int(identifier),'page':page,'limit':20},method='GET')
+   if not isinstance(page_rows,list):raise ValueError('Historique des impressions indisponible')
+   rows.extend(r for r in page_rows if isinstance(r,dict) and str(r.get('printer_id'))==identifier);more=more or len(page_rows)>=20
   projects=[]
   with contextlib.suppress(Exception):projects=await self.api('/work/project/getProjects',query={'page':1,'limit':20},method='GET')
-  lookup={str(r.get('taskid')):r for r in projects if isinstance(r,dict) and str(r.get('printer_id'))==str(self.e.printer.id)} if isinstance(projects,list) else {}
-  if not isinstance(rows,list):raise ValueError('Historique des impressions indisponible')
+  lookup={(str(r.get('printer_id')),str(r.get('taskid'))):r for r in projects if isinstance(r,dict) and str(r.get('printer_id')) in allowed} if isinstance(projects,list) else {}
   items=[]
   for r in rows:
-   if not isinstance(r,dict) or str(r.get('printer_id'))!=str(self.e.printer.id):continue
-   taskid=r.get('task_id') or r.get('taskid') or r.get('id');r={**lookup.get(str(taskid),{}),**r,'taskid':taskid}
-   r.setdefault('id',taskid)
-   k=key(taskid);self.tasks[k]=r
+   taskid=r.get('task_id') or r.get('taskid') or r.get('id');r={**lookup.get((str(r.get('printer_id')),str(taskid)),{}),**r,'taskid':taskid};r.setdefault('id',taskid)
+   k=key(str(r.get('printer_id'))+':'+str(taskid));self.tasks[k]=r
    status=r.get('print_status');outcome={0:'En préparation',1:'Impression en cours',2:'Impression terminée',3:'Impression interrompue'}.get(status,'État non renseigné')
-   items.append({'key':k,'name':clean_text(r.get('task_name') or r.get('gcode_name') or r.get('model') or 'Impression',300),'start':r.get('start_time') or r.get('create_time'),'end':r.get('end_time'),'status':outcome,'status_code':status,'elapsed_minutes':history_minutes(r),'progress':number(r.get('progress')),'reason':diagnostic_text(r.get('reason')),'can_reprint':bool(number(r.get('gcode_id'),0)>0),'evaluated':bool(r.get('is_comment')),'printer':clean_text(r.get('printer_name') or getattr(self.e.printer,'name','Imprimante'),100),'printer_key':key(r.get('printer_id'))})
+   items.append({'key':k,'name':clean_text(r.get('task_name') or r.get('gcode_name') or r.get('model') or 'Impression',300),'start':r.get('start_time') or r.get('create_time'),'end':r.get('end_time'),'status':outcome,'status_code':status,'elapsed_minutes':history_minutes(r),'progress':number(r.get('progress')),'reason':diagnostic_text(r.get('reason')),'can_reprint':bool(number(r.get('gcode_id'),0)>0),'evaluated':bool(r.get('is_comment')),'printer':clean_text(r.get('printer_name') or getattr(allowed[str(r.get('printer_id'))],'name','Imprimante'),100),'printer_key':key(r.get('printer_id'))})
   while len(self.tasks)>500:self.tasks.pop(next(iter(self.tasks)))
-  return {'items':items,'page':page,'has_more':len(rows)>=20}
- def task(self,k):
-  """Résout une clé opaque ; lève ValueError si la tâche est inconnue ou appartient à une autre machine."""
+  items.sort(key=lambda r:number(r.get('start'),0),reverse=True)
+  return {'items':items,'page':page,'has_more':more}
+ def task(self,k,allow_other=False):
+  """Résout une fiche connue ; seul un parcours de consultation ou d’historique autorise une autre machine du compte."""
   r=self.tasks.get(str(k))
-  if not r:raise ValueError('Actualisez la liste des impressions')
-  if str(r.get('printer_id'))!=str(self.e.printer.id):raise ValueError('Tâche d’une autre imprimante')
+  if r is None:raise ValueError('Actualisez la liste des impressions')
+  allowed={str(p.id) for p in self.account_printers()} if allow_other else set()
+  allowed.add(str(self.e.printer.id))
+  if str(r.get('printer_id')) not in allowed:raise ValueError('Tâche d’une autre imprimante')
   return r
  async def preview(self,k):
   """Renvoie l’image éventuelle d’une tâche connue ; propage ValueError si sa clé est invalide."""
-  return await self.preview_row(k,self.task(k))
+  return await self.preview_row(k,self.task(k,allow_other=True))
  async def preview_row(self,k,r,lookup_detail=True):
   """Renvoie une image en ligne ou None ; lookup_detail autorise la recherche dans le détail cloud."""
   cached=self.previews.get(k)
@@ -156,7 +166,7 @@ class CloudExtras:
   return await self.preview_row(cachekey,matches[0])
  async def detail(self,k):
   """Renvoie les détails filtrés d’une tâche ; lève ValueError si Anycubic ne les fournit pas."""
-  r=self.task(k);d=None
+  r=self.task(k,allow_other=True);d=None
   with contextlib.suppress(Exception):d=await self.api('/v5/project/printHistory/detail',query={'task_id':r.get('taskid') or r['id']},method='GET')
   if not isinstance(d,dict):d=await self.e.api.project_info_for_id(r['id'])
   if not isinstance(d,dict):raise ValueError('Détails non fournis par Anycubic')
@@ -190,7 +200,7 @@ class CloudExtras:
   links=[]
   for row,url in zip(rows,urls):
    ticket=secrets.token_urlsafe(24);self.downloads[ticket]={'url':url,'expires':now+300,'name':clean_text(row.old_filename or 'fichier',200)}
-   links.append({'name':self.downloads[ticket]['name'],'url':'/imprimante-api/download/'+ticket})
+   links.append({'name':self.downloads[ticket]['name'],'url':'/imprimante-api/download/'+ticket+'?printer='+key(self.e.printer.id)})
   return {'downloads':links}
  async def videos(self):
   """Renvoie les vidéos annoncées ou un état d’indisponibilité, sans supposer un téléchargement possible."""
@@ -238,7 +248,7 @@ class CloudExtras:
  async def delete_tasks(self,keys):
   """Retire seulement les fiches validées ; arrête un lot au premier résultat incertain, sans répétition."""
   if not isinstance(keys,list) or not keys or len(keys)>100 or any(not isinstance(k,str) for k in keys) or len(set(keys))!=len(keys):raise ValueError('Choisissez entre une et cent fiches distinctes')
-  rows=[(k,self.task(k)) for k in keys]
+  rows=[(k,self.task(k,allow_other=True)) for k in keys]
   identifiers=[r.get('taskid') or r.get('task_id') or r.get('id') for _,r in rows]
   if any(isinstance(v,bool) or not isinstance(v,int) or v<=0 for v in identifiers) or len(set(identifiers))!=len(identifiers):raise ValueError('Références de fiches non valides')
   removed=0
@@ -302,10 +312,10 @@ class CloudExtras:
 
 async def load(req):
  """Renvoie la section complémentaire en JSON ; lève HTTPNotFound pour une section inconnue."""
- e=req.app['extras'];section=req.match_info['section']
+ e=req.get('selected_engine',req.app['extras'].e).extras;section=req.match_info['section']
  async with e.e.lock:
   if section=='storage':result=await e.storage()
-  elif section=='tasks':result=await e.task_list(max(1,min(1000,int(req.query.get('page',1)))))
+  elif section=='tasks':result=await e.task_list(max(1,min(1000,int(req.query.get('page',1)))),all_printers=req.query.get('device')=='all')
   elif section=='task':result=await e.detail(req.query.get('key'))
   elif section=='task-preview':result=await e.preview(req.query.get('key'))
   elif section=='notification-preview':result=await e.notification_preview(req.query.get('key'))
@@ -320,13 +330,13 @@ async def downloads(req):
  """Renvoie les liens temporaires de la sélection ; lève HTTPForbidden si l’origine est étrangère."""
  origin=req.headers.get('Origin')
  if origin and origin not in [__import__('os').environ.get('PUBLIC_ORIGIN','http://localhost:8080'),'http://127.0.0.1:8080']:raise web.HTTPForbidden()
- e=req.app['extras'];d=await req.json()
+ e=req.get('selected_engine',req.app['extras'].e).extras;d=await req.json()
  async with e.e.lock:result=await e.download(d.get('handles'))
  return web.json_response(result,headers={'Cache-Control':'no-store'})
 
 async def download_file(req):
  """Redirige vers le stockage validé ; lève HTTPGone si le ticket a expiré, HTTPFound sinon."""
- e=req.app['extras'];d=e.downloads.get(req.match_info['ticket'])
+ e=req.get('selected_engine',req.app['extras'].e).extras;d=e.downloads.get(req.match_info['ticket'])
  if not d or d['expires']<time.monotonic():raise web.HTTPGone(text='Lien expiré. Redemandez le téléchargement.')
  # La redirection reste limitée au stockage prévalidé, sans jeton du compte dans la réponse.
  raise web.HTTPFound(d['url'],headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})
@@ -335,7 +345,7 @@ async def reset_challenge(req):
  """Renvoie une confirmation liée à la machine ; lève ValueError si elle ne peut pas être réinitialisée."""
  origin=req.headers.get('Origin')
  if origin and origin not in [__import__('os').environ.get('PUBLIC_ORIGIN','http://localhost:8080'),'http://127.0.0.1:8080']:raise web.HTTPForbidden()
- e=req.app['extras']
+ e=req.get('selected_engine',req.app['extras'].e).extras
  async with e.e.lock:
   e.idle();state=await e.device()
   if not state['factory_reset']:raise ValueError('Réinitialisation non annoncée pour cette imprimante')

@@ -41,7 +41,8 @@ async def api(request):
    tasks[:]=[t for t in tasks if t['key'] not in keys]
    return web.json_response({'ok':True,'message':'Fiches fictives retirées'})
  if request.method not in ['GET','HEAD'] and path!='preview':return web.json_response({'ok':False,'message':'Démonstration : aucune commande réelle n’est envoyée.'},status=403)
- if path=='status':d={'ok':True,'demo':True,'printer':PRINTER,'updated_at':T,'mqtt_updated_at':T,'mqtt_connected':True,'presets':[{'name':n,'temperature':t,'hours':h} for n,t,h in [('PLA',45,4),('PETG',55,6),('ABS / ASA',60,6),('PA',65,8)]],'notifications':{'items':notices,'page':1,'total':len(notices),'unread':sum(x['unread'] for x in notices),'has_more':False},'events':[{'time':T-600,'action':'Démonstration','state':'Impression terminée'}]}
+ if path=='printers':d={'items':[{'key':'demo-printer','name':'Kobra S1 · Démonstration'}],'default':'demo-printer','pending':False}
+ elif path=='status':d={'ok':True,'demo':True,'printer':PRINTER,'updated_at':T,'mqtt_updated_at':T,'mqtt_connected':True,'presets':[{'name':n,'temperature':t,'hours':h} for n,t,h in [('PLA',45,4),('PETG',55,6),('ABS / ASA',60,6),('PA',65,8)]],'notifications':{'items':notices,'page':1,'total':len(notices),'unread':sum(x['unread'] for x in notices),'has_more':False},'events':[{'time':T-600,'action':'Démonstration','state':'Impression terminée'}]}
  elif path=='preview' or path in ['extras/task-preview','extras/notification-preview']:d={'image':IMAGE}
  elif path=='temperatures':d={'readings':[{'time':int(T)-i*30,'nozzle':round(28+182*(1-math.exp(-i/30)),1),'bed':round(26+34*(1-math.exp(-i/45)),1),'ace':42,'nozzle_target':0,'bed_target':0,'ace_target':45} for i in range(120,-1,-1)],'hours':1,'retention_hours':24}
  elif path.startswith('files/'):d={'files':FILES,'page':1,'has_more':False,'path':'/'}

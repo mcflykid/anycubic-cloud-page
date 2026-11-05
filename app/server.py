@@ -8,11 +8,13 @@ from vendor_config import load_vendor_config
 load_vendor_config()
 from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
+from printer_registry import PrinterRegistry,select_printer,printer_key
 from account_auth import AccountAuth
 from web_host import access_control
 from session_api import SessionRecovery
 from native_controls import task_details,axis_payload,ai_payload
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
+from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
@@ -61,26 +63,39 @@ def history_entry(row):
 
 class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):
  """Relie les réponses MQTT et le renouvellement de session au moteur web."""
+ def cloud_printer_updated(self):
+  """Le rappel sans argument de la bibliothèque hérite du propriétaire du message actuellement routé."""
+  owner=getattr(self,'message_engine',None)
+  if owner:owner.mqtt_changed()
  def _mqtt_message_router(self,message):
-  with contextlib.suppress(Exception):
-   payload=json.loads(message.payload)
-   engine.receive_ai_reply(str(message.topic),payload)
-   if (payload.get('type')=='file' and payload.get('action') in ['listLocal','listUdisk','fileDetails','listVideo','videoThumbnailList']) or payload.get('type') in ['light','aiSettings']:
-    engine.file_messages[str(payload.get('msgid'))]=payload
-    if payload.get('type')=='light':engine.light_report=(time.monotonic(),payload)
-    while len(engine.file_messages)>60:engine.file_messages.pop(next(iter(engine.file_messages)))
-  return super()._mqtt_message_router(message)
+  """Associe rapports et fraîcheur à la bonne machine sur l’unique connexion MQTT du compte."""
+  primary=getattr(self,'cloud_engine',None);owner=primary
+  registry=getattr(primary,'fleet_registry',None)
+  if registry:owner=registry.owner(get_part_from_mqtt_topic(str(message.topic),6))
+  self.message_engine=owner
+  try:
+   with contextlib.suppress(Exception):
+    payload=json.loads(message.payload)
+    if owner and owner.printer and get_part_from_mqtt_topic(str(message.topic),6)==str(owner.printer.key):
+     owner.receive_ai_reply(str(message.topic),payload)
+     if (payload.get('type')=='file' and payload.get('action') in ['listLocal','listUdisk','fileDetails','listVideo','videoThumbnailList']) or payload.get('type') in ['light','aiSettings']:
+      owner.file_messages[str(payload.get('msgid'))]=payload
+      if payload.get('type')=='light':owner.light_report=(time.monotonic(),payload)
+      while len(owner.file_messages)>60:owner.file_messages.pop(next(iter(owner.file_messages)))
+   return super()._mqtt_message_router(message)
+  finally:self.message_engine=None
  def _mqtt_on_connect(self,client,userdata,flags,rc,properties=None):
-  if rc:engine.event('MQTT','Connexion refusée, code '+str(rc))
+  if rc:getattr(self,'cloud_engine',engine).event('MQTT','Connexion refusée, code '+str(rc))
   return super()._mqtt_on_connect(client,userdata,flags,rc,properties)
  def _mqtt_on_disconnect(self,client,userdata,rc,*args):
-  engine.event('MQTT','Déconnecté, code '+str(rc))
+  getattr(self,'cloud_engine',engine).event('MQTT','Déconnecté, code '+str(rc))
   return super()._mqtt_on_disconnect(client,userdata,rc)
 
 class Engine:
  """Coordonne l’état cloud, le suivi MQTT et les commandes de l’interface."""
  def __init__(self):
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+  self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False
   self.command_lock=asyncio.Lock()
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
  def event(self,action,state):"""Ajoute un événement horodaté au journal local borné.""";self.events.appendleft({'time':now(),'action':action,'state':state})
@@ -92,7 +107,9 @@ class Engine:
   except Exception as e:self.event('MQTT','Connexion indisponible ('+type(e).__name__+')')
  def mqtt_start(self):
   """Démarre un seul fil de suivi, uniquement si MQTT reste activé."""
+  if getattr(self,'fleet_registry',None) and self is not self.fleet_registry.default:return
   if not self.mqtt_enabled or (self.mqtt_thread and self.mqtt_thread.is_alive()):return
+  if getattr(self,'fleet_registry',None):self.fleet_registry.restore_subscriptions()
   self.mqtt_thread=threading.Thread(target=self.mqtt_run,daemon=True);self.mqtt_thread.start()
  async def refresh_access(self):
   """Renvoie le jeton renouvelé après refus explicite ; propage les erreurs d’authentification."""
@@ -114,7 +131,9 @@ class Engine:
    if self.api is not api or (thread and thread.is_alive()):return
    self.mqtt_thread=None;self.mqtt_auth_pending=False;self.mqtt_start()
  async def connect(self):
-  """Sélectionne et connecte la machine ; lève RuntimeError si elle est absente, ambiguë ou refusée."""
+  """Connecte la cible du moteur ; le défaut facultatif se replie sur la première machine, jamais une cible secondaire explicite."""
+  if getattr(self,'fleet_registry',None) and self is not self.fleet_registry.default:
+   await self.fleet_registry.connect_secondary(self);return
   if not self.session:self.session=aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45))
   token=await self.account.token(self.session)
   self.account_token=token
@@ -125,10 +144,14 @@ class Engine:
   self.mqtt_thread=None;self.mqtt_auth_pending=False
   self.api=CloudPageAPI(self.session,self.session.cookie_jar,refresh_access=self.refresh_access,session_renewed=self.session_renewed,auth_token=token,auth_mode=AnycubicAuthMode.SLICER,mqtt_callback_printer_update=self.mqtt_changed,mqtt_callback_subscribed=self.mqtt_connected)
   if not await self.api.check_api_tokens():raise RuntimeError('Authentification refusée')
-  printers=await self.api.list_my_printers()
-  selected=os.environ.get('PRINTER_ID');candidates=[p for p in printers if str(p.id)==selected] if selected else [p for p in printers if p.machine_name=='Anycubic Kobra S1']
-  if len(candidates)>1:raise RuntimeError('Plusieurs imprimantes correspondent. Configurez PRINTER_ID.')
+  self.api.cloud_engine=self
+  self.api._mqtt_callback_printer_update=getattr(self.api,'cloud_printer_updated',self.mqtt_changed)
+  printers=await self.api.list_my_printers();self.known_printers=printers
+  selected=getattr(self,'pinned_id',None) or self.selected_id;candidates=[p for p in printers if str(p.id)==selected] if selected else printers[:1]
+  if not candidates and not getattr(self,'pinned_id',None):candidates=printers[:1]
+  if self.selected_id and (not candidates or str(candidates[0].id)!=str(self.selected_id)) and not self.catalogue_source:raise RuntimeError('Imprimante sélectionnée absente du compte')
   self.printer=candidates[0] if candidates else None
+  if self.printer:self.pinned_id=str(self.printer.id)
   if self.printer is None:raise RuntimeError('Imprimante absente')
   await self.printer.update_info_from_api()
   self.api.mqtt_add_subscribed_printer(self.printer)
@@ -138,11 +161,12 @@ class Engine:
   while True:
    try:
     async with self.lock:
-     if not self.api or not self.printer or await self.account.token(self.session)!=self.account_token:await self.connect()
+     if not self.api or not self.printer or (not getattr(self,'fleet_registry',None) or self is self.fleet_registry.default) and await self.account.token(self.session)!=self.account_token:await self.connect()
      else:await self.printer.update_info_from_api()
      self.raw_info=(await self.api.printer_info_for_id(self.printer.id,raw_data=True)).get('data') or {};self.updated=now();self.ok=True;self.error=None
      if self.mqtt_auth_pending:await self.restart_mqtt_auth(self.api)
      self.mqtt_start()
+     if self.catalogue_source:self.known_printers=await self.api.list_my_printers()
      try:await self.print_history(1);self.notifications_error=None
      except Exception:self.notifications_error='Messages temporairement indisponibles'
    except Exception as e:
@@ -458,18 +482,32 @@ class Engine:
   elif name=='query':
    await p.update_info_from_api()
    self.raw_info=(await a.printer_info_for_id(p.id,raw_data=True)).get('data') or {};self.updated=now();self.ok=True;self.error=None;result=True
-  elif name=='mqtt-on':self.mqtt_enabled=True;self.mqtt_start();return 'Connexion MQTT demandée'
-  elif name=='mqtt-off':self.mqtt_enabled=False;a.disconnect_mqtt();return 'Déconnexion MQTT demandée'
+  elif name=='mqtt-on':
+   owner=self.fleet_registry.default if getattr(self,'fleet_registry',None) else self;owner.mqtt_enabled=True;owner.mqtt_start();return 'Connexion MQTT du compte demandée'
+  elif name=='mqtt-off':
+   owner=self.fleet_registry.default if getattr(self,'fleet_registry',None) else self;owner.mqtt_enabled=False;a.disconnect_mqtt();return 'Déconnexion MQTT du compte demandée'
   elif name=='presets':
    presets=d.get('presets',[])
    if len(presets)!=4:raise ValueError('Quatre préréglages attendus')
    self.presets=[{'name':str(x['name'])[:25],'temperature':integer(x['temperature'],35,70),'hours':integer(x['hours'],1,24)} for x in presets]
-   path=pathlib.Path('/appdata/state/presets.json');path.write_text(json.dumps(self.presets));return 'Préréglages enregistrés'
+   self.state_dir.mkdir(mode=0o700,parents=True,exist_ok=True);path=self.state_dir/'presets.json';path.write_text(json.dumps(self.presets));return 'Préréglages enregistrés'
   else:raise ValueError('Commande inconnue')
   if result is None or result is False:raise ValueError('Aucune commande acceptée par le moteur Anycubic')
   return 'Commande acceptée par Anycubic ; confirmation machine en attente'
 
 engine=Engine()
+def request_engine(request):
+ """Les appels directs de tests gardent leur doublure ; les requêtes HTTP ont une cible figée par middleware."""
+ return request.get('selected_engine',engine) if isinstance(request,web.Request) else engine
+
+def verify_printer_target(request,selected):
+ """Refuse une cible modifiée pendant une attente ; la vérification précède tout envoi physique sous verrou."""
+ if isinstance(request,web.Request):
+  expected=request.get('printer_key')
+  registry=getattr(selected,'fleet_registry',None)
+  if expected and registry and expected not in registry.catalogue():raise ValueError('Cette imprimante a quitté le compte. Aucune commande envoyée.')
+  if expected and (not selected.printer or printer_key(selected.printer.id)!=expected):raise ValueError('L’imprimante ciblée a changé ou n’est pas prête. Actualisez sans répéter la commande.')
+
 @web.middleware
 async def errors(request,handler):
  """Convertit les erreurs en réponses HTTP sans publier les détails internes des exceptions inattendues."""
@@ -477,23 +515,32 @@ async def errors(request,handler):
  except web.HTTPException:raise
  except (ValueError,KeyError,TypeError) as e:return web.json_response({'ok':False,'message':str(e)[:200]},status=400)
  except Exception as e:
-  engine.event('Erreur',type(e).__name__)
+  request_engine(request).event('Erreur',type(e).__name__)
   return web.json_response({'ok':False,'message':('La caméra ne répond pas pour le moment. Réessayez dans quelques secondes.' if request.path=='/camera-session' else 'Anycubic n’a pas confirmé cette opération. Vérifiez l’état de la machine avant un nouvel essai.')},status=409)
 
-async def status(req):"""Renvoie l’état courant en JSON sans cache navigateur.""";return web.json_response(engine.snapshot(),headers={'Cache-Control':'no-store'})
+async def status(req):
+ """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
+ return web.json_response(request_engine(req).snapshot(),headers={'Cache-Control':'no-store'})
+
+async def printers(req):
+ """Renvoie les noms et références opaques du compte ; aucun identifiant cloud brut."""
+ return web.json_response(req.app['printer_registry'].choices(),headers={'Cache-Control':'no-store'})
 async def health(req):"""Renvoie la disponibilité du service HTTP, indépendamment de celle du cloud.""";return web.json_response({'service':'ok'})
 async def files(req):
  """Renvoie les fichiers cloud sous verrou ; lève ValueError sans connexion ou si la page est invalide."""
+ engine=request_engine(req)
  if not engine.api:raise ValueError('Connexion en cours')
  async with engine.lock:return web.json_response(await engine.cloud_files(integer(req.query.get('page',1),1,1000)),headers={'Cache-Control':'no-store'})
 
 async def history(req):
  """Renvoie une page du journal ; lève ValueError sans connexion ou si la page est invalide."""
+ engine=request_engine(req)
  if not engine.api:raise ValueError('Connexion en cours')
  async with engine.lock:return web.json_response(await engine.print_history(integer(req.query.get('page',1),1,1000)),headers={'Cache-Control':'no-store'})
 
 async def history_read(req):
  """Renvoie la confirmation de lecture ; rejette une origine étrangère ou une clé invalide."""
+ engine=request_engine(req)
  verify_origin(req)
  data=await req.json()
  if data.get('all') is not True and not re.fullmatch(r'[a-f0-9]{20}',str(data.get('key',''))):raise ValueError('Notification invalide')
@@ -502,11 +549,13 @@ async def history_read(req):
 
 async def history_delete(req):
  """Renvoie la confirmation d’effacement ; rejette une origine étrangère ou une clé invalide."""
+ engine=request_engine(req)
  verify_origin(req);data=await req.json()
  if data.get('all') is not True and not re.fullmatch(r'[a-f0-9]{20}',str(data.get('key',''))):raise ValueError('Notification invalide')
  async with engine.lock:return web.json_response(await engine.delete_history(data.get('key'),data.get('all') is True),headers={'Cache-Control':'no-store'})
 async def ai_settings(req):
  """Renvoie les réglages IA en JSON ; lève ValueError sans machine ou connexion disponible."""
+ engine=request_engine(req)
  if not engine.api or not engine.printer:raise ValueError('Connexion en cours')
  async with engine.lock:return web.json_response({'settings':await engine.ai_settings()},headers={'Cache-Control':'no-store'})
 
@@ -517,6 +566,7 @@ def verify_origin(req):
 
 async def local_files(req):
  """Renvoie le dossier machine ; lève HTTPNotFound pour une source autre que local ou usb."""
+ engine=request_engine(req)
  source=req.match_info['source']
  if source not in ['local','usb']:raise web.HTTPNotFound()
  async with engine.lock:return web.json_response(await engine.read_files(source,req.query.get('path','/')),headers={'Cache-Control':'no-store'})
@@ -525,17 +575,20 @@ async def local_files(req):
 async def command_operation(req):
  # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
  """Cède le verrou API à une seule opération ; lève ValueError si attente trop longue ou client parti."""
+ engine=request_engine(req)
  if engine.command_lock.locked():raise ValueError('Une opération est en cours. Réessayez après sa fin.')
  async with engine.command_lock:
   try:await asyncio.wait_for(engine.lock.acquire(),timeout=COMMAND_READ_WAIT_SECONDS)
   except asyncio.TimeoutError:raise ValueError('La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes.') from None
   try:
    if req.transport is None or req.transport.is_closing():raise ValueError('La demande a été interrompue. Aucune commande envoyée.')
+   verify_printer_target(req,engine)
    yield
   finally:engine.lock.release()
 
 async def command(req):
  """Renvoie le résultat mémorisé par request_id ; rejette une demande invalide sans répéter une commande connue."""
+ engine=request_engine(req)
  verify_origin(req)
  d=await req.json();requestid=str(d.pop('request_id',''))
  if not re.fullmatch(r'[a-zA-Z0-9-]{16,80}',requestid):raise ValueError('Identifiant de commande manquant')
@@ -563,9 +616,11 @@ def camera_transport_failure(error):
 
 async def camera(req):
  """Renvoie une session en cache cinq secondes ; retente une seule panne de transport, propage les autres erreurs."""
+ engine=request_engine(req)
  verify_origin(req)
  if not engine.printer:raise ValueError('Connexion en cours')
  async with engine.lock:
+  verify_printer_target(req,engine)
   if not engine.camera or time.time()-engine.last_session>5:
    try:session=await engine.printer.get_camera_session()
    except Exception as error:
@@ -578,6 +633,7 @@ async def camera(req):
 
 async def upload(req):
  """Renvoie l’acceptation du G-code dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
+ engine=request_engine(req)
  verify_origin(req)
  if not engine.printer:raise ValueError('Connexion en cours')
  if engine.command_lock.locked():raise ValueError('Une opération est déjà en cours')
@@ -609,9 +665,10 @@ async def upload(req):
   engine.event('G-code', 'Envoi accepté')
   result={'ok':True,'message':'Envoi accepté par Anycubic'};engine.commands[rid]=result;return web.json_response(result)
 
-async def sample_temperatures(app):
+async def sample_temperatures(app,selected=None,store=None):
  """Archive seulement les relevés récents d’une source nouvelle pour éviter les températures périmées."""
- history=app['temperature_history'];last_source=None
+ engine=selected if selected is not None else globals()['engine']
+ history=store if store is not None else app['temperature_history'];last_source=None
  while True:
   try:
    state=engine.snapshot();p=state.get('printer') or {};source=max((v for v in [state.get('mqtt_updated_at'),state.get('updated_at')] if v),default=None)
@@ -627,16 +684,19 @@ async def sample_temperatures(app):
 async def temperatures(req):
  """Renvoie les relevés sur une à vingt-quatre heures ; lève ValueError hors de cet intervalle."""
  hours=integer(req.query.get('hours',1),1,24)
- return web.json_response({'readings':req.app['temperature_history'].recent(hours),'hours':hours,'retention_hours':24,'interval_seconds':10},headers={'Cache-Control':'no-store'})
+ return web.json_response({'readings':req.app['printer_registry'].history(request_engine(req)).recent(hours) if 'printer_registry' in req.app else req.app['temperature_history'].recent(hours),'hours':hours,'retention_hours':24,'interval_seconds':10},headers={'Cache-Control':'no-store'})
 
 async def startup(app):
- """Charge les préférences locales et démarre les deux tâches de collecte de l’application."""
+ """Préserve la collecte initiale et initialise le registre des cibles indépendantes."""
  with contextlib.suppress(Exception):engine.presets=json.loads(pathlib.Path('/appdata/state/presets.json').read_text())
+ engine.catalogue_source=True
+ app['printer_registry']=PrinterRegistry(engine,Engine,sample_temperatures,app)
  app['poll_task']=asyncio.create_task(engine.poll())
  app['temperature_history']=TemperatureHistory()
  app['temperature_task']=asyncio.create_task(sample_temperatures(app))
 async def cleanup(app):
  """Arrête la collecte, sauvegarde les températures et ferme les connexions."""
+ await app['printer_registry'].close()
  app['temperature_task'].cancel()
  with contextlib.suppress(asyncio.CancelledError):await app['temperature_task']
  with contextlib.suppress(OSError):app['temperature_history'].save()
@@ -646,6 +706,7 @@ async def cleanup(app):
  if engine.session:await engine.session.close()
 async def preview(req):
  """Renvoie une image validée ou None ; lève ValueError si la connexion manque ou l’image dépasse la limite."""
+ engine=request_engine(req)
  verify_origin(req)
  d=await req.json();url=None
  async with engine.lock:
@@ -673,8 +734,8 @@ async def preview(req):
    if len(content)>3*1024*1024:raise ValueError('Aperçu trop volumineux')
  return web.json_response({'image':'data:'+mime+';base64,'+base64.b64encode(content).decode()},headers={'Cache-Control':'no-store'})
 
-app=web.Application(middlewares=[access_control,errors],client_max_size=102*1024**2)
-app.add_routes([web.get('/imprimante-api/health',health),web.get('/imprimante-api/status',status),web.get('/imprimante-api/history',history),web.post('/imprimante-api/history/read',history_read),web.post('/imprimante-api/history/delete',history_delete),web.get('/imprimante-api/ai-settings',ai_settings),web.get('/imprimante-api/temperatures',temperatures),web.get('/imprimante-api/files/cloud',files),web.get('/imprimante-api/files/{source}',local_files),web.post('/imprimante-api/command',command),web.post('/imprimante-api/camera-session',camera),web.post('/imprimante-api/upload',upload),web.post('/imprimante-api/preview',preview)])
+app=web.Application(middlewares=[access_control,errors,select_printer],client_max_size=102*1024**2)
+app.add_routes([web.get('/imprimante-api/printers',printers),web.get('/imprimante-api/health',health),web.get('/imprimante-api/status',status),web.get('/imprimante-api/history',history),web.post('/imprimante-api/history/read',history_read),web.post('/imprimante-api/history/delete',history_delete),web.get('/imprimante-api/ai-settings',ai_settings),web.get('/imprimante-api/temperatures',temperatures),web.get('/imprimante-api/files/cloud',files),web.get('/imprimante-api/files/{source}',local_files),web.post('/imprimante-api/command',command),web.post('/imprimante-api/camera-session',camera),web.post('/imprimante-api/upload',upload),web.post('/imprimante-api/preview',preview)])
 from cloud_extras import install as install_extras
 install_extras(app,engine)
 app.on_startup.append(startup);app.on_cleanup.append(cleanup)

@@ -12,7 +12,7 @@ Version **1.1.0**. [Changelog](CHANGELOG.md).
 
 [Français / full screenshot gallery](README.md) · [Cloud authentication and token recovery](docs/CLOUD-CONNECTION.md) · [Compatibility](docs/COMPATIBILITY.md)
 
-A self-hosted Python/aiohttp application with a responsive French interface: printer status, ACE/filament management, local/USB/cloud files, G-code upload, Agora camera, print history and settings. Home Assistant is not required.
+A self-hosted Python/aiohttp application with a responsive French interface: printer status, ACE/filament management, local/USB/cloud files, G-code upload, Agora camera, print history and settings. Home Assistant is not required. With several printers, the top-bar selector remembers the browser’s last choice; commands carry an explicit printer target.
 
 ## Quick start
 

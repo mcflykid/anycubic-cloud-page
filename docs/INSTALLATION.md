@@ -45,12 +45,12 @@ L’image `ghcr.io/mcflykid/anycubic-cloud-page:latest` est fournie pour Linux a
 | `HOME_URL` | `/imprimante.html` ; destination du lien de marque. Vide masque ce lien. HTTP(S) ou chemin relatif uniquement. |
 | `APPDATA_DIR` | `./appdata`, relatif au dossier Compose. |
 | `PUID`, `PGID` | `1000` ; propriétaire des données persistantes. |
-| `PRINTER_ID` | Facultatif ; sélection explicite si plusieurs imprimantes compatibles sont présentes. |
+| `PRINTER_ID` | Facultatif ; imprimante par défaut lorsque le navigateur n’a pas de choix encore valide. |
 | `PROXY_NETWORK` | Nom du réseau du proxy ; renseigner aussi `PROXY_NETWORK_EXTERNAL=true`. |
 | `PROXY_NETWORK_EXTERNAL` | `false` ; `true` laisse le cycle de vie du réseau existant à son propriétaire. |
 | `APP_IMAGE` | Image de la livraison ; permet de tester une image construite depuis les sources. |
 
-Sans `PRINTER_ID`, une unique Kobra S1 est sélectionnée. Plusieurs correspondances sont refusées. Les limites CPU, mémoire, privilèges et écritures sont définies pour le service. L’entrée démarre en root pour initialiser les propriétaires, puis `setpriv` lance le serveur avec `PUID:PGID`.
+Le navigateur retrouve d’abord son choix mémorisé. À défaut, `PRINTER_ID` désigne la machine par défaut ; s’il est vide ou absent du compte, la première imprimante disponible est utilisée. Le sélecteur de la barre du haut est masqué avec une seule machine. Changer de choix recharge la page pour écarter ses dialogues et caches précédents, sans redémarrer le serveur. Les verrous, états et courbes sont séparés par machine ; la session HTTP et l’unique connexion MQTT sont communes au compte. Le réglage marche/arrêt du suivi MQTT concerne donc le compte entier. Les limites CPU, mémoire, privilèges et écritures sont définies pour le service. L’entrée démarre en root pour initialiser les propriétaires, puis `setpriv` lance le serveur avec `PUID:PGID`.
 
 ## Fuseau et processus
 

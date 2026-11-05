@@ -36,7 +36,7 @@ Aucun code des projets examinés, du JavaScript officiel ou du SDK n’est repri
 | Fonction | Adresse / message et paramètres établis | Source | Confiance | Risque | Implémenté dans le projet : oui/non |
 | --- | --- | --- | --- | --- | --- |
 | État d’une imprimante et capacités | `GET /v2/printer/info` ; référence d’imprimante fournie côté serveur | S3, S5, P1 | Code — appel | Lecture seule | Oui : état filtré, disponibilité, options annoncées. |
-| Liste des imprimantes du compte | `GET /work/printer/getPrinters` | S1, S3, P1 | Code — appel | Lecture seule | Oui pour la découverte et le choix configuré ; non pour un tableau de bord simultané de plusieurs machines. |
+| Liste des imprimantes du compte | `GET /work/printer/getPrinters` | S1, S3, P1 | Code — appel | Lecture seule | Oui : sélecteur masqué avec une seule machine, choix mémorisé dans le navigateur, repli sur le défaut puis la première machine ; moteurs indépendants et transport partagé (#32). |
 | Vue de parc plus récente | `GET /v3/printer/getList` ; paramètres inconnus | S1 | Code — appel | Lecture seule | Non. |
 | Démarrer, suspendre, reprendre, arrêter | `POST /work/operation/sendOrder`, ordres `1`, `2`, `3`, `4` | S6, P1 | Code — appel | Ordre physique à l’imprimante | Oui ; références, disponibilité et confirmation contrôlées. |
 | Réimprimer un G-code conservé | Même route, ordre `1`, référence de G-code connue | P1 | Code — appel | Ordre physique à l’imprimante | Oui ; ce n’est pas une suppression d’historique. |
@@ -91,7 +91,7 @@ Aucun code des projets examinés, du JavaScript officiel ou du SDK n’est repri
 
 | Fonction | Adresse / message et paramètres établis | Source | Confiance | Risque | Implémenté dans le projet : oui/non |
 | --- | --- | --- | --- | --- | --- |
-| Fiches d’impression natives | `GET /v2/project/printHistory` ; `printer_id`, `page`, `limit` dans P1 | S3, S5, S6, P1 | Code — appel | Lecture seule | Oui : cartes, sous-onglets, filtres, recherche et chargement progressif dans la branche de développement ; la vue de plusieurs appareils reste liée à #32. |
+| Fiches d’impression natives | `GET /v2/project/printHistory` ; `printer_id`, `page`, `limit` dans P1 | S3, S5, S6, P1 | Code — appel | Lecture seule | Oui : cartes, sous-onglets, filtres, recherche et chargement progressif dans la branche de développement ; le filtre Appareil peut agréger les machines du compte sans modifier la cible des commandes. |
 | Détail et diagnostic d’une fiche | `GET /v5/project/printHistory/detail` ; `task_id`, puis repli projet si disponible | S2, P1 | Code — appel | Lecture seule | Oui, champs filtrés et aperçus corrélés. |
 | Suppression d’une fiche native | `POST /work/project/unsetprojects` ; SDK `historyDelete(id)` sérialise `{"id": <entier>, "checkSign": false}` | S1, S2 | Élevée : code et retrait d’une fiche observé lors d’un unique essai autorisé | Modifie des données du cloud | Oui dans la branche de développement : sélection, confirmation et une requête par fiche ; limites et succès partiels testés sur données fictives. L’effet sur les données associées reste inconnu. Ne pas confondre `id` avec celui d’une notification. |
 | Liste / source de projets, variantes récentes | `/v5/project/list`, `/v5/project/source`, `/v5/project/info` ; méthodes et paramètres inconnus | S2 | Code — route | Lecture seule, sous réserve de la sémantique de `source` | Non via ces variantes. Le projet possède déjà des consultations plus anciennes. |

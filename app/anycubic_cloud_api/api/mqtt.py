@@ -322,7 +322,8 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
                 self._log_to_debug(f"Anycubic MQTT Subscribing to USER {sub}.")
                 self._mqtt_client.subscribe(sub)
 
-            for printer_id, printer in self._mqtt_subscribed_printers.items():
+            # Le registre peut ajouter une machine pendant le rappel de connexion ; figer l’itération.
+            for printer_id, printer in list(self._mqtt_subscribed_printers.items()):
                 self._mqtt_subscribe_printer_status(printer)
 
             self._log_to_debug("Anycubic MQTT Subscribed.")

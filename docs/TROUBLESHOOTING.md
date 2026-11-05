@@ -6,7 +6,7 @@
 | Session expirée / API401 | Utiliser `admin` ou `WEB_USER`, avec le mot de passe web choisi. Reconnectez-vous sur `/login`. Le mot de passe Anycubic n’est pas celui de la page. |
 | Cloud indisponible au démarrage | Vérifier que le compte est associé à une Kobra S1 et que la connexion User Center a réussi. Une MFA/CAPTCHA non pris en charge nécessite une intervention. |
 | Token absent/expiré | Mode compte : vérifier les fichiers privés de connexion. Mode slicer : reconnecter le slicer, puis relancer l’extracteur ou son watcher. |
-| Plusieurs imprimantes | Configurer `PRINTER_ID` localement ; ne pas partager cet identifiant dans une issue. |
+| Plusieurs imprimantes | Choisir la machine dans la barre du haut ; `PRINTER_ID` reste un défaut facultatif. Un choix retiré du compte est refusé pour les commandes : actualiser la page. Ne pas publier les identifiants. |
 | Commande refusée / bouton désactivé | Vérifier que la machine est libre/en ligne et que la capacité est annoncée. Les réglages de projet ne s’appliquent que pendant une impression. |
 | IA indisponible | Réessayer lorsque la machine est libre. Une réponse doit venir du bon topic et de la fenêtre active. Ne pas enlever les garde-fous pour forcer l’écriture. |
 | Firmware : version cible identique | Lire l’indicateur officiel de mise à jour. Une version cible renseignée ne suffit pas à activer le bouton. |
