@@ -13,7 +13,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: version
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -29,7 +29,7 @@ jobs:
       contents: write
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Valider de nouveau le tag et préparer les notes
         env:
           RELEASE_TAG: ${{ github.ref_name }}
