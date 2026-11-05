@@ -78,6 +78,11 @@ class AnycubicMQTTUnknownUpdate(AnycubicDataParsingError):
     pass
 
 
+class AnycubicMQTTUnknownType(AnycubicMQTTUnknownUpdate):
+    """Type de rapport inconnu, distinct d’une action inconnue d’un type déjà pris en charge."""
+    pass
+
+
 class AnycubicMQTTUnhandledData(AnycubicDataParsingError):
     """Rapport MQTT reconnu mais contenant des champs non consommés, joints à l’exception."""
     __slots__ = (

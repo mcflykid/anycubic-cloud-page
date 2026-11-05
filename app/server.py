@@ -189,6 +189,7 @@ class Engine:
   base['notifications']=getattr(self,'history_cache',{}).get(1,(None,None))[1]
   base['notifications_error']=getattr(self,'notifications_error',None)
   base['camera_diagnostic']=self.camera_diagnostic
+  base['mqtt_diagnostics']=getattr(self.api,'mqtt_diagnostics',{}) if self.api else {}
   if not p:return {**base,'printer':None}
   fields={k:serial(safeget(p,v)) for k,v in FIELDS.items()}
   # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.

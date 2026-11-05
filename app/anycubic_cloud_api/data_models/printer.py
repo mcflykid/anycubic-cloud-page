@@ -18,6 +18,7 @@ from ..exceptions.exceptions import (
     AnycubicDataParsingError,
     AnycubicMQTTUnhandledData,
     AnycubicMQTTUnknownUpdate,
+    AnycubicMQTTUnknownType,
 )
 from ..helpers.helpers import (
     get_part_from_mqtt_topic,
@@ -1339,7 +1340,7 @@ class AnycubicPrinter:
             payload.force_empty()
 
         else:
-            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format(msg_type))
+            raise AnycubicMQTTUnknownType('Type de rapport MQTT non pris en charge')
 
         remaining_data: AnycubicConsumableData | None = payload.get('data')
 
