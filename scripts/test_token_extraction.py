@@ -1,6 +1,7 @@
 """Tests d’extraction locale utilisant uniquement des journaux et jetons fictifs."""
 import base64,json,pathlib,tempfile,time,unittest
-from extract_token import extract
+from unittest.mock import patch
+from extract_token import extract,scan_log
 
 def token(exp,kind='access-token'):
  """Renvoie un JWT fictif non signé ; exp et kind contrôlent l’expiration et le type du scénario."""
@@ -18,4 +19,17 @@ class Extraction(unittest.TestCase):
   with tempfile.TemporaryDirectory() as folder:
    pathlib.Path(folder,'slicer.log').write_text('sensitive-unrelated-text')
    with self.assertRaisesRegex(ValueError,'Aucun token'):extract(folder)
+ def test_large_log_and_unchanged_cache(self):
+  """Lit un journal de 100 Mio sans perdre le jeton placé sur une frontière."""
+  with tempfile.TemporaryDirectory() as folder:
+   valid=token(time.time()+3600)
+   path=pathlib.Path(folder,'slicer.log')
+   with path.open('wb') as log:
+    log.write(b' '*(64*1024-8)+('accessToken = '+valid+'\n').encode())
+    log.truncate(100*1024*1024)
+   cache={}
+   self.assertEqual(extract(folder,cache),valid)
+   with patch('extract_token.scan_log',wraps=scan_log) as read:
+    self.assertEqual(extract(folder,cache),valid)
+    read.assert_not_called()
 if __name__=='__main__':unittest.main()
