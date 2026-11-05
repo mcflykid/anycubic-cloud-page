@@ -8,7 +8,7 @@ from vendor_config import load_vendor_config
 load_vendor_config()
 from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
-from printer_registry import PrinterRegistry,select_printer,printer_key
+from printer_registry import PrinterRegistry,SharedCloudAPI,select_printer,printer_key
 from account_auth import AccountAuth
 from web_host import access_control
 from session_api import SessionRecovery
@@ -223,12 +223,16 @@ class Engine:
  def snapshot(self):
   """Renvoie l’état sérialisé et filtré pour le navigateur, sans identifiants de compte."""
   p=self.printer
-  base={'ok':self.ok,'message':self.error,'updated_at':self.updated,'mqtt_updated_at':self.mqtt_update,'mqtt_connected':bool(self.api and self.api._mqtt_client and self.api._mqtt_client.is_connected()),'public_commands':False,'upstream':'hass-anycubic_cloud_v3','events':list(self.events),'presets':self.presets}
+  shared=isinstance(self.api,SharedCloudAPI)
+  api=self.api.transport if shared else self.api
+  disconnected=shared and api is None
+  mqtt=getattr(api,'_mqtt_client',None)
+  base={'ok':self.ok and not disconnected,'message':'Connexion en cours' if disconnected else self.error,'updated_at':self.updated,'mqtt_updated_at':self.mqtt_update,'mqtt_connected':bool(mqtt and mqtt.is_connected()),'public_commands':False,'upstream':'hass-anycubic_cloud_v3','events':list(self.events),'presets':self.presets}
   base['account_message']=getattr(self.account,'notice',None)
   base['notifications']=getattr(self,'history_cache',{}).get(1,(None,None))[1]
   base['notifications_error']=getattr(self,'notifications_error',None)
   base['camera_diagnostic']=self.camera_diagnostic
-  base['mqtt_diagnostics']=getattr(self.api,'mqtt_diagnostics',{}) if self.api else {}
+  base['mqtt_diagnostics']=getattr(api,'mqtt_diagnostics',{})
   if not p:return {**base,'printer':None}
   fields={k:serial(safeget(p,v)) for k,v in FIELDS.items()}
   # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock,Mock,patch
 from aiohttp import web
 from aiohttp.test_utils import TestClient,TestServer
 import server as adapter
-from printer_registry import PrinterRegistry,printer_key,select_printer
+from printer_registry import PrinterRegistry,SharedCloudAPI,printer_key,select_printer
 
 class PrinterTargets(unittest.IsolatedAsyncioTestCase):
  """La cible d’une requête ne dépend ni d’un autre navigateur ni d’une sélection globale mutable."""
@@ -36,6 +36,33 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
  async def send(self,key=None,requestid='fixture-request-0001',query=''):
   """Envoie seulement au serveur local ; aucune doublure ne transmet au cloud."""
   return await self.client.post('/imprimante-api/command'+query,headers={'X-Printer-Key':key} if key else {},json={'action':'fixture','request_id':requestid})
+ async def test_default_keeps_its_engine_during_reconnection(self):
+  """Une sélection du défaut sans modèle ne crée aucune tâche secondaire."""
+  self.root.pinned_id='1'
+  self.root.printer=None
+  self.assertIs(await self.registry.resolve(printer_key(1)),self.root)
+  self.assertIs(await self.registry.resolve(None),self.root)
+  self.assertEqual(len(self.created),1)
+ async def test_sampling_survives_unavailable_shared_transport(self):
+  """Une coupure suspend les relevés et le même échantillonneur reprend après reconnexion."""
+  secondary=await self.secondary()
+  secondary.api=SharedCloudAPI(self.registry)
+  secondary.printer.multi_color_box=[]
+  secondary.printer.printer_online=True
+  secondary.ok=True
+  secondary.updated=adapter.now()
+  self.root.api=None
+  store=SimpleNamespace(rows=[],add=Mock())
+  self.assertFalse(secondary.snapshot()['ok'])
+  async def advance(_):
+   """Rétablit le transport au premier intervalle et arrête la simulation au second."""
+   if self.root.api is not None:raise asyncio.CancelledError
+   self.root.api=SimpleNamespace(_mqtt_client=None,mqtt_diagnostics={'fixture':1})
+  with patch.object(adapter.asyncio,'sleep',side_effect=advance):
+   with self.assertRaises(asyncio.CancelledError):
+    await adapter.sample_temperatures({},secondary,store)
+  store.add.assert_called_once()
+  self.assertEqual(secondary.snapshot()['mqtt_diagnostics'],{'fixture':1})
  async def test_missing_unknown_and_query_only_targets_never_dispatch(self):
   """Une mutation exige un en-tête explicite autorisé, sans repli silencieux."""
   for key,query in [(None,''),('unknown',''),(None,'?printer='+printer_key(1))]:

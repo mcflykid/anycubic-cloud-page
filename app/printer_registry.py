@@ -13,10 +13,18 @@ class SharedCloudAPI:
  def __init__(self,registry):
   """Conserve le registre plutôt qu’un ancien client, pour survivre à son renouvellement."""
   self.registry=registry
+ @property
+ def transport(self):
+  """Renvoie le transport prêt, ou None tant que le compte se reconnecte."""
+  owner=self.registry.default
+  return None if getattr(owner,'reconnect_required',False) else owner.api
+ def __bool__(self):
+  """Les gardes de connexion des points d’accès s’appliquent aussi aux moteurs secondaires."""
+  return self.transport is not None
  def __getattr__(self,name):
   """Résout chaque appel sur la session actuelle ; une reconnexion incomplète bloque la demande."""
-  api=self.registry.default.api
-  if api is None:raise RuntimeError('Connexion commune Anycubic en cours')
+  api=self.transport
+  if api is None:raise ValueError('Connexion commune Anycubic en cours')
   return getattr(api,name)
 
 class PrinterRegistry:
@@ -27,9 +35,13 @@ class PrinterRegistry:
  def catalogue(self):
   """Renvoie les seules machines découvertes dans le compte, avec leurs noms affichables."""
   return {printer_key(p.id):p for p in getattr(self.default,'known_printers',[]) if getattr(p,'id',None) is not None}
+ def default_key(self):
+  """Garde la même cible pendant la reconnexion, lorsque son modèle est temporairement absent."""
+  identifier=getattr(self.default.printer,'id',None) or getattr(self.default,'pinned_id',None) or self.default.selected_id
+  return printer_key(identifier) if identifier else None
  def choices(self):
   """Renvoie le défaut réellement connecté et des clés opaques, sans numéro de série ni compte."""
-  rows=self.catalogue();default=printer_key(self.default.printer.id) if self.default.printer else None
+  rows=self.catalogue();default=self.default_key()
   if default not in rows:default=next(iter(rows),None)
   return {'items':[{'key':k,'name':str(getattr(p,'name','Imprimante'))[:100]} for k,p in rows.items()],'default':default,'pending':not rows}
  async def resolve(self,key,require_explicit=False):
@@ -38,10 +50,10 @@ class PrinterRegistry:
   if require_explicit and not key:raise web.HTTPConflict(text=json.dumps({'ok':False,'message':'Une imprimante explicite est requise. Actualisez la page.'}),content_type='application/json')
   if key and key not in rows:raise web.HTTPConflict(text=json.dumps({'ok':False,'message':'Cette imprimante n’est plus disponible dans le compte. Actualisez la page.'}),content_type='application/json')
   if not key:
-   if self.default.printer and printer_key(self.default.printer.id) in rows:return self.default
+   if self.default_key() in rows:return self.default
    key=next(iter(rows),None)
    if key is None:return self.default
-  if self.default.printer and key==printer_key(self.default.printer.id):return self.default
+  if key==self.default_key():return self.default
   async with self.lock:
    if key not in self.entries:
     selected=self.factory();selected.selected_id=str(rows[key].id);selected.account=self.default.account;selected.fleet_registry=self;selected.state_dir=self.default.state_dir/'printers'/key
@@ -75,7 +87,7 @@ class PrinterRegistry:
    if selected.printer and printer_key(selected.printer.id) in allowed:self.subscribe(selected)
  async def connect_secondary(self,selected):
   """Réutilise la session et un modèle de la cible exacte ; ne crée ni connexion de compte ni fil MQTT."""
-  if self.default.api is None or self.default.session is None:raise RuntimeError('Connexion commune Anycubic en cours')
+  if not SharedCloudAPI(self) or self.default.session is None:raise RuntimeError('Connexion commune Anycubic en cours')
   rows=self.catalogue();key=printer_key(selected.selected_id)
   if key not in rows:raise RuntimeError('Imprimante sélectionnée absente du compte')
   if not selected.printer:selected.printer=rows[key]
