@@ -35,7 +35,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: python3 scripts/release_metadata.py "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --check-unpublished
       - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
