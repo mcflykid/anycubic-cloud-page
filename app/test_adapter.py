@@ -8,6 +8,18 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
  async def asyncSetUp(self):
   """Prépare les doublures et l’état asynchrone isolés pour chaque scénario."""
   self.e=adapter.Engine();self.p=SimpleNamespace(connected_ace_units=1,is_available=True,latest_project=object(),latest_project_print_in_progress=True,print_slot_numbers_to_indices=lambda v:[x-1 for x in v]);self.e.printer=self.p;self.e.api=SimpleNamespace()
+ async def test_snapshot_uses_firmware_box_name_by_id(self):
+  """La détection suit le boîtier dans un rapport de micrologiciel dont l’ordre diffère."""
+  self.p.id=7
+  self.p.multi_color_box=[SimpleNamespace(box_id=0),SimpleNamespace(box_id=1)]
+  self.e.raw_info={
+   'multi_color_box':[{'id':0},{'id':1}],
+   'multi_color_box_version':[{'box_id':'1','box_name':'ACE PRO'},{'box_id':0,'box_name':'ACE 2 Pro'}],
+  }
+  self.assertEqual([box.get('model') for box in self.e.snapshot()['printer']['boxes']],['ACE 2 Pro','ACE Pro'])
+  self.e.raw_info['multi_color_box_version']=[{'box_id':0,'box_name':'Autre modèle'}]
+  self.assertIsNone(self.e.snapshot()['printer']['boxes'][0].get('model'))
+
  async def test_notification_failure_does_not_hide_healthy_printer(self):
   """Une panne du centre de messages ne doit pas rendre le suivi de l’imprimante indisponible."""
   from unittest.mock import Mock,patch

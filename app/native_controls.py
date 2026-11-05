@@ -1,6 +1,22 @@
 """Paramètres de commandes validés et informations de tranche autorisées pour l’interface."""
 import math
 PARAMS=('layer_height','fill_density','enable_support','support_material_auto','brim_type','bed_temperature','temperature','fan_max_speed','filament_retract_length','perimeters','perimeter_extrusion_width','outer_wall_speed','travel_speed')
+def ace_model(box_id, firmware, report):
+ """Identifie la génération via le nom constructeur du micrologiciel du même boîtier."""
+ names={'ace pro':'ACE Pro','ace 2 pro':'ACE 2 Pro'}
+ def recognized(value):
+  if not isinstance(value,str):return None
+  return names.get(value.strip().casefold().removeprefix('anycubic '))
+ entries=firmware if isinstance(firmware,list) else [firmware]
+ models={
+  model for entry in entries if isinstance(entry,dict)
+  and entry.get('box_id') is not None and str(entry['box_id'])==str(box_id)
+  and (model:=recognized(entry.get('box_name')))
+ }
+ if len(models)==1:return models.pop()
+ if models or not isinstance(report,dict):return None
+ return recognized(report.get('model')) or recognized(report.get('name'))
+
 def task_details(project):
  """Renvoie les paramètres de tranche et dimensions autorisés, ou None sans projet."""
  if project is None:return None

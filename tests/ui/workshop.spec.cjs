@@ -4,7 +4,8 @@ test('déconnexion au clavier et révocation effective',async({page})=>{await lo
 module.exports={login};
 
 
-test('la page française démarre sans demander la ressource de traduction',async({page})=>{
+test('la page française démarre avec une barre compacte sans ressource de traduction',async({page})=>{
+ await page.setViewportSize({width:360,height:800});
  const {login}=require('./helpers.cjs');
  const languageRequests=[];
  page.on('request',request=>{if(request.url().includes('/js/ui-language.js'))languageRequests.push(request);});
@@ -13,4 +14,8 @@ test('la page française démarre sans demander la ressource de traduction',asyn
  await expect(page.locator('#printer-model')).toHaveText('Anycubic Kobra S1');
  await expect(page.locator('#interface-language')).toHaveCount(0);
  expect(languageRequests).toHaveLength(0);
+ const bell=await page.locator('#notifications-toggle').boundingBox();
+ expect(bell.width).toBe(44);
+ expect(bell.height).toBeGreaterThanOrEqual(44);
+ expect(await page.locator('.portal-nav').evaluate(nav=>nav.scrollWidth<=nav.clientWidth)).toBe(true);
 });

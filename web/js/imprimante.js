@@ -82,31 +82,18 @@ function renderJobPreview(printer){
   .catch(()=>{})
   .finally(()=>{current.pending=false;current.next=Date.now()+10000;});
 }
-const aceGenerations=['ACE Pro','ACE 2 Pro'];
-/** La préférence ne s’applique qu’à la machine sélectionnée et ne pilote aucune capacité. */
-function aceDisplayPreference(){
- if(!selectedPrinter)return '';
- try{
-  const value=localStorage.getItem('cloud-page-ace-model:'+selectedPrinter);
-  return aceGenerations.includes(value)?value:'';
- }catch{return '';}
+/** Garde le texte de statut et la couleur synchronisés avec la dernière mesure. */
+function statusBadge(id,text,active){
+ const badge=$(id);
+ if(badge.textContent!==text)badge.textContent=text;
+ badge.classList.toggle('inactive',active===false);
+ badge.classList.toggle('offline',active==null);
 }
-$('ace-display-model').onchange=event=>{
- if(!selectedPrinter)return;
- try{
-  const key='cloud-page-ace-model:'+selectedPrinter;
-  if(aceGenerations.includes(event.target.value))localStorage.setItem(key,event.target.value);
-  else localStorage.removeItem(key);
- }catch{return;}
- if(snapshot?.printer)renderHardware(snapshot.printer);
-};
 /** La Kobra S1 Combo conserve ses illustrations même si le rapport omet la génération d’ACE. */
 function renderHardware(printer){
  const model=printer.machine_name||printer.name||'Imprimante';
  const box=printer.boxes?.[0];
- const reported=aceGenerations.includes(box?.model)?box.model:'';
- const preference=box&&!reported?aceDisplayPreference():'';
- const generation=reported||preference;
+ const generation=box?.model;
  const aceName=box?(generation||'Module ACE'):'Aucun module ACE';
  const setImage=(id,source)=>{
   const image=$(id);
@@ -119,8 +106,6 @@ function renderHardware(printer){
  const s1Combo=s1&&!!box&&(!generation||generation==='ACE 2 Pro');
  setImage('printer-illustration',s1Combo?'/icons/kobra-s1-ace2pro.png':'/icons/printer.svg');
  set('ace-model',aceName);
- $('ace-model-preference').hidden=!box||!!reported||!selectedPrinter;
- $('ace-display-model').value=preference;
  set('firmware-printer-model',model);
  set('firmware-ace-model',aceName);
  set('chart-ace-name',box?(generation||'Module ACE'):'Module ACE');
@@ -129,7 +114,7 @@ function renderHardware(printer){
  setImage('ace-illustration',s1Combo||generation==='ACE 2 Pro'?'/icons/ace2pro.png':generation==='ACE Pro'?'/icons/ace-pro.svg':'/icons/ace.svg');
 }
 /** Affiche l’état courant et autorise les commandes selon le projet, sans assimiler l’absence de données à un succès. */
-function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?'Hors ligne':p.job_is_paused?'En pause':p.is_busy?'Impression en cours':'Disponible';set('printer-status',state);$('job-name').dataset.tooltip=p.job_name||'Imprimante prête';set('job-name',p.job_name||(!p.printer_online?'L’imprimante est hors ligne.':p.is_busy?'Impression en cours':'Prête pour la prochaine création.'));set('job-state',p.job_name?({printing:'Impression en cours',paused:'Impression en pause',finished:'Impression terminée',completed:'Impression terminée'}[p.job_state]||fmt(p.job_state)):p.is_busy?'Le cloud n’a pas encore fourni le projet.':'Aucune impression en cours.');$('job-state').hidden=$('job-state').textContent===state;$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}
+function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?'Hors ligne':p.job_is_paused?'En pause':p.is_busy?'Impression en cours':'Disponible';statusBadge('printer-status',state,p.printer_online?p.job_is_paused?null:true:false);$('job-name').dataset.tooltip=p.job_name||'Imprimante prête';set('job-name',p.job_name||(!p.printer_online?'L’imprimante est hors ligne.':p.is_busy?'Impression en cours':'Prête pour la prochaine création.'));set('job-state',p.job_name?({printing:'Impression en cours',paused:'Impression en pause',finished:'Impression terminée',completed:'Impression terminée'}[p.job_state]||fmt(p.job_state)):p.is_busy?'Le cloud n’a pas encore fourni le projet.':'Aucune impression en cours.');$('job-state').hidden=$('job-state').textContent===state;$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}
  definition('job-stats',[['Temps écoulé',mins(p.job_time_elapsed)],['Temps restant',mins(p.job_time_remaining)],['Couches',p.job_current_layer==null?'—':`${p.job_current_layer} / ${p.job_total_layers??'—'}`]]);
  definition('temperatures',[['Buse actuelle / cible',`${fmt(p.curr_nozzle_temp,' °C')} / ${fmt(p.target_nozzle_temp,' °C')}`],['Plateau actuel / cible',`${fmt(p.curr_hotbed_temp,' °C')} / ${fmt(p.target_hotbed_temp,' °C')}`],['Ventilation pièce',fmt(p.fan_speed_pct,' %')],['Ventilation auxiliaire',fmt(p.aux_fan_speed_pct,' %')],['Ventilation enceinte',fmt(p.box_fan_level)]]);
  definition('details',[['Modèle',p.machine_name||'—'],['Micrologiciel',fmt(p.firmware)],['Temps total',fmt(p.statistics?.hours,' h')],['Nombre d’impressions',fmt(p.statistics?.print_count)],['Filament utilisé',String(p.statistics?.material??'—').replace(/([0-9.]+)\s*(kg|g)$/,(_,n,u)=>Number(n).toLocaleString(locale,{maximumFractionDigits:2})+' '+u)],...Object.entries(detailNames).filter(([key])=>p[key]!=null).map(([key,label])=>[label,key==='job_eta'?date(p[key]):fmt(p[key])])]);
@@ -159,10 +144,14 @@ function selectedBox(){return snapshot?.printer?.boxes?.[0]||null;}
 function boxData(){return {box:selectedBox()?.box_id??0};}
 /** Affiche les bobines et le séchage ; préserve une quantité nulle et distingue RFID d’une configuration manuelle. */
 function renderAce(p){
- const box=selectedBox();if(!box){set('ace-status','Aucun module ACE détecté.');$('spools').replaceChildren();return;}
- set('ace-status',box.drying?.is_drying?'Séchage en cours':snapshot.printer.printer_online?'Disponible':'Hors ligne');definition('ace-stats',[['Température',fmt(box.temperature,' °C')],['Humidité',fmt(box.humidity,' %')],['Relais automatique',box.auto_feed?'Activé':'Désactivé']]);
+ const box=selectedBox();if(!box){statusBadge('ace-status','Aucun module ACE détecté.',false);$('spools').replaceChildren();return;}
+ statusBadge('ace-status',!p.printer_online?'Hors ligne':box.drying?.is_drying?'Séchage en cours':'Disponible',!!p.printer_online);definition('ace-stats',[['Température',fmt(box.temperature,' °C')],['Humidité',fmt(box.humidity,' %')],['Relais automatique',box.auto_feed?'Activé':'Désactivé']]);
  $('spools').replaceChildren(...(box.spools||[]).map(s=>{const art=node('article',null,'slot'),sw=node('div',null,'swatch');if(Array.isArray(s.color))sw.style.backgroundColor=`rgb(${s.color.slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0))).join(',')})`;art.append(sw,node('h3',s.material_type||'Non renseigné'),node('p',`Emplacement ${s.display_slot??s.slot}`),node('p',Number.isInteger(box.loaded_slot)&&box.loaded_slot>=0&&box.loaded_slot===(s.local_slot??s.slot)-1?'● Bobine engagée':s.spool_loaded?'Filament présent':'Filament absent ou non détecté',Number.isInteger(box.loaded_slot)&&box.loaded_slot>=0&&box.loaded_slot===(s.local_slot??s.slot)-1?'engaged-spool':''),node('p',s.remaining_percent==null?'Quantité non renseignée':`${s.remaining_percent} % restants`));if(s.rfid===true)art.append(node('p','Anycubic · RFID reconnu','rfid-badge'));else if(s.rfid===false)art.append(node('p','Configuration manuelle','muted'));const edit=node('button',s.rfid===true?'Voir':'Modifier');edit.type='button';edit.title=s.rfid===true?'Consulter les informations RFID et gérer le chargement de cette bobine.':'Modifier le matériau, la couleur et le chargement de cet emplacement.';edit.onclick=()=>openSpool(s.local_slot||s.slot);art.append(edit);return art;}));
- const dry=box.drying||{};set('drying-state',dry.is_drying?`Séchage en cours à ${fmt(dry.target_temperature,' °C')}. Durée restante signalée : ${mins(dry.remaining_time)}.`:'Séchage inactif.');
+ const dry=box.drying||{};
+ const drying=typeof dry.is_drying==='boolean'?dry.is_drying:null;
+ statusBadge('drying-state',drying===true?'Séchage actif':drying===false?'Séchage inactif':'État du séchage inconnu',drying);
+ $('drying-detail').hidden=drying!==true;
+ if(drying)set('drying-detail',`${fmt(dry.target_temperature,' °C')} · Durée restante ${mins(dry.remaining_time)}`);
  if(document.activeElement!==$('auto-feed'))$('auto-feed').checked=!!box.auto_feed;
 
  if(!presetsReady){presetsReady=true;$('preset-fields').replaceChildren(...snapshot.presets.map((pr,i)=>{const fs=node('fieldset');fs.append(node('legend',`Préréglage ${i+1}`));for(const [key,label]of[['name','Nom'],['temperature','Température (°C)'],['hours','Durée (heures)']]){const l=node('label',label),input=node('input');input.name=`${i}-${key}`;input.value=pr[key];input.type=key==='name'?'text':'number';input.required=true;fs.append(l);l.append(input);}return fs;}));}
@@ -300,7 +289,7 @@ const commandHelp={pause:'Mettre l’impression en cours en pause.',resume:'Repr
 const fieldHelp={target_nozzle_temp:'Température cible de la buse, entre 0 et 320 °C.',target_hotbed_temp:'Température cible du plateau, entre 0 et 120 °C.',fan_speed_pct:'Ventilation de la pièce, entre 0 et 100 %. ',aux_fan_speed_pct:'Ventilateur auxiliaire, entre 0 et 100 %. ',box_fan_level:'Niveau de ventilation de l’enceinte accepté par Anycubic, de 0 à 3.',print_speed_mode:'Mode de vitesse appliqué à l’impression en cours.',slots:'Numéros des bobines de l’ACE, dans l’ordre des couleurs du G-code.',mode:'Choisir entre conserver le fichier dans le cloud et lancer son impression.'};for(const e of document.querySelectorAll('input[name],select[name]'))if(fieldHelp[e.name])e.title=fieldHelp[e.name];
 
 /** Préremplit la bobine sélectionnée ; les valeurs RFID restent consultables sans modification manuelle. */
-function fillSpool(slot){const form=$('spool-form'),data=selectedBox()?.spools?.find(s=>Number(s.local_slot||s.slot)===Number(slot));if(!data)return;form.elements.slot.value=String(slot);const material=form.elements.material;for(const option of [...material.options])if(option.dataset.detected)option.remove();if(data.material_type&&![...material.options].some(o=>o.value===data.material_type)){const option=new Option(data.material_type+' (détecté)',data.material_type);option.dataset.detected='true';option.disabled=true;material.add(option);}material.value=data.material_type||'PLA';form.elements.color.value='#'+(data.color||[150,150,150]).slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0)).toString(16).padStart(2,'0')).join('');set('spool-color-value',form.elements.color.value.toUpperCase());/* Les données RFID sont la référence de l’ACE et ne doivent pas être remplacées par le formulaire. */const automatic=data.rfid===true;form.elements.material.disabled=automatic;form.elements.color.disabled=automatic;form.querySelector('[type=submit]').hidden=automatic;set('spool-rfid-note',automatic?'Bobine Anycubic reconnue par RFID. Le matériau et la couleur sont fournis par l’ACE.':'');$('spool-rfid-note').hidden=!automatic;}
+function fillSpool(slot){const form=$('spool-form'),data=selectedBox()?.spools?.find(s=>Number(s.local_slot||s.slot)===Number(slot));if(!data)return;form.elements.slot.value=String(slot);const material=form.elements.material;for(const option of [...material.options])if(option.dataset.detected)option.remove();if(data.material_type&&![...material.options].some(o=>o.value===data.material_type)){const option=new Option(data.material_type+' (détecté)',data.material_type);option.dataset.detected='true';option.disabled=true;material.add(option);}material.value=data.material_type||'PLA';form.elements.color.value='#'+(data.color||[150,150,150]).slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0)).toString(16).padStart(2,'0')).join('');set('spool-color-value',form.elements.color.value.toUpperCase());/* Les données RFID sont la référence de l’ACE et ne doivent pas être remplacées par le formulaire. */const automatic=data.rfid===true;form.elements.material.disabled=automatic;form.elements.color.disabled=automatic;form.querySelector('[type=submit]').hidden=automatic;set('spool-rfid-note',automatic?'Bobine RFID · matière et couleur détectées.':'');$('spool-rfid-note').hidden=!automatic;}
 /** Ouvre les données du numéro local de bobine et place le focus sur sa sélection. */
 function openSpool(slot){fillSpool(slot);if(!$('spool-dialog').open)$('spool-dialog').showModal();$('spool-form').elements.slot.focus({preventScroll:true});}
 $('spool-form').elements.slot.onchange=e=>fillSpool(e.target.value);

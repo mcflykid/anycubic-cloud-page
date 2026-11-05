@@ -63,12 +63,7 @@ test('la Kobra S1 retrouve ses illustrations d’origine quand la génération A
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/icons/ace2pro.png');
  await expect(page.locator('#ace-model')).toHaveText('Module ACE');
- await page.locator('#ace-display-model').selectOption('ACE 2 Pro');
- await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
- await page.reload();
- await expect(page.locator('#printer-accessory')).toHaveText('ACE 2 Pro');
- await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
- await expect(page.locator('#ace-display-model')).toHaveValue('ACE 2 Pro');
+ await expect(page.locator('#ace-display-model')).toHaveCount(0);
 });
 
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{
@@ -133,4 +128,28 @@ test('la galerie timelapse conserve la recherche sur la page suivante',async({pa
  await expect(page.locator('#timelapse-list')).toContainText('Vidéo fictive 2');
  expect(queries.at(-1)).toEqual(['2','cube']);
  await expect(page.locator('#timelapse-next')).toBeDisabled();
+});
+
+
+test('les états utilisent les pastilles et l’aide du relais explique la bobine de secours',async({page})=>{
+ let drying=true;
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch();
+  const data=await response.json();
+  data.printer.boxes[0].drying.is_drying=drying;
+  await route.fulfill({response,json:data});
+ });
+ await login(page);
+ await expect(page.locator('#printer-status')).toHaveClass(/badge/);
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect(page.locator('#ace-status')).toHaveClass(/badge/);
+ await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
+ await page.locator('#go-drying').click();
+ await expect(page.locator('#drying-state')).toHaveText('Séchage actif');
+ await expect(page.locator('#drying-state')).not.toHaveClass(/inactive/);
+ await page.getByRole('button',{name:'Aide sur le relais automatique des bobines'}).click();
+ await expect(page.getByRole('tooltip')).toContainText('même matière et couleur');
+ drying=false;
+ await expect(page.locator('#drying-state')).toHaveText('Séchage inactif');
+ await expect(page.locator('#drying-state')).toHaveClass(/inactive/);
 });
