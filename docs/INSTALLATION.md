@@ -45,7 +45,7 @@ L’image `ghcr.io/mcflykid/anycubic-cloud-page:1.1.0` est fournie pour Linux am
 | `APPDATA_DIR` | `./appdata`, relatif au dossier Compose. |
 | `PUID`, `PGID` | `1000` ; propriétaire des données persistantes. |
 | `PRINTER_ID` | Facultatif ; sélection explicite si plusieurs imprimantes compatibles sont présentes. |
-| `PROXY_NETWORK` | Utilisé seulement avec `compose.proxy.yaml` ; réseau externe partagé avec votre proxy. |
+| `PROXY_NETWORK` | Nom du réseau du proxy ; renseigner aussi `PROXY_NETWORK_EXTERNAL=true`. |
 | `APP_IMAGE` | Image de la livraison ; permet de tester une image construite depuis les sources. |
 
 Sans `PRINTER_ID`, une unique Kobra S1 est sélectionnée. Plusieurs correspondances sont refusées. Les limites CPU, mémoire, privilèges et écritures sont définies pour le service. L’entrée démarre en root pour initialiser les propriétaires, puis `setpriv` lance le serveur avec `PUID:PGID`.
@@ -111,7 +111,7 @@ curl --fail http://127.0.0.1:8080/imprimante-api/health
 docker compose stop
 ```
 
-`health` vérifie le serveur web, pas la connexion cloud ni l’état physique de l’imprimante. Vérifiez ensuite les indicateurs Cloud/MQTT dans la page. Pour une mise à jour, adoptez le Compose de la livraison souhaitée, puis lancez `docker compose pull` et `docker compose up -d`, en conservant `APPDATA_DIR`. Utilisez les mêmes fichiers `-f` qu’au démarrage si vous avez activé les options réseau ou slicer.
+`health` vérifie le serveur web, pas la connexion cloud ni l’état physique de l’imprimante. Vérifiez ensuite les indicateurs Cloud/MQTT dans la page. Pour une mise à jour, adoptez le Compose de la livraison souhaitée, puis lancez `docker compose pull` et `docker compose up -d`, en conservant `APPDATA_DIR`. Utilisez le même fichier d’environnement et les options choisies pour le slicer à chaque commande.
 
 ## Retirer les mots de passe de l’environnement après préparation
 

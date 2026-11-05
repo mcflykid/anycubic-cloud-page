@@ -1,34 +1,45 @@
 # Reverse proxy existant
 
-L’application fournit HTTP sur le port interne 8080. Le HTTPS est assuré par votre proxy, installé séparément. **N’exposez jamais le port HTTP de l’application directement sur Internet.** N’ajoutez pas de `basic_auth` au proxy : l’application prend en charge la connexion web.
+L’application écoute en HTTP sur le port interne 8080. Votre proxy fournit HTTPS. **Ne publiez jamais le port HTTP directement sur Internet.** N’ajoutez pas de basic_auth : la connexion est gérée par l’application.
 
-Les exemples utilisent le domaine fictif `printer.example.com`. Remplacez-le par votre domaine. Configurez dans `.env` :
+Un seul `compose.yaml` couvre les deux modes. `APPDATA_DIR` vaut `./appdata` par défaut. Dans `.env`, `PUBLIC_ORIGIN` est l’origine exacte du navigateur, protocole, domaine et port éventuel, sans chemin ; le proxy ne doit pas réécrire Origin.
 
-```dotenv
-PUBLIC_ORIGIN=https://printer.example.com
-HOME_URL=/imprimante.html
-```
-
-`PUBLIC_ORIGIN` doit être l’origine exacte du navigateur : protocole, domaine et port éventuel, sans chemin. Une origine différente fait échouer les requêtes protégées. Le proxy transmet Host et le protocole public, sans réécrire l’en-tête Origin. Les exemples transmettent tout le site : `/imprimante.html`, `/imprimante-api/*`, `/about`, `/css/*`, `/js/*`, `/icons/*` `/login`, `/logout` et les routes de connexion. Ne retirez pas de préfixe de chemin.
-
-## Proxy installé sur l’hôte
-
-Le Compose de base fonctionne sans `PROXY_NETWORK` :
+## Proxy sur l’hôte
 
 ```dotenv
 BIND_ADDRESS=127.0.0.1
 WEB_PORT=8080
+PUBLIC_ORIGIN=https://printer.example.com
 ```
 
+Laissez PROXY_NETWORK et PROXY_NETWORK_EXTERNAL absents. Compose crée son réseau. La cible du proxy est `127.0.0.1:8080` ; adaptez-la si WEB_PORT change.
+
+## Proxy dans un conteneur
+
+Choisissez un réseau déjà partagé avec le proxy :
+
+```dotenv
+PROXY_NETWORK=proxy-shared
+PROXY_NETWORK_EXTERNAL=true
+PUBLIC_ORIGIN=https://printer.example.com
+```
+
+Les deux réglages sont nécessaires : le nom seul ne déclare pas un réseau externe. `external=true` empêche Compose d’en gérer le cycle de vie. Si le réseau n’existe pas, créez-le avec `docker network create proxy-shared` ou dans le Compose de votre proxy. La cible est `anycubic-cloud-page:8080`.
+
 ```sh
+docker compose config --quiet
 docker compose up -d
 ```
 
-La cible du proxy est `127.0.0.1:8080`. Si vous changez `WEB_PORT`, adaptez cette cible ; `PUBLIC_ORIGIN` reste l’adresse publique du proxy.
+Le port reste publié sur `127.0.0.1:8080` par défaut, même dans ce mode ; cela ne l’expose pas à Internet. Le réseau externe est conservé lors de `docker compose down`. Les installations CI vérifient aussi un réseau appartenant à un autre projet Compose.
 
-### Caddy sur l’hôte
+## Exemples pour un domaine dédié
 
-Ajoutez ce bloc au Caddyfile de votre proxy existant :
+Remplacez `printer.example.com`. Ces exemples transmettent tout le site, sans retirer de préfixe : page, /login, /logout, /about, /imprimante-api/*, /css/*, /js/* et /icons/*.
+
+### Caddy
+
+Proxy sur l’hôte :
 
 ```caddyfile
 printer.example.com {
@@ -36,84 +47,7 @@ printer.example.com {
 }
 ```
 
-### Nginx sur l’hôte
-
-Exemple de serveur HTTPS avec un certificat déjà présent :
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name printer.example.com;
-    ssl_certificate /etc/letsencrypt/live/printer.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/printer.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Adaptez les chemins du certificat à votre proxy. Son renouvellement relève de votre installation Nginx.
-
-### Traefik sur l’hôte
-
-Dans le fournisseur de fichiers de votre Traefik existant, ajoutez ce fichier dynamique. L’exemple suppose un point d’entrée HTTPS `websecure` et un résolveur de certificats `letsencrypt` déjà configurés ; adaptez leurs noms si nécessaire.
-
-```yaml
-http:
-  routers:
-    anycubic-cloud-page:
-      rule: "Host(`printer.example.com`)"
-      entryPoints: ["websecure"]
-      service: "anycubic-cloud-page"
-      tls:
-        certResolver: "letsencrypt"
-  services:
-    anycubic-cloud-page:
-      loadBalancer:
-        servers:
-          - url: "http://127.0.0.1:8080"
-```
-
-## Proxy dans un conteneur
-
-Téléchargez aussi [`compose.proxy.yaml`](../compose.proxy.yaml). Compose 2.24.4 ou supérieur est requis. Choisissez un réseau externe déjà partagé avec votre proxy :
-
-```dotenv
-PROXY_NETWORK=proxy-shared
-PUBLIC_ORIGIN=https://printer.example.com
-```
-
-Si le réseau n’existe pas, créez-le une seule fois :
-
-```sh
-docker network create proxy-shared
-```
-
-Dans le Compose de votre proxy, rattachez son service au même réseau, en conservant ses autres réseaux et ses réglages. Fragment à adapter au nom réel du service proxy :
-
-```yaml
-services:
-  proxy:
-    networks:
-      - "proxy"
-networks:
-  proxy:
-    external: true
-    name: "${PROXY_NETWORK:?Définissez le réseau partagé}"
-```
-
-Définissez `PROXY_NETWORK` aussi pour ce Compose, puis démarrez l’application :
-
-```sh
-docker compose -f compose.yaml -f compose.proxy.yaml up -d
-```
-
-**Aucun port n’est publié sur l’hôte dans ce mode.** `BIND_ADDRESS` et `WEB_PORT` ne s’appliquent plus ; la cible est `anycubic-cloud-page:8080`. L’application et le proxy doivent partager le réseau externe. Ce réseau reste géré séparément : arrêter l’application ne le supprime pas.
-
-### Caddy en conteneur
+Proxy dans un conteneur :
 
 ```caddyfile
 printer.example.com {
@@ -121,7 +55,18 @@ printer.example.com {
 }
 ```
 
-### Nginx en conteneur
+Sauvegardez le Caddyfile avant modification. Validez puis chargez explicitement la configuration :
+
+```sh
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+Pour Caddy dans un conteneur, exécutez ces commandes via `docker compose exec <service-proxy>`. Un simple `up -d` peut conserver le conteneur et ne recharge pas forcément un Caddyfile monté modifié. Une recréation ciblée avec `up -d --no-deps --force-recreate <service-proxy>` charge aussi le fichier, mais interrompt brièvement ce proxy.
+
+### Nginx
+
+Avec un certificat déjà présent :
 
 ```nginx
 server {
@@ -129,7 +74,6 @@ server {
     server_name printer.example.com;
     ssl_certificate /etc/letsencrypt/live/printer.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/printer.example.com/privkey.pem;
-
     location / {
         proxy_pass http://anycubic-cloud-page:8080;
         proxy_set_header Host $http_host;
@@ -138,11 +82,11 @@ server {
 }
 ```
 
-Les certificats doivent être montés dans votre conteneur Nginx. Démarrez l’application avant de recharger cette configuration pour que son nom soit résolu.
+Pour un proxy sur l’hôte, remplacez la cible par `http://127.0.0.1:8080`. Les certificats et leur renouvellement relèvent de votre Nginx. Démarrez l’application avant de valider avec `nginx -t`, puis rechargez avec `nginx -s reload`.
 
-### Traefik en conteneur
+### Traefik
 
-Utilisez le fournisseur de fichiers existant, sans demander l’accès au socket Docker pour cette application. Mêmes prérequis HTTPS que dans le cas hôte :
+Dans le fournisseur de fichiers de votre Traefik, avec un point d’entrée websecure et un résolveur letsencrypt déjà configurés :
 
 ```yaml
 http:
@@ -160,14 +104,79 @@ http:
           - url: "http://anycubic-cloud-page:8080"
 ```
 
-## Contrôles
+Sur l’hôte, remplacez la cible par `http://127.0.0.1:8080`. L’application ne nécessite pas d’accès au socket Docker du proxy.
 
-Vérifiez `docker compose ps -a`, puis la santé à travers le proxy :
+## Domaine partagé avec un site existant
 
-```sh
-curl --fail https://printer.example.com/imprimante-api/health
+Les chemins doivent appartenir sans ambiguïté à une application. L’atelier utilise des chemins absolus ; il ne peut pas être installé sous un préfixe arbitraire. Exemple Caddy :
+
+```caddyfile
+printer.example.com {
+    @atelier path /imprimante.html /login /logout /about /imprimante-api /imprimante-api/* /css/* /js/* /icons/*
+    handle @atelier {
+        reverse_proxy anycubic-cloud-page:8080
+    }
+    handle {
+        root * /srv/site
+        file_server
+    }
+}
 ```
 
-La santé reste publique. La page doit demander la connexion de l’application ; testez ensuite une lecture de statut. Une réponse de santé ne prouve pas la connexion au cloud. En cas d’erreur Origin, comparez l’adresse réelle du navigateur à `PUBLIC_ORIGIN` au lieu de désactiver la protection.
+Dans cet exemple, les ressources de l’autre site doivent utiliser leurs propres chemins, par exemple `/site-assets/*`. Si les deux sites utilisent `/css/landing.css`, un simple matcher ne peut pas deviner le propriétaire : séparez les chemins du site statique ou utilisez un sous-domaine dédié. Les en-têtes CSP et Referrer-Policy de l’autre site doivent être limités à son bloc, sans écraser ceux de l’application. Une CSP avec `form-action 'none'` bloque la connexion ; `Referrer-Policy: no-referrer` peut rendre Origin nul sur un formulaire. Conservez les en-têtes de sécurité de l’application et sa protection Origin.
 
-Références : [Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy), [Nginx proxy](https://nginx.org/en/docs/http/ngx_http_proxy_module.html), [Traefik HTTP](https://doc.traefik.io/traefik/reference/routing-configuration/http/routing/router/), [réseaux externes Compose](https://docs.docker.com/reference/compose-file/networks/#external).
+## Intégrer à une stack existante avec un .env central et DOCKERDIR
+
+Exemple générique d’arborescence : `/srv/containers/compose/anycubic-cloud-page/compose.yaml`, environnement central `/srv/containers/compose/.env`, données dans `/srv/containers/appdata/anycubic-cloud-page`.
+
+```dotenv
+# Variables déjà partagées entre les services.
+DOCKERDIR=/srv/containers
+PUID=1000
+PGID=1000
+TZ=Europe/Paris
+
+# Anycubic Cloud Page
+ANYCUBIC_EMAIL='votre-compte@example.com'
+ANYCUBIC_PASSWORD='votre-mot-de-passe-anycubic'
+ANYCUBIC_TOKEN=
+WEB_USER=admin
+WEB_PASSWORD='choisissez-un-mot-de-passe-web'
+PUBLIC_ORIGIN=https://printer.example.com
+HOME_URL=/imprimante.html
+PRINTER_ID=
+APPDATA_DIR=${DOCKERDIR}/appdata/anycubic-cloud-page
+PROXY_NETWORK=proxy-shared
+PROXY_NETWORK_EXTERNAL=true
+BIND_ADDRESS=127.0.0.1
+WEB_PORT=8080
+```
+
+Ne dupliquez pas les variables communes déjà définies. Vérifiez qu’une variable générique comme APPDATA_DIR n’est pas utilisée avec une autre signification dans les autres services. Gardez cet environnement en 600. La préparation permet ensuite de vider les mots de passe, selon le [guide d’installation](INSTALLATION.md).
+
+```sh
+docker compose --env-file /srv/containers/compose/.env -f /srv/containers/compose/anycubic-cloud-page/compose.yaml config --quiet
+docker compose --env-file /srv/containers/compose/.env -f /srv/containers/compose/anycubic-cloud-page/compose.yaml up -d
+```
+
+Un gestionnaire de stacks doit utiliser exactement ce fichier et cet environnement. Vérifiez aussi le montage `/appdata` et le réseau réellement présents dans `docker inspect`, sans publier l’environnement résolu. Des variables différentes peuvent créer un autre dossier de données alors que le conteneur est healthy.
+
+## Contrôles et diagnostic
+
+Sur l’hôte :
+
+```sh
+curl -A 'Mozilla/5.0' --silent --show-error --output /dev/null --write-out '%{url_effective} HTTP %{http_code}\n' http://127.0.0.1:8080/imprimante-api/health
+```
+
+À travers le proxy :
+
+```sh
+curl -A 'Mozilla/5.0' --silent --show-error --output /dev/null --write-out '%{url_effective} HTTP %{http_code}\n' https://printer.example.com/imprimante-api/health
+```
+
+La santé attendue est 200. Elle prouve HTTP, pas la connexion cloud. Vérifiez ensuite la connexion, le statut cloud et les [lectures authentifiées](INSTALLATION.md#contrôles-authentifiés-en-lecture). Un 403 public avec une santé locale valide peut venir du filtrage du User-Agent : comparez avec le navigateur avant de modifier l’application. Un 502 avec une application healthy indique souvent un réseau ou une cible proxy incorrects. Ne désactivez ni le filtrage ni Origin pour faire passer une sonde.
+
+Une recréation interrompt brièvement HTTP et invalide les sessions. Les lectures en cours peuvent recevoir 502 ; attendez healthy, reconnectez-vous et distinguez les erreurs de cette fenêtre des nouvelles erreurs. Conservez les traces, sans les effacer ni les noyer. Ne rejouez jamais automatiquement une commande physique après un résultat incertain.
+
+Références : [réseaux externes Compose](https://docs.docker.com/reference/compose-file/networks/#external), [Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy), [Nginx proxy](https://nginx.org/en/docs/http/ngx_http_proxy_module.html), [Traefik HTTP](https://doc.traefik.io/traefik/reference/routing-configuration/http/routing/router/).

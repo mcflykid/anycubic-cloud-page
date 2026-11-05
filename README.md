@@ -35,7 +35,7 @@ Docker Compose suffit. L’application prépare ses données au démarrage.
 
 `BIND_ADDRESS=127.0.0.1` et `WEB_PORT=8080` règlent l’écoute locale. Toutes les données persistantes restent dans `APPDATA_DIR=./appdata`. Dans Compose, écrivez `$$` pour un `$` littéral dans un mot de passe ; dans `.env`, utilisez des quotes simples. Ne publiez pas vos fichiers personnalisés.
 
-**N’exposez jamais ce port HTTP directement sur Internet.** Utilisez votre propre proxy HTTPS et réglez `PUBLIC_ORIGIN` sur l’origine publique exacte du navigateur. Le [guide reverse proxy](docs/REVERSE-PROXY.md) fournit les exemples Caddy, Nginx et Traefik, sur l’hôte ou en conteneur. Un proxy en conteneur utilise l’option [`compose.proxy.yaml`](compose.proxy.yaml), avec `PROXY_NETWORK` et aucun port hôte. [Guide d’installation complet](docs/INSTALLATION.md).
+**N’exposez jamais ce port HTTP directement sur Internet.** Utilisez votre propre proxy HTTPS et réglez `PUBLIC_ORIGIN` sur l’origine publique exacte du navigateur. Le [guide reverse proxy](docs/REVERSE-PROXY.md) fournit les exemples Caddy, Nginx et Traefik, sur l’hôte ou en conteneur. Un proxy en conteneur utilise le même Compose, avec `PROXY_NETWORK` et `PROXY_NETWORK_EXTERNAL=true`. Le port reste local par défaut. [Guide d’installation complet](docs/INSTALLATION.md).
 
 ## Suivi des travaux
 

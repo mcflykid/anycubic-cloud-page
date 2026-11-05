@@ -25,7 +25,7 @@ Docker Compose is sufficient; the project provides a single application service 
 
 `BIND_ADDRESS=127.0.0.1` and `WEB_PORT=8080` control the host listener. `APPDATA_DIR=./appdata` contains all persistent data. In Compose, write `$$` for a literal `$` in passwords; in `.env`, single-quote the values. Never publish customized credential files.
 
-**Never expose this HTTP port directly to the Internet.** Use your own HTTPS proxy and set `PUBLIC_ORIGIN` to the exact public browser origin. The [reverse proxy guide](docs/REVERSE-PROXY.md) provides Caddy, Nginx and Traefik examples for host and container proxies. A container proxy uses the optional [`compose.proxy.yaml`](compose.proxy.yaml), with `PROXY_NETWORK` and no host port. [Full installation guide](docs/INSTALLATION.md).
+**Never expose this HTTP port directly to the Internet.** Use your own HTTPS proxy and set `PUBLIC_ORIGIN` to the exact public browser origin. The [reverse proxy guide](docs/REVERSE-PROXY.md) provides Caddy, Nginx and Traefik examples for host and container proxies. A container proxy uses the same Compose with `PROXY_NETWORK` and `PROXY_NETWORK_EXTERNAL=true`. The host port remains local by default. [Full installation guide](docs/INSTALLATION.md).
 
 ## Work tracking
 
