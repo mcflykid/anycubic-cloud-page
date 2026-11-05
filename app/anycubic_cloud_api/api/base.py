@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import time
-from typing import Any, overload
+from typing import Any, BinaryIO, overload
 
 import aiohttp
 from aiofiles import open as aio_file_open
@@ -137,7 +138,7 @@ class AnycubicAPIBase:
         params: dict[str, Any] = {},
         extra_headers: dict[str, Any] = {},
         with_origin: str | None = AUTH_DOMAIN,
-        put_data: bytes | None = None,
+        put_data: bytes | BinaryIO | None = None,
     ) -> dict[Any, Any]: ...
 
     @overload
@@ -149,7 +150,7 @@ class AnycubicAPIBase:
         params: dict[str, Any] = {},
         extra_headers: dict[str, Any] = {},
         with_origin: str | None = AUTH_DOMAIN,
-        put_data: bytes | None = None,
+        put_data: bytes | BinaryIO | None = None,
         is_json: bool = True,
         return_url: bool = False,
     ) -> dict[Any, Any] | str: ...
@@ -162,7 +163,7 @@ class AnycubicAPIBase:
         params: dict[str, Any] | list[Any] | str | None = {},
         extra_headers: dict[str, Any] = {},
         with_origin: str | None = AUTH_DOMAIN,
-        put_data: bytes | None = None,
+        put_data: bytes | BinaryIO | None = None,
         is_json: bool = True,
         return_url: bool = False,
     ) -> dict[Any, Any] | str:
@@ -179,7 +180,8 @@ class AnycubicAPIBase:
             h_coro = self._session.post(url, params=query, data=data, headers=headers)
         elif method == HTTP_METHODS.PUT:
             # Le transfert signé suit sa taille, indépendamment des appels API courts.
-            transfer_seconds = min(3600, 120 + len(put_data or b'') / 32768)
+            size = len(put_data or b'') if isinstance(put_data, (bytes, type(None))) else os.fstat(put_data.fileno()).st_size
+            transfer_seconds = min(3600, 120 + size / 32768)
             h_coro = self._session.put(url, params=query, data=put_data, headers=headers,
                                        timeout=aiohttp.ClientTimeout(total=transfer_seconds, sock_connect=30, sock_read=120))
         else:
@@ -220,7 +222,7 @@ class AnycubicAPIBase:
             return str(response_url)
         return resp_data
 
-    async def _fetch_aws_put_resp(self, final_url: str, put_data: bytes) -> dict[Any, Any] | str:
+    async def _fetch_aws_put_resp(self, final_url: str, put_data: bytes | BinaryIO) -> dict[Any, Any] | str:
         resp = await self._fetch_ext_resp(
             method=HTTP_METHODS.PUT,
             base_url=final_url,

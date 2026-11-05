@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Adaptateur web autonome de l’API Anycubic avec suivi MQTT et commandes sérialisées."""
-import asyncio,base64,collections,contextlib,hashlib,json,logging,os,pathlib,re,secrets,threading,time
+import asyncio,base64,collections,contextlib,hashlib,json,logging,os,pathlib,re,secrets,threading,time,tempfile
 from datetime import datetime,timezone
 import aiohttp,ssl
 from aiohttp import web
+from aiofiles import open as aio_open
 from vendor_config import load_vendor_config
 load_vendor_config()
 from file_preview import find_project_preview_url
@@ -25,6 +26,8 @@ ROOT=pathlib.Path(__file__).parent
 FIELDS=json.loads((ROOT/'fields.json').read_text())
 ALLOWED_ORIGIN=os.environ.get('PUBLIC_ORIGIN','http://localhost:8080')
 COMMAND_READ_WAIT_SECONDS=30
+UPLOAD_LIMIT=100*1024*1024
+UPLOAD_STAGING=asyncio.Lock()
 def now():"""Renvoie un horodatage ISO en UTC pour comparer les mises à jour HTTP et MQTT.""";return datetime.now(timezone.utc).isoformat()
 def safeget(obj,key,default=None):
  """Renvoie un attribut imbriqué, ou default si le modèle cloud ne le fournit pas."""
@@ -695,33 +698,49 @@ async def upload(req):
  verify_origin(req)
  if not engine.printer:raise ValueError('Connexion en cours')
  if engine.command_lock.locked():raise ValueError('Une opération est déjà en cours')
- reader=await req.multipart();data={};content=None;filename=None
- async for part in reader:
-  if part.name=='file':
-   filename=pathlib.PurePath(part.filename or '').name
-   if not filename.lower().endswith('.gcode'):raise ValueError('Un fichier .gcode est requis')
-   content=bytearray()
-   while True:
-    chunk=await part.read_chunk(1048576)
-    if not chunk:break
-    content.extend(chunk)
-    if len(content)>100*1024*1024:raise ValueError('Fichier limité à 100 Mo')
-  else:data[part.name]=await part.text()
- if not content or not filename:raise ValueError('Fichier manquant')
- mode=data.get('mode','upload');rid=str(data.get('request_id',''))
- if not re.fullmatch(r'[a-zA-Z0-9-]{16,80}',rid):raise ValueError('Identifiant de commande manquant')
- if rid in engine.commands:return web.json_response(engine.commands[rid])
- async with command_operation(req):
-  engine.commands[rid]={'ok':False,'message':'Envoi déjà demandé ; résultat en attente'}
-  if mode=='upload':await engine.api.upload_file_to_cloud(file_name=filename,file_bytes=bytes(content))
-  elif mode in ['save-print','temp-print']:
-   if not engine.printer.is_available:raise ValueError('Imprimante non disponible')
-   slots=engine.slots({'slots':json.loads(data.get('slots','[]'))})
-   func=engine.printer.print_and_upload_save_in_cloud if mode=='save-print' else engine.printer.print_and_upload_no_cloud_save
-   await func(file_name=filename,file_bytes=bytes(content),slot_index_list=slots)
-  else:raise ValueError('Mode invalide')
-  engine.event('G-code', 'Envoi accepté')
-  result={'ok':True,'message':'Envoi accepté par Anycubic'};engine.commands[rid]=result;return web.json_response(result)
+ if UPLOAD_STAGING.locked():raise ValueError('Un envoi de fichier est déjà en cours')
+ # Le dossier d’état est sur le volume persistant, contrairement au /tmp en mémoire du conteneur.
+ async with UPLOAD_STAGING:
+  with tempfile.TemporaryDirectory(prefix='upload-',dir=engine.state_dir) as directory:
+   reader=await req.multipart()
+   data={};filename=None;size=0
+   path=pathlib.Path(directory)/'payload.gcode'
+   async for part in reader:
+    if part.name=='file':
+     if filename is not None:raise ValueError('Un seul fichier est accepté')
+     filename=pathlib.PurePath(part.filename or '').name
+     if not filename.lower().endswith('.gcode'):raise ValueError('Un fichier .gcode est requis')
+     async with aio_open(path,'wb') as output:
+      while chunk:=await part.read_chunk(256*1024):
+       size+=len(chunk)
+       if size>UPLOAD_LIMIT:raise ValueError('Fichier limité à 100 Mo')
+       await output.write(chunk)
+    elif part.name in ('mode','request_id','slots') and part.name not in data:
+     value=bytearray()
+     while chunk:=await part.read_chunk(8192):
+      value.extend(chunk)
+      if len(value)>8192:raise ValueError('Paramètre d’envoi trop long')
+     data[part.name]=value.decode('utf-8')
+    else:raise ValueError('Paramètre d’envoi invalide')
+   if not size or not filename:raise ValueError('Fichier manquant')
+   mode=data.get('mode','upload');rid=data.get('request_id','')
+   if not re.fullmatch(r'[a-zA-Z0-9-]{16,80}',rid):raise ValueError('Identifiant de commande manquant')
+   if rid in engine.commands:return web.json_response(engine.commands[rid])
+   if mode not in ('upload','save-print','temp-print'):raise ValueError('Mode invalide')
+   async with command_operation(req):
+    if rid in engine.commands:return web.json_response(engine.commands[rid])
+    if not engine.api:raise ValueError('Connexion en cours')
+    if mode!='upload':
+     if not engine.printer.is_available:raise ValueError('Imprimante non disponible')
+     slots=engine.slots({'slots':json.loads(data.get('slots','[]'))})
+    engine.commands[rid]={'ok':False,'message':'Envoi déjà demandé ; résultat en attente'}
+    if mode=='upload':await engine.api.upload_file_to_cloud(full_file_path=str(path),file_name=filename)
+    else:
+     func=engine.printer.print_and_upload_save_in_cloud if mode=='save-print' else engine.printer.print_and_upload_no_cloud_save
+     await func(full_file_path=str(path),file_name=filename,slot_index_list=slots)
+    engine.event('G-code','Envoi accepté')
+    result={'ok':True,'message':'Envoi accepté par Anycubic'};engine.commands[rid]=result
+    return web.json_response(result)
 
 async def sample_temperatures(app,selected=None,store=None):
  """Archive seulement les relevés récents d’une source nouvelle pour éviter les températures périmées."""

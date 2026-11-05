@@ -1,11 +1,10 @@
 """Cycle de réservation, transfert et validation d’un fichier dans le stockage cloud."""
 from __future__ import annotations
 
-import traceback
+import asyncio
 from os.path import basename as path_basename
 from typing import TYPE_CHECKING, Any
 
-from aiofiles import open as aio_file_open
 from aiofiles.os import path as aio_path
 
 from ..exceptions.error_strings import ErrorsCloudUpload
@@ -48,7 +47,7 @@ class AnycubicCloudUpload:
         if full_file_path is not None:
             self._full_file_path: str | None = full_file_path
             assert self._full_file_path
-            self._file_name: str | None = str(path_basename(self._full_file_path))
+            self._file_name: str | None = file_name or str(path_basename(self._full_file_path))
             self._file_bytes: bytes | None = None
             self._is_file: bool = True
         elif file_name is not None and file_bytes is not None:
@@ -173,8 +172,8 @@ class AnycubicCloudUpload:
             raise AnycubicAPIError(ErrorsCloudUpload.empty_file_size.format(self.file_name))
 
     def check_data_is_valid(self) -> None:
-        """Refuse un transfert sans contenu binaire chargé. Lève AnycubicAPIError si les données ou l’état requis sont invalides."""
-        if not self.valid_bytes:
+        """Refuse un transfert sans chemin ni contenu binaire. Lève AnycubicAPIError si les données ou l’état requis sont invalides."""
+        if not self._is_file and not self.valid_bytes:
             raise AnycubicAPIError(ErrorsCloudUpload.empty_file_bytes.format(self.file_name))
 
     def check_upload_succeeded(self) -> None:
@@ -197,13 +196,11 @@ class AnycubicCloudUpload:
             if not self.valid_check_available_bytes_decreased:
                 raise AnycubicAPIError(ErrorsCloudUpload.not_found_cloud.format(self.file_name))
 
-    async def async_read_file_bytes(self) -> None:
-        """Charge le fichier local si nécessaire et déduit sa taille des octets disponibles."""
-        if self._is_file:
-            assert self.full_file_path
-            async with aio_file_open(self.full_file_path, mode='rb') as f:
-                self.set_file_bytes(await f.read())
-        if self.file_bytes is not None:
+    async def async_measure_file(self) -> None:
+        """Déduit la taille avant réservation sans charger les fichiers locaux."""
+        if self.full_file_path:
+            self.set_file_size((await aio_path.stat(self.full_file_path)).st_size)
+        elif self.file_bytes is not None:
             self.set_file_size(len(self.file_bytes))
 
     async def async_lock_storage_space(self) -> None:
@@ -228,55 +225,49 @@ class AnycubicCloudUpload:
         )
 
     async def async_upload_and_set_cloud_file_id(self) -> None:
-        """Transfère vers le stockage signé puis enregistre le fichier ; mémorise les erreurs de transfert. Lève AnycubicAPIError si les données ou l’état requis sont invalides."""
+        """Transfère vers le stockage signé puis enregistre le fichier ; propage les erreurs de transfert. Lève AnycubicAPIError si les données ou l’état requis sont invalides."""
         if self._lock_data is None:
             raise AnycubicAPIError(ErrorsCloudUpload.missing_lock_data)
-        if self.file_bytes is None:
-            raise AnycubicAPIError(ErrorsCloudUpload.missing_file_bytes)
         if self.lock_file_id is None:
             raise AnycubicAPIError(ErrorsCloudUpload.missing_lock_file_id)
 
-        try:
-            await self._api_parent._fetch_aws_put_resp(
-                final_url=self._lock_data['preSignUrl'],
-                put_data=self.file_bytes,
-            )
+        url = self._lock_data['preSignUrl']
+        if self.full_file_path:
+            with open(self.full_file_path, 'rb') as source:
+                await self._api_parent._fetch_aws_put_resp(final_url=url, put_data=source)
+        elif self.file_bytes is not None:
+            await self._api_parent._fetch_aws_put_resp(final_url=url, put_data=self.file_bytes)
+        else:
+            raise AnycubicAPIError(ErrorsCloudUpload.missing_file_bytes)
 
-            cloud_file_id = await self._api_parent._claim_file_upload_from_aws(self.lock_file_id)
-
-            self.set_cloud_file_id(cloud_file_id)
-
-        except Exception as error:
-            tb = traceback.format_exc()
-            self._api_parent._log_to_debug(
-                f"Error during async_upload_and_set_cloud_file_id: {error}\n{tb}"
-            )
-            self.set_error(error)
+        cloud_file_id = await self._api_parent._claim_file_upload_from_aws(self.lock_file_id)
+        self.set_cloud_file_id(cloud_file_id)
 
     async def async_process_upload(self) -> int:
-        """Renvoie l’identifiant cloud après le cycle de réservation, transfert, libération et contrôle."""
+        """Renvoie l’identifiant cloud et tente la libération du quota même si le transfert échoue."""
         await self.async_check_path_is_valid()
-
-        await self.async_read_file_bytes()
-
+        await self.async_measure_file()
         self.check_data_is_valid()
-
         self.check_size_is_valid()
-
         await self.async_check_available_cloud_space()
-
         await self.async_lock_storage_space()
 
-        await self.async_upload_and_set_cloud_file_id()
-
-        self.check_upload_succeeded()
+        try:
+            await self.async_upload_and_set_cloud_file_id()
+        except (Exception, asyncio.CancelledError) as error:
+            self.set_error(type(error).__name__)
+            raise
+        finally:
+            try:
+                await self.async_unlock_storage_space()
+            except Exception as cleanup_error:
+                if self.upload_error is None:
+                    raise
+                # Une erreur de nettoyage ne doit pas masquer la cause du transfert.
+                self._api_parent._log_to_debug(
+                    'Libération du quota non confirmée (' + type(cleanup_error).__name__ + ')'
+                )
 
         assert self.cloud_file_id is not None
-
-        await self.async_unlock_storage_space()
-
-        self.check_upload_succeeded()
-
         await self.async_check_decreased_cloud_space()
-
         return self.cloud_file_id

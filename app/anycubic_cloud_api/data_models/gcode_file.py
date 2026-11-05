@@ -43,32 +43,29 @@ class AnycubicGcodeFile(UserDict[str, Any]):
     ) -> AnycubicGcodeFile:
         """Renvoie les métadonnées d’un chemin local ou de file_bytes UTF-8, à partir du marqueur de filament. Lève AnycubicGcodeParsingError si les données ou l’état requis sont invalides."""
         data_found = False
-        file_lines = list()
-        slicer_data = dict()
+        slicer_data = {}
 
-        if full_file_path is not None:
-            try:
-                async with aio_file_open(full_file_path, mode='r') as f:
-                    file_lines = await f.readlines()
-            except Exception as error:
-                raise AnycubicGcodeParsingError(ErrorsGcodeParsing.read_fail.format(error))
-        elif file_bytes is not None:
-            try:
-                file_lines = file_bytes.decode('utf-8').split('\n')
-            except Exception as error:
-                raise AnycubicGcodeParsingError(ErrorsGcodeParsing.byte_decode_fail.format(error))
-        else:
-            raise AnycubicGcodeParsingError(ErrorsGcodeParsing.invalid_path_and_bytes)
-
-        for line in file_lines:
-            if not data_found and line.startswith(GCODE_STRING_FIRST_ATTR_LINE):
+        def parse(line):
+            nonlocal data_found
+            if line.startswith(GCODE_STRING_FIRST_ATTR_LINE):
                 data_found = True
-            if not data_found:
-                continue
-            try:
+            if data_found:
                 slicer_data.update(gcode_key_value_pair_to_dict(REX_GCODE_DATA_KEY_VALUE, line))
-            except Exception as error:
-                raise AnycubicGcodeParsingError(ErrorsGcodeParsing.parse_meta_fail.format(error))
+
+        if full_file_path is None and file_bytes is None:
+            raise AnycubicGcodeParsingError(ErrorsGcodeParsing.invalid_path_and_bytes)
+        try:
+            if full_file_path is not None:
+                async with aio_file_open(full_file_path, mode='r') as source:
+                    while line := await source.readline(1024 * 1024 + 1):
+                        if len(line) > 1024 * 1024:
+                            raise ValueError('Ligne G-code trop longue')
+                        parse(line)
+            else:
+                for line in file_bytes.decode('utf-8').split('\n'):
+                    parse(line)
+        except (OSError, UnicodeError, ValueError, TypeError) as error:
+            raise AnycubicGcodeParsingError(ErrorsGcodeParsing.parse_meta_fail.format(type(error).__name__)) from None
 
         return cls(slicer_data)
 

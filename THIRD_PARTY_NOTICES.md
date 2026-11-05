@@ -21,3 +21,5 @@ Dépendance : `agora-rtc-sdk-ng` **4.24.9**, propriétaire de la publication npm
 Les illustrations locales Kobra S1/ACE sont des visuels non officiels créés pour cette interface avec assistance générative. Elles ne sont pas des logos officiels Anycubic. L’icône nuage du projet est un SVG original. Les captures publiques sont des captures du mode démonstration, avec données fictives.
 
 Anycubic, Kobra, ACE et Agora sont des marques de leurs titulaires. Le projet n’est ni affilié ni présenté comme un service officiel.
+
+Le client cloud intégré libère la réservation de quota après un échec ou une annulation du transfert (#58). Les fichiers locaux sont lus progressivement pour limiter la mémoire pendant les envois (#24).

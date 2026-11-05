@@ -1,5 +1,5 @@
 """Tests isolés : command lock, sans commande physique ni connexion au cloud."""
-import asyncio,importlib.util,json,pathlib,unittest
+import asyncio,importlib.util,json,pathlib,tempfile,tracemalloc,unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock,Mock
 
@@ -8,7 +8,7 @@ adapter=importlib.util.module_from_spec(spec);spec.loader.exec_module(adapter)
 
 class Part:
  """Partie multipart fictive pour tester les transferts sans fichier réel."""
- def __init__(self,name,value,filename=None):"""Initialise la doublure de test.""";self.name=name;self.value=value;self.filename=filename
+ def __init__(self,name,value,filename=None):"""Initialise la doublure de test.""";self.name=name;self.value=value.encode() if isinstance(value,str) else value;self.filename=filename
  async def text(self):"""Renvoie la valeur textuelle de cette partie multipart fictive.""";return self.value
  async def read_chunk(self,size):
   """Renvoie le contenu fictif une seule fois, pour reproduire une lecture multipart consommable."""
@@ -28,7 +28,8 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
  async def asyncSetUp(self):
   """Prépare les doublures et l’état asynchrone isolés pour chaque scénario."""
   self.previous=adapter.engine;self.timeout=adapter.COMMAND_READ_WAIT_SECONDS
-  self.engine=SimpleNamespace(lock=asyncio.Lock(),command_lock=asyncio.Lock(),commands={},action=AsyncMock(return_value='accepted'),event=Mock(),printer=SimpleNamespace(is_available=True),api=SimpleNamespace(upload_file_to_cloud=AsyncMock()))
+  staging=tempfile.TemporaryDirectory();self.addCleanup(staging.cleanup)
+  self.engine=SimpleNamespace(state_dir=pathlib.Path(staging.name),lock=asyncio.Lock(),command_lock=asyncio.Lock(),commands={},action=AsyncMock(return_value='accepted'),event=Mock(),printer=SimpleNamespace(is_available=True),api=SimpleNamespace(upload_file_to_cloud=AsyncMock()))
   adapter.engine=self.engine;adapter.COMMAND_READ_WAIT_SECONDS=.2
  async def asyncTearDown(self):"""Restaure l’état partagé et ferme les ressources ouvertes par le scénario.""";adapter.engine=self.previous;adapter.COMMAND_READ_WAIT_SECONDS=self.timeout
  def req(self,rid='command-test-0001'):
@@ -98,7 +99,9 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
   await self.engine.lock.acquire();task=asyncio.create_task(adapter.upload(self.upload_req()))
   await asyncio.sleep(0);self.engine.api.upload_file_to_cloud.assert_not_awaited()
   self.engine.lock.release();result=await task
-  self.assertTrue(json.loads(result.body)['ok']);self.engine.api.upload_file_to_cloud.assert_awaited_once_with(file_name='fixture.gcode',file_bytes=b'G28\n')
+  self.assertTrue(json.loads(result.body)['ok']);self.engine.api.upload_file_to_cloud.assert_awaited_once()
+  call=self.engine.api.upload_file_to_cloud.call_args.kwargs
+  self.assertEqual(call['file_name'],'fixture.gcode');self.assertFalse(pathlib.Path(call['full_file_path']).exists())
  async def test_upload_timeout_does_not_reserve_or_upload(self):
   """Vérifie que une attente expirée n’effectue ni transfert ni réservation de résultat."""
   adapter.COMMAND_READ_WAIT_SECONDS=.01;await self.engine.lock.acquire()
@@ -113,6 +116,43 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
   task=asyncio.create_task(adapter.upload(self.upload_req()));await entered.wait()
   with self.assertRaisesRegex(ValueError,'opération est en cours'):await adapter.command(self.req())
   self.engine.action.assert_not_awaited();finish.set();await task
+ async def test_large_upload_stages_in_bounded_chunks(self):
+  """Vérifie un transfert fictif de 100 Mio et mesure les allocations Python du traitement."""
+  chunk=b'G'*(256*1024)
+  remaining=400
+  async def read(size):
+   """Produit des blocs sans matérialiser le fichier de test en mémoire."""
+   nonlocal remaining
+   self.assertEqual(size,len(chunk))
+   if not remaining:return b''
+   remaining-=1
+   return chunk
+  file=Part('file',b'','fixture.gcode');file.read_chunk=read
+  req=self.upload_req();req.multipart.return_value=Parts([file,Part('request_id','large-upload-0001')])
+  async def transfer(full_file_path,file_name):
+   """Observe le fichier préparé sans déclencher un transfert réel."""
+   self.assertEqual(pathlib.Path(full_file_path).stat().st_size,100*1024*1024)
+   self.assertEqual(file_name,'fixture.gcode')
+  self.engine.api.upload_file_to_cloud.side_effect=transfer
+  tracemalloc.start()
+  try:
+   await adapter.upload(req)
+   peak=tracemalloc.get_traced_memory()[1]
+  finally:tracemalloc.stop()
+  self.assertLess(peak,5*1024*1024)
+  self.assertEqual(list(self.engine.state_dir.iterdir()),[])
+ async def test_upload_cancellation_removes_staged_file(self):
+  """La fermeture de la requête libère le disque et garde la référence d’un envoi incertain."""
+  entered=asyncio.Event()
+  async def transfer(**kwargs):
+   """Suspend le transfert fictif après la réservation locale."""
+   entered.set();await asyncio.Event().wait()
+  self.engine.api.upload_file_to_cloud.side_effect=transfer
+  task=asyncio.create_task(adapter.upload(self.upload_req()))
+  await entered.wait();task.cancel()
+  with self.assertRaises(asyncio.CancelledError):await task
+  self.assertEqual(list(self.engine.state_dir.iterdir()),[])
+  self.assertFalse(self.engine.commands['upload-test-00001']['ok'])
  async def test_cached_command_reply_works_while_another_operation_runs(self):
   """Vérifie que un résultat déjà connu reste consultable pendant une autre opération."""
   cached={'ok':True,'message':'previously accepted'};self.engine.commands['command-test-0001']=cached
