@@ -1,5 +1,5 @@
 """Cibles par requête et collectes indépendantes pour les imprimantes d’un même compte."""
-import asyncio,contextlib,hashlib,pathlib,time
+import asyncio,contextlib,hashlib,json
 from aiohttp import web
 from cloud_extras import CloudExtras
 from temperature_history import TemperatureHistory
@@ -35,9 +35,12 @@ class PrinterRegistry:
  async def resolve(self,key,require_explicit=False):
   """Résout une cible autorisée ; une mutation sans cible ou une clé périmée est refusée sans repli."""
   rows=self.catalogue()
-  if require_explicit and not key:raise web.HTTPConflict(text='Une imprimante explicite est requise. Actualisez la page.')
-  if key and key not in rows:raise web.HTTPConflict(text='Cette imprimante n’est plus disponible dans le compte. Actualisez la page.')
-  if not key:return self.default
+  if require_explicit and not key:raise web.HTTPConflict(text=json.dumps({'ok':False,'message':'Une imprimante explicite est requise. Actualisez la page.'}),content_type='application/json')
+  if key and key not in rows:raise web.HTTPConflict(text=json.dumps({'ok':False,'message':'Cette imprimante n’est plus disponible dans le compte. Actualisez la page.'}),content_type='application/json')
+  if not key:
+   if self.default.printer and printer_key(self.default.printer.id) in rows:return self.default
+   key=next(iter(rows),None)
+   if key is None:return self.default
   if self.default.printer and key==printer_key(self.default.printer.id):return self.default
   async with self.lock:
    if key not in self.entries:
@@ -51,8 +54,9 @@ class PrinterRegistry:
    return self.entries[key]
  def owner(self,device_key):
   """Résout le destinataire d’un rapport sans publier sa clé privée ni toucher aux autres caches."""
+  allowed=self.catalogue()
   for selected in [self.default,*self.entries.values()]:
-   if selected.printer and str(selected.printer.key)==str(device_key):return selected
+   if selected.printer and printer_key(selected.printer.id) in allowed and str(selected.printer.key)==str(device_key):return selected
   return None
  def subscribe(self,selected):
   """Ajoute le modèle au client MQTT unique ; le protocole interdit des clients homonymes concurrents."""
@@ -63,7 +67,10 @@ class PrinterRegistry:
   if previous is None and api._mqtt_client and api._mqtt_client.is_connected():api._mqtt_subscribe_printer_status(printer)
  def restore_subscriptions(self):
   """Une nouvelle session MQTT retrouve les modèles déjà suivis, sans recréer les moteurs."""
-  allowed=self.catalogue()
+  allowed=self.catalogue();api=self.default.api
+  if api:
+   for printer in list(api._mqtt_subscribed_printers.values()):
+    if printer_key(printer.id) not in allowed:api.mqtt_unsubscribe_printer_status(printer)
   for selected in [self.default,*self.entries.values()]:
    if selected.printer and printer_key(selected.printer.id) in allowed:self.subscribe(selected)
  async def connect_secondary(self,selected):

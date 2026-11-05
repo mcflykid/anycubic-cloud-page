@@ -83,6 +83,14 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
   newer=SimpleNamespace(_fetch_api_resp=AsyncMock(return_value={'code':1,'data':'renewed'}));self.root.api=newer
   self.assertEqual(await second.api._fetch_api_resp('fixture'),{'code':1,'data':'renewed'})
   self.root.session.close.assert_not_awaited();api.disconnect_mqtt.assert_not_called()
+ async def test_removed_default_keeps_transport_and_falls_back_to_secondary_model(self):
+  """Le retrait du défaut ne recycle pas son identité et ne coupe pas la session commune des autres machines."""
+  self.root.catalogue_source=True;self.root.pinned_id='1';client=Mock();client.is_connected.return_value=False
+  api=SimpleNamespace(_mqtt_client=client,_mqtt_subscribed_printers={'fixture-a':self.a},list_my_printers=AsyncMock(side_effect=[[self.b],[self.a,self.b]]),disconnect_mqtt=Mock(),_mqtt_subscribe_printer_status=Mock())
+  api.mqtt_unsubscribe_printer_status=Mock(side_effect=lambda p:api._mqtt_subscribed_printers.pop(p.key,None));self.root.api=api
+  await self.root.refresh_catalogue();self.assertIsNone(self.root.printer);self.assertTrue(self.root.transport_only);self.assertEqual(self.root.pinned_id,'1')
+  second=await self.registry.resolve(None);await asyncio.sleep(0);self.assertIsNot(second,self.root);self.assertEqual(second.printer.id,2);self.assertEqual(self.registry.choices()['default'],printer_key(2));self.assertIsNone(self.registry.owner('fixture-a'))
+  await self.root.refresh_catalogue();self.assertIs(self.root.printer,self.a);self.assertFalse(self.root.transport_only);api.disconnect_mqtt.assert_not_called()
  async def test_catalogue_contains_no_raw_cloud_ids(self):
   """Seuls noms et références hachées sont nécessaires à la liste du navigateur."""
   result=self.registry.choices();self.assertEqual(result['default'],printer_key(1));self.assertEqual(set(result['items'][0]),{'key','name'});self.assertEqual(len(result['items']),2)
@@ -98,6 +106,13 @@ class EngineSelection(unittest.IsolatedAsyncioTestCase):
    await e.connect();self.assertIs(e.printer,a);self.assertEqual(e.pinned_id,'1')
    with self.assertRaises(RuntimeError):await e.connect()
   self.assertIsNone(e.printer);b.update_info_from_api.assert_not_awaited()
+ async def test_transport_only_owner_does_not_reconnect_every_minute(self):
+  """Une machine retirée n’entraîne pas des coupures répétées du client partagé déjà authentifié."""
+  e=adapter.Engine();e.catalogue_source=True;e.pinned_id='1';e.transport_only=True;e.account_token='fixture';e.account=SimpleNamespace(token=AsyncMock(return_value='fixture'));e.session=object();e.fleet_registry=SimpleNamespace(default=e,restore_subscriptions=Mock())
+  e.api=SimpleNamespace(list_my_printers=AsyncMock(return_value=[SimpleNamespace(id=2)]),disconnect_mqtt=Mock());e.connect=AsyncMock();e.mqtt_start=Mock();e.print_history=AsyncMock(return_value={})
+  with patch.object(adapter.asyncio,'sleep',side_effect=asyncio.CancelledError):
+   with self.assertRaises(asyncio.CancelledError):await e.poll()
+  e.connect.assert_not_awaited();e.api.disconnect_mqtt.assert_not_called();e.mqtt_start.assert_called_once();self.assertIsNone(e.printer)
  def test_mqtt_capture_belongs_to_its_engine_only(self):
   """Une réponse d’une autre clé ne contamine pas le cache d’un moteur, même avec un msgid identique."""
   owner=adapter.Engine();owner.printer=SimpleNamespace(key='fixture-a');other=adapter.Engine();api=object.__new__(adapter.CloudPageAPI);api.cloud_engine=owner

@@ -96,7 +96,7 @@ class Engine:
  """Coordonne l’état cloud, le suivi MQTT et les commandes de l’interface."""
  def __init__(self):
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
-  self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False
+  self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False;self.transport_only=False
   self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1
   self.command_lock=asyncio.Lock()
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
@@ -161,21 +161,35 @@ class Engine:
   if self.selected_id and (not candidates or str(candidates[0].id)!=str(self.selected_id)) and not self.catalogue_source:raise RuntimeError('Imprimante sélectionnée absente du compte')
   self.printer=candidates[0] if candidates else None
   if self.printer:self.pinned_id=str(self.printer.id)
-  if self.printer is None:raise RuntimeError('Imprimante absente')
+  if self.printer is None:
+   if self.catalogue_source and getattr(self,'fleet_registry',None):self.transport_only=True;self.mqtt_start();return
+   raise RuntimeError('Imprimante absente')
   await self.printer.update_info_from_api()
   self.api.mqtt_add_subscribed_printer(self.printer)
   self.mqtt_start()
+ async def refresh_catalogue(self):
+  """Le retrait du défaut libère son modèle, pas le transport partagé ; son identité n’est jamais réaffectée."""
+  if not self.catalogue_source or self.api is None:return
+  self.known_printers=await self.api.list_my_printers();rows={str(p.id):p for p in self.known_printers}
+  if self.printer and str(self.printer.id) not in rows:
+   self.api.mqtt_unsubscribe_printer_status(self.printer);self.printer=None;self.transport_only=True
+  if self.transport_only and getattr(self,'pinned_id',None) in rows:
+   self.printer=rows[self.pinned_id];self.transport_only=False
+  if getattr(self,'fleet_registry',None):self.fleet_registry.restore_subscriptions()
  async def poll(self):
-  """Actualise l’état chaque minute ; conserve un état d’erreur affichable en cas d’échec cloud."""
+  """Actualise chaque cible et le catalogue du compte, sans changer l’identité d’un moteur existant."""
   while True:
    try:
     async with self.lock:
-     if not self.api or not self.printer or (not getattr(self,'fleet_registry',None) or self is self.fleet_registry.default) and await self.account.token(self.session)!=self.account_token:await self.connect()
-     else:await self.printer.update_info_from_api()
-     self.raw_info=(await self.api.printer_info_for_id(self.printer.id,raw_data=True)).get('data') or {};self.updated=now();self.ok=True;self.error=None
+     primary=not getattr(self,'fleet_registry',None) or self is self.fleet_registry.default
+     if self.catalogue_source and self.api:await self.refresh_catalogue()
+     reconnect=not self.api or (not self.printer and not self.transport_only) or primary and await self.account.token(self.session)!=self.account_token
+     if reconnect:await self.connect()
+     elif self.printer:await self.printer.update_info_from_api()
+     self.raw_info=(await self.api.printer_info_for_id(self.printer.id,raw_data=True)).get('data') or {} if self.printer else {}
+     self.updated=now();self.ok=bool(self.printer);self.error=None if self.printer else 'Choisissez une imprimante disponible dans le compte.'
      if self.mqtt_auth_pending:await self.restart_mqtt_auth(self.api)
      self.mqtt_start()
-     if self.catalogue_source:self.known_printers=await self.api.list_my_printers()
      try:await self.print_history(1);self.notifications_error=None
      except Exception:self.notifications_error='Messages temporairement indisponibles'
    except Exception as e:
