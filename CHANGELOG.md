@@ -2,6 +2,8 @@
 
 ## À publier
 
+- Actions GitHub mises à jour après validation individuelle des CI Dependabot, sans publication d’image sur les fusions (#26).
+
 - Nom de téléchargement du modèle d’environnement précisé pour les pièces jointes de release (#25).
 
 - Liens de suivi, règles de contribution et badges de release, issues, milestone et dernier commit dans les README (#18).
