@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from typing import Any
+from time import monotonic
+from math import ceil
 
 from ..exceptions.error_strings import ErrorsDataParsing
 from ..exceptions.exceptions import AnycubicDataParsingError
@@ -371,6 +373,7 @@ class AnycubicDryingStatus:
         "_target_temp",
         "_duration",
         "_remain_time",
+        "_expires_at",
     )
 
     def __init__(
@@ -379,30 +382,38 @@ class AnycubicDryingStatus:
         target_temp: int,
         duration: int,
         remain_time: int,
+        *,
+        count_down: bool = False,
     ) -> None:
-        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        """Initialise le séchage ; count_down active une échéance monotone à partir de remain_time en minutes."""
         self._status = int(status)
         self._target_temp = int(target_temp)
         self._duration = int(duration)
         self._remain_time = int(remain_time)
+        self._expires_at = monotonic() + self._remain_time * 60 if count_down and self._remain_time > 0 else None
 
     @classmethod
-    def from_json(cls, data: dict[str, Any] | None) -> AnycubicDryingStatus | None:
+    def from_json(
+        cls, data: dict[str, Any] | None, *, duration_in_seconds: bool = False, count_down: bool = False,
+    ) -> AnycubicDryingStatus | None:
         """Construit AnycubicDryingStatus depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
         if data is None:
             return None
 
+        duration = int(data.get('duration', 0))
+        data.get('humidity')
         return cls(
             status=data['status'],
             target_temp=data.get('target_temp', 0),
-            duration=data.get('duration', 0),
+            duration=duration // 60 if duration_in_seconds else duration,
             remain_time=data.get('remain_time', 0),
+            count_down=count_down,
         )
 
     @property
     def is_drying(self) -> bool:
         """Indique si le séchage ACE est actif."""
-        return self._status == 1
+        return self._status == 1 and (self._expires_at is None or monotonic() < self._expires_at)
 
     @property
     def raw_status_code(self) -> int:
@@ -422,6 +433,8 @@ class AnycubicDryingStatus:
     @property
     def remaining_time(self) -> int:
         """Temps de séchage restant en minutes."""
+        if self._status == 1 and self._expires_at is not None:
+            return max(0, ceil((self._expires_at - monotonic()) / 60))
         return self._remain_time if self.is_drying else 0
 
     def __repr__(self) -> str:
@@ -584,9 +597,14 @@ class AnycubicMultiColorBox:
         """Mémorise l’état du remplacement automatique annoncé pour le boîtier."""
         self._auto_feed = int(auto_feed)
 
-    def set_drying_status(self, drying_status: dict[str, Any] | None) -> None:
-        """Reconstruit l’état de séchage depuis les données constructeur reçues."""
-        self._drying_status = AnycubicDryingStatus.from_json(drying_status)
+    def set_drying_status(
+        self, drying_status: dict[str, Any] | None, *, duration_in_seconds: bool = False, count_down: bool = False,
+    ) -> AnycubicDryingStatus | None:
+        """Renvoie le nouvel état ; les rapports Kobra X peuvent exprimer duration en secondes et nécessiter un décompte local."""
+        self._drying_status = AnycubicDryingStatus.from_json(
+            drying_status, duration_in_seconds=duration_in_seconds, count_down=count_down,
+        )
+        return self._drying_status
 
     def set_feed_status(self, feed_status: dict[str, Any] | None) -> None:
         """Reconstruit l’état de chargement depuis les données constructeur reçues."""

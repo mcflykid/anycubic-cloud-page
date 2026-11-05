@@ -1,0 +1,59 @@
+"""Régressions de firmwares récents sur rapports synthétiques, sans transport physique."""
+import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock,patch
+from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData as Data
+from anycubic_cloud_api.data_models.printer_properties import AnycubicDryingStatus,AnycubicMultiColorBox
+from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
+import server
+
+class RecentReports(unittest.TestCase):
+ """Préserve les états machine et ACE malgré les rapports partiels et les phases nouvelles."""
+ def setUp(self):
+  """Construit un vrai modèle avec transport neutralisé, pas une imprimante connectée."""
+  self.p=AnycubicPrinter(api_parent=Mock(),machine_type=20025,machine_name='Anycubic Kobra S1',id=1,device_status=1,ignore_init_errors=True)
+ def test_preparation_is_busy_and_terminal_project_is_not_revived(self):
+  """Toutes les phases connues interdisent une machine libre ; un rapport tardif respecte la fin."""
+  phases=['nozzle_purging','nozzle_heating','nozzle_cooling','nozzle_cooling_off','nozzle_wiping','hotbed_heating','hotbed_cooling_off','auto_leveling','z_offset_calibrating','frequency_sweeping','filament_cutting','extfilbox_filament_feeding','extfilbox_filament_unfeeding','ace_filament_feeding','ace_filament_unfeeding']
+  for phase in phases:
+   self.p._is_printing=1;self.p._process_mqtt_update_print('start',phase,Data({'data':{'taskid':1}}));self.assertTrue(self.p.is_busy,phase)
+  self.p._latest_project=SimpleNamespace(id=1,print_complete=True,print_failed=False);self.p._is_printing=1
+  self.p._process_mqtt_update_print('start','nozzle_cooling',Data({'data':{'taskid':1}}));self.assertFalse(self.p.is_busy)
+ def test_partial_drying_and_feed_reports_preserve_previous_values(self):
+  """Omettre temp ou feed_status ne détruit pas les autres états reçus."""
+  box=AnycubicMultiColorBox(id=0,status=1,model_id=1,curr_nozzle_temp=None,target_nozzle_temp=None,auto_feed=0,loaded_slot=0,slots=[],temp=35,feed_status=None,drying_status=None)
+  self.p._multi_color_box=[box]
+  self.p._process_mqtt_update_multicolorbox('setDry','success',Data({'data':{'multi_color_box':[{'id':0,'drying_status':{'status':1,'target_temp':45,'duration':240,'remain_time':120}}]}}))
+  self.assertEqual(box.current_temperature,35);self.assertTrue(box.drying_status.is_drying)
+  self.p._process_mqtt_update_multicolorbox('feedFilament','done',Data({'data':{'multi_color_box':[{'id':0,'loaded_slot':2}]}}));self.assertEqual(box.loaded_slot,2)
+ def test_informative_reports_and_fan_query(self):
+  """Les formats connus sont consommés sans inventer une bobine ni une erreur de protocole."""
+  for typ,action,data in [('extrudeControl','getInfo',{'current_status':0,'has_filaments':False}),('properties','report',{'hardware_settings':{'diameter':0.4,'material':0}}),('extfilbox','auto',{'ext_spool':False,'current_filament':0}),('extfilbox','getInfo',{'auto_refill':0}),('fan','query',{'fan_speed_pct':30})]:
+   self.p.process_mqtt_update('',Data({'type':typ,'action':action,'state':'done','data':data}))
+  self.assertEqual(self.p._fan_speed,30);self.assertIsNone(self.p.external_shelves)
+ def test_camera_failure_is_explicit_and_sanitized(self):
+  """Un échec caméra n’est pas un rapport inconnu et ne reflète pas de message fournisseur."""
+  with self.assertRaisesRegex(AnycubicAPIError,'Échec de la capture'):
+   self.p.process_mqtt_update('',Data({'type':'video','action':'startCapture','state':'pushFailed','code':'fixture-private-code','data':{}}))
+  e=server.Engine();e.printer=SimpleNamespace(key='fake-device');e.camera_message_id='fake-msg'
+  e.receive_video_reply('anycubic/anycubicCloud/v1/printer/app/20025/fake-device/report',{'type':'video','action':'startCapture','state':'pushFailed','msgid':'fake-msg'})
+  self.assertEqual(e.camera_diagnostic['stage'],'pushFailed')
+ def test_kobra_x_phases_do_not_affect_s1(self):
+  """Les codes spécifiques X ne modifient pas l’interprétation des modèles S1."""
+  self.p._is_printing=2
+  for phase in [19,26,27,29,30]:
+   self.p._latest_project=SimpleNamespace(raw_print_status=phase,progress_percentage=0,print_current_layer=0,print_in_progress=False)
+   self.assertFalse(self.p.latest_project_print_in_progress)
+   self.p._machine_type=20030
+   self.assertEqual(self.p.latest_project_print_in_progress,phase!=26)
+   self.p._machine_type=20025
+ def test_kobra_x_seconds_and_countdown_preserve_s1_minutes(self):
+  """Le décompte et la conversion sont activés pour X seulement, sans extrapolation générale."""
+  box=AnycubicMultiColorBox(id=0,status=1,model_id=1,curr_nozzle_temp=None,target_nozzle_temp=None,auto_feed=0,loaded_slot=0,slots=[],temp=35,feed_status=None,drying_status=None)
+  data={'status':1,'target_temp':45,'duration':14400,'remain_time':240}
+  self.p._machine_type=20030;self.p._mqtt_drying_statuses[0]=AnycubicDryingStatus(1,45,240,240)
+  with patch('anycubic_cloud_api.data_models.printer_properties.monotonic',return_value=100):self.p._update_mqtt_drying_status(box,Data(data),'autoUpdateDryStatus')
+  with patch('anycubic_cloud_api.data_models.printer_properties.monotonic',return_value=100):self.assertEqual(box.drying_status.total_duration,240)
+  with patch('anycubic_cloud_api.data_models.printer_properties.monotonic',return_value=220):self.assertEqual(box.drying_status.remaining_time,238)
+  self.p._machine_type=20025;self.p._update_mqtt_drying_status(box,Data(data),'autoUpdateDryStatus');self.assertEqual(box.drying_status.total_duration,14400)

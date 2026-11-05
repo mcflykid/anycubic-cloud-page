@@ -105,7 +105,7 @@ class Engine:
   """Ne retient que l’étape connue de la session vidéo courante et de cette machine, sans payload privé."""
   if not self.printer or get_part_from_mqtt_topic(topic,6)!=str(self.printer.key) or payload.get('type')!='video' or payload.get('action')!='startCapture':return
   if self.camera_message_id is None or str(payload.get('msgid'))!=str(self.camera_message_id):return
-  stages={'done':(0,'Demande vidéo acquittée'),'initSuccess':(1,'Initialisation vidéo confirmée'),'joinSuccess':(2,'Jonction au canal vidéo confirmée'),'pushStarted':(3,'Envoi de la vidéo démarré'),'pushStoped':(4,'Envoi de la vidéo arrêté')}
+  stages={'done':(0,'Demande vidéo acquittée'),'initSuccess':(1,'Initialisation vidéo confirmée'),'joinSuccess':(2,'Jonction au canal vidéo confirmée'),'pushStarted':(3,'Envoi de la vidéo démarré'),'pushStoped':(4,'Envoi de la vidéo arrêté'),'pushFailed':(5,'La capture vidéo a échoué côté imprimante')}
   stage=stages.get(payload.get('state'))
   if stage and stage[0]>=self.camera_stage:self.camera_stage=stage[0];self.camera_diagnostic={'stage':payload['state'],'message':stage[1]}
  def mqtt_changed(self):"""Marque la fraîcheur des données lors d’une notification MQTT.""";self.mqtt_update=now()
