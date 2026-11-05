@@ -3,6 +3,8 @@ import asyncio,unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock,Mock
 from session_api import SessionRecovery,CloudSessionAuthError
+from anycubic_cloud_api.api.base import AnycubicAPIBase
+from types import SimpleNamespace
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError
 
 class Transport:
@@ -21,6 +23,12 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual((await c._fetch_api_resp('rename',params={'name':'test'}))['data'],'ok')
   c._get_user_token_with_access_token.assert_awaited_once();done.assert_called_once_with(c)
   self.assertEqual(c.send.await_args_list[0],c.send.await_args_list[1])
+ async def test_session_exchange_diagnostics_never_echo_provider_payload(self):
+  """Un refus de session peut contenir un secret dans msg ; journaux et exception restent génériques."""
+  for response in [None,{}, {'code':10001,'msg':'fixture-private-token','data':None},{'code':1,'data':{'token':{'secret':'fixture-private-token'}}}]:
+   c=SimpleNamespace(anycubic_auth=SimpleNamespace(auth_access_token_payload={},set_auth_token=Mock()),_fetch_api_resp=AsyncMock(return_value=response),_log_to_debug=Mock())
+   with self.assertRaises(AnycubicAuthError) as caught:await AnycubicAPIBase._get_user_token_with_access_token(c)
+   self.assertNotIn('fixture-private',str(caught.exception));self.assertNotIn('fixture-private',str(c._log_to_debug.call_args));c.anycubic_auth.set_auth_token.assert_not_called()
  async def test_ambiguous_failure_never_retried(self):
   """Vérifie que une erreur ambiguë ne provoque jamais de nouvel envoi."""
   for error in [TimeoutError(),ValueError('unreadable')]:

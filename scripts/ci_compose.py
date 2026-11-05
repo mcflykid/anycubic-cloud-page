@@ -7,7 +7,9 @@ SERVICE='anycubic-cloud-page'
 def execute(arguments,cwd,env,label):
  """Renvoie la sortie capturée ; RuntimeError indique seulement l’étape, jamais une configuration privée."""
  result=subprocess.run(arguments,cwd=cwd,env=env,capture_output=True,text=True)
- if result.returncode:raise RuntimeError(label+' a échoué (code '+str(result.returncode)+').')
+ for line in result.stderr.splitlines():
+  if 'warn' in line.lower():print(label+' : '+line,flush=True)
+ if result.returncode:raise RuntimeError(label+' a échoué (code '+str(result.returncode)+'). '+result.stderr[-1200:])
  return result.stdout
 
 def verify_config(config,variant):
@@ -24,10 +26,10 @@ def verify_config(config,variant):
   assert service['init'] is True and int(service['pids_limit'])==100,'Gestion des processus incorrecte'
   assert {volume['target'] for volume in service['volumes']}=={'/appdata','/etc/localtime'},'Montages inattendus'
  if variant=='proxy-network':
-  assert not services[SERVICE].get('ports'),'Un port hôte est publié dans le cas réseau externe'
   assert config['networks']['proxy']['external'] is True,'Réseau non externe'
  else:
-  assert services[SERVICE]['ports'][0]['host_ip']=='127.0.0.1','Écoute hôte trop large'
+  assert not config['networks']['proxy'].get('external',False),'Réseau local déclaré externe'
+ assert services[SERVICE]['ports'][0]['host_ip']=='127.0.0.1','Écoute hôte trop large'
 
 def verify_runtime(compose,directory,env,config,baseline):
  """Vérifie santé, montages et refus d’écriture hors appdata sur les conteneurs réellement démarrés."""
@@ -91,11 +93,11 @@ print(json.dumps(servers))
 
 def run_variant(variant):
  """Installe depuis un dossier vide ; nettoie ses seuls conteneurs de test, même en cas d’erreur."""
- env=os.environ.copy();env.update({'PUID':str(os.getuid()),'PGID':str(os.getgid()),'TZ':'Europe/Paris','APPDATA_DIR':'./appdata','BIND_ADDRESS':'127.0.0.1','WEB_PORT':'8080','PUBLIC_ORIGIN':'http://localhost:8080','HOME_URL':'/imprimante.html','WEB_USER':'admin','PROXY_NETWORK':'cloud-page-ci-proxy'})
+ env=os.environ.copy();env.update({'PUID':str(os.getuid()),'PGID':str(os.getgid()),'TZ':'Europe/Paris','APPDATA_DIR':'./appdata','BIND_ADDRESS':'127.0.0.1','WEB_PORT':'8080','PUBLIC_ORIGIN':'http://localhost:8080','HOME_URL':'/imprimante.html','WEB_USER':'admin','PROXY_NETWORK':'cloud-page-ci-proxy','PROXY_NETWORK_EXTERNAL':'true'})
  with tempfile.TemporaryDirectory(prefix='cloud-page-ci-') as temporary:
   directory=pathlib.Path(temporary)
   filenames=['compose.yaml']
-  if variant=='proxy-network':filenames.append('compose.proxy.yaml')
+  if variant=='host':env.pop('PROXY_NETWORK',None);env.pop('PROXY_NETWORK_EXTERNAL',None)
   filenames.append('compose.ci.yaml')
   for filename in filenames:shutil.copy2(ROOT/filename,directory/filename)
   for name in ['ANYCUBIC_EMAIL','ANYCUBIC_PASSWORD','ANYCUBIC_TOKEN','WEB_PASSWORD']:env.pop(name,None)
@@ -105,7 +107,14 @@ def run_variant(variant):
   baseline={path.name for path in directory.iterdir()}
   compose=['docker','compose','-p','cloud-page-ci']
   for filename in filenames:compose+=['-f',filename]
-  if variant=='proxy-network':execute(['docker','network','create',env['PROXY_NETWORK']],directory,env,'Création du réseau de test')
+  owner=None;network_id=None
+  if variant=='proxy-network':
+   owner_directory=pathlib.Path(tempfile.mkdtemp(prefix='cloud-page-ci-owner-'))
+   owner_file=owner_directory/'compose.yaml'
+   owner_file.write_text(json.dumps({'services':{'proxy-client':{'image':'anycubic-cloud-page:test','entrypoint':['python','-c','import time; time.sleep(600)'],'networks':['proxy']}},'networks':{'proxy':{'name':env['PROXY_NETWORK']}}}))
+   owner=['docker','compose','-p','cloud-page-ci-owner','-f',str(owner_file)]
+   execute(owner+['up','-d'],directory,env,'Démarrage du projet proxy indépendant')
+   network_id=json.loads(execute(['docker','network','inspect',env['PROXY_NETWORK']],directory,env,'Identification du réseau partagé'))[0]['Id']
   try:
    config=json.loads(execute(compose+['config','--format','json'],directory,env,'Validation Compose'))
    verify_config(config,variant)
@@ -121,7 +130,7 @@ print(client.open(request).read().decode())
 """.replace('TARGET',repr(target))
    if variant=='proxy-network':
     # Ce client partage uniquement le réseau du proxy, sans port hôte ni réseau du projet.
-    fetch=['docker','run','--rm','--network',env['PROXY_NETWORK'],'--entrypoint','python','anycubic-cloud-page:test','-c',read_fixture]
+    fetch=owner+['exec','-T','proxy-client','python','-c',read_fixture]
    else:fetch=['python3','-c',read_fixture]
    response=execute(fetch,directory,env,'Lecture depuis le côté proxy')
    assert 'data-time-zone="Europe/Paris"' in response and 'Démonstration' in response and '"demo": true' in response,'Réponse de démonstration absente'
@@ -137,7 +146,14 @@ print(client.open(request).read().decode())
    print(variant+' : santé, PUID/PGID non-root, permissions, appdata et redémarrage sans mots de passe OK',flush=True)
   finally:
    execute(compose+['down'],directory,env,'Arrêt de la fixture')
-   if variant=='proxy-network':execute(['docker','network','rm',env['PROXY_NETWORK']],directory,env,'Retrait du réseau de test')
+   if owner:
+    try:
+     shared=json.loads(execute(['docker','network','inspect',env['PROXY_NETWORK']],directory,env,'Réseau conservé après down'))[0]
+     assert shared['Id']==network_id and shared['Containers'],'Le réseau du proxy a été supprimé ou vidé'
+     assert shared['Labels']['com.docker.compose.project']=='cloud-page-ci-owner','Propriétaire du réseau modifié'
+     print('Réseau du projet proxy conservé après docker compose down.',flush=True)
+    finally:
+     execute(owner+['down'],directory,env,'Arrêt du projet proxy indépendant');shutil.rmtree(owner_directory)
 
 def main():
  """Lance le scénario demandé uniquement sur un runner CI ; renvoie une erreur explicite hors CI."""

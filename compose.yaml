@@ -4,7 +4,8 @@ services:
   # Anycubic Cloud Page — prépare les données puis sert l’atelier sans droits root.
   # ============================================================================
   anycubic-cloud-page:
-    image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:1.1.0}"
+    # Pour figer une livraison, remplacer latest par un tag, par exemple :1.2.0.
+    image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:latest}"
     container_name: "anycubic-cloud-page"
     cpus: "0.5"
     mem_limit: "512m"
@@ -24,7 +25,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # Pour un proxy conteneur, compose.proxy.yaml ajoute PROXY_NETWORK et retire ce port.
+    networks:
+      - "proxy"
+    # Le port reste local par défaut, même avec un proxy dans un conteneur.
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:8080/tcp"
     volumes:
@@ -55,3 +58,9 @@ services:
     # Nécessite un outil externe de surveillance ; ce label est volontairement désactivé.
     # labels:
     #   - "deunhealth.restart.on.unhealthy=true"
+
+networks:
+  proxy:
+    name: "${PROXY_NETWORK:-anycubic-cloud-page}"
+    # Le nom ne suffit pas : external empêche Compose de supprimer le réseau du proxy.
+    external: "${PROXY_NETWORK_EXTERNAL:-false}"

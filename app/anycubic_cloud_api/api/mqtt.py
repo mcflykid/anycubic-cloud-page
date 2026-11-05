@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import hashlib
 import ssl
-import traceback
 from collections.abc import Callable
 from os import path
 from typing import TYPE_CHECKING, Any
@@ -26,6 +26,7 @@ from ..exceptions.exceptions import (
     AnycubicMQTTClientError,
     AnycubicMQTTUnhandledData,
     AnycubicMQTTUnknownUpdate,
+    AnycubicMQTTUnknownType,
 )
 from ..helpers.helpers import (
     get_mqtt_ssl_path_ca,
@@ -33,7 +34,6 @@ from ..helpers.helpers import (
     get_mqtt_ssl_path_key,
     get_part_from_mqtt_topic,
     get_ssl_cert_directory,
-    redact_part_from_mqtt_topic,
 )
 from .functions import AnycubicAPIFunctions
 
@@ -44,6 +44,8 @@ if TYPE_CHECKING:
 class AnycubicMQTTAPI(AnycubicAPIFunctions):
     """Client MQTT complétant les consultations HTTP par les rapports de la machine."""
     __slots__ = (
+        "_mqtt_diagnostics",
+        "_mqtt_unknown_type_hashes",
         "_mqtt_client",
         "_mqtt_subscribed_printers",
         "_mqtt_log_all_messages",
@@ -63,6 +65,8 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
         **kwargs: Any,
     ) -> None:
         """Prépare le suivi local ; les rappels sans argument signalent une mise à jour, une occupation ou un abonnement MQTT."""
+        self._mqtt_diagnostics = {'unknown_reports': 0, 'unknown_types': 0, 'unhandled_reports': 0, 'decode_errors': 0, 'processing_errors': 0, 'unknown_types_capped': False}
+        self._mqtt_unknown_type_hashes: set[bytes] = set()
         self._mqtt_client: mqtt_client.Client | None = None
         self._mqtt_subscribed_printers: dict[str, AnycubicPrinter] = dict()
         self._mqtt_log_all_messages: bool = False
@@ -72,6 +76,22 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
         self._mqtt_callback_printer_busy: Callable[[], None] | None = mqtt_callback_printer_busy
         self._mqtt_callback_subscribed: Callable[[], None] | None = mqtt_callback_subscribed
         super().__init__(*args, **kwargs)
+
+    @property
+    def mqtt_diagnostics(self) -> dict[str, int | bool]:
+        """Renvoie seulement les compteurs du compte ; les types distincts sont bornés à 256 et jamais publiés."""
+        return dict(self._mqtt_diagnostics)
+
+    def _count_unknown_type(self, value: Any) -> None:
+        """Un haché interne borne la mémoire sans conserver un nom de type potentiellement privé."""
+        label = value if isinstance(value, str) else type(value).__name__
+        digest = hashlib.sha256(label[:4096].encode('utf-8', errors='replace')).digest()
+        if digest not in self._mqtt_unknown_type_hashes:
+            if len(self._mqtt_unknown_type_hashes) < 256:
+                self._mqtt_unknown_type_hashes.add(digest)
+            else:
+                self._mqtt_diagnostics['unknown_types_capped'] = True
+        self._mqtt_diagnostics['unknown_types'] = len(self._mqtt_unknown_type_hashes)
 
     @property
     def mqtt_is_started(self) -> bool:
@@ -132,88 +152,57 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
         return get_part_from_mqtt_topic(topic, 3) == 'server'
 
     def _mqtt_message_router(self, message: mqtt_client.MQTTMessage) -> None:
+        """Route les rapports reconnus ; les diagnostics ne contiennent jamais topic, payload ou exception brute."""
         try:
             topic = str(message.topic)
             payload = json.loads(message.payload.decode('utf-8'))
-        except Exception as e:
-            self._log_to_error(
-                f"Anycubic MQTT Message decode error: {e}\n"
-                f"  on MQTT topic: {message.topic}\n"
-                f"    {message.payload!r}"
-            )
+            if not isinstance(payload, dict):
+                raise ValueError('object_required')
+        except Exception:
+            self._mqtt_diagnostics['decode_errors'] += 1
+            self._log_to_warn('Rapport MQTT illisible ; contenu masqué')
             return
 
         if self._mqtt_topic_is_user_topic(topic):
-            self._log_to_debug(
-                f"Anycubic MQTT USER Msg Received on `{topic}`:\n"
-                f"    {payload}"
-            )
+            self._log_to_debug('Rapport MQTT de compte reçu ; contenu masqué')
+            return
+        printer_key = get_part_from_mqtt_topic(topic, 6)
+        if get_part_from_mqtt_topic(topic, 7) == 'response' and not any(payload.get(k) for k in ['type', 'action', 'state']):
+            return
+        if printer_key not in self._mqtt_subscribed_printers:
+            return
+        printer = self._mqtt_subscribed_printers[printer_key]
+        printer_was_available = printer.is_available
+        processed = False
+        try:
+            printer.process_mqtt_update(topic, AnycubicConsumableData(payload))
+            processed = True
+        except AnycubicMQTTUnhandledData:
+            # Les champs reconnus ont été appliqués ; les champs supplémentaires ne deviennent pas des réglages.
+            processed = True
+            self._mqtt_diagnostics['unhandled_reports'] += 1
+            self._log_to_warn('Rapport MQTT reconnu avec champs non exploités ; contenu masqué')
+        except AnycubicMQTTUnknownType:
+            self._mqtt_diagnostics['unknown_reports'] += 1
+            self._count_unknown_type(payload.get('type'))
+            self._log_to_warn('Type de rapport MQTT inconnu ; contenu masqué')
+        except AnycubicMQTTUnknownUpdate:
+            self._mqtt_diagnostics['unknown_reports'] += 1
+            self._log_to_warn('Action ou état MQTT inconnu ; contenu masqué')
+        except Exception as error:
+            self._mqtt_diagnostics['processing_errors'] += 1
+            self._log_to_error(f'Rapport MQTT non traité ({type(error).__name__}) ; contenu masqué')
 
-        else:
-            printer_key = get_part_from_mqtt_topic(topic, 6)
-
-            if (
-                get_part_from_mqtt_topic(topic, 7) == 'response'
-                and not payload.get('type')
-                and not payload.get('action')
-                and not payload.get('state')
-            ):
-                return
-
-            if printer_key not in self._mqtt_subscribed_printers:
-                return
-
-            printer = self._mqtt_subscribed_printers[printer_key]
-
-            printer_was_available = printer.is_available
-
-            try:
-                printer.process_mqtt_update(topic, AnycubicConsumableData(payload))
-
-            except AnycubicMQTTUnhandledData as e:
-                redacted_topic = redact_part_from_mqtt_topic(topic, 6)
-                self._log_to_warn(
-                    f"Anycubic MQTT Message unhandled data in: {e}\n"
-                    f"  on MQTT topic: {redacted_topic}\n"
-                    f"  with type: {e.unhandled_mqtt_type}, "
-                    f"action: {e.unhandled_mqtt_action}, "
-                    f"state: {e.unhandled_mqtt_state}\n"
-                    f"    unhandled data: {e.unhandled_mqtt_data}"
-                )
-
-            except (AnycubicMQTTUnknownUpdate, Exception) as e:
-                tb = traceback.format_exc()
-                redacted_topic = redact_part_from_mqtt_topic(topic, 6)
-                error_type = type(e)
-                self._log_to_error(
-                    f"Anycubic MQTT Message error: {error_type}: {e}\n"
-                    f"  on MQTT topic: {redacted_topic}\n"
-                    f"    {payload}\n"
-                    f"{tb}"
-                )
-
+        if processed:
             try:
                 if self._mqtt_callback_printer_update:
                     self._mqtt_callback_printer_update()
-
-                if (
-                    self._mqtt_callback_printer_busy and
-                    printer_was_available and printer.is_busy
-                ):
+                if self._mqtt_callback_printer_busy and printer_was_available and printer.is_busy:
                     self._mqtt_callback_printer_busy()
-
-            except Exception as e:
-                tb = traceback.format_exc()
-                self._log_to_error(
-                    f"Anycubic MQTT Callback error: {e}\n"
-                    f"{tb}"
-                )
-
-            if self._mqtt_log_all_messages:
-                self._log_to_debug(
-                    f"Anycubic MQTT Message processed on topic: {topic}\n"
-                    f"    {payload}"
-                )
+            except Exception as error:
+                self._log_to_error(f'Rappel MQTT en échec ({type(error).__name__}) ; détails masqués')
+        if self._mqtt_log_all_messages:
+            self._log_to_debug('Rapport MQTT traité ; contenu et références masqués')
 
     def _mqtt_publish_on_topic(
         self,
@@ -281,9 +270,9 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
     ) -> None:
         try:
             self._mqtt_message_router(message)
-        except Exception as e:
-            tb = traceback.format_exc()
-            self._log_to_error(f"Anycubic MQTT internal error: {e}\n{tb}")
+        except Exception as error:
+            self._mqtt_diagnostics['processing_errors'] += 1
+            self._log_to_error(f'Routage MQTT en échec ({type(error).__name__}) ; détails masqués')
             return
 
     def _mqtt_on_disconnect(
@@ -319,10 +308,11 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
                 raise AnycubicMQTTClientError(ErrorsMQTTClient.connect_client_missing)
 
             for sub in self._build_mqtt_user_subscription():
-                self._log_to_debug(f"Anycubic MQTT Subscribing to USER {sub}.")
+                self._log_to_debug('Abonnement MQTT aux rapports de compte')
                 self._mqtt_client.subscribe(sub)
 
-            for printer_id, printer in self._mqtt_subscribed_printers.items():
+            # Le registre peut ajouter une machine pendant le rappel de connexion ; figer l’itération.
+            for printer_id, printer in list(self._mqtt_subscribed_printers.items()):
                 self._mqtt_subscribe_printer_status(printer)
 
             self._log_to_debug("Anycubic MQTT Subscribed.")
@@ -404,7 +394,7 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
         if not self._mqtt_client:
             raise AnycubicMQTTClientError(ErrorsMQTTClient.sub_printer_status_client_missing)
         for sub in self._build_mqtt_printer_subscription(printer):
-            self._log_to_debug(f"Anycubic MQTT Subscribing to PRINTER {sub}.")
+            self._log_to_debug('Abonnement MQTT aux rapports d’une machine')
             self._mqtt_client.subscribe(sub)
 
     def mqtt_add_subscribed_printer(self, printer: AnycubicPrinter) -> None:
@@ -423,7 +413,7 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
         if printer.key in self._mqtt_subscribed_printers:
             if self._mqtt_client is not None:
                 for sub in self._build_mqtt_printer_subscription(printer):
-                    self._log_to_debug(f"Anycubic MQTT Ubsubscribing to PRINTER {sub}.")
+                    self._log_to_debug('Retrait d’un abonnement MQTT de machine')
                     self._mqtt_client.unsubscribe(sub)
 
             del self._mqtt_subscribed_printers[printer.key]

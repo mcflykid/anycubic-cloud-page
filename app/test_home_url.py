@@ -17,12 +17,14 @@ class Navigation(unittest.IsolatedAsyncioTestCase):
   for value in ['', '/imprimante.html','atelier/page','https://example.test/atelier','http://localhost:8080']:
    self.assertEqual(home_url(value),value)
  async def test_rendered_links_are_escaped_and_about_is_reachable(self):
-  """La destination est échappée dans les deux liens, sans casser la notice ni l’intégrité des scripts."""
+  """La destination de marque est échappée, sans casser la notice ni l’intégrité des scripts."""
   with patch.dict(os.environ,{'HOME_URL':'/atelier?x="demo"&a=1'}):
    app=web.Application();install_static(app)
   async with TestClient(TestServer(app)) as client:
    page=await (await client.get('/imprimante.html')).text()
-   self.assertEqual(page.count('href="/atelier?x=&quot;demo&quot;&amp;a=1"'),2)
+   self.assertEqual(page.count('href="/atelier?x=&quot;demo&quot;&amp;a=1"'),1)
+   self.assertIn('action="/logout"',page)
+   self.assertNotIn('Atelier autonome',page)
    script=pathlib.Path(__file__).resolve().parents[1]/'web/js/imprimante.js'
    digest=base64.b64encode(hashlib.sha256(script.read_bytes()).digest()).decode()
    self.assertTrue('integrity="sha256-'+digest+'"' in page)
@@ -37,7 +39,7 @@ class Navigation(unittest.IsolatedAsyncioTestCase):
    async with TestClient(TestServer(app)) as client:
     page=await (await client.get('/')).text()
     self.assertEqual('class="document-brand"' in page,value is None)
-    if value is None:self.assertEqual(page.count('href="/imprimante.html"'),2)
+    if value is None:self.assertEqual(page.count('href="/imprimante.html"'),1)
 
 class TimeZone(unittest.IsolatedAsyncioTestCase):
  """Les dates transmises restent UTC ; leur affichage suit le fuseau IANA configuré."""

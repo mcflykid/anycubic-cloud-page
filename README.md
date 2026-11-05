@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.1.0**. [Changements](CHANGELOG.md).
+Version **1.2.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -16,7 +16,7 @@ Version **1.1.0**. [Changements](CHANGELOG.md).
 
 [English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md)
 
-Ce projet transforme les fonctions d’atelier du cloud Anycubic en une interface web indépendante : suivi d’impression, ACE et bobines, fichiers, envoi de G-code, caméra, historique et réglages. Le serveur Python dialogue avec Anycubic par HTTP et MQTT ; le navigateur n’a pas besoin de lancer le slicer. Aucun Home Assistant requis.
+Ce projet transforme les fonctions d’atelier du cloud Anycubic en une interface web indépendante : suivi d’impression, ACE et bobines, fichiers, envoi de G-code, caméra, historique et réglages. Le serveur Python dialogue avec Anycubic par HTTP et MQTT ; le navigateur n’a pas besoin de lancer le slicer. Aucun Home Assistant requis. Avec plusieurs imprimantes, un sélecteur dans la barre du haut retrouve le dernier choix du navigateur ; les commandes portent une cible explicite.
 
 **Deux méthodes d’accès :** connexion directe au compte Anycubic, avec récupération automatique du token **sans slicer**, ou récupération locale d’un token dans les journaux d’AnycubicSlicerNext. Les limites et la procédure reproductible sont détaillées dans le [guide de connexion](docs/CLOUD-CONNECTION.md).
 
@@ -26,16 +26,21 @@ Projet communautaire indépendant, issu d’essais sur une **Kobra S1 Combo + AC
 
 ## Démarrage rapide
 
-Docker Compose suffit. L’application prépare ses données au démarrage.
+Docker Compose suffit. Depuis un dossier vide, téléchargez les fichiers de la dernière release :
 
-1. Téléchargez [`compose.yaml`](compose.yaml) dans un dossier vide.
-2. Renseignez `ANYCUBIC_EMAIL`, `ANYCUBIC_PASSWORD` et `WEB_PASSWORD` dans `anycubic-cloud-page.environment`, ou utilisez [`.env.example`](.env.example). Le mot de passe web contient au moins six caractères. `WEB_USER` vaut `admin` par défaut et ne doit pas être vide.
-3. Lancez `docker compose up -d`.
-4. Ouvrez **http://localhost:8080/imprimante.html** et connectez-vous avec vos identifiants web.
+```sh
+curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/compose.yaml -o compose.yaml
+curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/default.env.example -o .env.example
+cp .env.example .env
+chmod 600 .env
+```
 
-`BIND_ADDRESS=127.0.0.1` et `WEB_PORT=8080` règlent l’écoute locale. Toutes les données persistantes restent dans `APPDATA_DIR=./appdata`. Dans Compose, écrivez `$$` pour un `$` littéral dans un mot de passe ; dans `.env`, utilisez des quotes simples. Ne publiez pas vos fichiers personnalisés.
+1. Renseignez ANYCUBIC_EMAIL, ANYCUBIC_PASSWORD et WEB_PASSWORD dans `.env`. WEB_USER vaut admin par défaut ; le mot de passe web contient au moins six caractères.
+2. Lancez `docker compose config --quiet`, puis `docker compose up -d`.
+3. Ouvrez **http://localhost:8080/imprimante.html** et connectez-vous avec vos identifiants web.
+4. Pour un accès distant, réglez PUBLIC_ORIGIN sur l’origine exacte et suivez le [guide reverse proxy](docs/REVERSE-PROXY.md).
 
-**N’exposez jamais ce port HTTP directement sur Internet.** Utilisez votre propre proxy HTTPS et réglez `PUBLIC_ORIGIN` sur l’origine publique exacte du navigateur. Le [guide reverse proxy](docs/REVERSE-PROXY.md) fournit les exemples Caddy, Nginx et Traefik, sur l’hôte ou en conteneur. Un proxy en conteneur utilise l’option [`compose.proxy.yaml`](compose.proxy.yaml), avec `PROXY_NETWORK` et aucun port hôte. [Guide d’installation complet](docs/INSTALLATION.md).
+L’image suit `latest` ; remplacez-la par un tag publié dans compose.yaml pour figer une livraison. Les données restent dans APPDATA_DIR (`./appdata` par défaut). Un proxy en conteneur utilise le même fichier avec PROXY_NETWORK et PROXY_NETWORK_EXTERNAL=true. Le port HTTP reste local par défaut sur 127.0.0.1. **Ne l’exposez jamais directement sur Internet.** Voir aussi l’[exemple d’environnement central](docs/REVERSE-PROXY.md#intégrer-à-une-stack-existante-avec-un-env-central-et-dockerdir) et le [guide d’installation](docs/INSTALLATION.md).
 
 ## Suivi des travaux
 
@@ -52,7 +57,7 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 | **Fichiers** | Parcourir la mémoire de l’imprimante, l’USB ou le cloud ; prévisualiser, préparer une impression et gérer les fichiers selon les fonctions fournies. |
 | **Envoyer et imprimer** | Envoyer un G-code au cloud, le conserver sans imprimer ou préparer son impression avec l’ordre des bobines ACE. |
 | **Caméra** | Ouvrir le flux Agora, zoomer, passer en plein écran, piloter l’éclairage et accéder aux déplacements autorisés. |
-| **Historique** | Parcourir les tâches, leurs aperçus et leurs détails ; distinguer les impressions des notifications ; préparer réimpression et évaluation. |
+| **Historique** | Filtrer les impressions par statut, dates et nom ; consulter cartes et détails ; retirer les fiches sélectionnées de l’historique cloud après confirmation. Les notifications sont dans la cloche. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
 
 <details>

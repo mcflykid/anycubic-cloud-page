@@ -50,6 +50,7 @@ from ..exceptions.error_strings import (
 from ..exceptions.exceptions import (
     AnycubicAPIError,
     AnycubicAPIParsingError,
+    AnycubicCameraSessionError,
     AnycubicCloudUploadError,
     AnycubicDataParsingError,
     AnycubicFileNotFoundError,
@@ -857,7 +858,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         printer: AnycubicPrinter,
         raw_data: bool = False,
     ) -> AnycubicCameraSession | None | dict[str, Any]:
-        """Renvoie la session vidéo fournie par le cloud, ou None sans imprimante. Lève AnycubicAPIParsingError si les données ou l’état requis sont invalides."""
+        """Renvoie la session Agora ou None sans imprimante ; AnycubicCameraSessionError distingue manque, format et transport, sans réponse privée."""
         if not printer:
             return None
 
@@ -876,19 +877,36 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         if raw_data:
             return resp
 
-        data = resp.get("data") if resp is not None else None
-        shengwang = data.get("shengwang") if isinstance(data, dict) else None
+        data = resp.get("data") if isinstance(resp, dict) else None
+        if not isinstance(data, dict):
+            raise AnycubicCameraSessionError('invalid_format') from None
+        shengwang = data.get("shengwang")
+        if shengwang is None:
+            reason = 'unsupported_transport' if isinstance(data.get('token'), dict) else 'missing_credentials'
+            raise AnycubicCameraSessionError(reason) from None
         if not isinstance(shengwang, dict):
-            raise AnycubicAPIParsingError("Unexpected camera session response.")
+            raise AnycubicCameraSessionError('invalid_format') from None
+        fields = ['appid', 'channel', 'rtc_token', 'encryption_kdf_salt', 'encryption_key', 'encryption_mode']
+        if any(shengwang.get(k) in (None, '') for k in [*fields, 'client_uid']):
+            raise AnycubicCameraSessionError('missing_credentials') from None
+        if any(not isinstance(shengwang[k], str) for k in fields):
+            raise AnycubicCameraSessionError('invalid_format') from None
+        uid = shengwang['client_uid']
+        if isinstance(uid, bool) or not isinstance(uid, (str, int)) or not str(uid).isdecimal():
+            raise AnycubicCameraSessionError('invalid_format') from None
 
         device = data.get("shengwang_device") if isinstance(data, dict) else None
+        printer_uid = device.get('uid') if isinstance(device, dict) else None
+        if printer_uid is not None and (isinstance(printer_uid, bool) or not isinstance(printer_uid, (int, str)) or not str(printer_uid).isdecimal()):
+            raise AnycubicCameraSessionError('invalid_format') from None
 
         return AnycubicCameraSession(
             appid=shengwang["appid"],
             channel=shengwang["channel"],
             rtc_token=shengwang["rtc_token"],
             client_uid=shengwang["client_uid"],
-            printer_uid=device.get("uid") if isinstance(device, dict) else None,
+            printer_uid=printer_uid,
+            msg_id=data.get("msgid"),
             encryption_kdf_salt=shengwang["encryption_kdf_salt"],
             encryption_key=shengwang["encryption_key"],
             encryption_mode=shengwang["encryption_mode"],

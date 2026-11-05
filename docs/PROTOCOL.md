@@ -2,6 +2,8 @@
 
 Cette note accompagne le code et la [connexion cloud](CLOUD-CONNECTION.md). Les observations ont été réalisées sur une Kobra S1 Combo et un ACE 2 Pro ; les autres modèles restent à tester.
 
+L’[inventaire des capacités cloud](CLOUD-CAPABILITIES.md) distingue les fonctions utilisées, les possibilités non implémentées et les paramètres encore inconnus, avec leurs sources et leurs risques.
+
 ## Architecture
 
 ```mermaid
@@ -16,6 +18,12 @@ flowchart LR
 ```
 
 `app/anycubic_cloud_api/` dérive du client GPL existant ; `server.py`, `cloud_extras.py`, `account_auth.py`, `session_api.py`, les helpers et le frontend forment l’adaptation autonome. Le moteur reste côté serveur. La page web ne possède pas de token de compte et n’accède pas directement aux identifiants de l’imprimante.
+
+## Plusieurs imprimantes
+
+Le [registre de machines](../app/printer_registry.py) conserve un moteur, ses caches et ses verrous par cible. La sélection appartient au navigateur, pas à une variable globale partagée entre utilisateurs. Chaque requête de commande porte l’en-tête `X-Printer-Key`, référence opaque obtenue avec `/imprimante-api/printers`. La cible est contrôlée à nouveau sous verrou avant l’envoi ; une référence périmée ou absente ne déclenche aucun repli vers une autre machine. Les liens de téléchargement utilisent cette même référence dans leur paramètre `printer`.
+
+Le protocole Slicer construit un identifiant MQTT fixe pour un compte. Les moteurs partagent donc une seule connexion et routent les rapports selon leur machine ; ils ne créent pas des clients concurrents de même nom. Le renouvellement de session conserve ce transport commun, les abonnements sont rétablis et les callbacks de fraîcheur restent associés au destinataire du rapport. Les courbes initiales gardent leur emplacement ; les machines supplémentaires utilisent des sous-dossiers privés sous `appdata/state/printers/`.
 
 ## Parcours utiles
 
@@ -52,3 +60,9 @@ Le client d’origine utilise des certificats historiques signés en SHA-1. Le c
 ## Ce qui reste inconnu
 
 Les services étant privés et évolutifs, les noms de champs, capacités de firmware, conditions de connexion, disponibilité des vidéos et politiques de session peuvent changer. Les réglages avancés non confirmés sont masqués. Le timelapse annoncé par la machine n’a pas fourni de liste de vidéos exploitable via le cloud au contrôle. Les notifications réelles étaient absentes lors du test d’aperçu.
+
+## Diagnostics MQTT sans contenu privé
+
+Le statut expose `mqtt_diagnostics`, compteurs de la connexion commune au compte : rapports inconnus, types distincts, champs supplémentaires, décodages impossibles et erreurs de traitement. Aucun nom de type, topic, identifiant, payload ni texte brut d’exception n’est renvoyé ou journalisé par ce diagnostic. Les empreintes internes de types sont limitées à 256 ; `unknown_types_capped` indique que le nombre distinct affiché est alors une borne inférieure. Les compteurs repartent de zéro si le client cloud est recréé.
+
+Un type inconnu ne rafraîchit pas artificiellement l’état de l’imprimante. Les champs connus d’un rapport reconnu restent exploitables même si des champs supplémentaires sont ignorés. Les fixtures couvrent notamment un rapport ACE arrivé avant la liste initiale et l’indépendance des boîtiers. Aucun ordre chronologique universel n’est déduit d’un identifiant de message ou d’un horodatage dont le contrat n’est pas établi.

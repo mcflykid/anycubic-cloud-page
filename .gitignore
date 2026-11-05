@@ -23,3 +23,7 @@ compose.private.yaml
 .publication-private-patterns
 
 appdata/
+
+# Résultats locaux des tests de navigateur.
+test-results/
+playwright-report/

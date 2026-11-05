@@ -8,6 +8,23 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
  async def asyncSetUp(self):
   """Prépare les doublures et l’état asynchrone isolés pour chaque scénario."""
   self.e=adapter.Engine();self.p=SimpleNamespace(connected_ace_units=1,is_available=True,latest_project=object(),latest_project_print_in_progress=True,print_slot_numbers_to_indices=lambda v:[x-1 for x in v]);self.e.printer=self.p;self.e.api=SimpleNamespace()
+ async def test_notification_failure_does_not_hide_healthy_printer(self):
+  """Une panne du centre de messages ne doit pas rendre le suivi de l’imprimante indisponible."""
+  from unittest.mock import Mock,patch
+  self.e.account=SimpleNamespace(token=AsyncMock(return_value='fixture-token'));self.e.account_token='fixture-token'
+  self.p.update_info_from_api=AsyncMock();self.p.id=1
+  self.e.api=SimpleNamespace(printer_info_for_id=AsyncMock(return_value={'data':{}}))
+  self.e.mqtt_start=Mock();self.e.print_history=AsyncMock(side_effect=ValueError('fixture-only'))
+  with patch.object(adapter.asyncio,'sleep',side_effect=asyncio.CancelledError):
+   with self.assertRaises(asyncio.CancelledError):await self.e.poll()
+  self.assertTrue(self.e.ok);self.assertIsNone(self.e.error)
+  self.assertEqual(self.e.notifications_error,'Messages temporairement indisponibles');self.e.print_history.assert_awaited_once_with(1)
+ async def test_status_uses_cached_notifications_without_cloud_request(self):
+  """Les lectures fréquentes du statut partagent le cache du relevé cloud habituel."""
+  self.e.printer=None;self.e.api=None;self.e.history_cache={1:(0,{'items':[],'unread':0})}
+  self.e.print_history=AsyncMock()
+  for _ in range(3):self.assertEqual(self.e.snapshot()['notifications'],{'items':[],'unread':0})
+  self.e.print_history.assert_not_awaited()
  async def test_session_recovery_restarts_tracking_after_old_thread_exits(self):
   """Vérifie que le suivi redémarre après la fin de son ancien fil."""
   from unittest.mock import Mock
@@ -111,7 +128,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
  async def test_history_does_not_label_interruption_as_success(self):
   """Vérifie que une interruption n’est pas présentée comme une impression réussie."""
   entry=adapter.history_entry({'print_status':3,'read':1})
-  self.assertEqual(entry['kind'],'interrupted');self.assertEqual(entry['result'],'Impression interrompue');self.assertFalse(entry['unread'])
+  self.assertEqual(entry['kind'],'interrupted');self.assertEqual(entry['result'],'Impression arrêtée');self.assertFalse(entry['unread'])
  async def test_temperature_history_bounds_missing_values_and_duplicates(self):
   """Vérifie que l’historique filtre les températures invalides et les doublons."""
   import tempfile

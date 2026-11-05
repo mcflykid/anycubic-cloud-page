@@ -303,13 +303,10 @@ class AnycubicAPIBase:
             params=params,
             with_token=False,
         )
-        if not resp or not resp['data']:
-            server_message = resp.get('msg') if resp else None
-            server_code = resp.get('code') if resp else None
-            error_message = ErrorsAuth.access_token_login_failed.format(server_message)
-            self._log_to_debug(
-                f"{error_message} code={server_code} has_response={resp is not None}"
-            )
+        if not isinstance(resp, dict) or not isinstance(resp.get('data'), dict) or not isinstance(resp['data'].get('token'), str) or not resp['data']['token']:
+            # Le fournisseur peut inclure sa requête dans msg : ne jamais recopier ce texte dans un diagnostic.
+            error_message = 'Connexion de session Anycubic refusée'
+            self._log_to_debug(f'{error_message}; has_response={resp is not None}')
             raise AnycubicAuthError(error_message)
         self.anycubic_auth.set_auth_token(
             resp['data']['token']

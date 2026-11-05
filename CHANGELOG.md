@@ -1,6 +1,28 @@
 # Changements
 
-## À publier
+## 1.2.0 — 2026-11-05
+
+Suivi de livraison : #33.
+
+- Fixtures MQTT connues, inconnues et reçues avant initialisation ; compteurs bornés dans le statut, sans payload, topic ni exception brute dans les diagnostics (#23).
+
+- Tests de renouvellement concurrent, repli et refus de changement de compte ; validation des JWT mal formés et diagnostics de session sans réponse privée (#22).
+
+- Diagnostics caméra distincts pour identifiants absents, format invalide et transport non pris en charge ; étapes MQTT corrélées et diagnostics sans références privées (#21).
+
+- Sélecteur multi-imprimantes avec choix mémorisé, cible explicite par requête, états et courbes séparés, et connexion MQTT unique au compte (#32).
+
+- Historique en cartes avec statuts, recherche, dates sur 90 jours, sélection et retrait réel des fiches cloud après confirmation ; arrêt sans répétition sur résultat incertain (#15, #28).
+
+- Inventaire sourcé des capacités cloud, de leur couverture et des paramètres inconnus, établi sans essai sur le cloud (#29).
+
+- Notifications déplacées dans une cloche accessible, avec filtres, recherche et compteur actualisé par le statut habituel (#16).
+
+- Bouton de déconnexion accessible, assorti aux autres actions de la barre du haut ; HOME_URL ne pilote plus que le lien de marque (#14).
+
+- Guides complétés pour domaine partagé, rechargement Caddy, contrôles authentifiés, réseau externe, sondes filtrées, recréation et secrets persistants (#6, #7, #8, #9, #10, #11, #12, #13).
+
+- Compose unique avec réseau local ou proxy externe sélectionné par PROXY_NETWORK, image latest par défaut et données sous ./appdata sans réglage (#27).
 
 - Actions GitHub mises à jour après validation individuelle des CI Dependabot, sans publication d’image sur les fusions (#26).
 
