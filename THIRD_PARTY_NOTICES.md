@@ -23,3 +23,5 @@ Les illustrations locales Kobra S1/ACE sont des visuels non officiels créés po
 Anycubic, Kobra, ACE et Agora sont des marques de leurs titulaires. Le projet n’est ni affilié ni présenté comme un service officiel.
 
 Le client cloud intégré libère la réservation de quota après un échec ou une annulation du transfert (#58). Les fichiers locaux sont lus progressivement pour limiter la mémoire pendant les envois (#24).
+
+L’ordre de fermeture vidéo 1002 s’appuie sur le [changement RespawnDespair 53c406b](https://github.com/RespawnDespair/hass-anycubic_cloud_v3/commit/53c406b0244526c4244c42f75bce4d9ad933ca78), issu du client Anycubic sous GPL-3.0 (#64).

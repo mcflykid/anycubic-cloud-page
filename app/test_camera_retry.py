@@ -58,6 +58,25 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
   self.printer.get_camera_session.return_value=None
   with self.assertRaises(ValueError):await adapter.camera(self.request)
   self.printer.get_camera_session.assert_awaited_once();self.assertIsNone(self.engine.camera)
+ async def test_last_viewer_closes_only_its_printer(self):
+  """Le départ d’un onglet ne coupe pas un autre spectateur suivi par l’atelier."""
+  engine=adapter.Engine()
+  engine.printer=types.SimpleNamespace(id=42)
+  engine.api=types.SimpleNamespace(_send_anycubic_order=AsyncMock())
+  first='a'*36;second='b'*36
+  engine.camera_viewers.update((first,second))
+  with patch.object(adapter,'engine',engine),patch.object(adapter.asyncio,'sleep',new_callable=AsyncMock):
+   await adapter.camera_close(types.SimpleNamespace(headers={'X-Camera-Viewer':first}))
+   self.assertIsNone(engine.camera_close_task)
+   await adapter.camera_close(types.SimpleNamespace(headers={'X-Camera-Viewer':second}))
+   engine.camera_viewers.add(first)
+   await engine.camera_close_task
+   engine.api._send_anycubic_order.assert_not_awaited()
+   await adapter.camera_close(types.SimpleNamespace(headers={'X-Camera-Viewer':first}))
+   await engine.camera_close_task
+  engine.api._send_anycubic_order.assert_awaited_once()
+  order=engine.api._send_anycubic_order.call_args.kwargs['order_request']
+  self.assertEqual(order.order_request_data,{'order_id':1002,'printer_id':42})
  def test_tls_error_takes_precedence_over_transport_context(self):
   """Une panne TLS ne devient pas réessayable parce qu’elle comporte une cause de connexion."""
   error=ssl.SSLError('fixture');error.__context__=aiohttp.ClientConnectionError('fixture')

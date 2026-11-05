@@ -20,6 +20,8 @@ from anycubic_cloud_api.models.auth import AnycubicAuthMode
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
 from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
+from anycubic_cloud_api.const.enums import AnycubicOrderID
+from anycubic_cloud_api.data_models.orders import AnycubicBaseOrderRequest
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError,AnycubicAuthTokensExpired,AnycubicCameraSessionError
 
 ROOT=pathlib.Path(__file__).parent
@@ -101,6 +103,7 @@ class Engine:
   """Initialise le modèle et ses données locales depuis les paramètres fournis."""
   self.selected_id=os.environ.get('PRINTER_ID') or None;self.known_printers=[];self.state_dir=pathlib.Path('/appdata/state');self.catalogue_source=False;self.transport_only=False
   self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1;self.reconnect_required=False
+  self.camera_viewers=set();self.camera_owner=None;self.camera_close_task=None
   self.command_lock=asyncio.Lock()
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
  def event(self,action,state):"""Ajoute un événement horodaté au journal local borné.""";self.events.appendleft({'time':now(),'action':action,'state':state})
@@ -678,10 +681,13 @@ async def camera(req):
  """Renvoie une session en cache cinq secondes ; retente une seule panne de transport, propage les autres erreurs."""
  engine=request_engine(req)
  verify_origin(req)
+ viewer=req.headers.get('X-Camera-Viewer')
+ if viewer and not re.fullmatch(r'[a-f0-9-]{36}',viewer):raise ValueError('Session vidéo invalide')
  if not engine.printer:raise ValueError('Connexion en cours')
  async with engine.lock:
   verify_printer_target(req,engine)
-  if not engine.camera or time.time()-engine.last_session>5:
+  if viewer and len(engine.camera_viewers)>=32 and viewer not in engine.camera_viewers:raise ValueError('Trop de sessions vidéo ouvertes')
+  if not engine.camera or time.time()-engine.last_session>5 or (viewer and engine.camera_owner!=viewer):
    engine.camera_message_id=None;engine.camera_diagnostic=None;engine.camera_stage=-1
    try:session=await engine.printer.get_camera_session()
    except Exception as error:
@@ -690,7 +696,44 @@ async def camera(req):
     session=await engine.printer.get_camera_session()
    if session is None:raise ValueError('Caméra indisponible')
    engine.camera=session.data;engine.camera_message_id=getattr(session,'msg_id',None);engine.last_session=time.time()
+  if viewer:
+   engine.camera_owner=viewer
+   engine.camera_viewers.add(viewer)
   return web.json_response(engine.camera,headers={'Cache-Control':'no-store'})
+
+async def close_idle_camera(engine,target):
+ """Envoie une fermeture unique après le départ du dernier spectateur de l’atelier."""
+ await asyncio.sleep(3)
+ async with engine.command_lock:
+  async with engine.lock:
+   if engine.camera_viewers or not engine.api or not engine.printer or str(engine.printer.id)!=target:
+    return
+   registry=getattr(engine,'fleet_registry',None)
+   if registry and printer_key(target) not in registry.catalogue():
+    return
+   engine.camera=None
+   engine.camera_owner=None
+   try:
+    request=AnycubicBaseOrderRequest(order_id=AnycubicOrderID.CAMERA_CLOSE,printer_id=target)
+    await engine.api._send_anycubic_order(order_request=request)
+   except Exception as error:
+    engine.event('Caméra','Fermeture non confirmée ('+type(error).__name__+')')
+
+async def camera_close(req):
+ """Libère la session vidéo du navigateur et programme la fermeture si le flux est inutilisé."""
+ engine=request_engine(req)
+ verify_origin(req)
+ viewer=req.headers.get('X-Camera-Viewer')
+ if not viewer or not re.fullmatch(r'[a-f0-9-]{36}',viewer):raise ValueError('Session vidéo invalide')
+ async with engine.lock:
+  verify_printer_target(req,engine)
+  if viewer in engine.camera_viewers:
+   engine.camera_viewers.remove(viewer)
+   if not engine.camera_viewers and engine.printer:
+    previous=engine.camera_close_task
+    if previous and not previous.done():previous.cancel()
+    engine.camera_close_task=asyncio.create_task(close_idle_camera(engine,str(engine.printer.id)))
+ return web.json_response({'ok':True},status=202)
 
 async def upload(req):
  """Renvoie l’acceptation du G-code dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
@@ -773,7 +816,13 @@ async def startup(app):
  app['temperature_task']=asyncio.create_task(sample_temperatures(app))
 async def cleanup(app):
  """Arrête la collecte, sauvegarde les températures et ferme les connexions."""
- await app['printer_registry'].close()
+ registry=app['printer_registry']
+ for selected in [engine,*registry.entries.values()]:
+  task=selected.camera_close_task
+  if task and not task.done():
+   task.cancel()
+   with contextlib.suppress(asyncio.CancelledError):await task
+ await registry.close()
  app['temperature_task'].cancel()
  with contextlib.suppress(asyncio.CancelledError):await app['temperature_task']
  with contextlib.suppress(OSError):app['temperature_history'].save()
@@ -812,7 +861,7 @@ async def preview(req):
  return web.json_response({'image':'data:'+mime+';base64,'+base64.b64encode(content).decode()},headers={'Cache-Control':'no-store'})
 
 app=web.Application(middlewares=[access_control,errors,select_printer],client_max_size=102*1024**2)
-app.add_routes([web.get('/imprimante-api/printers',printers),web.get('/imprimante-api/health',health),web.get('/imprimante-api/status',status),web.get('/imprimante-api/history',history),web.post('/imprimante-api/history/read',history_read),web.post('/imprimante-api/history/delete',history_delete),web.get('/imprimante-api/ai-settings',ai_settings),web.get('/imprimante-api/temperatures',temperatures),web.get('/imprimante-api/files/cloud',files),web.get('/imprimante-api/files/{source}',local_files),web.post('/imprimante-api/command',command),web.post('/imprimante-api/camera-session',camera),web.post('/imprimante-api/upload',upload),web.post('/imprimante-api/preview',preview)])
+app.add_routes([web.get('/imprimante-api/printers',printers),web.get('/imprimante-api/health',health),web.get('/imprimante-api/status',status),web.get('/imprimante-api/history',history),web.post('/imprimante-api/history/read',history_read),web.post('/imprimante-api/history/delete',history_delete),web.get('/imprimante-api/ai-settings',ai_settings),web.get('/imprimante-api/temperatures',temperatures),web.get('/imprimante-api/files/cloud',files),web.get('/imprimante-api/files/{source}',local_files),web.post('/imprimante-api/command',command),web.post('/imprimante-api/camera-session',camera),web.post('/imprimante-api/camera-close',camera_close),web.post('/imprimante-api/upload',upload),web.post('/imprimante-api/preview',preview)])
 from cloud_extras import install as install_extras
 install_extras(app,engine)
 app.on_startup.append(startup);app.on_cleanup.append(cleanup)

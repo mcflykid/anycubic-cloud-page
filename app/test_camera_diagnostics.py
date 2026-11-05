@@ -16,6 +16,18 @@ class CameraDiagnostics(unittest.IsolatedAsyncioTestCase):
   """Appelle uniquement une fonction de parsing avec un transport simulé."""
   client=SimpleNamespace(_fetch_api_resp=AsyncMock(return_value=response))
   return await AnycubicAPIFunctions.get_camera_session(client,SimpleNamespace(id=1))
+ async def test_agora_open_uses_numeric_order_and_top_level_flag(self):
+  """La forme déjà acceptée par les réponses Agora reste circonscrite à l’ouverture."""
+  for response in (agora(),{'code':0,'data':agora()['data']},{'code':1,'data':[]}):
+   client=SimpleNamespace(_fetch_api_resp=AsyncMock(return_value=response))
+   if response['code']==1 and isinstance(response['data'],dict):
+    await AnycubicAPIFunctions.get_camera_session(client,SimpleNamespace(id=42))
+   else:
+    with self.assertRaises(AnycubicCameraSessionError):
+     await AnycubicAPIFunctions.get_camera_session(client,SimpleNamespace(id=42))
+   params=client._fetch_api_resp.call_args.kwargs['params']
+   self.assertEqual(params,{'order_id':1001,'printer_id':42,'shengwang_rtc_support':True})
+   self.assertIs(type(params['order_id']),int)
  async def test_missing_invalid_and_legacy_responses_are_distinct(self):
   """Les trois raisons sont fixes ; aucun champ privé ne peut devenir un message d’erreur."""
   cases=[({'code':1,'data':{}},'missing_credentials'),({'code':1,'data':{'shengwang':{}}},'missing_credentials'),({'code':1,'data':'fixture-private-response'},'invalid_format'),({'code':1,'data':{'shengwang':'fixture-private-response'}},'invalid_format'),({'code':1,'data':{'token':{'tmpSecretKey':'fixture-private-legacy'}}},'unsupported_transport')]

@@ -76,3 +76,9 @@ La Kobra X est reconnue par le type constructeur 20030 ou son nom exact. Ses pha
 
 ## Fraîcheur avant pause, reprise ou arrêt (#19)
 L’interface transmet la référence opaque du projet affiché au moment de demander confirmation. Sous les verrous d’opération et de lecture, le serveur exige la même référence, relit le modèle par HTTP avec une limite de dix secondes et contrôle de nouveau identité, état actif et pause avant l’envoi. La méthode constructeur reçoit explicitement le projet vérifié. Une lecture échouée, une tâche remplacée ou une transition de pause annule l’envoi ; une activité MQTT sans rapport ne constitue pas une preuve de fraîcheur. Aucun ordre n’est répété automatiquement après un résultat incertain.
+
+## Ouverture et fermeture Agora (#20, #64)
+
+L’ouverture conserve l’ordre numérique 1001 et `shengwang_rtc_support` au premier niveau. Les fixtures vérifient une session Agora, un refus et un format mal formé. Elles ne démontrent pas une différence de comportement entre une chaîne et un entier sur tous les firmwares.
+
+La fermeture 1002 reprend la forme du client communautaire RespawnDespair (commit 53c406b). Elle est programmée après le départ du dernier onglet suivi par l’atelier et annulée de fait si un spectateur revient pendant le délai. Les clients externes et les onglets qui disparaissent sans notifier le serveur ne peuvent pas être recensés de façon fiable. Ce comportement a été testé sans ordre physique.

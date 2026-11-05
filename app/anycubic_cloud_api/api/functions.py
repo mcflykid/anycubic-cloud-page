@@ -877,7 +877,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         if raw_data:
             return resp
 
-        data = resp.get("data") if isinstance(resp, dict) else None
+        data = resp.get("data") if isinstance(resp, dict) and resp.get("code") in (None, 1) else None
         if not isinstance(data, dict):
             raise AnycubicCameraSessionError('invalid_format') from None
         shengwang = data.get("shengwang")
