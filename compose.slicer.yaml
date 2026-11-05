@@ -3,7 +3,7 @@ services:
   # Lecteur du slicer — observe les journaux et actualise le jeton sans l’afficher.
   # ============================================================================
   anycubic-cloud-page-token-watcher:
-    image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:1.1.0}"
+    image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:latest}"
     container_name: "anycubic-cloud-page-token-watcher"
     cpus: "0.1"
     mem_limit: "96m"
