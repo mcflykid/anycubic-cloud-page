@@ -2,6 +2,8 @@
 
 ## À publier
 
+- Tests de renouvellement concurrent, repli et refus de changement de compte ; validation des JWT mal formés et diagnostics de session sans réponse privée (#22).
+
 - Diagnostics caméra distincts pour identifiants absents, format invalide et transport non pris en charge ; étapes MQTT corrélées et diagnostics sans références privées (#21).
 
 - Sélecteur multi-imprimantes avec choix mémorisé, cible explicite par requête, états et courbes séparés, et connexion MQTT unique au compte (#32).

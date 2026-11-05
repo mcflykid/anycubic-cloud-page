@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Connexion au centre utilisateur Anycubic par code d’autorisation lié à PKCE."""
-import asyncio,base64,contextlib,hashlib,json,os,pathlib,secrets,time
+import asyncio,base64,contextlib,hashlib,json,math,os,pathlib,secrets,time
 
 UC='https://uc.makeronline.com'
 CLIENT_ID='b269a3136d26ac6488bb'
@@ -8,9 +8,11 @@ REDIRECT='acnext://login'
 
 def claims(token):
  """Renvoie les claims JWT non vérifiés, ou {} si le jeton est illisible."""
+ if not isinstance(token,str):return {}
  try:
   part=token.split('.')[1]
-  return json.loads(base64.urlsafe_b64decode(part+'='*(-len(part)%4)))
+  data=json.loads(base64.urlsafe_b64decode(part+'='*(-len(part)%4)))
+  return data if isinstance(data,dict) else {}
  except (ValueError,IndexError,TypeError):return {}
 
 class AccountAuth:
@@ -21,9 +23,9 @@ class AccountAuth:
   self.lock=asyncio.Lock();self.retry_after=0;self.state={}
   with contextlib.suppress(OSError,ValueError):self.state=json.loads(self.path.read_text())
  def valid(self,token,margin=300):
-  """Teste émetteur, type et expiration avec une marge en secondes, sans vérifier la signature."""
-  c=claims(token)
-  return c.get('iss')==UC and c.get('tokenType')=='access-token' and c.get('exp',0)>time.time()+margin
+  """Teste identité et expiration finie avec une marge en secondes ; ne vérifie pas la signature et refuse un schéma illisible."""
+  c=claims(token);expires=c.get('exp');subject=c.get('sub')
+  return c.get('iss')==UC and c.get('tokenType')=='access-token' and isinstance(subject,str) and bool(subject.strip()) and isinstance(expires,(int,float)) and not isinstance(expires,bool) and math.isfinite(expires) and expires>time.time()+margin
  def save(self,data):
   """Persiste la session ; lève RuntimeError si le jeton est invalide ou change de compte."""
   if not self.valid(data.get('access_token','')):raise RuntimeError('Jeton Anycubic non valide')
