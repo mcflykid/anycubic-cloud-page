@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const {login}=require('./workshop.spec.cjs');
+const {login}=require('./helpers.cjs');
 /** Une liste lente ne doit jamais être appliquée à la source choisie entre-temps. */
 test('les fichiers tardifs ne changent pas de source et la dernière lecture repart',async({page})=>{
  let release,entered;const waiting=new Promise(r=>entered=r),gate=new Promise(r=>release=r);const commands=[];
@@ -19,4 +19,12 @@ test('un changement de dossier puis de cloud ne perd pas la nouvelle lecture',as
  await login(page);await page.getByRole('button',{name:'Fichiers',exact:true}).click();await waiting;await page.locator('#file-path').fill('/nouveau');await page.locator('#files-form').evaluate(f=>f.requestSubmit());release();
  await expect(page.getByText('nouveau.gcode',{exact:true})).toBeVisible();await expect(page.getByText('ancien.gcode',{exact:true})).toHaveCount(0);expect(reads).toBe(2);
  await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();await expect(page.locator('#file-rows')).not.toContainText('nouveau.gcode');await expect(page.locator('#files-state')).toContainText('fichier(s)');
+});
+/** Un choix Cloud effectué pendant la réponse locale doit déclencher sa propre lecture. */
+test('le cloud choisi pendant une lecture locale est chargé après la réponse tardive',async({page})=>{
+ let release,entered;const waiting=new Promise(r=>entered=r),gate=new Promise(r=>release=r);let cloudReads=0;
+ await page.route('**/imprimante-api/files/local?**',async route=>{entered();await gate;await route.fulfill({json:{files:[{name:'ancien-local.gcode'}],path:'/'}});});
+ await page.route('**/imprimante-api/files/cloud?**',async route=>{cloudReads++;await route.fulfill({json:{files:[{name:'cloud-seul.gcode',handle:'fake-file'}],store:{used_bytes:0,total_bytes:1024}}});});
+ await login(page);await page.getByRole('button',{name:'Fichiers',exact:true}).click();await waiting;await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();release();
+ await expect(page.getByText('cloud-seul.gcode',{exact:true})).toBeVisible();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);expect(cloudReads).toBe(1);
 });

@@ -178,7 +178,10 @@ class AnycubicAPIBase:
                 data = None
             h_coro = self._session.post(url, params=query, data=data, headers=headers)
         elif method == HTTP_METHODS.PUT:
-            h_coro = self._session.put(url, params=query, data=put_data, headers=headers)
+            # Le transfert signé suit sa taille, indépendamment des appels API courts.
+            transfer_seconds = min(3600, 120 + len(put_data or b'') / 32768)
+            h_coro = self._session.put(url, params=query, data=put_data, headers=headers,
+                                       timeout=aiohttp.ClientTimeout(total=transfer_seconds, sock_connect=30, sock_read=120))
         else:
             h_coro = self._session.get(url, params=query, headers=headers)
 

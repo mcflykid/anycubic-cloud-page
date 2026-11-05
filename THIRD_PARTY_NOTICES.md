@@ -10,6 +10,8 @@ Les certificats et la constante de signature client ne sont **pas** inclus dans 
 
 Les correctifs MQTT ciblés de la version amont **0.4.5** (`67c671a5aaa5415a84d075a3f16ebf14650337ce`) sont repris pour les rapports ACE partiels, les phases de préparation, la ventilation, les rapports informatifs, les échecs vidéo et les particularités Kobra X (#63). Nos adaptations de confidentialité et de routage sont conservées. La révision de récupération des certificats reste inchangée ; cette reprise ne remplace pas le client complet.
 
+Le transport des transferts signés dispose également d’un délai borné proportionnel à la taille du fichier (#57), distinct du délai des requêtes API.
+
 ## Caméra Agora
 
 Dépendance : `agora-rtc-sdk-ng` **4.24.9**, propriétaire de la publication npm : Agora. La métadonnée de licence du package npm annonce MIT ; les conditions et notices de l’éditeur demeurent applicables. Le bundle n’est pas versionné ici : le build utilise `npm ci` et copie le fichier distribué, avec son en-tête de copyright, dans l’image Docker.

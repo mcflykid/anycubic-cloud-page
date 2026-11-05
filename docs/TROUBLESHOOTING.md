@@ -49,3 +49,9 @@ Le stockage privé est commun aux modes Docker et sources : APPDATA_DIR/private.
 Un manque d’identifiants Agora, une réponse cloud de format invalide et un transport KVS non pris en charge produisent des messages distincts. Le transport KVS n’est pas ouvert implicitement avec le lecteur Agora. Les erreurs et représentations de diagnostic ne contiennent ni canal, ni identifiant de session, ni clé ou jeton temporaire.
 
 Lorsqu’une référence de corrélation est disponible, les rapports MQTT de la session courante peuvent préciser l’initialisation, la jonction et le début ou l’arrêt d’envoi de vidéo. Un acquittement ne prouve pas qu’une image est visible. Les rapports d’une autre machine, d’une ancienne session ou reçus hors ordre ne remplacent pas une étape plus avancée.
+
+
+## Gros envois de G-code (#57)
+Le transfert vers le stockage signé dispose de 120 secondes plus une durée calculée à 32 Kio/s, avec plafond d’une heure ; connexion et attente de réponse restent bornées séparément. Les appels API gardent leur délai court. Le navigateur réserve une durée supérieure pour l’envoi au serveur puis au cloud, jusqu’à deux heures. Ces budgets ne garantissent pas le succès sur tout réseau.
+
+Une interruption ne prouve pas l’échec : vérifier les fichiers cloud et l’état machine avant toute nouvelle tentative. Aucun transfert n’est rejoué automatiquement. Dans la même page et pour le même fichier, mode, cible et ordre de bobines, une nouvelle tentative manuelle après erreur conserve l’identifiant de demande afin que le serveur reconnaisse une opération déjà commencée. Un rechargement de page ou un redémarrage du service ne conserve pas cette protection en mémoire : la vérification manuelle reste nécessaire.
