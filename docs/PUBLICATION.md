@@ -47,3 +47,5 @@ Un push sur main ou une fusion lance les tests, sans publier d’image. Pour pub
 Le workflow Publish Docker image vérifie le tag, appelle tous les tests du workflow de CI (dont les deux installations Docker), puis publie les images amd64 et arm64. Après vérification anonyme de l’image, il crée la release GitHub à partir de l’entrée correspondante du CHANGELOG, avec compose.yaml et .env.example en pièces jointes. Une erreur de version, de changelog, de registre ou de test arrête la procédure.
 
 Suivre les exécutions avec gh run watch et vérifier ensuite les fichiers de la release et l’accès public à l’image. Ne jamais déplacer un tag ni relancer une publication sous un numéro déjà utilisé. Les améliorations en attente sont suivies dans les issues et dans l’entrée « À publier » du changelog.
+
+GitHub normalise le nom de la pièce jointe `.env.example` en `default.env.example` ; son libellé reste `.env.example`. Le contenu provient du tag. Après téléchargement, copier `default.env.example` en `.env`. Utiliser le lien réel de la pièce jointe dans les notes de release.
