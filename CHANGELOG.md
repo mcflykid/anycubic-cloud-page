@@ -11,6 +11,8 @@
 - Historique paginé après fusion des imprimantes. La pause et le nivellement sont distingués, une estimation nulle reste inconnue et le badge RFID indique la reconnaissance de la puce (#90, #91, #93, #94).
 - Diagnostic exportable lorsque le Cloud est indisponible, échéance du jeton visible et chemin des journaux Flatpak documenté (#83, #98, #99, #100). Le séchage peut reprendre le préréglage du matériau chargé (#101).
 
+- Chaque nouvelle release ouvre une discussion dans la catégorie Annonces (#108).
+
 Les parcours de notifications et de dossiers Cloud ont été vérifiés sur des réponses fictives. La galerie Timelapse, la chauffe au repos et la lecture des coordonnées restent suivies dans #30, #95 et #96.
 
 ## 1.3.1 — 2026-11-06
