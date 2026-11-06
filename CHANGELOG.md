@@ -1,5 +1,11 @@
 # Changements
 
+## 1.2.10 — 2026-11-06
+
+- Les scripts, styles, illustrations et notices empruntent le préfixe déjà utilisé par l’atelier. Les proxys qui transmettent `/imprimante-api/*` servent ces ressources avec leurs règles existantes.
+- La pastille d’état du module ACE s’ajuste à son libellé.
+- Un indicateur discret s’affiche pendant le chargement des miniatures dans Fichiers.
+
 ## 1.2.9 — 2026-11-06
 
 - Rétablissement des illustrations d’origine dans Imprimante, ACE et filaments, et la carte Imprimante des Réglages pour la Kobra S1 Combo, même lorsque la génération de l’ACE n’est pas fournie. La génération est détectée via le nom de boîtier fourni par Anycubic dans les données de micrologiciel (#37).
