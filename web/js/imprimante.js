@@ -1,7 +1,8 @@
-import {createCamera} from './workshop-camera.mjs?v=b7dfa19d20cd';
-import {$,confirmAction,date,fmt,formatText,locale,message,mins,node,serverText,set,timeZone,tr} from './workshop-ui.mjs?v=60097cdec556';
-import {createTemperatureLoader} from './workshop-temperatures.mjs?v=2414b95f0ddd';
-import {api,createRequest} from './workshop-api.mjs?v=f28638a19076';
+import {createFileThumbnails} from './workshop-file-previews.mjs?v=56aaede82476';
+import {createCamera} from './workshop-camera.mjs?v=40f48d062468';
+import {$,confirmAction,date,fmt,formatText,locale,message,mins,node,serverText,set,timeZone,tr} from './workshop-ui.mjs?v=fc4b0544ea95';
+import {createTemperatureLoader} from './workshop-temperatures.mjs?v=86d836e04036';
+import {api,createRequest} from './workshop-api.mjs?v=e8d1a9535d01';
 
 let snapshot=null, source='local', cloudPage=1, cloudRows=[], filePending=false, fileRows=null, currentTab='overview', busy=false, presetsReady=false, mqttSeen='', connectionFailure=false;
 export let previewJob=null;
@@ -21,6 +22,7 @@ $('printer-selector').onchange=choosePrinter;
 const request=createRequest(()=>selectedPrinter);
 const loadTemperatures=createTemperatureLoader(request);
 const camera=createCamera(request,()=>selectedPrinter);
+const fileThumbnails=createFileThumbnails(request,context=>fileContext===context&&currentFileContext(context)&&currentTab==='files');
 const sensitiveActions=new Set(['firmware','ace-firmware','factory-reset']);
 /** Vérifie le mot de passe séparément de la commande et abandonne la confirmation si le dialogue ferme. */
 function confirmPassword(action,target){
@@ -221,84 +223,8 @@ $('settings-form').onsubmit=e=>{
 function slots(value){if(!value.trim())return [];const result=value.split(/[ ,;]+/).filter(Boolean).map(Number);if(result.some(v=>!Number.isInteger(v)||v<1||v>8))throw new Error(tr('Indiquez des emplacements de 1 à 8.'));return result;}
 /** Empêche une ancienne liste de fournir des actions pour une autre source ou un autre dossier. */
 function currentFileContext(context){return !!context&&context.source===source&&context.path===$('file-path').value&&context.page===cloudPage&&context.printer===selectedPrinter;}
-const fileThumbnailCache=new Map(),fileThumbnailQueue=new Map();
-let fileThumbnailLoading=false;
-const fileThumbnailObserver=new IntersectionObserver(entries=>{
- for(const {target,isIntersecting} of entries){
-  if(!isIntersecting||!target.isConnected)continue;
-  fileThumbnailObserver.unobserve(target);
-  fileThumbnailQueue.set(target,target.previewJob);
- }
- void loadFileThumbnails();
-},{rootMargin:'48px'});
-
-/** Une seule miniature en cours évite de monopoliser le canal MQTT de la machine. */
-async function loadFileThumbnails(){
- if(fileThumbnailLoading)return;
- fileThumbnailLoading=true;
- try{
-  while(fileThumbnailQueue.size){
-   const [host,job]=fileThumbnailQueue.entries().next().value;
-   fileThumbnailQueue.delete(host);
-   if(!host.isConnected||fileContext!==job.context||!currentFileContext(job.context)||currentTab!=='files')continue;
-   let cached=fileThumbnailCache.get(job.key);
-   if(!cached||cached.expires<=Date.now()){
-    const {context,file}=job;
-    let image=null;
-    try{
-     const result=await request('/preview',{
-      method:'POST',printerKey:context.printer,timeoutMs:20000,headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({source:context.source,handle:file.handle,name:file.name,path:context.path})
-     });
-     image=result.image||null;
-    }catch{}
-    cached={image,expires:Date.now()+(image?300000:30000)};
-    fileThumbnailCache.delete(job.key);
-    fileThumbnailCache.set(job.key,cached);
-    while(fileThumbnailCache.size>20)fileThumbnailCache.delete(fileThumbnailCache.keys().next().value);
-   }
-   if(host.isConnected&&fileContext===job.context&&currentFileContext(job.context))showFileThumbnail(host,job.file,cached.image);
-  }
- }finally{fileThumbnailLoading=false;}
-}
-
-/** Le nom reste lisible si le fichier n’a pas d’image ou si son décodage échoue. */
-function showFileThumbnail(host,file,src){
- const unavailable=()=>{
-  host.removeAttribute('aria-busy');
-  host.title=tr('Aperçu indisponible');
-  host.textContent='—';
- };
- if(!src){unavailable();return;}
- const image=node('img'),button=node('button',null,'file-thumbnail-open');
- image.alt='';
- button.type='button';
- button.setAttribute('aria-label',tr('Agrandir l’aperçu de ')+file.name);
- button.onclick=()=>openFilePreview(file.name,src);
- button.append(image);
- image.onload=()=>{
-  host.removeAttribute('aria-busy');
-  host.title='';
-  host.replaceChildren(button);
- };
- image.onerror=unavailable;
- image.src=src;
-}
-
-/** Prépare une vignette liée au dossier, à la source et à la cible de la ligne. */
-function fileThumbnail(file,context){
- const host=node('span',null,'file-thumbnail');
- host.setAttribute('aria-busy','true');
- const key=JSON.stringify([context.printer,context.source,context.path,file.handle,file.name,file.size_mb]);
- host.previewJob={file,context,key};
- host.title=tr('Chargement de l’aperçu');
- const cached=fileThumbnailCache.get(key);
- if(cached&&cached.expires>Date.now())showFileThumbnail(host,file,cached.image);
- else fileThumbnailObserver.observe(host);
- return host;
-}
 /** Les actions gardent la source et le chemin de la liste reçue, même après un changement de vue. */
-function renderFiles(){fileThumbnailObserver.disconnect();fileThumbnailQueue.clear();const context=fileContext,listedSource=context?.source,listedPath=context?.path;const list=currentFileContext(context)?(listedSource==='cloud'?cloudRows:fileRows):null;const rows=Array.isArray(list)?list:[];$('file-rows').replaceChildren(...rows.map(f=>{const row=node('tr'),name=node('td'),size=node('td',fmt(f.size_mb,tr(' Mo'))),actions=node('td'),wrap=node('div',null,'actions');const identity=node('span',null,'file-row-identity');if(!f.is_dir)identity.append(fileThumbnail(f,context));identity.append(node('span',f.name));name.append(identity);const add=(label,fn,cls)=>{const b=node('button',null,cls);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',({'Télécharger':'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4','Renommer':'M4 20l4-1L20 7l-3-3L5 16z','Ouvrir':'M3 7V5h7l2 3h9v12H3z','Imprimer':'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z','Supprimer':'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15'})[label]||'');svg.append(path);b.append(svg,node('span',tr(label)));b.title=({'Imprimer':tr('Préparer l’impression de ce fichier avec les bobines choisies.'),'Supprimer':tr('Supprimer ce fichier après confirmation.'),'Ouvrir':tr('Afficher le contenu de ce dossier.')})[label]||label;if(label==='Imprimer'){if(listedSource==='cloud'&&f.printable===false){b.disabled=true;b.title=tr('Ce fichier ne contient pas de G-code imprimable.');}else if(snapshot?.printer?.is_available===false){b.disabled=true;b.title=tr('L’imprimante est occupée.');}}b.type='button';b.onclick=fn;wrap.append(b);};if(source==='cloud'){const check=node('input');check.type='checkbox';check.checked=cloudSelected.has(f.handle);check.setAttribute('aria-label',tr('Sélectionner ')+f.name);check.onchange=()=>{check.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);cloudSelectionState();};name.prepend(check);name.classList.add('cloud-file-name');add('Télécharger',()=>downloadCloud([f.handle]));add('Renommer',()=>renameCloud(f));}if(f.is_dir)add('Ouvrir',()=>{$('file-path').value=listedPath.replace(/\/$/,'')+'/'+f.name;loadFiles();});else{add('Imprimer',async()=>{try{await command(`print-${listedSource}`,{...f,path:listedPath,slots:slots($('file-slots').value)},formatText("Imprimer « {0} » avec la sélection de bobines indiquée ?",f.name));}catch(e){message(e.message,true);}});add('Supprimer',async()=>{const ok=await command(`delete-${listedSource}`,{...f,path:listedPath},formatText("Supprimer définitivement « {0} » de {1} ?",f.name,listedSource==='cloud'?tr('votre espace cloud'):listedSource==='usb'?tr('la clé USB'):tr('la mémoire de l’imprimante')));if(ok)loadFiles();},'danger');}actions.append(wrap);row.append(name,size,actions);return row;}));
+function renderFiles(){fileThumbnails.reset();const context=fileContext,listedSource=context?.source,listedPath=context?.path;const list=currentFileContext(context)?(listedSource==='cloud'?cloudRows:fileRows):null;const rows=Array.isArray(list)?list:[];$('file-rows').replaceChildren(...rows.map(f=>{const row=node('tr'),name=node('td'),size=node('td',fmt(f.size_mb,tr(' Mo'))),actions=node('td'),wrap=node('div',null,'actions');const identity=node('span',null,'file-row-identity');if(!f.is_dir)identity.append(fileThumbnails.create(f,context));identity.append(node('span',f.name));name.append(identity);const add=(label,fn,cls)=>{const b=node('button',null,cls);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',({'Télécharger':'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4','Renommer':'M4 20l4-1L20 7l-3-3L5 16z','Ouvrir':'M3 7V5h7l2 3h9v12H3z','Imprimer':'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z','Supprimer':'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15'})[label]||'');svg.append(path);b.append(svg,node('span',tr(label)));b.title=({'Imprimer':tr('Préparer l’impression de ce fichier avec les bobines choisies.'),'Supprimer':tr('Supprimer ce fichier après confirmation.'),'Ouvrir':tr('Afficher le contenu de ce dossier.')})[label]||tr(label);if(label==='Imprimer'){if(listedSource==='cloud'&&f.printable===false){b.disabled=true;b.title=tr('Ce fichier ne contient pas de G-code imprimable.');}else if(snapshot?.printer?.is_available===false){b.disabled=true;b.title=tr('L’imprimante est occupée.');}}b.type='button';b.onclick=fn;wrap.append(b);};if(source==='cloud'){const check=node('input');check.type='checkbox';check.checked=cloudSelected.has(f.handle);check.setAttribute('aria-label',tr('Sélectionner ')+f.name);check.onchange=()=>{check.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);cloudSelectionState();};name.prepend(check);name.classList.add('cloud-file-name');add('Télécharger',()=>downloadCloud([f.handle]));add('Renommer',()=>renameCloud(f));}if(f.is_dir)add('Ouvrir',()=>{$('file-path').value=listedPath.replace(/\/$/,'')+'/'+f.name;loadFiles();});else{add('Imprimer',async()=>{try{await command(`print-${listedSource}`,{...f,path:listedPath,slots:slots($('file-slots').value)},formatText("Imprimer « {0} » avec la sélection de bobines indiquée ?",f.name));}catch(e){message(e.message,true);}});add('Supprimer',async()=>{const ok=await command(`delete-${listedSource}`,{...f,path:listedPath},formatText("Supprimer définitivement « {0} » de {1} ?",f.name,listedSource==='cloud'?tr('votre espace cloud'):listedSource==='usb'?tr('la clé USB'):tr('la mémoire de l’imprimante')));if(ok)loadFiles();},'danger');}actions.append(wrap);row.append(name,size,actions);return row;}));
  if(source!=='cloud')set('files-state',list==null?tr('Liste non reçue. Actualisez ; les résultats arrivent par MQTT.'):rows.length?formatText("{0} élément(s).",rows.length):tr('Ce dossier est vide.'));
  $('cloud-tools').hidden=source!=='cloud';if(source==='cloud'){cloudSelectionState();loadCloudStorage();} $('prev-page').hidden=$('next-page').hidden=source!=='cloud';set('cloud-page',source==='cloud'?formatText("Page {0}",cloudPage):'');$('prev-page').disabled=cloudPage<=1;$('next-page').disabled=!cloudHasMore||!currentFileContext(context);
 }
@@ -318,15 +244,6 @@ async function loadFiles(){
 }
 document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{source=b.dataset.source;cloudPage=1;fileRows=null;document.querySelectorAll('[data-source]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('file-path').disabled=source==='cloud';$('parent-folder').disabled=source==='cloud';renderFiles();loadFiles();});$('files-form').onsubmit=e=>{e.preventDefault();loadFiles();};$('parent-folder').onclick=()=>{const parts=$('file-path').value.split('/').filter(Boolean);parts.pop();$('file-path').value='/'+parts.join('/');loadFiles();};$('prev-page').onclick=()=>{cloudPage=Math.max(1,cloudPage-1);loadFiles();};$('next-page').onclick=()=>{cloudPage++;loadFiles();};
 $('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const data=new FormData(e.target),file=data.get('file');if(file.size>100*1024*1024){message(tr('Le fichier dépasse 100 Mo.'),true);return;}try{data.set('slots',JSON.stringify(slots(data.get('slots'))));}catch(err){message(err.message,true);return;}if(!await confirmAction(formatText(data.get('mode')==='upload'?tr('Envoyer « {0} » dans votre espace cloud ?'):tr('Envoyer « {0} » et lancer son impression ?'),file.name)))return;const chosen=e.target.elements.file.files[0],intent=JSON.stringify([data.get('mode'),data.get('slots'),selectedPrinter]);if(!uploadAttempt||uploadAttempt.file!==chosen||uploadAttempt.intent!==intent)uploadAttempt={file:chosen,intent,id:crypto.randomUUID()};data.set('request_id',uploadAttempt.id);setBusy(true);set('upload-state',tr('Envoi en cours. Ne fermez pas cette page.'));try{const result=await request('/upload',{method:'POST',body:data,timeoutMs:Math.min(7200000,300000+file.size/32768*2000)});uploadAttempt=null;set('upload-state',result.message);message(result.message);}catch(err){set('upload-state',err.message);message(err.message,true);}finally{setBusy(false);}};
-/** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
-function openFilePreview(name,src){
- const dialog=node('dialog',null,'file-preview-dialog'),title=node('h2',name),img=node('img'),close=node('button',tr('Fermer'));
- img.src=src;img.alt=tr('Aperçu de ')+name;img.style.width='100%';
- close.type='button';close.onclick=()=>dialog.close();
- dialog.onclose=()=>dialog.remove();
- const header=node('div',null,'dialog-top');header.append(title,close);
- dialog.append(header,img);document.body.append(dialog);dialog.showModal();
-}
 for(const [id,enabled] of [['light-on',true],['light-off',false],['control-light-on',true],['control-light-off',false]]){
  const feedback=id.startsWith('control-')?controlFeedback:undefined;
  $(id).onclick=()=>{
@@ -335,11 +252,20 @@ for(const [id,enabled] of [['light-on',true],['light-off',false],['control-light
  };
 }
 
-let historyPage=1,historyPending=false,noticeRows=[],noticeFilter='all',noticeMore=false,noticeSignature='';
+let historyPage=1,historyPending=false,noticeRows=[],noticeFilter='all',noticeMore=false,noticeSignature='',noticeUnread=0;
 /** Charge une page de notifications du compte, en empêchant deux lectures simultanées. */
 async function loadHistory(force=false){if(historyPending)return;historyPending=true;try{const d=!force&&historyPage===1&&snapshot?.notifications?snapshot.notifications:await request(`/history?page=${historyPage}`);noticeRows=historyPage===1?d.items:[...new Map([...noticeRows,...d.items].map(x=>[x.key,x])).values()];noticeMore=d.has_more;updateNoticeCount(d.unread);renderNotifications();}catch(e){set('history-state',e.message);}finally{historyPending=false;}}
 /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
-function updateNoticeCount(count){const unread=Number(count)||0;$('notifications-dot').hidden=!unread;$('notifications-filter-dot').hidden=!unread;set('notifications-title',formatText("Messages ({0})",unread));$('notifications-toggle').setAttribute('aria-label',formatText("Notifications : {0} message{1} non lu{2}",unread,unread>1?'s':'',unread>1?'s':''));$('history-read-all').disabled=!unread;}
+function updateNoticeCount(count){
+ noticeUnread=Math.max(0,Number(count)||0);
+ const displayed=fmt(noticeUnread);
+ const plural=noticeUnread>1?'s':'';
+ $('notifications-dot').hidden=!noticeUnread;
+ $('notifications-filter-dot').hidden=!noticeUnread;
+ set('notifications-title',formatText("Messages ({0})",displayed));
+ $('notifications-toggle').setAttribute('aria-label',formatText("Notifications : {0} message{1} non lu{2}",displayed,plural,plural));
+ $('history-read-all').disabled=!noticeUnread;
+}
 /** Filtre les messages chargés ; les noms du cloud restent du texte et les aperçus sont différés. */
 function renderNotifications(){
  notificationPreviewObserver.disconnect();
@@ -386,7 +312,7 @@ function notificationRow(item){
  row.append(remove);return row;
 }
 /** Le marquage est confirmé avant le détail ; aucune impression n’est déclenchée. */
-async function openNotice(item){try{if(item.unread){await request('/history/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:item.key})});item.unread=false;updateNoticeCount(Math.max(0,Number($('notifications-title').textContent.match(/\d+/)?.[0]||0)-1));renderNotifications();}await openNotificationPreview(item);}catch(e){message(e.message,true);}}
+async function openNotice(item){try{if(item.unread){await request('/history/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:item.key})});item.unread=false;updateNoticeCount(noticeUnread-1);renderNotifications();}await openNotificationPreview(item);}catch(e){message(e.message,true);}}
 /** Ferme le panneau et restitue le clavier à la cloche sur Échap. */
 function noticePanel(open,focus=false){$('notifications-panel').hidden=!open;$('notifications-toggle').setAttribute('aria-expanded',String(open));if(open){historyPage=1;void loadHistory();}else if(focus)$('notifications-toggle').focus();}
 $('notifications-toggle').onclick=()=>noticePanel($('notifications-panel').hidden);

@@ -13,6 +13,7 @@ MODULES = (
     "workshop-api.mjs",
     "workshop-temperatures.mjs",
     "workshop-camera.mjs",
+    "workshop-file-previews.mjs",
 )
 
 

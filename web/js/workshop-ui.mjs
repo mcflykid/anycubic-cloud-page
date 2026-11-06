@@ -1,7 +1,7 @@
 const preference='cloud-page-language';
 const locales={fr:'fr-FR',en:'en',es:'es'};
-const catalogueURL=new URL('./workshop-translations.json?v=54a1a98c37dc',import.meta.url);
-const catalogueIntegrity='sha256-VKGpjDfcVDx0h3O/NZ+YH3/2a2f1A/lJA+m0USkKRX4=';
+const catalogueURL=new URL('./workshop-translations.json?v=ff04e1531aee',import.meta.url);
+const catalogueIntegrity='sha256-/wThUxrupSBpPUW22UWt3MFDuq0WngHEoJgt+W3X8HU=';
 let language='fr',catalogue={};
 const serverFormats=[
  [/^Valeur attendue entre (-?\d+) et (-?\d+)$/,'Valeur attendue entre {0} et {1}'],

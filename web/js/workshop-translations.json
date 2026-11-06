@@ -447,6 +447,10 @@
     "This self-hosted app uses the connection configured by the administrator to read devices, print status, notifications and files accessible to the Anycubic account. Commands and transfers you request are sent to Anycubic.",
     "Esta aplicación autoalojada usa la conexión configurada por el administrador para consultar dispositivos, estados de impresión, notificaciones y archivos accesibles desde la cuenta Anycubic. Los comandos y las transferencias que solicites se envían a Anycubic."
   ],
+  "Cette caméra utilise un transport vidéo non pris en charge par l’atelier (KVS).": [
+    "This camera uses a video transport the workshop does not support (KVS).",
+    "Esta cámara usa un transporte de vídeo que el taller no admite (KVS)."
+  ],
   "Cette impression est déjà évaluée": [
     "This print has already been rated",
     "Esta impresión ya está valorada"
@@ -1475,6 +1479,10 @@
     "This firmware does not report cloud factory reset support.",
     "Este firmware no anuncia el restablecimiento de fábrica desde la nube."
   ],
+  "La réponse cloud ne contient pas les identifiants Agora nécessaires à la vidéo.": [
+    "The cloud response is missing the Agora credentials required for video.",
+    "La respuesta de la nube no contiene las credenciales de Agora necesarias para el vídeo."
+  ],
   "La session vidéo ne peut pas être ouverte pour le moment.": [
     "The video session cannot be opened right now.",
     "No se puede abrir la sesión de vídeo en este momento."
@@ -1506,6 +1514,10 @@
   "Le client Python dérive du projet hass-anycubic_cloud_v3 de ljschmitt. Les adaptations du flux vidéo s’appuient sur le travail de RespawnDespair. La vidéo utilise le SDK Agora. Les illustrations de l’atelier sont des créations non officielles.": [
     "The Python client is derived from ljschmitt’s hass-anycubic_cloud_v3 project. Video adaptations build on RespawnDespair’s work. Video uses the Agora SDK. The workshop illustrations are unofficial creations.",
     "El cliente Python deriva del proyecto hass-anycubic_cloud_v3 de ljschmitt. Las adaptaciones del vídeo se basan en el trabajo de RespawnDespair. El vídeo usa el SDK de Agora. Las ilustraciones del taller son creaciones no oficiales."
+  ],
+  "Le cloud a renvoyé une session caméra de format invalide.": [
+    "The cloud returned a camera session in an invalid format.",
+    "La nube devolvió una sesión de cámara con un formato no válido."
   ],
   "Le cloud ne fournit pas de détail traduit.": [
     "The cloud did not provide a translated detail.",

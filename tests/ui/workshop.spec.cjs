@@ -125,3 +125,13 @@ test('une ancienne préférence inconnue ne déclenche aucun chargement de tradu
  await expect(page.getByRole('combobox',{name:'Langue de l’interface'})).toHaveValue('fr');
  expect(catalogues).toHaveLength(0);
 });
+
+test('un catalogue qui ne répond pas ne bloque pas la connexion',async({page})=>{
+ let requests=0;
+ await page.addInitScript(()=>localStorage.setItem('cloud-page-language','en'));
+ await page.route('**/js/workshop-translations.json*',()=>{requests++;});
+ await login(page);
+ await expect(page.locator('#connection')).toHaveText('En ligne');
+ await expect(page.locator('#interface-language')).toHaveValue('fr');
+ expect(requests).toBeGreaterThanOrEqual(1);
+});

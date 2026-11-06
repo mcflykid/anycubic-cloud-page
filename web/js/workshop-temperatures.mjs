@@ -1,4 +1,4 @@
-import {$,fmt,formatText,locale,node,set,timeZone,tr} from './workshop-ui.mjs?v=60097cdec556';
+import {$,fmt,formatText,locale,node,set,timeZone,tr} from './workshop-ui.mjs?v=fc4b0544ea95';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag,attributes,text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value]of Object.entries(attributes||{}))e.setAttribute(key,String(value));if(text!=null)e.textContent=text;return e;}
