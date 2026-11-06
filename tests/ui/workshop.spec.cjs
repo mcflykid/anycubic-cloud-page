@@ -7,9 +7,12 @@ module.exports={login};
 test('la page française démarre avec une barre compacte sans ressource de traduction',async({page})=>{
  await page.setViewportSize({width:360,height:800});
  const {login}=require('./helpers.cjs');
+ await page.addInitScript(()=>localStorage.setItem('cloud-page-language','es'));
+ await page.route('**/js/ui-language.js*',route=>route.fulfill({status:404}));
  const languageRequests=[];
  page.on('request',request=>{if(request.url().includes('/js/ui-language.js'))languageRequests.push(request);});
  await login(page);
+ await expect(page.locator('html')).toHaveAttribute('lang','fr');
  await expect(page.locator('#connection')).toHaveText('En ligne');
  await expect(page.locator('#printer-model')).toHaveText('Anycubic Kobra S1');
  await expect(page.locator('#interface-language')).toHaveCount(0);
