@@ -148,6 +148,17 @@ test('les états utilisent les pastilles et l’aide du relais explique la bobin
  await expect(page.locator('#printer-status')).toHaveClass(/badge/);
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  await expect(page.locator('#ace-status')).toHaveClass(/badge/);
+ for(const width of [1280,360]){
+  await page.setViewportSize({width,height:900});
+  const extraWidth=await page.locator('#ace-status').evaluate(badge=>{
+   const text=document.createRange();
+   text.selectNodeContents(badge);
+   const {paddingLeft,paddingRight}=getComputedStyle(badge);
+   return badge.getBoundingClientRect().width-text.getBoundingClientRect().width-parseFloat(paddingLeft)-parseFloat(paddingRight);
+  });
+  expect(Math.abs(extraWidth)).toBeLessThan(1);
+ }
+ await page.setViewportSize({width:1280,height:900});
  await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
  await page.locator('#go-drying').click();
  await expect(page.locator('#drying-state')).toHaveText('Séchage actif');
