@@ -1,6 +1,7 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 import argparse,base64,math,os,pathlib,re,time
 from aiohttp import web
+from native_controls import TIMELAPSE_GALLERY_ENABLED
 from web_host import ROOT,install_information,render_page,home_url,display_timezone,access_control,install_access,ACCESS_KEY
 T=time.time()
 NOTICES=web.AppKey('notices',list)
@@ -53,7 +54,7 @@ async def api(request):
  elif path=='history':d={'items':notices,'page':1,'total':len(notices),'unread':sum(x['unread'] for x in notices),'has_more':False}
  elif path=='ai-settings':d={'settings':{'status':3,'sensitivity_level':[1,2,0],'notice_type':[0,2,0]}}
  elif path=='extras/device':d={'message':None,'calibrations':[],'assistance':[],'screen':[],'hardware':{},'bed':{},'factory_reset':False,'timelapse':False}
- elif path=='extras/videos':d={'available':False,'items':[],'message':'Aucun flux ni timelapse n’est simulé.'}
+ elif path=='extras/videos' and TIMELAPSE_GALLERY_ENABLED:d={'available':False,'items':[],'message':'Aucun flux ni timelapse n’est simulé.'}
  elif path=='extras/rating':d={'available':True,'already_rated':False}
  elif path=='health':d={'service':'ok','demo':True}
  else:return web.json_response({'message':'Fonction absente de la démonstration.'},status=404)

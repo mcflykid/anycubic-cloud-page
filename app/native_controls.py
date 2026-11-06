@@ -1,5 +1,7 @@
 """Paramètres de commandes validés et informations de tranche autorisées pour l’interface."""
 import math
+
+TIMELAPSE_GALLERY_ENABLED=False
 PARAMS=('layer_height','fill_density','enable_support','support_material_auto','brim_type','bed_temperature','temperature','fan_max_speed','filament_retract_length','perimeters','perimeter_extrusion_width','outer_wall_speed','travel_speed')
 def ace_model(box_id, firmware, report):
  """Identifie la génération via le nom constructeur du micrologiciel du même boîtier."""

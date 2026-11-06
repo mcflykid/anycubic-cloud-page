@@ -3,7 +3,7 @@
 import asyncio,base64,contextlib,hashlib,hmac,json,math,pathlib,re,secrets,time,urllib.parse
 import aiohttp
 from aiohttp import web
-from native_controls import PARAMS
+from native_controls import PARAMS,TIMELAPSE_GALLERY_ENABLED
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint,HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest,AnycubicBaseProjectOrderRequest
 
@@ -356,7 +356,9 @@ async def load(req):
   elif section=='notification-preview':result=await e.notification_preview(req.query.get('key'))
   elif section=='device':result=await e.device()
   elif section=='rating':result=await e.rating(req.query.get('key'))
-  elif section=='videos':result=await e.videos(max(1,min(1000,int(req.query.get('page',1)))),clean_text(req.query.get('keyword'),120))
+  elif section=='videos':
+   if not TIMELAPSE_GALLERY_ENABLED:raise web.HTTPNotFound()
+   result=await e.videos(max(1,min(1000,int(req.query.get('page',1)))),clean_text(req.query.get('keyword'),120))
   else:raise web.HTTPNotFound()
  return web.json_response(result,headers={'Cache-Control':'no-store'})
 

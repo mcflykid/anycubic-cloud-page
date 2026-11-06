@@ -175,8 +175,77 @@ $('settings-form').onsubmit=e=>{e.preventDefault();command('settings',Object.fro
 function slots(value){if(!value.trim())return [];const result=value.split(/[ ,;]+/).filter(Boolean).map(Number);if(result.some(v=>!Number.isInteger(v)||v<1||v>8))throw new Error('Indiquez des emplacements de 1 à 8.');return result;}
 /** Empêche une ancienne liste de fournir des actions pour une autre source ou un autre dossier. */
 function currentFileContext(context){return !!context&&context.source===source&&context.path===$('file-path').value&&context.page===cloudPage&&context.printer===selectedPrinter;}
+const fileThumbnailCache=new Map(),fileThumbnailQueue=new Map();
+let fileThumbnailLoading=false;
+const fileThumbnailObserver=new IntersectionObserver(entries=>{
+ for(const {target,isIntersecting} of entries){
+  if(!isIntersecting||!target.isConnected)continue;
+  fileThumbnailObserver.unobserve(target);
+  fileThumbnailQueue.set(target,target.previewJob);
+ }
+ void loadFileThumbnails();
+},{rootMargin:'48px'});
+
+/** Une seule miniature en cours évite de monopoliser le canal MQTT de la machine. */
+async function loadFileThumbnails(){
+ if(fileThumbnailLoading)return;
+ fileThumbnailLoading=true;
+ try{
+  while(fileThumbnailQueue.size){
+   const [host,job]=fileThumbnailQueue.entries().next().value;
+   fileThumbnailQueue.delete(host);
+   if(!host.isConnected||fileContext!==job.context||!currentFileContext(job.context)||currentTab!=='files')continue;
+   let cached=fileThumbnailCache.get(job.key);
+   if(!cached||cached.expires<=Date.now()){
+    const {context,file}=job;
+    let image=null;
+    try{
+     const result=await request('/preview',{
+      method:'POST',printerKey:context.printer,timeoutMs:20000,headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({source:context.source,handle:file.handle,name:file.name,path:context.path})
+     });
+     image=result.image||null;
+    }catch{}
+    cached={image,expires:Date.now()+(image?300000:30000)};
+    fileThumbnailCache.delete(job.key);
+    fileThumbnailCache.set(job.key,cached);
+    while(fileThumbnailCache.size>20)fileThumbnailCache.delete(fileThumbnailCache.keys().next().value);
+   }
+   if(host.isConnected&&fileContext===job.context&&currentFileContext(job.context))showFileThumbnail(host,job.file,cached.image);
+  }
+ }finally{fileThumbnailLoading=false;}
+}
+
+/** Le nom reste lisible si le fichier n’a pas d’image ou si son décodage échoue. */
+function showFileThumbnail(host,file,src){
+ host.title='Aperçu indisponible';
+ if(!src)return;
+ const image=node('img'),button=node('button',null,'file-thumbnail-open');
+ image.alt='';
+ button.type='button';
+ button.setAttribute('aria-label','Agrandir l’aperçu de '+file.name);
+ button.onclick=()=>openFilePreview(file.name,src);
+ button.append(image);
+ image.onload=()=>{
+  host.title='';
+  host.replaceChildren(button);
+ };
+ image.src=src;
+}
+
+/** Prépare une vignette liée au dossier, à la source et à la cible de la ligne. */
+function fileThumbnail(file,context){
+ const host=node('span','—','file-thumbnail');
+ const key=JSON.stringify([context.printer,context.source,context.path,file.handle,file.name,file.size_mb]);
+ host.previewJob={file,context,key};
+ host.title='Chargement de l’aperçu';
+ const cached=fileThumbnailCache.get(key);
+ if(cached&&cached.expires>Date.now())showFileThumbnail(host,file,cached.image);
+ else fileThumbnailObserver.observe(host);
+ return host;
+}
 /** Les actions gardent la source et le chemin de la liste reçue, même après un changement de vue. */
-function renderFiles(){const context=fileContext,listedSource=context?.source,listedPath=context?.path;const list=currentFileContext(context)?(listedSource==='cloud'?cloudRows:fileRows):null;const rows=Array.isArray(list)?list:[];$('file-rows').replaceChildren(...rows.map(f=>{const row=node('tr'),name=node('td',f.name),size=node('td',fmt(f.size_mb,' Mo')),actions=node('td'),wrap=node('div',null,'actions');const add=(label,fn,cls)=>{const b=node('button',null,cls);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',({'Télécharger':'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4','Renommer':'M4 20l4-1L20 7l-3-3L5 16z','Ouvrir':'M3 7V5h7l2 3h9v12H3z','Aperçu':'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0','Imprimer':'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z','Supprimer':'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15'})[label]||'');svg.append(path);b.append(svg,node('span',label));b.title=({'Aperçu':'Afficher l’image associée au G-code.','Imprimer':'Préparer l’impression de ce fichier avec les bobines choisies.','Supprimer':'Supprimer ce fichier après confirmation.','Ouvrir':'Afficher le contenu de ce dossier.'})[label]||label;if(label==='Imprimer'){if(listedSource==='cloud'&&f.printable===false){b.disabled=true;b.title='Ce fichier ne contient pas de G-code imprimable.';}else if(snapshot?.printer?.is_available===false){b.disabled=true;b.title='L’imprimante est occupée.';}}b.type='button';b.onclick=fn;wrap.append(b);};if(source==='cloud'){const check=node('input');check.type='checkbox';check.checked=cloudSelected.has(f.handle);check.setAttribute('aria-label','Sélectionner '+f.name);check.onchange=()=>{check.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);cloudSelectionState();};name.prepend(check);name.classList.add('cloud-file-name');add('Télécharger',()=>downloadCloud([f.handle]));add('Renommer',()=>renameCloud(f));}if(f.is_dir)add('Ouvrir',()=>{$('file-path').value=listedPath.replace(/\/$/,'')+'/'+f.name;loadFiles();});else{add('Aperçu',()=>filePreview(f,context));add('Imprimer',async()=>{try{await command(`print-${listedSource}`,{...f,path:listedPath,slots:slots($('file-slots').value)},`Imprimer « ${f.name} » avec la sélection de bobines indiquée ?`);}catch(e){message(e.message,true);}});add('Supprimer',async()=>{const ok=await command(`delete-${listedSource}`,{...f,path:listedPath},`Supprimer définitivement « ${f.name} » de ${listedSource==='cloud'?'votre espace cloud':listedSource==='usb'?'la clé USB':'la mémoire de l’imprimante'} ?`);if(ok)loadFiles();},'danger');}actions.append(wrap);row.append(name,size,actions);return row;}));
+function renderFiles(){fileThumbnailObserver.disconnect();fileThumbnailQueue.clear();const context=fileContext,listedSource=context?.source,listedPath=context?.path;const list=currentFileContext(context)?(listedSource==='cloud'?cloudRows:fileRows):null;const rows=Array.isArray(list)?list:[];$('file-rows').replaceChildren(...rows.map(f=>{const row=node('tr'),name=node('td'),size=node('td',fmt(f.size_mb,' Mo')),actions=node('td'),wrap=node('div',null,'actions');const identity=node('span',null,'file-row-identity');if(!f.is_dir)identity.append(fileThumbnail(f,context));identity.append(node('span',f.name));name.append(identity);const add=(label,fn,cls)=>{const b=node('button',null,cls);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',({'Télécharger':'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4','Renommer':'M4 20l4-1L20 7l-3-3L5 16z','Ouvrir':'M3 7V5h7l2 3h9v12H3z','Imprimer':'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z','Supprimer':'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15'})[label]||'');svg.append(path);b.append(svg,node('span',label));b.title=({'Imprimer':'Préparer l’impression de ce fichier avec les bobines choisies.','Supprimer':'Supprimer ce fichier après confirmation.','Ouvrir':'Afficher le contenu de ce dossier.'})[label]||label;if(label==='Imprimer'){if(listedSource==='cloud'&&f.printable===false){b.disabled=true;b.title='Ce fichier ne contient pas de G-code imprimable.';}else if(snapshot?.printer?.is_available===false){b.disabled=true;b.title='L’imprimante est occupée.';}}b.type='button';b.onclick=fn;wrap.append(b);};if(source==='cloud'){const check=node('input');check.type='checkbox';check.checked=cloudSelected.has(f.handle);check.setAttribute('aria-label','Sélectionner '+f.name);check.onchange=()=>{check.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);cloudSelectionState();};name.prepend(check);name.classList.add('cloud-file-name');add('Télécharger',()=>downloadCloud([f.handle]));add('Renommer',()=>renameCloud(f));}if(f.is_dir)add('Ouvrir',()=>{$('file-path').value=listedPath.replace(/\/$/,'')+'/'+f.name;loadFiles();});else{add('Imprimer',async()=>{try{await command(`print-${listedSource}`,{...f,path:listedPath,slots:slots($('file-slots').value)},`Imprimer « ${f.name} » avec la sélection de bobines indiquée ?`);}catch(e){message(e.message,true);}});add('Supprimer',async()=>{const ok=await command(`delete-${listedSource}`,{...f,path:listedPath},`Supprimer définitivement « ${f.name} » de ${listedSource==='cloud'?'votre espace cloud':listedSource==='usb'?'la clé USB':'la mémoire de l’imprimante'} ?`);if(ok)loadFiles();},'danger');}actions.append(wrap);row.append(name,size,actions);return row;}));
  if(source!=='cloud')set('files-state',list==null?'Liste non reçue. Actualisez ; les résultats arrivent par MQTT.':rows.length?`${rows.length} élément(s).`:'Ce dossier est vide.');
  $('cloud-tools').hidden=source!=='cloud';if(source==='cloud'){cloudSelectionState();loadCloudStorage();} $('prev-page').hidden=$('next-page').hidden=source!=='cloud';set('cloud-page',source==='cloud'?`Page ${cloudPage}`:'');$('prev-page').disabled=cloudPage<=1;$('next-page').disabled=!cloudHasMore||!currentFileContext(context);
 }
@@ -196,8 +265,15 @@ async function loadFiles(){
 }
 document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{source=b.dataset.source;cloudPage=1;fileRows=null;document.querySelectorAll('[data-source]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('file-path').disabled=source==='cloud';$('parent-folder').disabled=source==='cloud';renderFiles();loadFiles();});$('files-form').onsubmit=e=>{e.preventDefault();loadFiles();};$('parent-folder').onclick=()=>{const parts=$('file-path').value.split('/').filter(Boolean);parts.pop();$('file-path').value='/'+parts.join('/');loadFiles();};$('prev-page').onclick=()=>{cloudPage=Math.max(1,cloudPage-1);loadFiles();};$('next-page').onclick=()=>{cloudPage++;loadFiles();};
 $('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const data=new FormData(e.target),file=data.get('file');if(file.size>100*1024*1024){message('Le fichier dépasse 100 Mo.',true);return;}try{data.set('slots',JSON.stringify(slots(data.get('slots'))));}catch(err){message(err.message,true);return;}if(!await confirmAction(formatText(data.get('mode')==='upload'?'Envoyer « {0} » dans votre espace cloud ?':'Envoyer « {0} » et lancer son impression ?',file.name)))return;const chosen=e.target.elements.file.files[0],intent=JSON.stringify([data.get('mode'),data.get('slots'),selectedPrinter]);if(!uploadAttempt||uploadAttempt.file!==chosen||uploadAttempt.intent!==intent)uploadAttempt={file:chosen,intent,id:crypto.randomUUID()};data.set('request_id',uploadAttempt.id);busy=true;set('upload-state','Envoi en cours. Ne fermez pas cette page.');try{const result=await request('/upload',{method:'POST',body:data,timeoutMs:Math.min(7200000,300000+file.size/32768*2000)});uploadAttempt=null;set('upload-state',result.message);message(result.message);}catch(err){set('upload-state',err.message);message(err.message,true);}finally{busy=false;}};
-/** Affiche l’image autorisée par le serveur ; l’absence d’aperçu ne rend pas le fichier non imprimable. */
-async function filePreview(file,context=fileContext){if(!context)return;try{const d=await request('/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:context.source,handle:file.handle,name:file.name,path:context.path})});if(!d.image){message('L’imprimante et le cloud n’ont pas fourni d’image pour ce fichier. Son impression reste disponible.');return;}const dialog=document.createElement('dialog'),title=node('h2',file.name),img=node('img'),close=node('button','Fermer');img.src=d.image;img.alt=`Aperçu de ${file.name}`;img.style.width='100%';close.onclick=()=>{dialog.close();dialog.remove();};dialog.className='file-preview-dialog';const header=node('div',null,'dialog-top');header.append(title,close);dialog.append(header,img);dialog.oncancel=()=>dialog.remove();document.body.append(dialog);dialog.showModal();}catch(e){message(e.message,true);}}
+/** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
+function openFilePreview(name,src){
+ const dialog=node('dialog',null,'file-preview-dialog'),title=node('h2',name),img=node('img'),close=node('button','Fermer');
+ img.src=src;img.alt='Aperçu de '+name;img.style.width='100%';
+ close.type='button';close.onclick=()=>dialog.close();
+ dialog.onclose=()=>dialog.remove();
+ const header=node('div',null,'dialog-top');header.append(title,close);
+ dialog.append(header,img);document.body.append(dialog);dialog.showModal();
+}
 /** Renvoie une promesse partagée de chargement du lecteur Agora local ; rejette si le script est indisponible. */
 function loadSdk(){if(!sdkPromise)sdkPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/js/agora-rtc.js';s.onload=()=>resolve(window.AgoraRTC);s.onerror=()=>reject(new Error('Le lecteur vidéo n’a pas pu être chargé.'));document.head.append(s);});return sdkPromise;}
 /** Ferme la session vidéo et invalide les ouvertures en cours par changement de génération. */
@@ -530,6 +606,7 @@ $('reset-form').onsubmit=async e=>{e.preventDefault();if(!resetTicket||Date.now(
 let timelapsePage=1,timelapseKeyword='',timelapseGeneration=0;
 /** L’imprimante sélectionnée est la seule interrogée et la dernière recherche prévaut. */
 async function loadTimelapse(page=1){
+ if(document.querySelector('.timelapse-panel').hidden)return;
  const generation=++timelapseGeneration;
  const previous=$('timelapse-previous'),next=$('timelapse-next');
  previous.disabled=true;next.disabled=true;
