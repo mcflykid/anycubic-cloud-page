@@ -10,7 +10,7 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
  const links=page.locator('.printer-footer nav a');
  await expect(links).toHaveText(['Confidentialité','Conditions','Cookies']);
  for(const [path,title] of [['/about','Confidentialité'],['/conditions','Conditions d’utilisation'],['/cookies','Cookies et stockage local'],['/credits','Crédits']]){
-  await page.locator(`.printer-footer a[href="${path}"]`).click();
+  await page.locator(`.printer-footer a[href="/imprimante-api/ui${path}"]`).click();
   await expect(page.getByRole('heading',{level:1})).toHaveText(title);
   await page.getByRole('link',{name:'Retour à l’atelier'}).click();
  }
@@ -73,13 +73,13 @@ test('la Kobra S1 retrouve ses illustrations d’origine quand la génération A
   await route.fulfill({response,json:data});
  });
  await login(page);
- await expect(page.locator('#printer-illustration')).toHaveAttribute('src','/icons/kobra-s1-ace2pro.png');
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1-ace2pro.png');
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
- await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/icons/ace2pro.png');
+ await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/ace2pro.png');
  await expect(page.locator('#ace-model')).toHaveText('Module ACE');
  await expect(page.locator('#ace-display-model')).toHaveCount(0);
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
- await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src','/icons/kobra-s1-ace2pro.png');
+ await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1-ace2pro.png');
 });
 
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{
@@ -157,4 +157,33 @@ test('les états utilisent les pastilles et l’aide du relais explique la bobin
  drying=false;
  await expect(page.locator('#drying-state')).toHaveText('Séchage inactif');
  await expect(page.locator('#drying-state')).toHaveClass(/inactive/);
+});
+
+test('un proxy qui conserve ses anciens chemins sert toute l’interface',async({page,baseURL})=>{
+ const origin=new URL(baseURL).origin;
+ const oldPaths=new Set(['/imprimante.html','/login','/logout','/about','/css/landing.css','/css/imprimante.css','/js/imprimante.js','/js/agora-rtc.js','/icons/cloud-page.svg','/icons/kobra-s1-ace2pro.png','/icons/ace2pro.png']);
+ const blocked=[];
+ await page.route(url=>url.origin===origin,async route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(oldPaths.has(path)||path.startsWith('/imprimante-api/'))return route.fallback();
+  blocked.push(path);
+  return route.fulfill({status:404,contentType:'application/octet-stream',body:'Site statique'});
+ });
+ await login(page);
+ await expect(page.locator('#printer-illustration')).toBeVisible();
+ await expect.poll(()=>page.locator('#printer-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect.poll(()=>page.locator('#ace-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
+ for(const [label,heading] of [['Conditions','Conditions d’utilisation'],['Cookies','Cookies et stockage local'],['Crédits','Crédits']]){
+  const [response]=await Promise.all([
+   page.waitForResponse(response=>response.request().isNavigationRequest()&&response.url().includes('/imprimante-api/ui/')),
+   page.getByRole('link',{name:label,exact:true}).click(),
+  ]);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('text/html');
+  expect(response.headers()['content-disposition']).toBeUndefined();
+  await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();
+  await page.getByRole('link',{name:'Retour à l’atelier'}).click();
+ }
+ expect(blocked).toEqual([]);
 });

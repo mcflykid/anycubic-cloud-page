@@ -10,10 +10,10 @@ for page in ('imprimante.html', 'login.html'):
     html = file.read_text()
     for name in ('imprimante.css', 'landing.css'):
         digest = hashlib.sha256((root / 'css' / name).read_bytes()).hexdigest()[:12]
-        path = '/css/' + name
+        path = '/imprimante-api/ui/css/' + name
         html = re.sub(re.escape(path) + r'\?v=[^"\s]+', path + '?v=' + digest, html)
     for name in ('imprimante.js',):
-        path = '/js/' + name
+        path = '/imprimante-api/ui/js/' + name
         digest = hashlib.sha256((root / 'js' / name).read_bytes())
         version = digest.hexdigest()[:12]
         integrity = base64.b64encode(digest.digest()).decode()

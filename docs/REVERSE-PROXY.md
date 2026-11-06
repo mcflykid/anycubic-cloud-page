@@ -112,7 +112,7 @@ Les chemins doivent appartenir sans ambiguïté à une application. L’atelier 
 
 ```caddyfile
 printer.example.com {
-    @atelier path /imprimante.html /login /logout /about /conditions /cookies /credits /imprimante-api /imprimante-api/* /css/* /js/* /icons/*
+    @atelier path /imprimante.html /login /logout /imprimante-api /imprimante-api/*
     handle @atelier {
         reverse_proxy anycubic-cloud-page:8080
     }
@@ -123,7 +123,7 @@ printer.example.com {
 }
 ```
 
-Dans cet exemple, les ressources de l’autre site doivent utiliser leurs propres chemins, par exemple `/site-assets/*`. Si les deux sites utilisent `/css/landing.css`, un simple matcher ne peut pas deviner le propriétaire : séparez les chemins du site statique ou utilisez un sous-domaine dédié. Les en-têtes CSP et Referrer-Policy de l’autre site doivent être limités à son bloc, sans écraser ceux de l’application. Une CSP avec `form-action 'none'` bloque la connexion ; `Referrer-Policy: no-referrer` peut rendre Origin nul sur un formulaire. Conservez les en-têtes de sécurité de l’application et sa protection Origin.
+Les scripts, styles, illustrations et notices de l’atelier passent sous `/imprimante-api/ui/`. Les installations qui transmettent déjà `/imprimante-api/*` reçoivent ces ressources sans ajouter de chemins. Les en-têtes CSP et Referrer-Policy de l’autre site doivent être limités à son bloc, sans écraser ceux de l’application. Une CSP avec `form-action 'none'` bloque la connexion ; `Referrer-Policy: no-referrer` peut rendre Origin nul sur un formulaire. Conservez les en-têtes de sécurité de l’application et sa protection Origin.
 
 ## Intégrer à une stack existante avec un .env central et DOCKERDIR
 
