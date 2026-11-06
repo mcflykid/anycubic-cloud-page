@@ -1,5 +1,16 @@
 # Changements
 
+## À venir
+
+- Sélecteur français, anglais et espagnol, avec repli automatique en français si le catalogue de traduction manque ou tarde à répondre (#55).
+- Commandes de température, ventilation et éclairage regroupées dans l’onglet Imprimante. Pavé de déplacement arrondi (#43, #44).
+- Illustrations choisies selon le modèle signalé et la génération d’ACE détectée. Un visuel générique couvre les modèles inconnus (#37).
+- Miniatures des notifications associées à la bonne imprimante et chargées à la demande. Les recherches simultanées partagent une lecture des projets (#36).
+- Fermeture du flux caméra au départ du dernier onglet suivi. Les réponses tardives sont ignorées (#64).
+- Session renforcée et nouvelle vérification du mot de passe avant les actions sensibles (#69).
+- Journal des commandes avec export filtré et rapprochement des confirmations MQTT (#70).
+- Interface découpée en modules et transport de compte partagé explicitement entre les imprimantes. Le contrôle de formatage Python fait partie de la CI (#66, #67, #68).
+
 ## 1.2.10 — 2026-11-06
 
 - Les scripts, styles, illustrations et notices empruntent le préfixe déjà utilisé par l’atelier. Les proxys qui transmettent `/imprimante-api/*` servent ces ressources avec leurs règles existantes.
