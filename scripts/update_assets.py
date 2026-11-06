@@ -12,7 +12,7 @@ for page in ('imprimante.html', 'login.html'):
         digest = hashlib.sha256((root / 'css' / name).read_bytes()).hexdigest()[:12]
         path = '/css/' + name
         html = re.sub(re.escape(path) + r'\?v=[^"\s]+', path + '?v=' + digest, html)
-    for name in ('imprimante.js', 'ui-language.js'):
+    for name in ('imprimante.js',):
         path = '/js/' + name
         digest = hashlib.sha256((root / 'js' / name).read_bytes())
         version = digest.hexdigest()[:12]

@@ -4,7 +4,7 @@ services:
   # Anycubic Cloud Page — prépare les données puis sert l’atelier sans droits root.
   # ============================================================================
   anycubic-cloud-page:
-    # Pour figer une livraison, remplacer latest par un tag, par exemple :1.2.8.
+    # Pour figer une livraison, remplacer latest par un tag, par exemple :1.2.9.
     image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:latest}"
     container_name: "anycubic-cloud-page"
     cpus: "0.5"

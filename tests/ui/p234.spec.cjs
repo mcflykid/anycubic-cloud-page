@@ -51,17 +51,35 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(page.locator('#task-reprint-dialog')).toBeVisible();
 });
 
-test('les choix anglais et espagnol persistent jusqu’à la page de connexion',async({page})=>{
+test('les pastilles Terminé et Arrêté sont centrées dans leurs cartes',async({page})=>{
  await login(page);
- await expect(page.locator('#interface-language + .notifications #notifications-toggle')).toBeVisible();
- await expect(page.getByText('Langue de l’interface',{exact:true})).toHaveCount(0);
- await page.getByLabel('Langue de l’interface',{exact:true}).selectOption('en');
- await expect(page.locator('html')).toHaveAttribute('lang','en');
- await page.getByLabel('Interface language',{exact:true}).selectOption('es');
- await expect(page.locator('html')).toHaveAttribute('lang','es');
- await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
- await expect(page.locator('html')).toHaveAttribute('lang','es');
- await expect(page.getByLabel('Contraseña')).toBeVisible();
+ await page.getByRole('button',{name:'Historique d’impression',exact:true}).click();
+ for(const kind of ['Terminé','Arrêté']){
+  const badge=page.locator('.history-badge').filter({hasText:new RegExp('^'+kind+'$')}).first();
+  await expect(badge).toBeVisible();
+  const rect=await badge.evaluate(el=>{
+   const tag=el.getBoundingClientRect(),card=el.closest('.history-card-body').getBoundingClientRect();
+   return Math.abs(tag.left+tag.width/2-card.left-card.width/2);
+  });
+  expect(rect).toBeLessThan(2);
+ }
+});
+
+test('la Kobra S1 retrouve ses illustrations d’origine quand la génération ACE manque',async({page})=>{
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch();
+  const data=await response.json();
+  for(const box of data.printer.boxes)delete box.model;
+  await route.fulfill({response,json:data});
+ });
+ await login(page);
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src','/icons/kobra-s1-ace2pro.png');
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/icons/ace2pro.png');
+ await expect(page.locator('#ace-model')).toHaveText('Module ACE');
+ await expect(page.locator('#ace-display-model')).toHaveCount(0);
+ await page.getByRole('button',{name:'Réglages',exact:true}).click();
+ await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src','/icons/kobra-s1-ace2pro.png');
 });
 
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{
@@ -77,7 +95,7 @@ test('les axes conservent leurs directions et les pictogrammes restent sur les l
  await expect(page.getByRole('button',{name:'X −',exact:true})).toHaveAttribute('data-direction','0');
  await expect(page.getByRole('button',{name:'Y +',exact:true})).toHaveAttribute('data-axis','2');
  await expect(page.getByRole('button',{name:'Z +',exact:true})).toHaveAttribute('data-direction','1');
- await expect(page.locator('#timelapse-state')).toContainText('Aucun flux ni timelapse');
+ await expect(page.locator('.timelapse-panel')).toBeHidden();
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
  await expect(page.locator('#tab-settings')).not.toContainText('Commandes courantes');
  await expect(page.locator('#tab-settings #light-on,#tab-settings #light-off')).toHaveCount(0);
@@ -106,24 +124,37 @@ test('les pauses regroupées gardent leurs événements individuels',async({page
  await expect(page.locator('#history-list')).toContainText('Autre atelier');
 });
 
-test('la galerie timelapse conserve la recherche sur la page suivante',async({page})=>{
- let queries=[];
- await page.route('**/imprimante-api/extras/videos?**',route=>{
-  const params=new URL(route.request().url()).searchParams;
-  const pageNumber=params.get('page');
-  queries.push([pageNumber,params.get('keyword')]);
-  return route.fulfill({json:{available:true,has_more:pageNumber==='1',items:[
-   {name:'Vidéo fictive '+pageNumber,size:1024,duration:4,created:1750000000},
-  ]}});
- });
+test('ouvrir Caméra ne consulte pas la galerie Timelapse désactivée',async({page})=>{
+ const reads=[];
+ page.on('request',request=>{if(request.url().includes('/extras/videos'))reads.push(request);});
  await login(page);
  await page.getByRole('button',{name:'Caméra',exact:true}).click();
- await expect(page.locator('#timelapse-list')).toContainText('Vidéo fictive 1');
- await page.getByLabel('Rechercher une vidéo').fill('cube');
- await page.locator('#timelapse-search button').click();
- await expect.poll(()=>queries.at(-1)).toEqual(['1','cube']);
- await page.locator('#timelapse-next').click();
- await expect(page.locator('#timelapse-list')).toContainText('Vidéo fictive 2');
- expect(queries.at(-1)).toEqual(['2','cube']);
- await expect(page.locator('#timelapse-next')).toBeDisabled();
+ await expect(page.locator('.timelapse-panel')).toBeHidden();
+ await expect(page.locator('#axis-state')).toHaveText('Commandes disponibles');
+ expect(reads).toHaveLength(0);
+ const response=await page.request.get('/imprimante-api/extras/videos');
+ expect(response.status()).toBe(404);
+});
+
+test('les états utilisent les pastilles et l’aide du relais explique la bobine de secours',async({page})=>{
+ let drying=true;
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch();
+  const data=await response.json();
+  data.printer.boxes[0].drying.is_drying=drying;
+  await route.fulfill({response,json:data});
+ });
+ await login(page);
+ await expect(page.locator('#printer-status')).toHaveClass(/badge/);
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect(page.locator('#ace-status')).toHaveClass(/badge/);
+ await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
+ await page.locator('#go-drying').click();
+ await expect(page.locator('#drying-state')).toHaveText('Séchage actif');
+ await expect(page.locator('#drying-state')).not.toHaveClass(/inactive/);
+ await page.getByRole('button',{name:'Aide sur le relais automatique des bobines'}).click();
+ await expect(page.getByRole('tooltip')).toContainText('même matière et couleur');
+ drying=false;
+ await expect(page.locator('#drying-state')).toHaveText('Séchage inactif');
+ await expect(page.locator('#drying-state')).toHaveClass(/inactive/);
 });

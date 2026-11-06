@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.2.8**. [Changements](CHANGELOG.md).
+Version **1.2.9**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 

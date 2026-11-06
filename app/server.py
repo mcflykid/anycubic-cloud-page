@@ -13,7 +13,7 @@ from printer_registry import PrinterRegistry,SharedCloudAPI,select_printer,print
 from account_auth import AccountAuth
 from web_host import access_control
 from session_api import SessionRecovery
-from native_controls import task_details,axis_payload,ai_payload
+from native_controls import task_details,axis_payload,ai_payload,ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
 from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
@@ -273,15 +273,11 @@ class Engine:
   rawboxes=self.raw_info.get('multi_color_box') or []
   if isinstance(rawboxes,dict):rawboxes=[rawboxes]
   for i,b in enumerate(boxes):
-   if i<len(rawboxes):
-    raw_box=rawboxes[i]
-    if not isinstance(raw_box,dict):continue
+   raw_box=rawboxes[i] if isinstance(rawboxes,list) and i<len(rawboxes) else None
+   model=ace_model(b['box_id'],self.raw_info.get('multi_color_box_version'),raw_box)
+   if model:b['model']=model
+   if isinstance(raw_box,dict):
     b['humidity']=raw_box.get('humidity')
-    for field in ('model','name'):
-     label=raw_box.get(field)
-     if isinstance(label,str) and (label:=label.removeprefix('Anycubic ')) in {'ACE Pro','ACE 2 Pro'}:
-      b['model']=label
-      break
     for j,spool in enumerate(b['spools'] or []):
      rawslots=rawboxes[i].get('slots') or []
      if j<len(rawslots):

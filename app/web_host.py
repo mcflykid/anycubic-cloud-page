@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit,parse_qs
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 from aiohttp import web
+from native_controls import TIMELAPSE_GALLERY_ENABLED
 ROOT=pathlib.Path(__file__).resolve().parents[1]/'web'
 APP_VERSION=json.loads((ROOT.parent/'package.json').read_text())['version']
 INFORMATION_PAGES={'/about':'privacy.html','/conditions':'terms.html','/cookies':'cookies.html','/credits':'credits.html'}
@@ -93,7 +94,7 @@ def install_access(app):
 async def access_control(request,handler):
  """Protège l’atelier par cookie, garde health public et applique Origin aux écritures authentifiées."""
  try:
-  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg','/js/ui-language.js'}:
+  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg'}:
    response=await handler(request)
   else:
    username,password,fingerprint=credentials()
@@ -164,6 +165,7 @@ async def logout(request):
 def render_page(destination,time_zone):
  """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
  content=(ROOT/'imprimante.html').read_text().replace('<!-- APP_VERSION -->',html.escape(APP_VERSION))
+ if TIMELAPSE_GALLERY_ENABLED:content=content.replace('class="form-panel timelapse-panel" hidden','class="form-panel timelapse-panel"',1)
  # Le fuseau explicite évite que le navigateur et l’historique utilisent deux heures différentes.
  content=content.replace('<html lang="fr">','<html lang="fr" data-time-zone="'+html.escape(time_zone,quote=True)+'">',1)
  if destination:content=re.sub(r'(<a class="document-brand" href=")[^"]*(")',lambda match:match[1]+html.escape(destination,quote=True)+match[2],content)

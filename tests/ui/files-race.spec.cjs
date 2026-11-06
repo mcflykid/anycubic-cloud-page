@@ -58,3 +58,31 @@ test('un aperçu indisponible est redemandé après le délai',async({page})=>{
  await expect(page.locator('#job-preview')).toBeVisible();
  expect(reads).toBe(2);
 });
+
+
+test('les miniatures précèdent les noms et se chargent une à la fois',async({page})=>{
+ let concurrent=0,maxConcurrent=0,reads=0;
+ await page.route('**/imprimante-api/preview',async route=>{
+  const file=route.request().postDataJSON();
+  if(!file.path)return route.continue();
+  reads++;
+  concurrent++;
+  maxConcurrent=Math.max(concurrent,maxConcurrent);
+  await new Promise(resolve=>setTimeout(resolve,40));
+  concurrent--;
+  return route.fulfill({json:{image:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20"/></svg>')}});
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Fichiers',exact:true}).click();
+ const rows=page.locator('#file-rows');
+ await expect(rows.locator('.file-row-identity').first().locator('img')).toBeVisible();
+ await expect(rows.getByRole('button',{name:'Aperçu',exact:true})).toHaveCount(0);
+ await expect.poll(()=>reads).toBeGreaterThanOrEqual(2);
+ expect(maxConcurrent).toBe(1);
+ await rows.getByRole('button',{name:/Agrandir l’aperçu/}).first().click();
+ await expect(page.locator('.file-preview-dialog')).toBeVisible();
+ await expect(page.locator('.file-preview-dialog img')).toBeVisible();
+ expect(maxConcurrent).toBe(1);
+ await page.keyboard.press('Escape');
+ await expect(page.locator('.file-preview-dialog')).toHaveCount(0);
+});
