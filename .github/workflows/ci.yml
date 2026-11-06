@@ -20,7 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: pip install -r app/requirements.txt
+      - run: pip install -r app/requirements.txt ruff==0.17.4
+      - run: ruff format --check app scripts && ruff check app scripts
       - run: python -m unittest discover -s app -p 'test_*.py' -q
       - run: python -m unittest discover -s scripts -p 'test_*.py' -q
       - run: |
