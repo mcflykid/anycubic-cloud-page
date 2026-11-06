@@ -8,7 +8,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1] / "web"
 UI = "/imprimante-api/ui"
-MODULES = ("workshop-ui.mjs", "workshop-api.mjs", "workshop-temperatures.mjs")
+MODULES = (
+    "workshop-ui.mjs",
+    "workshop-api.mjs",
+    "workshop-temperatures.mjs",
+    "workshop-camera.mjs",
+)
 
 
 def signature(content):
