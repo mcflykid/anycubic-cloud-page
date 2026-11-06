@@ -3,6 +3,7 @@
 ## 1.2.10 — 2026-11-06
 
 - Les scripts, styles, illustrations et notices empruntent le préfixe déjà utilisé par l’atelier. Les proxys qui transmettent `/imprimante-api/*` servent ces ressources avec leurs règles existantes.
+- La pastille d’état du module ACE s’ajuste à son libellé.
 
 ## 1.2.9 — 2026-11-06
 
