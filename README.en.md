@@ -1,13 +1,13 @@
 # Anycubic Cloud Page
 
-Version **1.4.0**. [Changelog](CHANGELOG.md).
+Version **1.4.1**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 
 [![Latest release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
 [![Open issues](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
 [![Closed issues](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
-[![Milestone 1.4.0](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/3)](https://github.com/mcflykid/anycubic-cloud-page/milestone/3)
+[![Milestone 1.4.1](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/3)](https://github.com/mcflykid/anycubic-cloud-page/milestone/3)
 [![Last commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
 
 [Français / full screenshot gallery](README.md) · [Cloud authentication and token recovery](docs/CLOUD-CONNECTION.md) · [Compatibility](docs/COMPATIBILITY.md)

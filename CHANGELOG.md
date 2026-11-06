@@ -1,5 +1,10 @@
 # Changements
 
+## 1.4.1 — 2026-11-06
+
+- Pause, Reprendre et Arrêter restent désactivés jusqu’à la réception de l’état de l’impression. Une confirmation ouverte conserve la référence du projet affiché à son ouverture (#109).
+- Cette première publication de la série 1.4 inclut les changements de la 1.4.0 détaillés ci-dessous.
+
 ## 1.4.0 — 2026-11-06
 
 - La cloche lit directement les notifications du Cloud utilisées par Anycubic Slicer Next, avec filtre des non-lus, compteur et aperçus. Le journal historique conserve ses actions de lecture et de suppression (#104).
