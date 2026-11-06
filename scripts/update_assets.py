@@ -14,6 +14,15 @@ MODULES = (
     "workshop-temperatures.mjs",
     "workshop-camera.mjs",
     "workshop-file-previews.mjs",
+    "workshop-state.mjs",
+    "workshop-commands.mjs",
+    "workshop-overview.mjs",
+    "workshop-ace.mjs",
+    "workshop-files.mjs",
+    "workshop-history.mjs",
+    "workshop-settings.mjs",
+    "workshop-timelapses.mjs",
+    "workshop-help.mjs",
 )
 
 
@@ -25,7 +34,12 @@ def signature(content):
 
 def update(check=False):
     """Actualise les ressources ou vérifie leurs empreintes sans écrire en mode CI."""
-    entry = ROOT / "js/imprimante.js"
+    js_dir = ROOT / "js"
+    if {path.name for path in js_dir.glob("*.mjs")} != set(MODULES):
+        raise SystemExit(
+            "Chaque module JavaScript doit être déclaré pour le versionnement et le SRI."
+        )
+    entry = js_dir / "imprimante.js"
     preload = []
     versions = {}
     catalogue = "workshop-translations.json"
@@ -51,8 +65,8 @@ def update(check=False):
         content = version_imports(module.read_text())
         if name == "workshop-ui.mjs":
             content = re.sub(
-                r"const catalogueIntegrity='[^']*';",
-                f"const catalogueIntegrity='{catalogue_integrity}';",
+                r"const catalogueIntegrity\s*=\s*'[^']*';",
+                f"const catalogueIntegrity = '{catalogue_integrity}';",
                 content,
             )
         apply(module, content)
