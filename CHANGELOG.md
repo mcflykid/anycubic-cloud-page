@@ -4,6 +4,7 @@
 
 - Les scripts, styles, illustrations et notices empruntent le préfixe déjà utilisé par l’atelier. Les proxys qui transmettent `/imprimante-api/*` servent ces ressources avec leurs règles existantes.
 - La pastille d’état du module ACE s’ajuste à son libellé.
+- Un indicateur discret s’affiche pendant le chargement des miniatures dans Fichiers.
 
 ## 1.2.9 — 2026-11-06
 
