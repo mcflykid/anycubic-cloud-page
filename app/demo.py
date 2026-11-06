@@ -2,7 +2,7 @@
 import argparse,base64,math,os,pathlib,re,time
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
-from web_host import ROOT,install_information,render_page,home_url,display_timezone,access_control,install_access,ACCESS_KEY
+from web_host import install_ui_resources,render_page,home_url,display_timezone,access_control,install_access,ACCESS_KEY
 T=time.time()
 NOTICES=web.AppKey('notices',list)
 PRINT_TASKS=web.AppKey('print_tasks',list)
@@ -20,7 +20,7 @@ async def demo_index(request):
  """Renvoie l’interface marquée comme démonstration, avec une caméra purement illustrative."""
  html=render_page(home_url(os.environ.get('HOME_URL','/imprimante.html')),display_timezone()).replace('<body>','<body><div class="demo-banner">Démonstration · Données fictives · Aucune imprimante connectée</div>')
  if ACCESS_KEY not in request.app:html=re.sub(r'<form action="/logout".*?</form>','',html)
- html=html.replace('<div id="camera-video"></div>','<div id="camera-video" class="demo-camera"><img src="/icons/kobra-s1-ace2pro.png" alt="Illustration de l’imprimante"><p>Zone vidéo · Démonstration sans flux caméra</p></div>')
+ html=html.replace('<div id="camera-video"></div>','<div id="camera-video" class="demo-camera"><img src="/imprimante-api/ui/icons/kobra-s1-ace2pro.png" alt="Illustration de l’imprimante"><p>Zone vidéo · Démonstration sans flux caméra</p></div>')
  return web.Response(text=html,content_type='text/html')
 async def api(request):
  """Renvoie des données fictives ; simule les messages en mémoire et refuse toute commande physique."""
@@ -64,8 +64,7 @@ def create_demo(authenticated=False):
  """Renvoie une démonstration sans cloud ; authenticated active la connexion web réelle."""
  app=web.Application(middlewares=[access_control] if authenticated else []);app[NOTICES]=[dict(x) for x in NOTICE_FIXTURES];app[PRINT_TASKS]=[dict(x) for x in TASKS]
  if authenticated:install_access(app)
- app.router.add_get('/',demo_index);app.router.add_get('/imprimante.html',demo_index);install_information(app)
- for folder in ['css','js','icons']:app.router.add_static('/'+folder+'/',ROOT/folder,show_index=False)
+ app.router.add_get('/',demo_index);app.router.add_get('/imprimante.html',demo_index);install_ui_resources(app)
  app.router.add_route('*','/imprimante-api/{tail:.*}',api);return app
 if __name__=='__main__':
  if __import__('os').geteuid()==0:raise SystemExit('Le serveur doit être lancé sans privilèges root.')

@@ -7,6 +7,8 @@ from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 ROOT=pathlib.Path(__file__).resolve().parents[1]/'web'
 APP_VERSION=json.loads((ROOT.parent/'package.json').read_text())['version']
+UI_PREFIX='/imprimante-api/ui'
+PUBLIC_ASSETS={'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg'}
 INFORMATION_PAGES={'/about':'privacy.html','/conditions':'terms.html','/cookies':'cookies.html','/credits':'credits.html'}
 HOME_URL_KEY=web.AppKey('home_url',str)
 TIME_ZONE_KEY=web.AppKey('time_zone',str)
@@ -94,7 +96,8 @@ def install_access(app):
 async def access_control(request,handler):
  """Protège l’atelier par cookie, garde health public et applique Origin aux écritures authentifiées."""
  try:
-  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path in {'/css/landing.css','/css/imprimante.css','/icons/cloud-page.svg'}:
+  ui_path=request.path.startswith(UI_PREFIX+'/')
+  if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path.removeprefix(UI_PREFIX) in PUBLIC_ASSETS:
    response=await handler(request)
   else:
    username,password,fingerprint=credentials()
@@ -104,7 +107,7 @@ async def access_control(request,handler):
    authenticated=session is not None and hmac.compare_digest(session.fingerprint,fingerprint)
    if request.path=='/login':response=await handler(request)
    elif not authenticated:
-    if request.path.startswith('/imprimante-api/') or request.method not in {'GET','HEAD'}:response=web.json_response({'message':'Connexion requise.'},status=401)
+    if (request.path.startswith('/imprimante-api/') and not ui_path) or request.method not in {'GET','HEAD'}:response=web.json_response({'message':'Connexion requise.'},status=401)
     else:response=web.Response(status=303,headers={'Location':'/login'})
    else:
     if request.method not in {'GET','HEAD','OPTIONS'}:require_origin(request)
@@ -177,16 +180,18 @@ async def index(request):
  return web.Response(text=render_page(request.app[HOME_URL_KEY],request.app[TIME_ZONE_KEY]),content_type='text/html')
 async def about(request):
  """Sert uniquement les notices statiques déclarées par l’application."""
- return web.Response(text=(ROOT/INFORMATION_PAGES[request.path]).read_text(),content_type='text/html')
+ return web.Response(text=(ROOT/INFORMATION_PAGES[request.path.removeprefix(UI_PREFIX)]).read_text(),content_type='text/html')
 
-def install_information(app):
- """Ajoute les routes du pied de page dans l’atelier et en démonstration."""
- for path in INFORMATION_PAGES:app.router.add_get(path,about)
+def install_ui_resources(app):
+ """Sert les ressources via le préfixe déjà routé et conserve les anciennes adresses."""
+ for prefix in ('',UI_PREFIX):
+  for path in INFORMATION_PAGES:app.router.add_get(prefix+path,about)
+  for folder in ('css','js','icons'):
+   app.router.add_static(prefix+'/'+folder+'/',ROOT/folder,show_index=False)
 
 def install_static(app):
  """Ajoute les routes des ressources statiques, sans exposer les fichiers privés du serveur."""
  install_access(app)
  app[HOME_URL_KEY]=home_url(os.environ.get('HOME_URL','/imprimante.html'))
  app[TIME_ZONE_KEY]=display_timezone()
- app.router.add_get('/',index);app.router.add_get('/imprimante.html',index);install_information(app)
- for folder in ['css','js','icons']:app.router.add_static('/'+folder+'/',ROOT/folder,show_index=False)
+ app.router.add_get('/',index);app.router.add_get('/imprimante.html',index);install_ui_resources(app)

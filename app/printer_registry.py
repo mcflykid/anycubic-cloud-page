@@ -3,6 +3,7 @@ import asyncio,contextlib,hashlib,json
 from aiohttp import web
 from cloud_extras import CloudExtras
 from temperature_history import TemperatureHistory
+from web_host import UI_PREFIX
 
 def printer_key(identifier):
  """Renvoie une référence opaque ; aucun identifiant cloud brut n’est envoyé au navigateur."""
@@ -114,7 +115,7 @@ class PrinterRegistry:
 async def select_printer(request,handler):
  """Fige la cible pour toute la requête ; une écriture ne dépend jamais du dernier choix d’un autre onglet."""
  registry=request.app.get('printer_registry')
- if registry and request.path.startswith('/imprimante-api/') and request.path not in ['/imprimante-api/health','/imprimante-api/printers']:
+ if registry and request.path.startswith('/imprimante-api/') and not request.path.startswith(UI_PREFIX+'/') and request.path not in ['/imprimante-api/health','/imprimante-api/printers']:
   key=request.headers.get('X-Printer-Key') or (request.query.get('printer') if request.method in ['GET','HEAD'] else None)
   request['selected_engine']=await registry.resolve(key,require_explicit=request.method not in ['GET','HEAD'])
   request['printer_key']=key

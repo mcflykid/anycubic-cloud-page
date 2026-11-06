@@ -6,6 +6,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient,TestServer
 import server as adapter
 from printer_registry import PrinterRegistry,SharedCloudAPI,printer_key,select_printer
+from web_host import install_ui_resources
 
 class PrinterTargets(unittest.IsolatedAsyncioTestCase):
  """La cible d’une requête ne dépend ni d’un autre navigateur ni d’une sélection globale mutable."""
@@ -19,6 +20,7 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
    await asyncio.Event().wait()
   self.registry=PrinterRegistry(self.root,self.make_engine,sampler,app);app['printer_registry']=self.registry
   app.router.add_get('/imprimante-api/status',adapter.status);app.router.add_post('/imprimante-api/command',adapter.command)
+  install_ui_resources(app)
   self.client=TestClient(TestServer(app));await self.client.start_server()
  async def asyncTearDown(self):
   """Annule les seules tâches fictives et supprime leur dossier temporaire."""
@@ -36,6 +38,14 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
  async def send(self,key=None,requestid='fixture-request-0001',query=''):
   """Envoie seulement au serveur local ; aucune doublure ne transmet au cloud."""
   return await self.client.post('/imprimante-api/command'+query,headers={'X-Printer-Key':key} if key else {},json={'action':'fixture','request_id':requestid})
+ async def test_ui_resources_load_without_a_cloud_printer(self):
+  """Les notices et scripts partagent le préfixe de l’API, sans déclencher le choix d’une machine."""
+  with patch.object(self.registry,'resolve',side_effect=web.HTTPServiceUnavailable) as resolve:
+   for path,content_type in [('/conditions','text/html'),('/imprimante-api/ui/conditions','text/html'),('/imprimante-api/ui/js/imprimante.js','text/javascript')]:
+    response=await self.client.get(path)
+    self.assertEqual(response.status,200)
+    self.assertEqual(response.content_type,content_type)
+   resolve.assert_not_awaited()
  async def test_default_keeps_its_engine_during_reconnection(self):
   """Une sélection du défaut sans modèle ne crée aucune tâche secondaire."""
   self.root.pinned_id='1'
