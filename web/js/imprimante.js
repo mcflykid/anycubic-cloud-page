@@ -218,8 +218,12 @@ async function loadFileThumbnails(){
 
 /** Le nom reste lisible si le fichier n’a pas d’image ou si son décodage échoue. */
 function showFileThumbnail(host,file,src){
- host.title='Aperçu indisponible';
- if(!src)return;
+ const unavailable=()=>{
+  host.removeAttribute('aria-busy');
+  host.title='Aperçu indisponible';
+  host.textContent='—';
+ };
+ if(!src){unavailable();return;}
  const image=node('img'),button=node('button',null,'file-thumbnail-open');
  image.alt='';
  button.type='button';
@@ -227,15 +231,18 @@ function showFileThumbnail(host,file,src){
  button.onclick=()=>openFilePreview(file.name,src);
  button.append(image);
  image.onload=()=>{
+  host.removeAttribute('aria-busy');
   host.title='';
   host.replaceChildren(button);
  };
+ image.onerror=unavailable;
  image.src=src;
 }
 
 /** Prépare une vignette liée au dossier, à la source et à la cible de la ligne. */
 function fileThumbnail(file,context){
- const host=node('span','—','file-thumbnail');
+ const host=node('span',null,'file-thumbnail');
+ host.setAttribute('aria-busy','true');
  const key=JSON.stringify([context.printer,context.source,context.path,file.handle,file.name,file.size_mb]);
  host.previewJob={file,context,key};
  host.title='Chargement de l’aperçu';

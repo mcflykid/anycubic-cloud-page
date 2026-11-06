@@ -61,21 +61,35 @@ test('un aperçu indisponible est redemandé après le délai',async({page})=>{
 
 
 test('les miniatures précèdent les noms et se chargent une à la fois',async({page})=>{
- let concurrent=0,maxConcurrent=0,reads=0;
+ let concurrent=0,maxConcurrent=0,reads=0,release;
+ const firstPreview=new Promise(resolve=>release=resolve);
  await page.route('**/imprimante-api/preview',async route=>{
   const file=route.request().postDataJSON();
   if(!file.path)return route.continue();
-  reads++;
+  const index=++reads;
   concurrent++;
   maxConcurrent=Math.max(concurrent,maxConcurrent);
-  await new Promise(resolve=>setTimeout(resolve,40));
+  if(index===1)await firstPreview;
   concurrent--;
+  if(index===2)return route.fulfill({json:{image:'data:image/png;base64,AAAA'}});
   return route.fulfill({json:{image:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20"/></svg>')}});
  });
  await login(page);
  await page.getByRole('button',{name:'Fichiers',exact:true}).click();
  const rows=page.locator('#file-rows');
- await expect(rows.locator('.file-row-identity').first().locator('img')).toBeVisible();
+ const thumbnails=rows.locator('.file-thumbnail');
+ const first=thumbnails.first();
+ try{
+  await expect(first).toHaveAttribute('aria-busy','true');
+  expect(await first.evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('file-thumbnail-spin');
+  await page.emulateMedia({reducedMotion:'reduce'});
+  expect(await first.evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('none');
+ }finally{release();}
+ await expect(first.locator('img')).toBeVisible();
+ await expect(first).not.toHaveAttribute('aria-busy');
+ await expect(thumbnails.nth(1)).toHaveText('—');
+ await expect(thumbnails.nth(1)).toHaveAttribute('title','Aperçu indisponible');
+ await expect(thumbnails.nth(1)).not.toHaveAttribute('aria-busy');
  await expect(rows.getByRole('button',{name:'Aperçu',exact:true})).toHaveCount(0);
  await expect.poll(()=>reads).toBeGreaterThanOrEqual(2);
  expect(maxConcurrent).toBe(1);
