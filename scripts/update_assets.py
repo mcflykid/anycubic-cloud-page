@@ -1,4 +1,5 @@
 """Calcule les versions d’URL et l’intégrité des scripts ainsi que de leurs imports locaux."""
+
 import base64
 import hashlib
 from pathlib import Path
@@ -25,7 +26,9 @@ def update(check=False):
         version, integrity = signature((ROOT / "js" / name).read_bytes())
         path = f"./{name}"
         script = re.sub(re.escape(path) + r"(?:\?v=[^'\"]*)?", f"{path}?v={version}", script)
-        preload.append(f'<link rel="modulepreload" href="{UI}/js/{name}?v={version}" integrity="{integrity}" crossorigin="anonymous">')
+        preload.append(
+            f'<link rel="modulepreload" href="{UI}/js/{name}?v={version}" integrity="{integrity}" crossorigin="anonymous">'
+        )
     version, integrity = signature(script.encode())
     changed = []
 
@@ -48,7 +51,8 @@ def update(check=False):
             html = re.sub(r'<link rel="modulepreload"[^>]+>', "", html)
             html = re.sub(
                 r'<script id="workshop-script"[^>]+>',
-                "".join(preload) + f'<script id="workshop-script" type="module" src="{UI}/js/imprimante.js?v={version}" integrity="{integrity}" crossorigin="anonymous">',
+                "".join(preload)
+                + f'<script id="workshop-script" type="module" src="{UI}/js/imprimante.js?v={version}" integrity="{integrity}" crossorigin="anonymous">',
                 html,
             )
         apply(page, html)

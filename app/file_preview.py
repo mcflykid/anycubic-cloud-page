@@ -1,4 +1,5 @@
 """Rapprochement exact des fichiers machine et des aperçus de projets Anycubic."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
