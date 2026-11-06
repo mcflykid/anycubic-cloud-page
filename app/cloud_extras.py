@@ -5,6 +5,7 @@ import os
 import asyncio, base64, contextlib, hashlib, hmac, json, math, pathlib, re, secrets, time, urllib.parse
 import aiohttp
 from aiohttp import web
+from datetime import datetime
 from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
@@ -553,16 +554,30 @@ class CloudExtras:
                 "items": [],
                 "message": "La liste des vidéos n’est pas fournie par ce firmware.",
             }
-        items = [
-            {
-                "name": clean_text(r.get("filename"), 200),
-                "size": number(r.get("size")),
-                "duration": number(r.get("duration")),
-                "created": r.get("createTime"),
+        items = []
+        for row in rows:
+            filename = row.get("filename") if isinstance(row, dict) else None
+            if not isinstance(filename, str) or not filename.strip():
+                continue
+            raw_date = row.get("createTime")
+            created = None if isinstance(raw_date, bool) else number(raw_date)
+            if created is None and isinstance(raw_date, str) and len(raw_date) <= 32:
+                with contextlib.suppress(ValueError):
+                    created = datetime.fromisoformat(raw_date).isoformat()
+            items.append(
+                {
+                    "name": clean_text(filename, 200),
+                    "size": number(row.get("size")),
+                    "duration": number(row.get("duration")),
+                    "created": created,
+                }
+            )
+        if rows and not items:
+            return {
+                "available": False,
+                "items": [],
+                "message": "Le format des vidéos renvoyées par ce firmware n’est pas reconnu.",
             }
-            for r in rows
-            if isinstance(r, dict)
-        ]
         return {
             "available": True,
             "items": items,

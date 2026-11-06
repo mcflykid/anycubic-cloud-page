@@ -46,7 +46,7 @@ L’image suit `latest` ; remplacez-la par un tag publié dans compose.yaml pour
 
 Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.3.0](https://github.com/mcflykid/anycubic-cloud-page/milestone/2) regroupe les travaux de la prochaine version et leurs critères de validation.
 
-La fiche d’historique peut proposer une réimpression après confirmation de la cible, du plateau et des bobines. La galerie timelapse montre les vidéos que le firmware renvoie, avec recherche et pagination. La lecture et le téléchargement distants restent dépendants d’un contrat cloud à établir.
+La fiche d’historique peut proposer une réimpression après confirmation de la cible, du plateau et des bobines. La galerie timelapse est temporairement désactivée. La consultation paginée est testée sur des réponses fictives. La correspondance entre la liste, les miniatures et le téléchargement reste à vérifier sur une vidéo existante.
 
 ## Les sept onglets
 

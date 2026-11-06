@@ -239,6 +239,10 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue((await self.x.videos())["available"])
         self.e.direct_request.return_value = {"data": {"records": {}}}
         self.assertFalse((await self.x.videos())["available"])
+        self.e.direct_request.return_value = {"data": {"records": [{"file_key": "clé sans nom"}]}}
+        unknown = await self.x.videos()
+        self.assertFalse(unknown["available"])
+        self.assertIn("format", unknown["message"])
 
     async def test_reset_needs_capability_and_code(self):
         """Vérifie que la réinitialisation exige la capacité annoncée et un code valide."""
