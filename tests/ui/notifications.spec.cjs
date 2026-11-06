@@ -24,6 +24,6 @@ test('un rafraîchissement de l’historique conserve les aperçus de la cloche'
  await openWorkshop(page);
  await page.locator('#notifications-toggle').click();
  await expect(page.locator('.notification-row')).toHaveCount(3);
- await page.evaluate(()=>{renderTasks();window.deliverVisiblePreviews();});
+ await page.evaluate(async()=>{const {renderTasks}=await import(document.querySelector('#workshop-script').src);renderTasks();window.deliverVisiblePreviews();});
  await expect(page.locator('.notification-row img').first()).toBeVisible();
 });

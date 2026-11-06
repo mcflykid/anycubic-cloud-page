@@ -213,11 +213,11 @@ test('les visuels suivent le modèle constructeur et la présence réelle de l�
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  await expect(page.locator('#ace-illustration')).toHaveAttribute('src',icons+'ace-pro.svg');
  model='Anycubic Kobra X';box=null;
- await page.evaluate(()=>refresh());
+ await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
  await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-x.svg');
  await expect(page.locator('#ace-illustration')).toBeHidden();
  model='Modèle inconnu';
- await page.evaluate(()=>refresh());
+ await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
  await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'printer.svg');
 });
 

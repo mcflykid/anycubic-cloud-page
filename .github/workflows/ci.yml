@@ -23,7 +23,9 @@ jobs:
       - run: pip install -r app/requirements.txt
       - run: python -m unittest discover -s app -p 'test_*.py' -q
       - run: python -m unittest discover -s scripts -p 'test_*.py' -q
-      - run: node --check web/js/imprimante.js
+      - run: |
+          for script in web/js/imprimante.js web/js/*.mjs; do node --check "$script" || exit; done
+          python scripts/update_assets.py --check
       - name: Check publication without private configuration
         run: python scripts/check_publication.py
       - name: Check publication with private CI rules

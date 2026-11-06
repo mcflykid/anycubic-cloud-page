@@ -50,11 +50,11 @@ test('un aperçu indisponible est redemandé après le délai',async({page})=>{
   else await route.continue();
  });
  await login(page);
- await expect.poll(()=>page.evaluate(()=>previewJob?.attempts===1&&!previewJob.pending)).toBe(true);
+ await expect.poll(()=>page.evaluate(async()=>{const {previewJob}=await import(document.querySelector('#workshop-script').src);return previewJob?.attempts===1&&!previewJob.pending;})).toBe(true);
  await expect(page.locator('#job-preview')).toBeHidden();
  const now=await page.evaluate(()=>Date.now());
  await page.clock.setSystemTime(now+11000);
- await page.evaluate(()=>refresh());
+ await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
  await expect(page.locator('#job-preview')).toBeVisible();
  expect(reads).toBe(2);
 });
