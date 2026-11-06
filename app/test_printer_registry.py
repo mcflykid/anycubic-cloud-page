@@ -53,6 +53,16 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
   self.assertIs(await self.registry.resolve(printer_key(1)),self.root)
   self.assertIs(await self.registry.resolve(None),self.root)
   self.assertEqual(len(self.created),1)
+ async def test_account_notifications_are_loaded_once_for_two_printers(self):
+  """Deux cibles partagent la lecture et les références de notification du compte."""
+  secondary=await self.secondary()
+  secondary.api=SharedCloudAPI(self.registry)
+  self.root.api=SimpleNamespace(_fetch_api_resp=AsyncMock(side_effect=[{'code':1,'data':[{'id':11}]},{'data':[]}]))
+  first,second=await asyncio.gather(self.root.print_history(1),secondary.print_history(1))
+  self.assertEqual(first,second)
+  self.assertEqual(self.root.api._fetch_api_resp.await_count,2)
+  self.assertIs(self.root.notifications,secondary.notifications)
+  self.assertIn(first['items'][0]['key'],secondary.notifications.rows)
  async def test_sampling_survives_unavailable_shared_transport(self):
   """Une coupure suspend les relevés et le même échantillonneur reprend après reconnexion."""
   secondary=await self.secondary()

@@ -57,7 +57,7 @@ class PrinterRegistry:
   if key==self.default_key():return self.default
   async with self.lock:
    if key not in self.entries:
-    selected=self.factory();selected.selected_id=str(rows[key].id);selected.account=self.default.account;selected.fleet_registry=self;selected.state_dir=self.default.state_dir/'printers'/key
+    selected=self.factory();selected.selected_id=str(rows[key].id);selected.account=self.default.account;selected.fleet_registry=self;selected.notifications=self.default.notifications;selected.state_dir=self.default.state_dir/'printers'/key
     selected.state_dir.mkdir(mode=0o700,parents=True,exist_ok=True)
     selected.extras=CloudExtras(selected)
     with contextlib.suppress(OSError,ValueError):selected.presets=__import__('json').loads((selected.state_dir/'presets.json').read_text())

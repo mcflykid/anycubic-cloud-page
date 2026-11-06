@@ -9,6 +9,7 @@ from vendor_config import load_vendor_config
 load_vendor_config()
 from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
+from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry,SharedCloudAPI,select_printer,printer_key
 from account_auth import AccountAuth
 from web_host import SESSION_DIGEST_KEY,SENSITIVE_ACTIONS,access_control,client_address,consume_action_ticket
@@ -59,29 +60,6 @@ def filepath(value):
  value=str(value or '/')
  if len(value)>500 or '\x00' in value or '..' in value.split('/'):raise ValueError('Chemin invalide')
  return '/'+value.strip('/')
-
-def history_entry(row):
- """Renvoie une notification affichable avec référence opaque et libellé français."""
- from cloud_extras import diagnostic_text,key as history_task_key
- code=row.get('print_status')
- labels={2:'Impression terminée',3:'Impression arrêtée'}
- title=labels.get(code) or {'Print complete':'Impression terminée','Print to terminate':'Impression arrêtée','Print failed':'Échec de l’impression','Print to paused':'Impression en pause'}.get(row.get('title'),'Notification d’impression')
- reason=next((text for value in (row.get('reason_desc'),row.get('reason')) if (text:=diagnostic_text(value))), '')
- reason={'User Initiated':'Pause demandée par l’utilisateur','Abnormal consumables, please reload consumables':'Problème de filament. Rechargez le filament.'}.get(reason,reason)
- reason_code=diagnostic_text(row.get('reason_id'))
- printer=row.get('printer_id')
- task=next((row[field] for field in ('task_id','taskid','project_id') if isinstance(row.get(field),(str,int)) and row[field] not in ('','0',0)),None)
- group=printer and task and (reason or reason_code)
- task_id=row.get('task_id') or row.get('taskid')
- return {
-  'key':hashlib.sha256(str(row.get('id','')).encode()).hexdigest()[:20],
-  'name':str(row.get('project_name') or 'Impression sans nom')[:300],
-  'printer':str(row.get('printer_name') or 'Imprimante')[:100],
-  'time':row.get('create_time'),'result':title,'kind':'success' if code==2 else 'interrupted' if code==3 else 'info',
-  'unread':row.get('read')==0,'reason':reason,'reason_code':reason_code,
-  'task_key':history_task_key(str(printer)+':'+str(task_id)) if printer and isinstance(task_id,(int,str)) and task_id not in ('','0',0) else None,
-  'group':hashlib.sha256(json.dumps([str(printer),str(task),title,reason,reason_code]).encode()).hexdigest()[:20] if group else None,
- }
 
 class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):
  """Relie les réponses MQTT et le renouvellement de session au moteur web."""
@@ -139,6 +117,7 @@ class Engine:
   self.camera_message_id=None;self.camera_diagnostic=None;self.camera_stage=-1;self.reconnect_required=False
   self.camera_viewers=set();self.camera_departures=collections.OrderedDict();self.camera_owner=None;self.camera_close_task=None
   self.command_lock=asyncio.Lock()
+  self.notifications=AccountNotifications();self.notifications_error=None;self.fleet_registry=None;self.pinned_id=None
   self.mqtt_auth_lock=asyncio.Lock();self.mqtt_auth_pending=False;self.account=AccountAuth();self.account_token=None;self.api=None;self.printer=None;self.session=None;self.ok=False;self.updated=None;self.mqtt_update=None;self.error='Connexion en cours';self.lock=asyncio.Lock();self.events=collections.deque(maxlen=40);self.cloudfiles={};self.commands=collections.OrderedDict();self.file_tasks={};self.light_report=None;self.preview_cache={};self.file_messages={};self.dir_cache={};self.mqtt_enabled=True;self.raw_info={};self.last_session=0;self.camera=None;self.mqtt_thread=None;self.presets=[{'name':'PLA','temperature':45,'hours':4},{'name':'PETG','temperature':55,'hours':6},{'name':'ABS / ASA','temperature':60,'hours':4},{'name':'PA','temperature':65,'hours':8}]
  def event(self,action,state):"""Ajoute un événement horodaté au journal local borné.""";self.events.appendleft({'time':now(),'action':action,'state':state})
  def receive_video_reply(self,topic,payload):
@@ -269,7 +248,7 @@ class Engine:
   mqtt=getattr(api,'_mqtt_client',None)
   base={'ok':self.ok and not disconnected,'message':'Connexion en cours' if disconnected else self.error,'updated_at':self.updated,'mqtt_updated_at':self.mqtt_update,'mqtt_connected':bool(mqtt and mqtt.is_connected()),'public_commands':False,'upstream':'hass-anycubic_cloud_v3','events':list(self.events),'presets':self.presets}
   base['account_message']=getattr(self.account,'notice',None)
-  base['notifications']=getattr(self,'history_cache',{}).get(1,(None,None))[1]
+  base['notifications']=self.notifications.cache.get(1,(None,None))[1]
   base['notifications_error']=getattr(self,'notifications_error',None)
   base['camera_diagnostic']=self.camera_diagnostic
   base['mqtt_diagnostics']=getattr(api,'mqtt_diagnostics',{})
@@ -392,60 +371,14 @@ class Engine:
   store=await self.api.get_user_cloud_store()
   return {'files':rows,'page':page,'has_more':len(rows)==20,'store':{k:serial(safeget(store,k)) for k in ['total_bytes','used_bytes','available_bytes']}}
  async def print_history(self,page):
-  """Renvoie les notifications paginées filtrées ; lève ValueError si le cloud refuse la lecture."""
-  from anycubic_cloud_api.models.http import AnycubicAPIEndpoint,HTTP_METHODS
-  cached=getattr(self,'history_cache',{}).get(page)
-  if cached and time.monotonic()-cached[0]<30:return cached[1]
-  response=await self.api._fetch_api_resp(AnycubicAPIEndpoint(HTTP_METHODS.POST,'/v2/message/getMessages'),params={'type':1,'page':page,'limit':20})
-  counts=await self.api._fetch_api_resp(AnycubicAPIEndpoint(HTTP_METHODS.POST,'/v2/message/getMessageCount'),params={})
-  if response.get('code')!=1 or not isinstance(response.get('data'),list):raise ValueError('Le journal Anycubic est temporairement indisponible')
-  rows=[history_entry(r) for r in response['data'] if isinstance(r,dict)]
-  if not hasattr(self,'history_keys'):self.history_keys={}
-  if not hasattr(self,'notification_rows'):self.notification_rows={}
-  for raw in response['data']:
-   if isinstance(raw,dict) and isinstance(raw.get('id'),int):
-    k=history_entry(raw)['key'];self.history_keys[k]=raw['id'];self.notification_rows[k]=raw
-  while len(self.history_keys)>1000:self.history_keys.pop(next(iter(self.history_keys)))
-  while len(self.notification_rows)>1000:self.notification_rows.pop(next(iter(self.notification_rows)))
-  count=next((r for r in counts.get('data') or [] if r.get('type')==1),{})
-  result={'items':rows,'page':page,'total':int(count.get('count',len(rows))),'unread':int(count.get('newcount',0)),'has_more':page*20<int(count.get('count',0)),'updated_at':now()}
-  if not hasattr(self,'history_cache'):self.history_cache={}
-  self.history_cache[page]=(time.monotonic(),result)
-  while len(self.history_cache)>10:self.history_cache.pop(next(iter(self.history_cache)))
-  return result
+  """Délègue la lecture au service du compte avec le transport courant."""
+  return await self.notifications.page(self.api,page)
  async def mark_history_read(self,key=None,all_items=False):
-  """Marque une clé connue ou toutes les notifications ; lève ValueError sans confirmation cloud."""
-  from anycubic_cloud_api.models.http import AnycubicAPIEndpoint,HTTP_METHODS
-  if all_items:
-   endpoint='/v2/message/setRead';params={}
-  else:
-   mid=getattr(self,'history_keys',{}).get(str(key))
-   if mid is None:raise ValueError('Actualisez l’historique avant de marquer cette notification comme lue')
-   endpoint='/v2/message/setReadById';params={'id':mid}
-  result=await self.api._fetch_api_resp(AnycubicAPIEndpoint(HTTP_METHODS.POST,endpoint),params=params,query=params or None)
-  if result.get('code')!=1:raise ValueError('Anycubic n’a pas confirmé la mise à jour de lecture')
-  self.history_cache={}
-  return {'ok':True,'message':'Notifications marquées comme lues' if all_items else 'Notification marquée comme lue'}
+  """Délègue le changement d’état au même service que la lecture."""
+  return await self.notifications.mark_read(self.api,key,all_items)
  async def delete_history(self,key=None,all_items=False):
-  """Efface une clé connue ou les identifiants collectés ; lève ValueError si la collecte est incomplète."""
-  from anycubic_cloud_api.models.http import AnycubicAPIEndpoint,HTTP_METHODS
-  if all_items:
-   ids=[]
-   for page in range(1,251):
-    result=await self.api._fetch_api_resp(AnycubicAPIEndpoint(HTTP_METHODS.POST,'/v2/message/getMessages'),params={'type':1,'page':page,'limit':20})
-    if result.get('code')!=1 or not isinstance(result.get('data'),list):raise ValueError('Lecture de l’historique impossible ; aucun effacement envoyé')
-    rows=result['data'];ids.extend(r['id'] for r in rows if isinstance(r,dict) and isinstance(r.get('id'),int))
-    if len(rows)<20:break
-   else:raise ValueError('Trop de notifications pour un effacement unique')
-  else:
-   mid=getattr(self,'history_keys',{}).get(str(key))
-   if mid is None:raise ValueError('Actualisez l’historique avant d’effacer cette notification')
-   ids=[mid]
-  if ids:
-   result=await self.api._fetch_api_resp(AnycubicAPIEndpoint(HTTP_METHODS.POST,'/v2/message/delete'),params={'ids':ids})
-   if result.get('code')!=1:raise ValueError('Anycubic n’a pas confirmé l’effacement')
-  self.history_cache={};self.history_keys={};self.notification_rows={}
-  return {'ok':True,'message':'Notifications effacées' if all_items else 'Notification effacée'}
+  """Efface depuis le compte qui possède les références de notification."""
+  return await self.notifications.delete(self.api,key,all_items)
  def receive_ai_reply(self,topic,payload):
   """Retient uniquement la réponse IA de la machine et de la consultation en cours."""
   started=getattr(self,'ai_query_started',None)

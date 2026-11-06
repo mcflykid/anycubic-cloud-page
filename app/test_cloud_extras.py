@@ -39,7 +39,7 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
  """Vérifications des fonctions cloud complémentaires et de leurs validations."""
  def setUp(self):
   """Prépare des données et doublures isolées pour chaque scénario."""
-  self.e=SimpleNamespace(api=SimpleNamespace(_fetch_api_resp=AsyncMock(return_value={'code':1,'data':{}})),printer=SimpleNamespace(id=7,printer_online=True,is_available=True,latest_project_print_in_progress=False),raw_info={'features':[]},cloudfiles={},slots=lambda d:[0])
+  self.e=SimpleNamespace(api=SimpleNamespace(_fetch_api_resp=AsyncMock(return_value={'code':1,'data':{}})),printer=SimpleNamespace(id=7,printer_online=True,is_available=True,latest_project_print_in_progress=False),raw_info={'features':[]},cloudfiles={},slots=lambda d:[0],notifications=SimpleNamespace(rows={}))
   self.x=CloudExtras(self.e)
  def task(self,status=2):"""Installe une tâche fictive pour tester les restrictions d’évaluation et de réimpression.""";self.x.tasks['key']={'id':99,'taskid':123,'printer_id':7,'print_status':status,'gcode_id':80}
  async def test_history_deletion_validates_all_keys_before_mutating_cloud(self):
@@ -240,20 +240,20 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
   with self.assertRaises(ValueError):await self.x.notification_preview('unknown')
  async def test_notification_image_uses_its_own_row(self):
   """Vérifie que une notification utilise d’abord sa propre image."""
-  row={'id':77,'img':'https://anycubic.com/image.png'};self.e.notification_rows={'a':row};self.x.preview_row=AsyncMock(return_value={'image':'data:image/png;base64,eA=='})
+  row={'id':77,'img':'https://anycubic.com/image.png'};self.e.notifications=SimpleNamespace(rows={'a':row});self.x.preview_row=AsyncMock(return_value={'image':'data:image/png;base64,eA=='})
   self.assertTrue((await self.x.notification_preview('a'))['image']);self.x.preview_row.assert_awaited_once_with('notification:a',row,lookup_detail=False)
  async def test_same_filename_never_matches_without_task_reference(self):
   """Vérifie que un nom de fichier seul ne suffit pas à associer un aperçu de notification."""
-  self.e.notification_rows={'a':{'id':1,'project_name':'same.gcode'}};self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock()
+  self.e.notifications=SimpleNamespace(rows={'a':{'id':1,'project_name':'same.gcode'}});self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock()
   self.assertEqual(await self.x.notification_preview('a'),{'image':None});self.x.api.assert_not_called()
  async def test_task_reference_requires_unique_project_on_current_printer(self):
   """Vérifie que la référence doit correspondre à un projet unique de la machine courante."""
-  self.e.notification_rows={'a':{'id':1,'project_id':44}};self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}]);self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':8},{'id':44,'printer_id':7,'taskid':55,'img':'https://anycubic.com/a.png'}])
+  self.e.notifications=SimpleNamespace(rows={'a':{'id':1,'project_id':44}});self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}]);self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':8},{'id':44,'printer_id':7,'taskid':55,'img':'https://anycubic.com/a.png'}])
   self.assertTrue((await self.x.notification_preview('a'))['image']);self.assertEqual(self.x.preview_row.await_args.args[1]['printer_id'],7)
  async def test_preview_uses_the_printer_explicitly_named_by_the_notification(self):
   """Un numéro de tâche réutilisé sur une autre machine ne change pas la miniature."""
   self.e.known_printers=[SimpleNamespace(id=8)]
-  self.e.notification_rows={'a':{'id':1,'project_id':44,'printer_id':8}}
+  self.e.notifications=SimpleNamespace(rows={'a':{'id':1,'project_id':44,'printer_id':8}})
   self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}])
   self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'id':44,'printer_id':8}])
   self.assertTrue((await self.x.notification_preview('a'))['image'])
@@ -261,7 +261,7 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
 
  async def test_task_reference_never_matches_a_project_id(self):
   """Les aperçus de deux impressions distinctes ne sont pas interchangeables."""
-  self.e.notification_rows={'a':{'task_id':44,'printer_id':7}}
+  self.e.notifications=SimpleNamespace(rows={'a':{'task_id':44,'printer_id':7}})
   self.x.preview_row=AsyncMock(side_effect=[{'image':None},{'image':'data:image/png;base64,eA=='}])
   self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'id':55,'taskid':44,'printer_id':7}])
   self.assertTrue((await self.x.notification_preview('a'))['image'])
@@ -269,7 +269,7 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
 
  async def test_recent_catalogue_is_shared_by_two_notification_lookups(self):
   """Deux miniatures absentes ne provoquent pas deux lectures du même catalogue."""
-  self.e.notification_rows={'a':{'task_id':44},'b':{'task_id':55}}
+  self.e.notifications=SimpleNamespace(rows={'a':{'task_id':44},'b':{'task_id':55}})
   self.x.preview_row=AsyncMock(return_value={'image':None})
   self.x.api=AsyncMock(return_value=[])
   await self.x.notification_preview('a')
@@ -278,7 +278,7 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
 
  async def test_ambiguous_reference_keeps_preview_unavailable(self):
   """Vérifie que une référence ambiguë ne fournit aucun aperçu."""
-  self.e.notification_rows={'a':{'project_id':44}};self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'project_id':44,'printer_id':7}])
+  self.e.notifications=SimpleNamespace(rows={'a':{'project_id':44}});self.x.preview_row=AsyncMock(return_value={'image':None});self.x.api=AsyncMock(return_value=[{'id':44,'printer_id':7},{'project_id':44,'printer_id':7}])
   self.assertEqual(await self.x.notification_preview('a'),{'image':None});self.x.preview_row.assert_awaited_once()
 
 if __name__=='__main__':unittest.main()

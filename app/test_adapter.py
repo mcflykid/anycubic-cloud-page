@@ -1,4 +1,5 @@
 """Tests isolés : adapter, sans commande physique ni connexion au cloud."""
+from notification_service import history_entry
 import asyncio,importlib.util,pathlib,unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -33,7 +34,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(self.e.notifications_error,'Messages temporairement indisponibles');self.e.print_history.assert_awaited_once_with(1)
  async def test_status_uses_cached_notifications_without_cloud_request(self):
   """Les lectures fréquentes du statut partagent le cache du relevé cloud habituel."""
-  self.e.printer=None;self.e.api=None;self.e.history_cache={1:(0,{'items':[],'unread':0})}
+  self.e.printer=None;self.e.api=None;self.e.notifications.cache={1:(0,{'items':[],'unread':0})}
   self.e.print_history=AsyncMock()
   for _ in range(3):self.assertEqual(self.e.snapshot()['notifications'],{'items':[],'unread':0})
   self.e.print_history.assert_not_awaited()
@@ -136,11 +137,11 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(await self.e.local_preview('local','benchy.gcode','/test_model'),image)
  async def test_history_removes_private_fields_and_translates(self):
   """Vérifie que le journal filtre les identifiants privés et traduit les libellés."""
-  entry=adapter.history_entry({'id':99,'user_id':'private','from_id':'private','content':'private','project_name':'model.gcode','print_status':2,'read':0,'create_time':1793308171})
+  entry=history_entry({'id':99,'user_id':'private','from_id':'private','content':'private','project_name':'model.gcode','print_status':2,'read':0,'create_time':1793308171})
   self.assertEqual(entry['result'],'Impression terminée');self.assertTrue(entry['unread']);self.assertNotIn('user_id',entry);self.assertNotIn('content',entry)
  async def test_history_does_not_label_interruption_as_success(self):
   """Vérifie que une interruption n’est pas présentée comme une impression réussie."""
-  entry=adapter.history_entry({'print_status':3,'read':1})
+  entry=history_entry({'print_status':3,'read':1})
   self.assertEqual(entry['kind'],'interrupted');self.assertEqual(entry['result'],'Impression arrêtée');self.assertFalse(entry['unread'])
  async def test_temperature_history_bounds_missing_values_and_duplicates(self):
   """Vérifie que l’historique filtre les températures invalides et les doublons."""
@@ -162,10 +163,10 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
    self.assertEqual(len(h.rows),1);self.assertEqual(h.recent(1,100001)[0]['nozzle'],200)
  async def test_history_read_uses_known_key_and_clears_cache(self):
   """Vérifie que la lecture utilise une clé connue puis invalide le cache."""
-  self.e.history_keys={'a'*20:42};self.e.history_cache={1:'cached'}
+  self.e.notifications.keys={'a'*20:42};self.e.notifications.cache={1:'cached'}
   self.e.api._fetch_api_resp=AsyncMock(return_value={'code':1})
   await self.e.mark_history_read('a'*20)
-  self.assertEqual(self.e.api._fetch_api_resp.call_args.kwargs['params'],{'id':42});self.assertEqual(self.e.history_cache,{})
+  self.assertEqual(self.e.api._fetch_api_resp.call_args.kwargs['params'],{'id':42});self.assertEqual(self.e.notifications.cache,{})
  async def test_history_read_unknown_key_does_not_send(self):
   """Vérifie que une clé de notification inconnue ne déclenche aucune requête."""
   self.e.api._fetch_api_resp=AsyncMock()
@@ -213,7 +214,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
   self.e.api._fetch_api_resp.assert_not_called()
  async def test_delete_history_uses_only_selected_notification(self):
   """Vérifie que l’effacement vise uniquement la notification sélectionnée."""
-  self.e.history_keys={'a'*20:42};self.e.api._fetch_api_resp=AsyncMock(return_value={'code':1})
+  self.e.notifications.keys={'a'*20:42};self.e.api._fetch_api_resp=AsyncMock(return_value={'code':1})
   await self.e.delete_history('a'*20)
   self.assertEqual(self.e.api._fetch_api_resp.call_args.kwargs['params'],{'ids':[42]})
  async def test_empty_bulk_delete_never_sends_empty_ids(self):

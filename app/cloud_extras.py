@@ -152,7 +152,7 @@ class CloudExtras:
   return {'image':image}
  async def notification_preview(self,k):
   """Renvoie l’image de la notification ou d’une référence explicite unique ; ValueError si inconnue."""
-  row=getattr(self.e,'notification_rows',{}).get(str(k))
+  row=self.e.notifications.rows.get(str(k))
   if row is None:raise ValueError('Actualisez les notifications avant de consulter leur aperçu')
   printer_id=str(row.get('printer_id') or self.e.printer.id)
   allowed={str(printer.id) for printer in self.account_printers()}
