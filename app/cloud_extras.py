@@ -442,6 +442,8 @@ class CloudExtras:
             return {"image": None}
         task_id = task_id if task_id != "0" else ""
         project_id = project_id if project_id != "0" else ""
+        # L’échec de l’image directe n’est pas définitif pendant la recherche du projet.
+        self.previews.pop(cachekey, None)
         matches = []
         if task_id:
             task = self.tasks.get(key(printer_id + ":" + task_id))
@@ -451,7 +453,6 @@ class CloudExtras:
             try:
                 projects = await self._notification_project_rows()
             except (ValueError, aiohttp.ClientError, asyncio.TimeoutError):
-                self.previews.pop(cachekey, None)
                 return {"image": None}
             matches = [
                 project
@@ -466,7 +467,6 @@ class CloudExtras:
             ]
         if len(matches) != 1:
             return {"image": None}
-        self.previews.pop(cachekey, None)
         project = matches[0]
         task_reference = project.get("taskid") or project.get("task_id")
         if task_reference not in (None, "", 0, "0"):

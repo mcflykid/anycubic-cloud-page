@@ -2963,9 +2963,9 @@
     "Removed {0} of {1} records. The next result was unconfirmed, so the operation stopped. Refresh and check the history before retrying.",
     "Se retiraron {0} de {1} fichas. El siguiente resultado no se confirmó y se detuvo la operación. Actualiza y comprueba el historial antes de reintentar."
   ],
-  "{0} fichier(s). Espace utilisé : {1} sur {2}.": [
-    "Files: {0}. Storage used: {1} of {2}.",
-    "Archivos: {0}. Espacio usado: {1} de {2}."
+  "{0} fichier(s).": [
+    "Files: {0}.",
+    "Archivos: {0}."
   ],
   "{0} sélection{1}": [
     "Selected: {0}",

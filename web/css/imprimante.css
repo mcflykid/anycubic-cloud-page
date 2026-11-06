@@ -160,6 +160,10 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .axis-xy [data-axis="1"][data-direction="0"]{left:0;clip-path:polygon(0 1%,98% 50%,0 99%)}
 .axis-xy [data-axis="1"][data-direction="1"]{right:0;clip-path:polygon(100% 1%,100% 99%,2% 50%)}
 .axis-xy [data-axis="2"][data-direction="0"]{bottom:0;clip-path:polygon(50% 2%,99% 100%,1% 100%)}
+.axis-xy [data-axis="2"][data-direction="1"]{padding-bottom:12%}
+.axis-xy [data-axis="2"][data-direction="0"]{padding-top:12%}
+.axis-xy [data-axis="1"][data-direction="0"]{padding-right:12%}
+.axis-xy [data-axis="1"][data-direction="1"]{padding-left:12%}
 .axis-xy .axis-origin{left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border:1px solid var(--line);border-radius:50%;color:var(--accent)}
 .axis-xy button:hover:not(:disabled),.axis-xy button:focus-visible{background:var(--accent);color:var(--surface)}
 .axis-grid .axis-z{display:grid;gap:.25rem}

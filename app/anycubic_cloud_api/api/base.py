@@ -139,6 +139,8 @@ class AnycubicAPIBase:
         extra_headers: dict[str, Any] = {},
         with_origin: str | None = AUTH_DOMAIN,
         put_data: bytes | BinaryIO | None = None,
+        *,
+        allow_redirects: bool = True,
     ) -> dict[Any, Any]: ...
 
     @overload
@@ -153,6 +155,8 @@ class AnycubicAPIBase:
         put_data: bytes | BinaryIO | None = None,
         is_json: bool = True,
         return_url: bool = False,
+        *,
+        allow_redirects: bool = True,
     ) -> dict[Any, Any] | str: ...
 
     async def _fetch_ext_resp(
@@ -166,6 +170,8 @@ class AnycubicAPIBase:
         put_data: bytes | BinaryIO | None = None,
         is_json: bool = True,
         return_url: bool = False,
+        *,
+        allow_redirects: bool = True,
     ) -> dict[Any, Any] | str:
         url = base_url
         time_start = time.monotonic()
@@ -177,7 +183,9 @@ class AnycubicAPIBase:
                 data = str(params)
             else:
                 data = None
-            h_coro = self._session.post(url, params=query, data=data, headers=headers)
+            h_coro = self._session.post(
+                url, params=query, data=data, headers=headers, allow_redirects=allow_redirects
+            )
         elif method == HTTP_METHODS.PUT:
             # Le transfert signé suit sa taille, indépendamment des appels API courts.
             size = len(put_data or b'') if isinstance(put_data, (bytes, type(None))) else os.fstat(put_data.fileno()).st_size
@@ -185,7 +193,22 @@ class AnycubicAPIBase:
             h_coro = self._session.put(url, params=query, data=put_data, headers=headers,
                                        timeout=aiohttp.ClientTimeout(total=transfer_seconds, sock_connect=30, sock_read=120))
         else:
-            h_coro = self._session.get(url, params=query, headers=headers)
+            if allow_redirects:
+                h_coro = self._session.get(url, params=query, headers=headers)
+            else:
+                dispatched = False
+
+                async def once(request, handler):
+                    # Le firmware utilise un GET alors qu’une reconnexion peut rejouer cette mutation.
+                    nonlocal dispatched
+                    if dispatched:
+                        raise AnycubicAPIParsingError('Résultat de la demande Anycubic inconnu')
+                    dispatched = True
+                    return await handler(request)
+
+                h_coro = self._session.get(
+                    url, params=query, headers=headers, allow_redirects=False, middlewares=(once,)
+                )
 
         response_url = None
 
@@ -193,6 +216,8 @@ class AnycubicAPIBase:
         try:
             async with h_coro as resp:
                 status = resp.status
+                if not allow_redirects and 300 <= status < 400:
+                    raise AnycubicAPIParsingError(f'Ordre Anycubic redirigé (HTTP {status})')
                 if method == HTTP_METHODS.PUT and not 200 <= resp.status < 300:
                     raise AnycubicAPIParsingError(f'Transfert cloud refusé (HTTP {status})')
                 if is_json:
@@ -266,6 +291,12 @@ class AnycubicAPIBase:
                 with_token=with_token
             ),
             with_origin=with_origin,
+            # Une redirection 307/308 peut rejouer le POST après réception de l’ordre.
+            allow_redirects=endpoint not in (
+                API_ENDPOINT.send_order,
+                API_ENDPOINT.printer_firmware_update,
+                API_ENDPOINT.printer_multi_color_box_firmware_update,
+            ),
         )
         return resp
 

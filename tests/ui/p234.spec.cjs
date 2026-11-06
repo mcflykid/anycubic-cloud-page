@@ -244,6 +244,18 @@ test('les visuels suivent le modèle constructeur et la présence réelle de l�
  await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'printer.svg');
 });
 
+test('les illustrations de secours restent visibles si les images du matériel échouent',async({page})=>{
+ await page.route(/\/imprimante-api\/ui\/icons\/(kobra-s1-ace2pro|ace2pro)\.png$/,route=>route.abort());
+ await login(page);
+ const icons='/imprimante-api/ui/icons/';
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-s1.svg');
+ await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'kobra-s1.svg');
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ const ace=page.locator('#ace-illustration');
+ await expect(ace).toHaveAttribute('src',icons+'ace.svg');
+ await expect.poll(()=>ace.evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
+});
+
 test('les commandes courantes gardent la mesure, la confirmation et la cible sur mobile',async({page})=>{
  await page.setViewportSize({width:360,height:800});
  await page.route('**/imprimante-api/status',async route=>{

@@ -270,7 +270,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         """Une panne du transfert conserve un résultat inconnu et protège la demande d’un renvoi."""
         await self.sign_in()
         engine = self.engines[printer_key(1)]
-        engine.api.upload_file_to_cloud.side_effect = RuntimeError("fixture-secret-error")
+        engine.api.upload_file_to_cloud.side_effect = ValueError("fixture-secret-error")
         request_id = str(uuid.uuid4())
 
         def multipart():

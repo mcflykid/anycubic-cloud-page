@@ -76,6 +76,14 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await c._fetch_api_resp("command"))["code"], 500)
         self.assertEqual(c.send.await_count, 1)
 
+    async def test_contradictory_session_refusal_is_not_replayed(self):
+        """Une référence de résultat contredit le refus et exclut toute reprise automatique."""
+        c = Client()
+        c.send.return_value = {"code": 10001, "data": {"msgid": "fixture"}}
+        self.assertEqual((await c._fetch_api_resp("command"))["data"], {"msgid": "fixture"})
+        c.send.assert_awaited_once()
+        c._get_user_token_with_access_token.assert_not_called()
+
     async def test_login_exchange_is_not_recursively_retried(self):
         """Vérifie que l’échange de connexion n’entre pas dans une boucle de renouvellement."""
         c = Client()

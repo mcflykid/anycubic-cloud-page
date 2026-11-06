@@ -1,5 +1,14 @@
 # Changements
 
+## 1.4.2 — 2026-11-06
+
+- Une redirection ou une coupure après l’envoi d’un ordre sensible ne rejoue pas la demande. Une erreur après le début d’un transfert Cloud conserve un résultat inconnu et la protection contre les doublons (#77).
+- Les mesures ACE suivent l’identifiant du boîtier. Le support interne Kobra X reste distinct de l’ACE (#93, #37).
+- Deux demandes simultanées de miniature ne confondent plus une recherche en cours avec un aperçu absent (#36).
+- Si l’illustration du matériel ne charge pas, l’atelier affiche une silhouette de secours (#111).
+- L’Espace Cloud affiche le quota une seule fois et masque le chemin réservé au stockage de l’imprimante (#112).
+- Les libellés du pavé des axes sont centrés dans leurs secteurs (#113).
+
 ## 1.4.1 — 2026-11-06
 
 - Pause, Reprendre et Arrêter restent désactivés jusqu’à la réception de l’état de l’impression. Une confirmation ouverte conserve la référence du projet affiché à son ouverture (#109).

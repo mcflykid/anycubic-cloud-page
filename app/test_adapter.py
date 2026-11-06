@@ -142,6 +142,28 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(data["spools"][1]["rfid"])
         self.assertNotIn("sku", str(data))
 
+    async def test_kobra_x_rack_never_supplies_ace_readings(self):
+        """L’ACE ne reçoit ni le support interne ni les mesures d’un autre boîtier."""
+        rack = SimpleNamespace(box_id=-1)
+        self.p.multi_color_box = [rack, SimpleNamespace(box_id=0), SimpleNamespace(box_id=1)]
+        self.p.kobra_x_internal_material_rack = rack
+        self.p.material_rack_spool_info_object = [{"local_slot": 1, "source": "internal"}]
+        self.p.primary_multi_color_box_spool_info_object = [{"local_slot": 1}]
+        self.p.secondary_multi_color_box_spool_info_object = [{"local_slot": 1}]
+        self.e.raw_info = {
+            "multi_color_box": [
+                {"id": 1, "slots": [{"edit_status": 1, "consumables_percent": 25}]},
+                {"id": -1, "slots": [{"edit_status": 0, "consumables_percent": 99}]},
+                {"id": 0, "slots": [{"edit_status": 0, "consumables_percent": 45}]},
+            ],
+        }
+        data = self.e.snapshot()["printer"]
+        self.assertEqual(data["material_rack"][0]["source"], "internal")
+        self.assertEqual([box["box_id"] for box in data["boxes"]], [0, 1])
+        spools = [box["spools"][0] for box in data["boxes"]]
+        self.assertEqual([spool["remaining_percent"] for spool in spools], [45, 25])
+        self.assertEqual([spool["rfid"] for spool in spools], [True, False])
+
     async def test_pause_uses_upstream(self):
         """Vérifie que la pause passe par la méthode de la bibliothèque constructeur."""
         self.p.id = 1

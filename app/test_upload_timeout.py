@@ -3,13 +3,59 @@
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, AsyncMock
+from aiohttp import ClientSession, web
+from aiohttp.test_utils import TestServer
 from anycubic_cloud_api.api.base import AnycubicAPIBase
+from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIParsingError
 from anycubic_cloud_api.models.http import HTTP_METHODS
 
 
 class UploadTimeout(unittest.IsolatedAsyncioTestCase):
     """Un gros PUT ne doit pas hériter des 45 secondes réservées aux appels API."""
+
+    async def test_sensitive_post_never_follows_a_redirect(self):
+        """Un serveur fictif déjà atteint ne reçoit pas le même POST à une seconde URL."""
+        calls = []
+
+        async def order(request):
+            calls.append(request.path)
+            await request.read()
+            raise web.HTTPTemporaryRedirect("/repeat")
+
+        async def repeat(request):
+            calls.append(request.path)
+            return web.json_response({"data": {"msgid": "fixture"}})
+
+        app = web.Application()
+        app.router.add_post(API_ENDPOINT.send_order.endpoint, order)
+        app.router.add_post("/repeat", repeat)
+        async with TestServer(app) as server, ClientSession() as session:
+            api = AnycubicAPIBase(session, session.cookie_jar, auth_token="fixture-token")
+            api._public_api_root = str(server.make_url("/")).rstrip("/")
+            with self.assertRaisesRegex(AnycubicAPIParsingError, "HTTP 307"):
+                await api._fetch_api_resp(API_ENDPOINT.send_order, params={"order": "fixture"})
+        self.assertEqual(calls, [API_ENDPOINT.send_order.endpoint])
+
+    async def test_firmware_get_is_not_replayed_after_disconnect(self):
+        """La mise à jour GET a pu être acceptée avant la coupure du serveur fictif."""
+        calls = []
+
+        async def update(request):
+            calls.append(request.path)
+            if len(calls) == 1:
+                request.transport.abort()
+            return web.json_response({"code": 1})
+
+        endpoint = API_ENDPOINT.printer_firmware_update
+        app = web.Application()
+        app.router.add_get(endpoint.endpoint, update)
+        async with TestServer(app) as server, ClientSession() as session:
+            api = AnycubicAPIBase(session, session.cookie_jar, auth_token="fixture-token")
+            api._public_api_root = str(server.make_url("/")).rstrip("/")
+            with self.assertRaises(AnycubicAPIParsingError):
+                await api._fetch_api_resp(endpoint)
+        self.assertEqual(calls, [endpoint.endpoint])
 
     async def test_signed_transfer_has_size_budget_and_normal_api_keeps_default(self):
         """Inspecte le délai réellement transmis à la session, sans attendre ni ouvrir de socket."""

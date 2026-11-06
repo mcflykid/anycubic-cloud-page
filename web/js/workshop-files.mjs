@@ -8,10 +8,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
-import { workshopState, setBusy } from './workshop-state.mjs?v=624f78b33a34';
-import { slots } from './workshop-commands.mjs?v=6b2fda31cc66';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=13e3de636905';
+} from './workshop-ui.mjs?v=6061611bf118';
+import { workshopState, setBusy } from './workshop-state.mjs?v=199ca9bd8451';
+import { slots } from './workshop-commands.mjs?v=7f546052d60c';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=1d7c99b8e0bf';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -59,7 +59,9 @@ export function createFiles(request, command) {
       : null;
     const rows = Array.isArray(list) ? list : [];
     const folderView = source === 'cloud' && !!cloudFolder;
-    for (const id of ['file-path-label', 'parent-folder', 'file-actions-column', 'file-mapping-form'])
+    for (const id of ['file-path-label', 'parent-folder'])
+      $(id).hidden = source === 'cloud';
+    for (const id of ['file-actions-column', 'file-mapping-form'])
       $(id).hidden = folderView;
     $('file-rows').replaceChildren(
       ...rows.map((f) => {
@@ -243,12 +245,7 @@ export function createFiles(request, command) {
       set(
         'files-state',
         context.source === 'cloud'
-          ? formatText(
-              '{0} fichier(s). Espace utilisé : {1} sur {2}.',
-              cloudRows.length,
-              fmt(result.store.used_bytes / 1e6, tr(' Mo')),
-              fmt(result.store.total_bytes / 1e6, tr(' Mo')),
-            )
+          ? formatText('{0} fichier(s).', cloudRows.length)
           : formatText('{0} élément(s) dans {1}.', fileRows.length, result.path),
       );
     } catch (e) {

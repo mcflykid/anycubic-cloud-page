@@ -8,8 +8,8 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
-import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
+} from './workshop-ui.mjs?v=6061611bf118';
+import { workshopState } from './workshop-state.mjs?v=199ca9bd8451';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -127,9 +127,15 @@ function renderHardware(printer) {
   const box = printer.boxes?.[0];
   const generation = box?.model;
   const aceName = box ? generation || tr('Module ACE') : tr('Aucun module ACE');
-  const setImage = (id, source) => {
+  const setImage = (id, source, fallback) => {
     const image = $(id);
-    if (image.getAttribute('src') !== source) image.src = source;
+    if (image.dataset.illustration === source) return;
+    image.dataset.illustration = source;
+    image.onerror = fallback ? () => {
+      image.onerror = null;
+      image.src = hardwareIcons + fallback;
+    } : null;
+    image.src = hardwareIcons + source;
   };
   set('printer-model', model);
   set('printer-accessory', aceName);
@@ -141,24 +147,23 @@ function renderHardware(printer) {
     .replace(/\s+/g, ' ');
   const illustration = printerIllustrations.get(modelKey);
   const s1Combo = illustration === 'kobra-s1.svg' && generation === 'ACE 2 Pro';
-  setImage(
-    'printer-illustration',
-    hardwareIcons + (s1Combo ? 'kobra-s1-ace2pro.png' : illustration || 'printer.svg'),
-  );
+  const printerImage = s1Combo ? 'kobra-s1-ace2pro.png' : illustration || 'printer.svg';
+  const printerFallback = s1Combo ? illustration : illustration ? 'printer.svg' : null;
+  setImage('printer-illustration', printerImage, printerFallback);
   set('ace-model', aceName);
   set('firmware-printer-model', model);
   set('firmware-ace-model', aceName);
   set('chart-ace-name', box ? generation || tr('Module ACE') : tr('Module ACE'));
-  setImage('settings-printer-illustration', $('printer-illustration').getAttribute('src'));
+  setImage('settings-printer-illustration', printerImage, printerFallback);
   $('ace-illustration').hidden = !box;
   setImage(
     'ace-illustration',
-    hardwareIcons +
-      (generation === 'ACE 2 Pro'
+    generation === 'ACE 2 Pro'
         ? 'ace2pro.png'
         : generation === 'ACE Pro'
           ? 'ace-pro.svg'
-          : 'ace.svg'),
+          : 'ace.svg',
+    generation ? 'ace.svg' : null,
   );
 }
 

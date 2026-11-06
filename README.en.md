@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.4.1**. [Changelog](CHANGELOG.md).
+Version **1.4.2**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 

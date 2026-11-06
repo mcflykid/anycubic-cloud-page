@@ -1,6 +1,6 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=7bd3fdd4bc0d';
-import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
-import { definition, statusBadge } from './workshop-overview.mjs?v=5af065eebab4';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=6061611bf118';
+import { workshopState } from './workshop-state.mjs?v=199ca9bd8451';
+import { definition, statusBadge } from './workshop-overview.mjs?v=f7cd1574f9c2';
 
 /** Illustre la bobine avec la couleur annoncée par l’ACE et des dégradés propres à chaque emplacement. */
 function spoolIllustration(color, index) {

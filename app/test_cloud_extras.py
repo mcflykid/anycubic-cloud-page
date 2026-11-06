@@ -3,7 +3,7 @@
 from urllib.parse import urlsplit
 import asyncio, unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from cloud_extras import (
     CloudExtras,
     ResetChallenges,
@@ -598,6 +598,29 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
 
         self.x.api = AsyncMock(side_effect=delayed_catalogue)
         await asyncio.gather(self.x.notification_preview("a"), self.x.notification_preview("b"))
+        self.x.api.assert_awaited_once()
+
+    async def test_parallel_preview_of_same_notice_waits_for_project_lookup(self):
+        """Un aperçu direct absent ne doit pas masquer une recherche encore en cours."""
+        self.e.session = object()
+        self.e.notifications = SimpleNamespace(rows={"a": {"project_id": 44, "printer_id": 7}})
+        catalogue_started = asyncio.Event()
+        release_catalogue = asyncio.Event()
+        image = "data:image/png;base64,eA=="
+
+        async def delayed_catalogue(*args, **kwargs):
+            catalogue_started.set()
+            await release_catalogue.wait()
+            return [{"id": 44, "printer_id": 7, "img": "https://anycubic.com/fixture.png"}]
+
+        self.x.api = AsyncMock(side_effect=delayed_catalogue)
+        with patch("cloud_extras.download_preview", AsyncMock(return_value=image)):
+            first = asyncio.create_task(self.x.notification_preview("a"))
+            await catalogue_started.wait()
+            second = asyncio.create_task(self.x.notification_preview("a"))
+            await asyncio.sleep(0)
+            release_catalogue.set()
+            self.assertEqual(await asyncio.gather(first, second), [{"image": image}] * 2)
         self.x.api.assert_awaited_once()
 
     async def test_ambiguous_reference_keeps_preview_unavailable(self):

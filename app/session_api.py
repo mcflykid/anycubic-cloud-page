@@ -25,7 +25,12 @@ class SessionRecovery:
 
     @staticmethod
     def _expired(response):
-        return isinstance(response, dict) and str(response.get("code")) == "10001"
+        # Un résultat joint contredit le refus et ne permet pas de rejouer la demande.
+        return (
+            isinstance(response, dict)
+            and str(response.get("code")) == "10001"
+            and response.get("data") is None
+        )
 
     async def _fetch_api_resp(self, *args, **kwargs):
         generation = self._session_generation

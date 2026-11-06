@@ -499,7 +499,9 @@ class Engine:
         fields["local_path"] = safeget(p, "local_file_list_path")
         fields["usb_path"] = safeget(p, "udisk_file_list_path")
         boxes = []
-        for idx, box in enumerate(p.multi_color_box or []):
+        # Le support interne Kobra X est livré dans la même liste que les ACE.
+        rack = safeget(p, "kobra_x_internal_material_rack")
+        for idx, box in enumerate(box for box in p.multi_color_box or [] if box is not rack):
             boxes.append(
                 {
                     "box_id": safeget(box, "box_id", idx),
@@ -531,15 +533,26 @@ class Engine:
         rawboxes = self.raw_info.get("multi_color_box") or []
         if isinstance(rawboxes, dict):
             rawboxes = [rawboxes]
-        for i, b in enumerate(boxes):
-            raw_box = rawboxes[i] if isinstance(rawboxes, list) and i < len(rawboxes) else None
+        rawboxes = (
+            [box for box in rawboxes if isinstance(box, dict)] if isinstance(rawboxes, list) else []
+        )
+        for b in boxes:
+            matches = [box for box in rawboxes if str(box.get("id")) == str(b["box_id"])]
+            if len(matches) == 1:
+                raw_box = matches[0]
+            elif len(boxes) == len(rawboxes) == 1 and "id" not in rawboxes[0] and rack is None:
+                raw_box = rawboxes[0]
+            else:
+                raw_box = None
             model = ace_model(b["box_id"], self.raw_info.get("multi_color_box_version"), raw_box)
             if model:
                 b["model"] = model
             if isinstance(raw_box, dict):
                 b["humidity"] = raw_box.get("humidity")
+                rawslots = raw_box.get("slots")
+                if not isinstance(rawslots, list):
+                    continue
                 for j, spool in enumerate(b["spools"] or []):
-                    rawslots = rawboxes[i].get("slots") or []
                     if j < len(rawslots):
                         rawslot = rawslots[j]
                         if not isinstance(rawslot, dict):
@@ -1318,21 +1331,28 @@ async def upload_operation(req, engine, audit):
                 if audit:
                     audit["outcome"] = "inconnue"
                     await save_command_event(req, audit)
-                if mode == "upload":
-                    await engine.api.upload_file_to_cloud(
-                        full_file_path=str(path), file_name=filename
+                try:
+                    if mode == "upload":
+                        await engine.api.upload_file_to_cloud(
+                            full_file_path=str(path), file_name=filename
+                        )
+                    else:
+                        func = (
+                            engine.printer.print_and_upload_save_in_cloud
+                            if mode == "save-print"
+                            else engine.printer.print_and_upload_no_cloud_save
+                        )
+                        response = await func(
+                            full_file_path=str(path), file_name=filename, slot_index_list=slots
+                        )
+                        if not response or not response.order_msg_id:
+                            return web.json_response(engine.commands[rid], status=409)
+                except Exception as error:
+                    # Après le transfert ou la demande d’impression, une erreur locale ne prouve aucun refus.
+                    logging.getLogger(__name__).warning(
+                        "Résultat d’envoi inconnu (%s)", type(error).__name__
                     )
-                else:
-                    func = (
-                        engine.printer.print_and_upload_save_in_cloud
-                        if mode == "save-print"
-                        else engine.printer.print_and_upload_no_cloud_save
-                    )
-                    response = await func(
-                        full_file_path=str(path), file_name=filename, slot_index_list=slots
-                    )
-                    if not response or not response.order_msg_id:
-                        return web.json_response(engine.commands[rid], status=409)
+                    return web.json_response(engine.commands[rid], status=409)
                 engine.event("G-code", "Envoi accepté")
                 if audit and audit["outcome"] != "confirmée":
                     audit["outcome"] = "acceptée"
