@@ -47,8 +47,7 @@ class PrinterRegistry:
         self.sampler = sampler
         self.app = app
         self.entries = {}
-        self.jobs = []
-        self.histories = {}
+        self.jobs = {}
         self.lock = asyncio.Lock()
         default_engine.fleet_registry = self
 
@@ -98,15 +97,7 @@ class PrinterRegistry:
                 content_type="application/json",
             )
         if key and key not in rows:
-            raise web.HTTPConflict(
-                text=json.dumps(
-                    {
-                        "ok": False,
-                        "message": "Cette imprimante n’est plus disponible dans le compte. Actualisez la page.",
-                    }
-                ),
-                content_type="application/json",
-            )
+            raise self._missing_printer()
         if not key:
             if self.default_key() in rows:
                 return self.default
@@ -116,6 +107,9 @@ class PrinterRegistry:
         if key == self.default_key():
             return self.default
         async with self.lock:
+            rows = self.catalogue()
+            if key not in rows:
+                raise self._missing_printer()
             if key not in self.entries:
                 selected = self.factory()
                 selected.selected_id = str(rows[key].id)
@@ -129,14 +123,24 @@ class PrinterRegistry:
                     selected.presets = json.loads((selected.state_dir / "presets.json").read_text())
                 self.entries[key] = selected
                 history = TemperatureHistory(selected.state_dir / "temperatures.json")
-                self.histories[key] = history
-                self.jobs.extend(
-                    [
-                        asyncio.create_task(selected.poll()),
-                        asyncio.create_task(self.sampler(self.app, selected, history)),
-                    ]
+                selected.temperature_history = history
+                self.jobs[key] = (
+                    asyncio.create_task(selected.poll()),
+                    asyncio.create_task(self.sampler(self.app, selected, history)),
                 )
             return self.entries[key]
+
+    @staticmethod
+    def _missing_printer():
+        return web.HTTPConflict(
+            text=json.dumps(
+                {
+                    "ok": False,
+                    "message": "Cette imprimante n’est plus disponible dans le compte. Actualisez la page.",
+                }
+            ),
+            content_type="application/json",
+        )
 
     def owner(self, device_key):
         """Résout le destinataire d’un rapport sans publier sa clé privée ni toucher aux autres caches."""
@@ -198,22 +202,29 @@ class PrinterRegistry:
         """Sépare les courbes par machine tout en conservant le fichier historique de l’installation initiale."""
         if selected is self.default:
             return self.app["temperature_history"]
-        return self.histories[printer_key(selected.selected_id)]
+        return selected.temperature_history
+
+    async def retire_missing(self):
+        """Arrête les collectes des cibles absentes du catalogue sans réaffecter leurs moteurs."""
+        await self._retire(self.entries.keys() - self.catalogue().keys())
+
+    async def _retire(self, keys):
+        async with self.lock:
+            retired = [
+                (self.entries.pop(key), self.jobs.pop(key)) for key in keys if key in self.entries
+            ]
+        jobs = [job for _, group in retired for job in group]
+        for job in jobs:
+            job.cancel()
+        if jobs:
+            await asyncio.gather(*jobs, return_exceptions=True)
+        for selected, _ in retired:
+            with contextlib.suppress(OSError):
+                selected.temperature_history.save()
 
     async def close(self):
         """Annule les collectes et sauvegarde leurs courbes ; le transport commun est fermé par le moteur principal."""
-        for job in self.jobs:
-            job.cancel()
-        for job in self.jobs:
-            with contextlib.suppress(asyncio.CancelledError):
-                await job
-        for history in self.histories.values():
-            with contextlib.suppress(OSError):
-                history.save()
-        for selected in self.entries.values():
-            # Le client HTTP/MQTT appartient au moteur principal et n’est fermé qu’une fois.
-            selected.api = None
-            selected.session = None
+        await self._retire(set(self.entries))
 
 
 @web.middleware

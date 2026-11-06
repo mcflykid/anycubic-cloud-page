@@ -214,6 +214,7 @@ class Engine:
         self.notifications_error = None
         self.fleet_registry = None
         self.pinned_id = None
+        self.temperature_history = None
         self.mqtt_auth_lock = asyncio.Lock()
         self.mqtt_auth_pending = False
         self.account = AccountAuth()
@@ -365,6 +366,8 @@ class Engine:
         )
         printers = await self.api.list_my_printers()
         self.known_printers = printers
+        if self.fleet_registry:
+            await self.fleet_registry.retire_missing()
         selected = getattr(self, "pinned_id", None) or self.selected_id
         candidates = [p for p in printers if str(p.id) == selected] if selected else printers[:1]
         if not candidates and not getattr(self, "pinned_id", None):
@@ -404,6 +407,7 @@ class Engine:
             self.printer = rows[self.pinned_id]
             self.transport_only = False
         if getattr(self, "fleet_registry", None):
+            await self.fleet_registry.retire_missing()
             self.fleet_registry.restore_subscriptions()
 
     async def poll(self):

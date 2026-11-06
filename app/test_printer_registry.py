@@ -101,6 +101,25 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
         self.assertIs(await self.registry.resolve(None), self.root)
         self.assertEqual(len(self.created), 1)
 
+    async def test_removed_target_stops_its_collectors_and_can_be_added_again(self):
+        """Le retrait arrête les deux tâches, tout en conservant les relevés de cette seule cible."""
+        key = printer_key(2)
+        removed = await self.secondary()
+        history = self.registry.history(removed)
+        jobs = self.registry.jobs[key]
+        self.root.known_printers = [self.a]
+        await self.registry.retire_missing()
+        self.assertNotIn(key, self.registry.entries)
+        self.assertNotIn(key, self.registry.jobs)
+        self.assertTrue(all(job.cancelled() for job in jobs))
+        self.assertIs(self.registry.history(removed), history)
+        self.assertIs(await self.registry.resolve(printer_key(1)), self.root)
+        self.root.known_printers = [self.a, self.b]
+        readded = await self.secondary()
+        self.assertIsNot(removed, readded)
+        self.assertEqual(readded.state_dir, removed.state_dir)
+        self.assertTrue(all(not job.done() for job in self.registry.jobs[key]))
+
     async def test_account_notifications_are_loaded_once_for_two_printers(self):
         """Deux cibles partagent la lecture et les références de notification du compte."""
         secondary = await self.secondary()
@@ -314,7 +333,9 @@ class EngineSelection(unittest.IsolatedAsyncioTestCase):
         e.account_token = "fixture"
         e.account = SimpleNamespace(token=AsyncMock(return_value="fixture"))
         e.session = object()
-        e.fleet_registry = SimpleNamespace(default=e, restore_subscriptions=Mock())
+        e.fleet_registry = SimpleNamespace(
+            default=e, restore_subscriptions=Mock(), retire_missing=AsyncMock()
+        )
         e.api = SimpleNamespace(
             list_my_printers=AsyncMock(return_value=[SimpleNamespace(id=2)]), disconnect_mqtt=Mock()
         )
