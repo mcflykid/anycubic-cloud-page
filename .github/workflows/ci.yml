@@ -54,6 +54,11 @@ jobs:
   ui:
     name: Interface de démonstration
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      # La version doit suivre le verrou npm pour retrouver le navigateur embarqué.
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -64,5 +69,4 @@ jobs:
           node-version: '22'
       - run: pip install -r app/requirements.txt
       - run: npm ci --ignore-scripts
-      - run: npx playwright install --with-deps chromium
       - run: npx playwright test
