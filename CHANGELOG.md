@@ -1,6 +1,6 @@
 # Changements
 
-## À venir
+## 1.3.0 — 2026-11-06
 
 - Sélecteur français, anglais et espagnol, avec repli automatique en français si le catalogue de traduction manque ou tarde à répondre (#55).
 - Commandes de température, ventilation et éclairage regroupées dans l’onglet Imprimante. Pavé de déplacement arrondi (#43, #44).
@@ -10,6 +10,8 @@
 - Session renforcée et nouvelle vérification du mot de passe avant les actions sensibles (#69).
 - Journal des commandes avec export filtré et rapprochement des confirmations MQTT (#70).
 - Interface découpée en modules et transport de compte partagé explicitement entre les imprimantes. Le contrôle de formatage Python fait partie de la CI (#66, #67, #68).
+
+La caméra et les miniatures de notifications ont été validées sur des réponses simulées. La galerie Timelapse reste désactivée. La validation selon le micrologiciel, les références de téléchargement vidéo et les dossiers cloud restent suivis dans #20, #30 et #31.
 
 ## 1.2.10 — 2026-11-06
 
