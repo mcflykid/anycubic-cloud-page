@@ -8,10 +8,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=a95fcbb5c8e7';
-import { workshopState, setBusy } from './workshop-state.mjs?v=f9e767d932e4';
-import { slots } from './workshop-commands.mjs?v=6f2373519b45';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=d39af812c0b0';
+} from './workshop-ui.mjs?v=2e1dc6d92ed1';
+import { workshopState, setBusy } from './workshop-state.mjs?v=18a90760f2bd';
+import { slots } from './workshop-commands.mjs?v=21556c8f7005';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=6d9e9f9a0a2d';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {

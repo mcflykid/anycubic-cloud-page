@@ -1,4 +1,28 @@
 {
+  "Détaillé": [
+    "Detailed",
+    "Detallado"
+  ],
+  "Minimaliste": [
+    "Minimalist",
+    "Minimalista"
+  ],
+  "Estimation rapportée par l’ACE.": [
+    "Estimate reported by the ACE.",
+    "Estimación indicada por el ACE."
+  ],
+  "Filament restant": [
+    "Remaining filament",
+    "Filamento restante"
+  ],
+  "Humidité de l’ACE": [
+    "ACE humidity",
+    "Humedad del ACE"
+  ],
+  "Statistiques": [
+    "Statistics",
+    "Estadísticas"
+  ],
   "Conserver le fichier dans votre espace cloud sans lancer d’impression.": ["Keep the file in your cloud storage without starting a print.", "Guarda el archivo en tu espacio en la nube sin iniciar una impresión."],
   "Choisissez un seul fichier G-code, STL ou 3MF non vide.": ["Choose one non-empty G-code, STL or 3MF file.", "Elige un único archivo G-code, STL o 3MF que no esté vacío."],
   "G-code, STL ou 3MF, jusqu’à 100 Mo. Seul le G-code peut être imprimé.": ["G-code, STL or 3MF, up to 100 MB. Only G-code can be printed.", "G-code, STL o 3MF, hasta 100 MB. Solo se puede imprimir G-code."],

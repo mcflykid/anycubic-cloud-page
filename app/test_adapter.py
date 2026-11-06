@@ -2,6 +2,7 @@
 
 from anycubic_cloud_api.data_models.printer import AnycubicPrinter
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
+from cloud_extras import CloudExtras
 from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
 from printer_values import filepath, integer
@@ -106,6 +107,32 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(AnycubicAPIError, "imprimante sélectionnée"):
             await self.e.refresh_printer_details()
         self.assertIsNone(self.e.printer.print_count)
+
+    async def test_lifetime_count_prefers_slicer_statistics_for_the_selected_printer(self):
+        """Le compteur cumulé prévaut, y compris zéro, pour la seule machine demandée."""
+        self.p.id = 42
+        self.p.print_count = 7
+        self.p.multi_color_box = []
+        self.e.api._fetch_api_resp = fetch = AsyncMock()
+        self.e.extras = CloudExtras(self.e)
+        for source_id, stats, expected in [
+            (42, {"print_count": 68}, 68),
+            (42, {"print_count": 0}, 0),
+            (43, {"print_count": 68}, 7),
+            (42, {"print_count": True}, 7),
+            (42, {}, 7),
+        ]:
+            fetch.return_value = {
+                "code": 1,
+                "data": {"printer": {"id": source_id, "statistics": stats}},
+            }
+            await self.e.refresh_lifetime_count()
+            self.assertEqual(self.e.snapshot()["printer"]["statistics"]["print_count"], expected)
+        self.assertEqual(fetch.call_args.args[0].endpoint, "/v5/printer/home")
+        self.assertEqual(fetch.call_args.kwargs["query"], {"printer_id": "42"})
+        fetch.side_effect = AnycubicAPIError("Relevé indisponible")
+        await self.e.refresh_lifetime_count()
+        self.assertEqual(self.e.snapshot()["printer"]["statistics"]["print_count"], 7)
 
     async def test_status_uses_cached_notifications_without_cloud_request(self):
         """Les lectures fréquentes du statut partagent le cache du relevé cloud habituel."""
@@ -432,6 +459,28 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
             h.save()
             loaded = adapter.TemperatureHistory(h.path)
             self.assertEqual(list(loaded.rows), list(h.rows))
+
+    async def test_history_keeps_ace_zero_and_missing_separate_after_reload(self):
+        """Les fichiers de relevés distinguent un zéro confirmé d’un capteur absent."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            history = adapter.TemperatureHistory(pathlib.Path(tmp) / "temperatures.json")
+            boxes = [
+                {
+                    "box_id": 0,
+                    "humidity": 0,
+                    "spools": [{"local_slot": 1, "remaining_percent": 0, "material_type": "PLA"}],
+                },
+                {"box_id": 1, "humidity": 101},
+            ]
+            self.assertTrue(history.add(1000, {"ace_boxes": adapter.ace_readings(boxes)}))
+            history.save()
+            row = adapter.TemperatureHistory(history.path).recent(at=1000)[0]["ace_boxes"]
+            self.assertEqual(row["0"]["humidity"], 0)
+            self.assertEqual(row["0"]["slots"]["1"]["remaining"], 0)
+            self.assertIsNone(row["1"]["humidity"])
+            self.assertEqual(row["1"]["slots"], {})
 
     async def test_temperature_history_keeps_only_last_day(self):
         """Vérifie que la rétention des températures reste limitée à vingt-quatre heures."""

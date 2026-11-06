@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.5.0**. [Changements](CHANGELOG.md).
+Version **1.6.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -56,15 +56,16 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 
 | Onglet | Ce qu’il permet |
 | --- | --- |
-| **Imprimante** | Consulter l’état, le projet, sa miniature, la progression, les couches, les températures et les courbes locales sur 24 h. Pause/reprise/arrêt soumis à l’état de la machine. |
+| **Imprimante** | Consulter l’état, le projet, sa miniature, la progression, les couches, les températures en direct. Pause/reprise/arrêt soumis à l’état de la machine. |
 | **ACE et filaments** | Voir les quatre emplacements, les informations RFID disponibles, les quantités rapportées, la bobine engagée et le séchage ; ouvrir les fenêtres de configuration. |
 | **Fichiers** | Parcourir la mémoire de l’imprimante, l’USB ou le cloud ; prévisualiser, préparer une impression et gérer les fichiers selon les fonctions fournies. |
 | **Envoyer et imprimer** | Stocker un G-code, un STL ou un 3MF dans le Cloud. Un fichier .gcode peut aussi être envoyé à l’impression avec l’ordre des bobines ACE. |
 | **Caméra** | Ouvrir le flux Agora, zoomer, passer en plein écran, piloter l’éclairage et accéder aux déplacements autorisés. |
 | **Historique** | Filtrer les impressions par statut, dates et nom ; consulter cartes et détails ; retirer les fiches sélectionnées de l’historique cloud après confirmation. Les notifications sont dans la cloche. |
+| **Statistiques** | Consulter les courbes locales sur 24 h pour les températures, l’humidité de l’ACE et les estimations de filament restant par emplacement. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
 
-Dans **Réglages → Apparence**, choisissez le style par défaut, Apple Design, Halloween ou Noël. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
+Dans **Réglages → Apparence**, choisissez le style par défaut, Apple Design, Minimaliste, Détaillé, Halloween ou Noël. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
 
 <details>
 <summary><strong>ACE et filaments</strong> — bobines, RFID et séchage</summary>

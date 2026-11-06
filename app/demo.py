@@ -3,6 +3,7 @@
 import argparse, base64, math, os, re, time
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
+from temperature_history import ace_readings
 from web_host import (
     install_ui_resources,
     render_page,
@@ -254,20 +255,24 @@ async def api(request):
     elif path == "preview" or path in ["extras/task-preview", "extras/notification-preview"]:
         d = {"image": IMAGE}
     elif path == "temperatures":
+        hours = {"1": 1, "6": 6, "24": 24}.get(request.query.get("hours"), 1)
+        stamp = int(time.time())
+        boxes = ace_readings([BOX])
         d = {
             "readings": [
                 {
-                    "time": int(T) - i * 30,
+                    "time": stamp - i * 30,
                     "nozzle": round(28 + 182 * (1 - math.exp(-i / 30)), 1),
                     "bed": round(26 + 34 * (1 - math.exp(-i / 45)), 1),
                     "ace": 42,
                     "nozzle_target": 0,
                     "bed_target": 0,
                     "ace_target": 45,
+                    "ace_boxes": boxes,
                 }
-                for i in range(120, -1, -1)
+                for i in range(hours * 120, -1, -1)
             ],
-            "hours": 1,
+            "hours": hours,
             "retention_hours": 24,
         }
     elif path.startswith("files/"):

@@ -1,5 +1,12 @@
 # Changements
 
+## 1.6.0 — 2026-11-06
+
+- L’onglet Statistiques rassemble les courbes de température, d’humidité de l’ACE et de filament restant sur 24 h. Les relevés sont séparés par imprimante et par boîtier, et les courbes de filament indiquent les lacunes et les changements de matière ou de couleur détectés (#120).
+- Le compteur d’impressions privilégie le total cumulé utilisé par Anycubic Slicer Next et revient à la valeur de base lorsque le total est absent (#105).
+- Apple Design adopte des commandes arrondies, des surfaces translucides et des cartes alignées. Les styles Minimaliste et Détaillé sont disponibles dans Réglages → Apparence.
+- L’envoi de fichiers est plus compact. Les commandes de nom et de détection IA sont alignées dans Réglages, et le titre de l’ACE et son état de séchage sont remontés.
+
 ## 1.5.0 — 2026-11-06
 
 - Les réglages s’organisent sur deux colonnes sur grand écran. Le style par défaut, Apple Design, Halloween et Noël se choisissent séparément du mode clair, sombre ou système (#102, #118).

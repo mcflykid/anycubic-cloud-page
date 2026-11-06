@@ -8,20 +8,20 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=a95fcbb5c8e7';
-import { workshopState } from './workshop-state.mjs?v=f9e767d932e4';
-import { createRequest } from './workshop-api.mjs?v=5626b7e96179';
-import { createCamera } from './workshop-camera.mjs?v=2e583ecfaded';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=a0cad523c4e4';
-import { createCommands } from './workshop-commands.mjs?v=6f2373519b45';
-import { createOverview } from './workshop-overview.mjs?v=677c9b0a997f';
-import { createAce } from './workshop-ace.mjs?v=aa12cd5fc3a7';
-import { createFiles } from './workshop-files.mjs?v=b0194c19594b';
-import { createHistory } from './workshop-history.mjs?v=b39d5f1ce3a0';
-import { createSettings } from './workshop-settings.mjs?v=715fb9701ddf';
-import { createTimelapses } from './workshop-timelapses.mjs?v=a6f135f8705b';
-import './workshop-help.mjs?v=92114b0739ec';
-export { previewJob } from './workshop-overview.mjs?v=677c9b0a997f';
+} from './workshop-ui.mjs?v=2e1dc6d92ed1';
+import { workshopState } from './workshop-state.mjs?v=18a90760f2bd';
+import { createRequest } from './workshop-api.mjs?v=f1d21db5af25';
+import { createCamera } from './workshop-camera.mjs?v=e396666b07ce';
+import { createTemperatureLoader } from './workshop-temperatures.mjs?v=2a326846497a';
+import { createCommands } from './workshop-commands.mjs?v=21556c8f7005';
+import { createOverview } from './workshop-overview.mjs?v=d9c6c51a5391';
+import { createAce } from './workshop-ace.mjs?v=e98a833df1a2';
+import { createFiles } from './workshop-files.mjs?v=40023278f07f';
+import { createHistory } from './workshop-history.mjs?v=ab8ff7eead29';
+import { createSettings } from './workshop-settings.mjs?v=553baac65e60';
+import { createTimelapses } from './workshop-timelapses.mjs?v=be132798141d';
+import './workshop-help.mjs?v=2eea6c62ee39';
+export { previewJob } from './workshop-overview.mjs?v=d9c6c51a5391';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
@@ -49,6 +49,7 @@ async function loadPrinters() {
     $('printer-selector-wrap').hidden = items.length < 2;
     printerCatalogueReady = true;
     if (workshopState.currentTab === 'files') void files.loadFiles();
+    if (workshopState.currentTab === 'statistics') void loadTemperatures();
   } finally {
     printerCataloguePending = false;
   }
@@ -186,7 +187,7 @@ function showTab(name) {
     files.loadFiles();
   }
   if (name === 'history') history.loadTasks();
-  if (name === 'overview') loadTemperatures();
+  if (name === 'statistics' && printerCatalogueReady) void loadTemperatures();
   if (name === 'settings') settings.enter();
   if (name === 'camera') {
     timelapses.loadTimelapse();
@@ -217,9 +218,9 @@ document
   .forEach((b) => (b.onclick = () => b.closest('dialog').close()));
 $('temperature-hours').onchange = () => loadTemperatures();
 setInterval(() => {
-  if (workshopState.currentTab === 'overview') loadTemperatures();
+  if (workshopState.currentTab === 'statistics' && printerCatalogueReady && !document.hidden)
+    void loadTemperatures();
 }, 30000);
-void loadTemperatures();
 refresh();
 setInterval(() => {
   if (!document.hidden) refresh();

@@ -316,24 +316,28 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
   ]);
   expect(thumbnail.x).toBeGreaterThan(machine.x + machine.width);
   expect(Math.abs(thumbnail.height - machine.height)).toBeLessThan(15);
-  const charts = await page.locator('#tab-overview > .temperature-section').boundingBox();
+  await expect(page.locator('#tab-overview .temperature-section')).toHaveCount(0);
   const [temperature, details] = await lower.locator(':scope > section').evaluateAll(cards =>
     cards.map(card => ({left:card.getBoundingClientRect().left,right:card.getBoundingClientRect().right})),
   );
   expect(lowerCards.width).toBe(printerCard.width);
   expect(temperature.left).toBeCloseTo(printerCard.x);
   expect(details.right).toBeCloseTo(printerCard.x + printerCard.width);
-  expect(charts.x).toBeCloseTo(printerCard.x);
-  expect(charts.width).toBeCloseTo(printerCard.width);
-  expect(lowerCards.y - printerCard.y - printerCard.height)
-    .toBeCloseTo(charts.y - lowerCards.y - lowerCards.height);
   expect(details.left - temperature.right).toBeCloseTo(lowerCards.y - printerCard.y - printerCard.height);
   expect(Math.abs(printerCard.x + printerCard.width / 2 - 640)).toBeLessThan(2);
+  await page.getByRole('button', {name: 'Statistiques', exact: true}).click();
+  const charts = await page.locator('#tab-statistics > .temperature-section').boundingBox();
+  expect(charts.x).toBeCloseTo(printerCard.x);
+  expect(charts.width).toBeCloseTo(printerCard.width);
   await page.getByRole('button', {name: 'ACE et filaments', exact: true}).click();
   const ace = page.locator('.ace-overview');
   const aceCard = await ace.boundingBox();
   expect(aceCard.width).toBe(printerCard.width);
   expect(aceCard.height).toBeLessThan(260);
+  const aceHeading = await ace.locator('.ace-heading').boundingBox();
+  const aceBadge = await ace.locator('#ace-status').boundingBox();
+  expect(aceHeading.y - aceCard.y).toBeLessThan(18);
+  expect(aceBadge.y - aceHeading.y).toBeLessThan(8);
   const spoolButtons = await page.locator('#spools .spool-actions button').evaluateAll((buttons) =>
     buttons.map((button) => button.getBoundingClientRect().top),
   );
@@ -350,6 +354,34 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
     cards.map((card) => card.getBoundingClientRect().top),
   );
   expect(right).toBeGreaterThan(left);
+});
+
+test('les statistiques distinguent les boîtiers, le zéro, les lacunes et les changements de bobine', async ({page}) => {
+  const stamp = Math.floor(Date.now() / 1000) - 5;
+  const periods = [];
+  await page.route('**/imprimante-api/temperatures?*', async (route) => {
+    const hours = new URL(route.request().url()).searchParams.get('hours');
+    periods.push(hours);
+    const box = (humidity, remaining, material) => ({humidity, slots: {1: {remaining, material}}});
+    const readings = hours === '1' ? [
+      {time:stamp - 180, nozzle:25, ace_boxes:{0:box(18, 10, 'old'), 1:box(null, 47, 'second')}},
+      {time:stamp - 120, nozzle:26, ace_boxes:{0:box(null, null, 'old')}},
+      {time:stamp - 60, nozzle:26, ace_boxes:{0:box(0, 0, 'old')}},
+      {time:stamp, nozzle:27, ace_boxes:{0:box(0, 54, 'new')}},
+    ] : [];
+    await route.fulfill({json:{readings}});
+  });
+  await login(page);
+  await page.getByRole('button', {name:'Statistiques',exact:true}).click();
+  await expect(page.locator('#chart-humidity strong')).toContainText('0 %');
+  await expect(page.locator('#chart-filament h4')).toHaveText(['ACE 1 · Emplacement 1','ACE 2 · Emplacement 1']);
+  await expect(page.locator('#chart-filament strong').first()).toContainText('54 %');
+  const path = await page.locator('#chart-filament svg path').first().getAttribute('d');
+  expect(path.match(/M/g)).toHaveLength(3);
+  await page.getByLabel('Période des courbes').selectOption('6');
+  await expect(page.locator('#chart-humidity')).toHaveText('En attente des premiers relevés.');
+  await expect(page.locator('#chart-filament')).toHaveText('En attente des premiers relevés.');
+  expect(periods).toEqual(['1','6']);
 });
 
 test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
@@ -405,10 +437,16 @@ test('les réglages équilibrent les cartes sur ordinateur et les empilent sur m
   expect(after.y).toBe(before.y);
   expect(appearance.x).toBe(before.x);
   expect(appearance.y).toBeGreaterThanOrEqual(before.y + before.height);
+  const save = printer.getByRole('button', {name: 'Enregistrer le nom'});
+  const detection = printer.getByRole('button', {name: 'Détection IA'});
+  const [desktopSave, desktopDetection] = await Promise.all([save.boundingBox(), detection.boundingBox()]);
+  expect(desktopDetection.x).toBeGreaterThanOrEqual(desktopSave.x + desktopSave.width);
+  expect(desktopDetection.y).toBeCloseTo(desktopSave.y);
   await page.setViewportSize({width: 390, height: 800});
   const [mobileConnection, mobilePrinter] = await Promise.all([connection.boundingBox(), printer.boundingBox()]);
   expect(mobilePrinter.x).toBe(mobileConnection.x);
   expect(mobilePrinter.y).toBeGreaterThan(mobileConnection.y + mobileConnection.height);
+  expect((await detection.boundingBox()).y).toBeGreaterThan((await save.boundingBox()).y);
   expect(await connection.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 

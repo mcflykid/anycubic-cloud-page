@@ -11,7 +11,7 @@ from vendor_config import load_vendor_config
 load_vendor_config()
 from file_preview import find_project_preview_url
 from cloud_extras import download_preview, trusted_url
-from temperature_history import TemperatureHistory
+from temperature_history import TemperatureHistory, ace_readings
 from upload_formats import validate_cloud_model
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
@@ -47,6 +47,7 @@ from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
 from anycubic_cloud_api.const.enums import AnycubicOrderID
 from anycubic_cloud_api.data_models.orders import AnycubicBaseOrderRequest
 from anycubic_cloud_api.exceptions.exceptions import (
+    AnycubicAPIError,
     AnycubicAuthError,
     AnycubicAuthTokensExpired,
     AnycubicCameraSessionError,
@@ -175,6 +176,8 @@ class Engine:
         self.mqtt_replies = printer_files.MQTTReplies()
         self.dir_cache = {}
         self.raw_info = {}
+        self.details_updated = None
+        self.lifetime_count = None
         self.last_session = 0
         self.camera = None
         self.ai_query_started = None
@@ -290,6 +293,21 @@ class Engine:
         self.raw_info = (
             await self.printer.update_info_from_api(include_details=True) if self.printer else {}
         )
+        self.details_updated = now() if self.raw_info else None
+
+    async def refresh_lifetime_count(self):
+        """Relève le compteur cumulé sans bloquer le suivi quand le Cloud ne le fournit pas."""
+        printer = self.printer
+        count = None
+        if self.extras is None or printer is None:
+            self.lifetime_count = None
+            return
+        with contextlib.suppress(AnycubicAPIError, TimeoutError, ValueError):
+            async with asyncio.timeout(5):
+                count = await self.extras.lifetime_print_count(printer.id)
+        self.lifetime_count = (
+            (printer.id, count) if count is not None and self.printer is printer else None
+        )
 
     async def connect(self):
         """Connecte la cible du moteur ; le défaut facultatif se replie sur la première machine, jamais une cible secondaire explicite."""
@@ -372,6 +390,7 @@ class Engine:
                         await self.connect()
                     else:
                         await self.refresh_printer_details()
+                    await self.refresh_lifetime_count()
                     self.updated = now()
                     self.ok = bool(self.printer)
                     self.error = (
@@ -591,10 +610,13 @@ class Engine:
             if safeget(p, "total_print_time") is not None
             else None
         )
+        count = safeget(p, "print_count")
+        if self.lifetime_count is not None and self.lifetime_count[0] == p.id:
+            count = self.lifetime_count[1]
         fields["statistics"] = {
             "material": safeget(p, "material_used"),
             "hours": duration.total_seconds() / 3600 if duration is not None else None,
-            "print_count": safeget(p, "print_count"),
+            "print_count": count,
         }
         return serial({**base, "printer": fields})
 
@@ -1382,10 +1404,11 @@ async def upload_operation(req, engine, audit):
 
 
 async def sample_temperatures(app, selected=None, store=None):
-    """Archive seulement les relevés récents d’une source nouvelle pour éviter les températures périmées."""
+    """Archive seulement les relevés récents ; une mesure de filament exige un nouveau détail Cloud."""
     engine = selected if selected is not None else globals()["engine"]
     history = store if store is not None else app["temperature_history"]
     last_source = None
+    last_details = None
     while True:
         try:
             state = engine.snapshot()
@@ -1397,19 +1420,22 @@ async def sample_temperatures(app, selected=None, store=None):
             if state.get("ok") and p.get("printer_online") and source and source != last_source:
                 stamp = datetime.fromisoformat(source).timestamp()
                 if abs(time.time() - stamp) < 120:
-                    history.add(
-                        stamp,
-                        {
-                            "nozzle": p.get("curr_nozzle_temp"),
-                            "bed": p.get("curr_hotbed_temp"),
-                            "ace": p.get("ace_current_temperature"),
-                            "nozzle_target": p.get("target_nozzle_temp"),
-                            "bed_target": p.get("target_hotbed_temp"),
-                            "ace_target": p.get("dry_status_target_temperature")
-                            if p.get("dry_status_is_drying")
-                            else None,
-                        },
-                    )
+                    values = {
+                        "nozzle": p.get("curr_nozzle_temp"),
+                        "bed": p.get("curr_hotbed_temp"),
+                        "ace": p.get("ace_current_temperature"),
+                        "nozzle_target": p.get("target_nozzle_temp"),
+                        "bed_target": p.get("target_hotbed_temp"),
+                        "ace_target": p.get("dry_status_target_temperature")
+                        if p.get("dry_status_is_drying")
+                        else None,
+                    }
+                    details = getattr(engine, "details_updated", None)
+                    if details and details != last_details:
+                        if abs(time.time() - datetime.fromisoformat(details).timestamp()) < 120:
+                            values["ace_boxes"] = ace_readings(p.get("boxes") or [])
+                        last_details = details
+                    history.add(stamp, values)
                     last_source = source
             if history.rows and time.monotonic() - history.saved_at >= 60:
                 history.save()

@@ -8,6 +8,7 @@ from aiohttp import web
 from datetime import datetime
 from command_journal import dispatch_command
 from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
+from printer_values import integer
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
     AnycubicProjectOrderRequest,
@@ -192,6 +193,20 @@ class CloudExtras:
             or p.latest_project_print_in_progress
         ):
             raise ValueError("Cette action nécessite une imprimante en ligne et libre")
+
+    async def lifetime_print_count(self, printer_id):
+        """Lit le compteur cumulé de Slicer Next pour la cible demandée, ou renvoie None."""
+        data = await self.api(
+            "/v5/printer/home", query={"printer_id": str(printer_id)}, method="GET"
+        )
+        printer = data.get("printer") if isinstance(data, dict) else None
+        if not isinstance(printer, dict) or str(printer.get("id")) != str(printer_id):
+            return None
+        stats = printer.get("statistics")
+        if isinstance(stats, dict):
+            with contextlib.suppress(ValueError):
+                return integer(stats.get("print_count"), 0, 2**53 - 1)
+        return None
 
     def account_printers(self):
         """Le catalogue actuel du compte prévaut sur les anciennes découvertes d’un moteur secondaire."""

@@ -1,12 +1,63 @@
-"""Historique local borné des températures, sans identifiants de compte."""
+"""Historique local borné des températures et des relevés ACE."""
 
-import collections, json, math, os, pathlib, time
+import collections, hashlib, json, math, os, pathlib, re, time
 
 KEYS = ("nozzle", "bed", "ace", "nozzle_target", "bed_target", "ace_target")
 
 
+def bounded_number(value, minimum, maximum):
+    """Garde un nombre fini et borné sans assimiler un booléen à une mesure."""
+    if type(value) in (int, float) and minimum <= value <= maximum:
+        return round(value, 1)
+    return None
+
+
+def ace_readings(boxes):
+    """Projette uniquement les mesures, les emplacements et une empreinte de matériau."""
+    return {
+        str(box["box_id"]): {
+            "humidity": box.get("humidity"),
+            "slots": {
+                str(slot["local_slot"]): {
+                    "remaining": slot.get("remaining_percent"),
+                    "material": hashlib.sha256(
+                        json.dumps([slot.get("material_type"), slot.get("color")]).encode()
+                    ).hexdigest()[:16],
+                }
+                for slot in box.get("spools") or []
+                if slot.get("local_slot") is not None
+            },
+        }
+        for box in boxes
+        if box.get("box_id") is not None
+    }
+
+
+def normalize_ace_readings(boxes):
+    """Valide les relevés ACE, y compris ceux relus depuis un fichier d’état."""
+    result = {}
+    for box_id, box in boxes.items():
+        if not re.fullmatch(r"[0-9]{1,2}", box_id) or not isinstance(box, dict):
+            continue
+        slots = box.get("slots")
+        result[box_id] = {"humidity": bounded_number(box.get("humidity"), 0, 100), "slots": {}}
+        if not isinstance(slots, dict):
+            continue
+        for slot_id, slot in slots.items():
+            if not re.fullmatch(r"[1-9][0-9]?", slot_id) or not isinstance(slot, dict):
+                continue
+            material = slot.get("material")
+            result[box_id]["slots"][slot_id] = {
+                "remaining": bounded_number(slot.get("remaining"), 0, 100),
+                "material": material
+                if isinstance(material, str) and re.fullmatch(r"[a-f0-9]{16}", material)
+                else None,
+            }
+    return result
+
+
 class TemperatureHistory:
-    """Conserve au plus vingt-quatre heures de températures locales, sans identité de compte."""
+    """Conserve au plus vingt-quatre heures de mesures locales, sans identité de compte."""
 
     def __init__(self, path="/appdata/state/temperatures.json"):
         """Charge les relevés de path en ignorant les données illisibles ; aucun répertoire n’est créé."""
@@ -20,23 +71,18 @@ class TemperatureHistory:
             pass
 
     def add(self, stamp, values):
-        """Ajoute un relevé horodaté en secondes ; renvoie False si périmé, dupliqué ou sans température exploitable."""
+        """Ajoute un relevé horodaté en secondes ; renvoie False si périmé, dupliqué ou vide."""
         if not isinstance(stamp, (int, float)) or not math.isfinite(stamp):
             return False
         if self.rows and stamp <= self.rows[-1]["time"]:
             return False
         row = {"time": int(stamp)}
         for key in KEYS:
-            value = values.get(key)
-            row[key] = (
-                round(value, 1)
-                if isinstance(value, (int, float))
-                and not isinstance(value, bool)
-                and math.isfinite(value)
-                and -30 <= value <= 400
-                else None
-            )
-        if all(row[k] is None for k in ("nozzle", "bed", "ace")):
+            row[key] = bounded_number(values.get(key), -30, 400)
+        boxes = values.get("ace_boxes")
+        if isinstance(boxes, dict):
+            row["ace_boxes"] = normalize_ace_readings(boxes)
+        if "ace_boxes" not in row and all(row[k] is None for k in ("nozzle", "bed", "ace")):
             return False
         self.rows.append(row)
         while self.rows and self.rows[0]["time"] < stamp - 86400:

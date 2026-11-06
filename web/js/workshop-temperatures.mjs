@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=a95fcbb5c8e7';
+} from './workshop-ui.mjs?v=2e1dc6d92ed1';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {
@@ -16,12 +16,21 @@ function chartElement(tag, attributes, text) {
   if (text != null) e.textContent = text;
   return e;
 }
-/** Trace mesures et consignes sur hours heures ; espace les points et interrompt la courbe aux lacunes. */
-function renderTemperatureChart(key, rows, hours) {
-  const host = $(`chart-${key}`),
-    valid = rows.filter((r) => Number.isFinite(r[key]));
+const temperatures = {
+  nozzle: [250, 'light-dark(#b85c35,#ffa980)'],
+  bed: [100, 'light-dark(#3372a5,#83c4ff)'],
+  ace: [80, 'light-dark(#42765c,#88d5ae)'],
+};
+
+const hour = (t) =>
+  new Date(t * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone });
+
+/** Trace les mesures et les consignes éventuelles en interrompant les séries aux lacunes. */
+function renderChart(host, current, title, rows, hours, key, unit, minimumTop, color) {
+  const valid = rows.filter((r) => Number.isFinite(r[key])),
+    last = valid.at(-1);
   host.replaceChildren();
-  set(`temperature-${key}-current`, valid.length ? fmt(valid.at(-1)[key], ' °C') : '—');
+  current.textContent = last ? `${fmt(last[key], unit)} · ${hour(last.time)}` : '—';
   if (!valid.length) {
     host.append(node('p', tr('En attente des premiers relevés.'), 'muted'));
     return;
@@ -32,12 +41,10 @@ function renderTemperatureChart(key, rows, hours) {
     R = 12,
     T = 12,
     B = 28,
-    colors = { nozzle: 'light-dark(#b85c35,#ffa980)', bed: 'light-dark(#3372a5,#83c4ff)', ace: 'light-dark(#42765c,#88d5ae)' },
-    color = colors[key],
     end = Date.now() / 1000,
     start = end - hours * 3600,
     top = Math.max(
-      { nozzle: 250, bed: 100, ace: 80 }[key],
+      minimumTop,
       Math.ceil(
         Math.max(...valid.map((r) => r[key]), ...rows.map((r) => r[key + '_target'] || 0)) / 25,
       ) * 25,
@@ -47,12 +54,7 @@ function renderTemperatureChart(key, rows, hours) {
     svg = chartElement('svg', {
       viewBox: `0 0 ${W} ${H}`,
       role: 'img',
-      'aria-label': formatText(
-        'Température {0}, {1} relevés. Dernière valeur : {2} degrés Celsius.',
-        key === 'nozzle' ? tr('de la buse') : key === 'bed' ? tr('du plateau') : tr('de l’ACE'),
-        valid.length,
-        valid.at(-1)[key],
-      ),
+      'aria-label': `${title} · ${current.textContent}`,
     });
   for (const value of [0, top / 2, top]) {
     svg.append(
@@ -71,8 +73,6 @@ function renderTemperatureChart(key, rows, hours) {
       ),
     );
   }
-  const hour = (t) =>
-    new Date(t * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone });
   svg.append(
     chartElement('text', { x: L, y: H - 6, class: 'chart-axis' }, hour(start)),
     chartElement(
@@ -82,23 +82,21 @@ function renderTemperatureChart(key, rows, hours) {
     ),
   );
   for (const target of [true, false]) {
-    const field = key + (target ? '_target' : ''),
-      points = rows.filter((r) => Number.isFinite(r[field]));
+    const field = key + (target ? '_target' : '');
     let previous = null,
       path = '';
-    /* Limiter les points évite de surcharger le SVG tout en conservant le dernier relevé. */ const stride =
-      Math.max(1, Math.floor(points.length / 600));
-    points
-      .filter((r, i) => i % stride === 0 || i === points.length - 1)
-      .forEach((r) => {
-        path +=
-          (previous && r.time - previous.time <= Math.max(120, stride * 20) ? 'L' : 'M') +
-          x(r.time).toFixed(2) +
-          ' ' +
-          y(r[field]).toFixed(2) +
-          ' ';
-        previous = r;
-      });
+    const stride = Math.max(1, Math.floor(rows.length / 600)),
+      lastPoint = rows.findLast((r) => Number.isFinite(r[field]));
+    rows.forEach((r, i) => {
+      if (!Number.isFinite(r[field])) {
+        previous = null;
+        return;
+      }
+      const connected = previous && r.time - previous.time <= 120 && previous.material === r.material;
+      if (!connected || i % stride === 0 || r === lastPoint)
+        path += `${connected ? 'L' : 'M'}${x(r.time).toFixed(2)} ${y(r[field]).toFixed(2)} `;
+      previous = r;
+    });
     if (path)
       svg.append(
         chartElement('path', {
@@ -112,7 +110,6 @@ function renderTemperatureChart(key, rows, hours) {
         }),
       );
   }
-  const last = valid.at(-1);
   svg.append(chartElement('circle', { cx: x(last.time), cy: y(last[key]), r: 3, fill: color }));
   host.append(svg);
   const tip = node('div', null, 'chart-tooltip');
@@ -126,7 +123,7 @@ function renderTemperatureChart(key, rows, hours) {
       (best, r) => (Math.abs(r.time - stamp) < Math.abs(best.time - stamp) ? r : best),
       valid[0],
     );
-    tip.textContent = `${hour(row.time)} · ${row[key]} °C`;
+    tip.textContent = `${hour(row.time)} · ${fmt(row[key], unit)}`;
     tip.hidden = false;
   };
   svg.onpointerleave = () => {
@@ -137,16 +134,61 @@ function renderTemperatureChart(key, rows, hours) {
   if (rows.some((r) => r[key + '_target'] != null)) legend.append(node('span', '┄ Cible'));
   host.append(legend);
 }
-/** Réutilise la requête de la cible sélectionnée sans empiler les lectures de courbes. */
+
+/** Crée une courbe par boîtier ou emplacement ayant un relevé dans la période. */
+function renderAceCharts(host, rows, hours, filament) {
+  const series = new Map();
+  for (const row of rows) {
+    for (const [box, readings] of Object.entries(row.ace_boxes)) {
+      if (!filament && Number.isFinite(readings.humidity)) series.set(box, [box, null]);
+      if (filament) {
+        for (const [slot, data] of Object.entries(readings.slots)) {
+          if (Number.isFinite(data.remaining)) series.set(`${box}:${slot}`, [box, slot]);
+        }
+      }
+    }
+  }
+  host.replaceChildren();
+  if (!series.size) host.append(node('p', tr('En attente des premiers relevés.'), 'muted'));
+  for (const [box, slot] of [...series.values()].sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
+    const title = `ACE ${Number(box) + 1}${filament ? ' · ' + formatText('Emplacement {0}', slot) : ''}`,
+      card = node('article', null, 'temperature-card'),
+      heading = node('div', null, 'temperature-card-title'),
+      current = node('strong'),
+      plot = node('div', null, 'temperature-plot');
+    heading.append(node('h4', title), current);
+    card.append(heading, plot);
+    host.append(card);
+    const points = rows.map(({time, ace_boxes}) => {
+      const reading = ace_boxes[box], spool = reading?.slots[slot];
+      return {
+        time,
+        value: filament ? spool?.remaining : reading?.humidity,
+        material: filament ? spool?.material : null,
+      };
+    });
+    renderChart(plot, current, title, points, hours, 'value', ' %', 100,
+      filament ? temperatures.ace[1] : temperatures.bed[1]);
+  }
+}
+
+/** Affiche la période demandée, même si une requête précédente arrive plus tard. */
 export function createTemperatureLoader(request) {
-  let temperaturePending = false;
+  let sequence = 0;
   return async function loadTemperatures() {
-    if (temperaturePending) return;
-    temperaturePending = true;
+    const current = ++sequence;
     try {
       const hours = Number($('temperature-hours').value),
         data = await request(`/temperatures?hours=${hours}`);
-      for (const key of ['nozzle', 'bed', 'ace']) renderTemperatureChart(key, data.readings, hours);
+      if (current !== sequence) return;
+      for (const [key, [top, color]] of Object.entries(temperatures)) {
+        const plot = $(`chart-${key}`),
+          title = plot.previousElementSibling.querySelector('h4').textContent;
+        renderChart(plot, $(`temperature-${key}-current`), title, data.readings, hours, key, ' °C', top, color);
+      }
+      const aceRows = data.readings.filter((row) => row.ace_boxes);
+      renderAceCharts($('chart-humidity'), aceRows, hours, false);
+      renderAceCharts($('chart-filament'), aceRows, hours, true);
       set(
         'temperature-note',
         tr(
@@ -154,9 +196,7 @@ export function createTemperatureLoader(request) {
         ),
       );
     } catch (e) {
-      set('temperature-note', e.message);
-    } finally {
-      temperaturePending = false;
+      if (current === sequence) set('temperature-note', e.message);
     }
   };
 }
