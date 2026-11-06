@@ -1,5 +1,6 @@
 """Tests isolés : cloud extras, sans commande physique ni connexion au cloud."""
 
+from urllib.parse import urlsplit
 import asyncio, pathlib, sys, tempfile, time, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -283,11 +284,7 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         )
         for item, expected in zip(result["downloads"], ["b", "a"]):
             self.assertEqual(item["name"], expected + ".gcode")
-            ticket = (
-                __import__("urllib.parse", fromlist=["urlsplit"])
-                .urlsplit(item["url"])
-                .path.split("/")[-1]
-            )
+            ticket = urlsplit(item["url"]).path.split("/")[-1]
             self.assertEqual(self.x.downloads[ticket]["url"], "https://anycubic.com/" + expected)
 
     async def test_invalid_last_download_leaves_no_partial_tickets(self):

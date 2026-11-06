@@ -1,5 +1,6 @@
 """Tests isolés des sessions web, sans commande physique ni connexion au cloud."""
 
+import ipaddress
 import asyncio, os, pathlib, tempfile, time, unittest, uuid
 from collections import OrderedDict
 from types import SimpleNamespace
@@ -360,7 +361,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
 
     async def test_trusted_proxy_isolates_clients_and_stops_at_untrusted_hop(self):
         """Le proxy connu sépare les compteurs ; un préfixe injecté ne contourne pas le pair réel."""
-        self.app[TRUSTED_PROXIES_KEY] = (__import__("ipaddress").ip_network("127.0.0.1/32"),)
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
         for _ in range(5):
             self.assertEqual(
                 (

@@ -1,5 +1,6 @@
 """Reconnexion après rejet d’authentification avec un fil MQTT simulé et sans réseau."""
 
+import threading
 import asyncio, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
@@ -16,7 +17,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         e.account = SimpleNamespace(token=AsyncMock(return_value="fixture-token"))
         e.account_token = "fixture-token"
         e.session = SimpleNamespace(cookie_jar=object())
-        stopped = __import__("threading").Event()
+        stopped = threading.Event()
         thread = Mock()
         thread.is_alive.side_effect = lambda: not stopped.is_set()
         old = SimpleNamespace(disconnect_mqtt=Mock(side_effect=stopped.set))

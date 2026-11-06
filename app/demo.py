@@ -345,7 +345,7 @@ def create_demo(authenticated=False):
 
 
 if __name__ == "__main__":
-    if __import__("os").geteuid() == 0:
+    if os.geteuid() == 0:
         raise SystemExit("Le serveur doit être lancé sans privilèges root.")
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", action="store_true")

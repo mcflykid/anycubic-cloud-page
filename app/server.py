@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Adaptateur web autonome de l’API Anycubic avec suivi MQTT et commandes sérialisées."""
 
+import uuid
+from urllib.parse import urlsplit
 import asyncio, base64, collections, contextlib, hashlib, json, logging, os, pathlib, re, secrets, threading, time, tempfile
 from datetime import datetime, timezone
 import aiohttp, ssl
@@ -633,7 +635,7 @@ class Engine:
         """Renvoie la réponse MQTT corrélée ; lève ValueError sans connexion ou sans réponse sous dix secondes."""
         if not self.api or not self.api._mqtt_client or not self.api._mqtt_client.is_connected():
             raise ValueError("La connexion à l’imprimante n’est pas disponible")
-        msgid = str(__import__("uuid").uuid4())
+        msgid = str(uuid.uuid4())
         self.api._mqtt_publish_to_printer(
             self.printer,
             kind,
@@ -1814,7 +1816,7 @@ async def preview(req):
             url = find_project_preview_url(projects, engine.printer.id, str(d.get("name", "")))
     if not isinstance(url, str):
         return web.json_response({"image": None})
-    parsed = __import__("urllib.parse", fromlist=["urlsplit"]).urlsplit(url)
+    parsed = urlsplit(url)
     host = parsed.hostname or ""
     if parsed.scheme != "https" or not any(
         host == domain or host.endswith("." + domain)
@@ -1873,7 +1875,7 @@ from web_host import install_static
 
 install_static(app)
 if __name__ == "__main__":
-    if __import__("os").geteuid() == 0:
+    if os.geteuid() == 0:
         raise SystemExit("Le serveur doit être lancé sans privilèges root.")
     if hasattr(time, "tzset"):
         time.tzset()

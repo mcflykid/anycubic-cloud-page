@@ -126,9 +126,7 @@ class PrinterRegistry:
                 selected.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
                 selected.extras = CloudExtras(selected)
                 with contextlib.suppress(OSError, ValueError):
-                    selected.presets = __import__("json").loads(
-                        (selected.state_dir / "presets.json").read_text()
-                    )
+                    selected.presets = json.loads((selected.state_dir / "presets.json").read_text())
                 self.entries[key] = selected
                 history = TemperatureHistory(selected.state_dir / "temperatures.json")
                 self.histories[key] = history

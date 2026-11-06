@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Configuration interactive locale du compte Anycubic ou d’un jeton existant."""
 
+import os
 import getpass, json, pathlib, sys
 from prepare_vendor import prepare, private_write, ROOT, appdata_path
 
@@ -53,11 +54,11 @@ def configure():
     prepare()
     state = appdata_path() / "state"
     state.mkdir(parents=True, exist_ok=True)
-    __import__("os").chmod(state, 0o700)
+    os.chmod(state, 0o700)
     env = ROOT / ".env"
     if not env.exists():
-        uid = getattr(__import__("os"), "getuid", lambda: 1000)()
-        gid = getattr(__import__("os"), "getgid", lambda: 1000)()
+        uid = getattr(os, "getuid", lambda: 1000)()
+        gid = getattr(os, "getgid", lambda: 1000)()
         env.write_text(f"PUID={uid}\nPGID={gid}\nPUBLIC_ORIGIN=http://localhost:8080\n")
     print(
         "Configuration prête dans appdata/ (ignoré par Git). Construisez l’image de développement puis lancez le Compose standard (voir docs/INSTALLATION.md) puis ouvrez http://localhost:8080."

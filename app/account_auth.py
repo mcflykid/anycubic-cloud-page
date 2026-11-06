@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Connexion au centre utilisateur Anycubic par code d’autorisation lié à PKCE."""
 
+import aiohttp
 import asyncio, base64, contextlib, hashlib, json, math, os, pathlib, secrets, time
 
 UC = "https://uc.makeronline.com"
@@ -95,7 +96,7 @@ class AccountAuth:
             json=body,
             params=params,
             headers={"User-Agent": "Mozilla/5.0"},
-            timeout=__import__("aiohttp").ClientTimeout(total=25),
+            timeout=aiohttp.ClientTimeout(total=25),
         ) as response:
             if response.status in (401, 403):
                 if path == "/api/login":
@@ -106,7 +107,7 @@ class AccountAuth:
                     raise AccountRefreshRejected("Renouvellement Anycubic refusé")
             try:
                 result = await response.json()
-            except (ValueError, __import__("aiohttp").ContentTypeError):
+            except (ValueError, aiohttp.ContentTypeError):
                 raise RuntimeError("Réponse de connexion Anycubic illisible") from None
             if response.status != 200 or not isinstance(result, dict):
                 raise RuntimeError("Connexion au compte Anycubic refusée")
@@ -265,7 +266,7 @@ class AccountAuth:
                 ValueError,
                 RuntimeError,
                 TimeoutError,
-                __import__("aiohttp").ClientError,
+                aiohttp.ClientError,
             ) as error:
                 self.retry_failed(error)
                 if current:
@@ -298,7 +299,7 @@ class AccountAuth:
                 ValueError,
                 RuntimeError,
                 TimeoutError,
-                __import__("aiohttp").ClientError,
+                aiohttp.ClientError,
             ) as error:
                 self.retry_failed(error)
                 raise RuntimeError(self.notice) from None

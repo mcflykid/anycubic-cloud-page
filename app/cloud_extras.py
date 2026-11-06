@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Fonctions cloud complémentaires avec filtrage des données exposées au navigateur."""
 
+import os
 import asyncio, base64, contextlib, hashlib, hmac, json, math, pathlib, re, secrets, time, urllib.parse
 import aiohttp
 from aiohttp import web
@@ -900,7 +901,7 @@ async def downloads(req):
     """Renvoie les liens temporaires de la sélection ; lève HTTPForbidden si l’origine est étrangère."""
     origin = req.headers.get("Origin")
     if origin and origin not in [
-        __import__("os").environ.get("PUBLIC_ORIGIN", "http://localhost:8080"),
+        os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080"),
         "http://127.0.0.1:8080",
     ]:
         raise web.HTTPForbidden()
@@ -927,7 +928,7 @@ async def reset_challenge(req):
     """Renvoie une confirmation liée à la machine ; lève ValueError si elle ne peut pas être réinitialisée."""
     origin = req.headers.get("Origin")
     if origin and origin not in [
-        __import__("os").environ.get("PUBLIC_ORIGIN", "http://localhost:8080"),
+        os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080"),
         "http://127.0.0.1:8080",
     ]:
         raise web.HTTPForbidden()
