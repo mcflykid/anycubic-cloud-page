@@ -161,3 +161,52 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
             restart.receive("fixture-printer", payload)
             await asyncio.sleep(0)
             self.assertEqual(journal.rows()[0]["outcome"], "confirmée")
+
+    async def test_cloud_order_and_router_correlate_the_same_request(self):
+        """Rejoue l’envoi HTTP et le routeur MQTT, sans broker ni commande physique."""
+        import asyncio
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+
+        from command_journal import JournalMQTT, command_mqtt_context
+        from printer_registry import printer_key
+        from server import AnycubicBaseOrderRequest, AnycubicMQTTAPI, CloudPageAPI, Engine
+
+        with tempfile.TemporaryDirectory() as directory:
+            journal = CommandJournal(Path(directory) / "journal.jsonl")
+            engine = Engine()
+            engine.printer = SimpleNamespace(id=7, key="fixture-machine")
+            engine.command_mqtt = JournalMQTT(journal, asyncio.get_running_loop())
+            api = object.__new__(CloudPageAPI)
+            api.cloud_engine = engine
+            entry = make_entry(
+                "pause", "fixture-request-pause", printer_key(7), "Imprimante", None, "unknown", {}
+            )
+            entry["outcome"] = "inconnue"
+            report = {
+                "type": "print",
+                "action": "pause",
+                "state": "paused",
+                "msgid": "fixture-order",
+            }
+            topic = "anycubic/anycubicCloud/v1/printer/app/20025/fixture-machine/print/report"
+            message = SimpleNamespace(topic=topic, payload=json.dumps(report).encode(), retain=True)
+            context = command_mqtt_context.set((engine.command_mqtt, entry, asyncio.current_task()))
+            try:
+                with patch.object(
+                    AnycubicMQTTAPI, "_send_anycubic_order", AsyncMock(return_value="fixture-order")
+                ):
+                    result = await api._send_anycubic_order(
+                        AnycubicBaseOrderRequest(order_id=2, printer_id=7)
+                    )
+                self.assertEqual(result, "fixture-order")
+            finally:
+                command_mqtt_context.reset(context)
+            with patch.object(AnycubicMQTTAPI, "_mqtt_message_router"):
+                api._mqtt_message_router(message)
+                await asyncio.sleep(0)
+                self.assertEqual(entry["outcome"], "inconnue")
+                message.retain = False
+                api._mqtt_message_router(message)
+                await asyncio.sleep(0)
+            self.assertEqual(journal.rows()[0]["outcome"], "confirmée")

@@ -283,10 +283,11 @@ class JournalMQTT:
             key: row for key, row in self.pending.items() if row["mqtt"]["expires"] > now
         }
         self._save(entry)
-        if (report := self.early.pop(key, None)) is not None:
-            signature, received_at = report
-            if received_at >= sent_at:
+        for signature in MQTT_CONFIRMATIONS[order_id]:
+            received_at = self.early.pop((key, signature), None)
+            if received_at is not None and sent_at <= received_at <= sent_at + MQTT_WINDOW:
                 self.apply_report(key, signature, received_at)
+                break
 
     def receive(self, printer, payload):
         """Transfère seulement une signature connue et une empreinte depuis le fil MQTT."""
@@ -305,8 +306,9 @@ class JournalMQTT:
         """Confirme uniquement l’ordre attendu et ignore les doublons et les retours périmés."""
         entry = self.pending.get(key)
         if entry is None:
-            self.early[key] = (signature, received_at)
-            self.early.move_to_end(key)
+            report_key = (key, signature)
+            self.early[report_key] = received_at
+            self.early.move_to_end(report_key)
             while len(self.early) > 128:
                 self.early.popitem(last=False)
             return
