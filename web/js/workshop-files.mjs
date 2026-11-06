@@ -8,15 +8,16 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=bd71f64e44b0';
-import { workshopState, setBusy } from './workshop-state.mjs?v=fbe334a8cef8';
-import { slots } from './workshop-commands.mjs?v=a8721fc1025f';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=335bd85f4226';
+} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
+import { workshopState, setBusy } from './workshop-state.mjs?v=624f78b33a34';
+import { slots } from './workshop-commands.mjs?v=6b2fda31cc66';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=13e3de636905';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
   let source = 'local',
     cloudPage = 1,
+    cloudFolder = '',
     cloudRows = [],
     filePending = false,
     fileRows = null,
@@ -41,6 +42,7 @@ export function createFiles(request, command) {
       context.source === source &&
       context.path === $('file-path').value &&
       context.page === cloudPage &&
+      context.folder === cloudFolder &&
       context.printer === workshopState.selectedPrinter
     );
   }
@@ -56,6 +58,9 @@ export function createFiles(request, command) {
         : fileRows
       : null;
     const rows = Array.isArray(list) ? list : [];
+    const folderView = source === 'cloud' && !!cloudFolder;
+    for (const id of ['file-path-label', 'parent-folder', 'file-actions-column', 'file-mapping-form'])
+      $(id).hidden = folderView;
     $('file-rows').replaceChildren(
       ...rows.map((f) => {
         const row = node('tr'),
@@ -64,7 +69,7 @@ export function createFiles(request, command) {
           actions = node('td'),
           wrap = node('div', null, 'actions');
         const identity = node('span', null, 'file-row-identity');
-        if (!f.is_dir) identity.append(fileThumbnails.create(f, context));
+        if (!f.is_dir && !context.folder) identity.append(fileThumbnails.create(f, context));
         identity.append(node('span', f.name));
         name.append(identity);
         const add = (label, fn, cls) => {
@@ -119,15 +124,17 @@ export function createFiles(request, command) {
           };
           name.prepend(check);
           name.classList.add('cloud-file-name');
-          add('Télécharger', () => downloadCloud([f.handle]));
-          add('Renommer', () => renameCloud(f));
+          if (!context.folder) {
+            add('Télécharger', () => downloadCloud([f.handle]));
+            add('Renommer', () => renameCloud(f));
+          }
         }
         if (f.is_dir)
           add('Ouvrir', () => {
             $('file-path').value = listedPath.replace(/\/$/, '') + '/' + f.name;
             loadFiles();
           });
-        else {
+        else if (!context.folder) {
           add('Imprimer', async () => {
             try {
               await command(
@@ -161,7 +168,8 @@ export function createFiles(request, command) {
           );
         }
         actions.append(wrap);
-        row.append(name, size, actions);
+        row.append(name, size);
+        if (!folderView) row.append(actions);
         return row;
       }),
     );
@@ -196,6 +204,7 @@ export function createFiles(request, command) {
       source,
       path: $('file-path').value,
       page: cloudPage,
+      folder: cloudFolder,
       printer: workshopState.selectedPrinter,
     };
     filePending = true;
@@ -209,7 +218,8 @@ export function createFiles(request, command) {
       );
       const result = await request(
         context.source === 'cloud'
-          ? `/files/cloud?page=${context.page}`
+          ? `/files/cloud?page=${context.page}` +
+            (context.folder ? `&folder=${encodeURIComponent(context.folder)}` : '')
           : `/files/${context.source}?path=${encodeURIComponent(context.path)}`,
         { printerKey: context.printer },
       );
@@ -218,6 +228,16 @@ export function createFiles(request, command) {
       if (context.source === 'cloud') {
         cloudRows = result.files;
         cloudHasMore = result.has_more === true;
+        if (Array.isArray(result.folders)) {
+          const folders = result.folders.map((entry) => new Option(entry.path, entry.reference));
+          $('cloud-folder').replaceChildren(new Option(tr('Vue sans dossier'), ''), ...folders);
+          $('cloud-folder').value = cloudFolder;
+          $('cloud-destination').replaceChildren(
+            new Option(tr('Choisir un dossier'), ''),
+            ...folders.filter((entry) => entry.value !== cloudFolder && entry.value !== 'root')
+              .map((entry) => entry.cloneNode(true)),
+          );
+        }
       } else fileRows = result.files;
       renderFiles();
       set(
@@ -250,6 +270,11 @@ export function createFiles(request, command) {
     (b) =>
       (b.onclick = () => {
         source = b.dataset.source;
+        cloudSelected.clear();
+        if (source !== 'cloud') {
+          cloudFolder = '';
+          $('cloud-folder').value = '';
+        }
         cloudPage = 1;
         fileRows = null;
         document
@@ -272,22 +297,72 @@ export function createFiles(request, command) {
     loadFiles();
   };
   $('prev-page').onclick = () => {
+    if (cloudFolder) cloudSelected.clear();
     cloudPage = Math.max(1, cloudPage - 1);
     loadFiles();
   };
   $('next-page').onclick = () => {
+    if (cloudFolder) cloudSelected.clear();
     cloudPage++;
     loadFiles();
   };
+  $('cloud-folder').onchange = () => {
+    cloudFolder = $('cloud-folder').value;
+    cloudPage = 1;
+    cloudSelected.clear();
+    void loadFiles();
+  };
+  $('cloud-destination').onchange = cloudSelectionState;
+  $('cloud-move-selected').onclick = async () => {
+    const context = fileContext, destination = $('cloud-destination');
+    if (!currentFileContext(context) || !context.folder || !destination.value) return;
+    const ok = await command(
+      'cloud-move',
+      { source: context.folder, destination: destination.value, handles: [...cloudSelected] },
+      formatText(
+        'Déplacer {0} fichier(s) de « {1} » vers « {2} » ?',
+        cloudSelected.size,
+        $('cloud-folder').selectedOptions[0].text,
+        destination.selectedOptions[0].text,
+      ),
+    );
+    if (ok && currentFileContext(context)) {
+      cloudSelected.clear();
+      await loadFiles();
+    }
+  };
+  const uploadInput = $('upload-form').elements.file;
+  function validateUpload(files) {
+    if (files.length !== 1 || !/\.gcode$/i.test(files[0].name) || !files[0].size) {
+      message(tr('Choisissez un seul fichier .gcode non vide.'), true);
+      return false;
+    }
+    if (files[0].size > 100 * 1024 * 1024) {
+      message(tr('Le fichier dépasse 100 Mo.'), true);
+      return false;
+    }
+    return true;
+  }
+
+  const dropTarget = uploadInput.closest('label');
+  dropTarget.ondragover = (event) => {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = workshopState.busy ? 'none' : 'copy';
+  };
+  dropTarget.ondrop = (event) => {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    if (workshopState.busy || !validateUpload(event.dataTransfer.files)) return;
+    uploadInput.files = event.dataTransfer.files;
+  };
+
   $('upload-form').onsubmit = async (e) => {
     e.preventDefault();
     if (workshopState.busy) return;
+    if (!validateUpload(uploadInput.files)) return;
     const data = new FormData(e.target),
       file = data.get('file');
-    if (file.size > 100 * 1024 * 1024) {
-      message(tr('Le fichier dépasse 100 Mo.'), true);
-      return;
-    }
     try {
       data.set('slots', JSON.stringify(slots(data.get('slots'))));
     } catch (err) {
@@ -346,8 +421,14 @@ export function createFiles(request, command) {
   function cloudSelectionState() {
     const n = cloudSelected.size;
     set('cloud-selected-count', formatText('{0} sélection{1}', n, n > 1 ? 's' : ''));
-    for (const id of ['cloud-download-selected', 'cloud-delete-selected', 'cloud-clear-selection'])
-      $(id).disabled = !n;
+    for (const id of ['cloud-download-selected', 'cloud-delete-selected']) {
+      $(id).hidden = !!cloudFolder;
+      $(id).disabled = !n || !!cloudFolder;
+    }
+    $('cloud-clear-selection').disabled = !n;
+    const canMove = !!cloudFolder && currentFileContext(fileContext);
+    $('cloud-destination-label').hidden = $('cloud-move-selected').hidden = !canMove;
+    $('cloud-move-selected').disabled = !canMove || !n || !$('cloud-destination').value;
     $('cloud-select-page').checked =
       cloudRows.length > 0 && cloudRows.every((f) => cloudSelected.has(f.handle));
     $('cloud-select-page').indeterminate =

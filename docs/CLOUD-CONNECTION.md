@@ -45,6 +45,8 @@ Le résultat est écrit dans un fichier privé (le dossier isolé `appdata/priva
 
 **Limite :** lire un token existant ne crée pas une session User Center. Si les journaux ne contiennent rien de valide, reconnectez-vous dans le slicer ou choisissez la méthode A. L’emplacement macOS a été vérifié ; les emplacements proposés pour Windows/Linux sont des conventions à adapter avec `--log-dir`.
 
+Sous Linux, le lecteur cherche par défaut dans `~/.config/AnycubicSlicerNext/log`. Le [manifeste Flatpak communautaire](https://github.com/develonrails/anycubic-slicer-next/blob/d57f853aff42417cc3e6ea8170db457a120be1dc/flatpak/com.anycubic.AnycubicSlicer.yml) déclare l’identifiant `com.anycubic.AnycubicSlicer`. Selon les [conventions Flatpak](https://docs.flatpak.org/en/latest/sandbox-permissions.html#filesystem-access), le dossier `~/.var/app/com.anycubic.AnycubicSlicer/config/AnycubicSlicerNext/log` est un emplacement possible. Vérifiez le dossier effectivement créé et indiquez-le avec `--log-dir`. Pour le lecteur Compose, pointez `SLICER_LOG_DIR` vers ce même dossier sur l’hôte.
+
 ## Du token d’accès à la session workbench
 
 Le token User Center n’est pas directement le token de session de l’API d’atelier. Le client appelle :

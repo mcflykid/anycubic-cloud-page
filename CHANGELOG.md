@@ -1,5 +1,18 @@
 # Changements
 
+## 1.4.0 — 2026-11-06
+
+- La cloche lit directement les notifications du Cloud utilisées par Anycubic Slicer Next, avec filtre des non-lus, compteur et aperçus. Le journal historique conserve ses actions de lecture et de suppression (#104).
+- Navigation dans les dossiers Cloud et déplacement de fichiers vers un dossier existant après confirmation (#31).
+- Mode clair, sombre ou automatique dans Réglages. Cartes Imprimante et ACE moins hautes, grand aperçu d’impression à droite, bobines colorées et raccourci de séchage. Réglages réorganisés et fenêtres de détails moins hautes (#106).
+- Glisser-déposer des G-code, détails de fichiers et liens d’aperçu contrôlés. Nettoyage des fichiers temporaires d’envoi (#81, #82, #97).
+- Requêtes MQTT corrélées et mises à jour de l’atelier sérialisées. Le renouvellement du jeton vidéo vérifie le canal Agora actif (#79, #80, #87).
+- Actualisation et journal des commandes plus robustes, écritures de préréglages atomiques et contrôle des requêtes centralisé (#84, #85, #86, #88, #89, #92).
+- Historique paginé après fusion des imprimantes. La pause et le nivellement sont distingués, une estimation nulle reste inconnue et le badge RFID indique la reconnaissance de la puce (#90, #91, #93, #94).
+- Diagnostic exportable lorsque le Cloud est indisponible, échéance du jeton visible et chemin des journaux Flatpak documenté (#83, #98, #99, #100). Le séchage peut reprendre le préréglage du matériau chargé (#101).
+
+Les parcours de notifications et de dossiers Cloud ont été vérifiés sur des réponses fictives. La galerie Timelapse, la chauffe au repos et la lecture des coordonnées restent suivies dans #30, #95 et #96.
+
 ## 1.3.1 — 2026-11-06
 
 - Ouverture caméra envoyée une seule fois par clic, y compris après une coupure réseau ou une réponse HTTP temporaire (#76).

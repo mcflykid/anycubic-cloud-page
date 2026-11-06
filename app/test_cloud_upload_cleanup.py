@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 from anycubic_cloud_api.models.cloud_upload import AnycubicCloudUpload
+from anycubic_cloud_api.api.functions import AnycubicAPIFunctions
+from anycubic_cloud_api.exceptions.exceptions import AnycubicFileNotFoundError
 
 
 class CloudUploadCleanup(unittest.IsolatedAsyncioTestCase):
@@ -32,3 +34,19 @@ class CloudUploadCleanup(unittest.IsolatedAsyncioTestCase):
                 self.assertIs(caught.exception, failure)
                 api._claim_file_upload_from_aws.assert_not_awaited()
                 api._unlock_storage_space.assert_awaited_once_with(42, is_delete_cos=True)
+
+    async def test_missing_print_acknowledgement_never_repeats_order(self):
+        """Une réponse sans identifiant reste incertaine même avec reprise explicite autorisée."""
+        printer = SimpleNamespace(primary_multi_color_box=None)
+        send = AsyncMock(return_value=None)
+        api = SimpleNamespace(_send_order_start_print=send)
+        for options in ({}, {"allow_retry": True}):
+            self.assertIsNone(
+                await AnycubicAPIFunctions.print_with_cloud_file_id(api, printer, 42, **options)
+            )
+            send.assert_awaited_once()
+            send.reset_mock()
+        send.side_effect = AnycubicFileNotFoundError()
+        with self.assertRaises(AnycubicFileNotFoundError):
+            await AnycubicAPIFunctions.print_with_cloud_file_id(api, printer, 42)
+        send.assert_awaited_once()

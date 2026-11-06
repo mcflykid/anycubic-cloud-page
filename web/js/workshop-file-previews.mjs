@@ -1,20 +1,39 @@
-import { node, tr } from './workshop-ui.mjs?v=bd71f64e44b0';
+import { fmt, mins, node, tr } from './workshop-ui.mjs?v=7bd3fdd4bc0d';
 
 /** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
-function openFilePreview(name, src) {
+function openFilePreview(file, src) {
   const dialog = node('dialog', null, 'file-preview-dialog'),
-    title = node('h2', name),
-    img = node('img'),
+    title = node('h2', file.name),
     close = node('button', tr('Fermer'));
-  img.src = src;
-  img.alt = tr('Aperçu de ') + name;
-  img.style.width = '100%';
   close.type = 'button';
   close.onclick = () => dialog.close();
   dialog.onclose = () => dialog.remove();
   const header = node('div', null, 'dialog-top');
   header.append(title, close);
-  dialog.append(header, img);
+  dialog.append(header);
+  if (src) {
+    const img = node('img');
+    img.src = src;
+    img.alt = tr('Aperçu de ') + file.name;
+    img.style.width = '100%';
+    dialog.append(img);
+  }
+  const details = file.details || {};
+  const metrics = node('dl', null, 'detail-list');
+  for (const [label, value] of [
+    ['Durée estimée', details.seconds ? mins(details.seconds / 60) : null],
+    ['Matériau', details.material],
+    ['Épaisseur de couche', details.layer_mm ? fmt(details.layer_mm, ' mm') : null],
+    ['Dimensions', [details.x, details.y, details.z].every(Number.isFinite)
+      ? [details.x, details.y, details.z].map((side) => fmt(side)).join(' × ') + ' mm'
+      : null],
+  ]) {
+    if (value == null) continue;
+    const metric = node('div');
+    metric.append(node('dt', tr(label)), node('dd', value));
+    metrics.append(metric);
+  }
+  if (metrics.childElementCount) dialog.append(metrics);
   document.body.append(dialog);
   dialog.showModal();
 }
@@ -82,6 +101,13 @@ export function createFileThumbnails(request, isCurrent) {
       host.removeAttribute('aria-busy');
       host.title = tr('Aperçu indisponible');
       host.textContent = '—';
+      if (file.details && Object.keys(file.details).length) {
+        const details = node('button', '⋯', 'file-thumbnail-open');
+        details.type = 'button';
+        details.setAttribute('aria-label', tr('Détails du fichier'));
+        details.onclick = () => openFilePreview(file, null);
+        host.replaceChildren(details);
+      }
     };
     if (!src) {
       unavailable();
@@ -92,7 +118,7 @@ export function createFileThumbnails(request, isCurrent) {
     image.alt = '';
     button.type = 'button';
     button.setAttribute('aria-label', tr('Agrandir l’aperçu de ') + file.name);
-    button.onclick = () => openFilePreview(file.name, src);
+    button.onclick = () => openFilePreview(file, src);
     button.append(image);
     image.onload = () => {
       host.removeAttribute('aria-busy');

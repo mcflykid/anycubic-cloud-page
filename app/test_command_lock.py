@@ -1,8 +1,8 @@
 """Tests isolés : command lock, sans commande physique ni connexion au cloud."""
 
-import asyncio, importlib.util, json, pathlib, tempfile, tracemalloc, unittest
+import asyncio, importlib.util, json, os, pathlib, tempfile, time, tracemalloc, unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 from printer_commands import execute_command
 
@@ -49,7 +49,7 @@ class Parts:
         try:
             return next(self.parts)
         except StopIteration:
-            raise StopAsyncIteration
+            raise StopAsyncIteration from None
 
 
 class CommandLockTests(unittest.IsolatedAsyncioTestCase):
@@ -228,6 +228,42 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
         call = self.engine.api.upload_file_to_cloud.call_args.kwargs
         self.assertEqual(call["file_name"], "fixture.gcode")
         self.assertFalse(pathlib.Path(call["full_file_path"]).exists())
+
+    async def test_local_presets_replace_file_only_after_success(self):
+        """Le fichier et la mémoire gardent leur ancienne valeur si le remplacement échoue."""
+        self.engine.printer = self.engine.api = None
+        entries = [{"name": "PLA", "temperature": 45, "hours": 4}] * 4
+        await execute_command(self.engine, "presets", {"presets": entries})
+        path = self.engine.state_dir / "presets.json"
+        self.assertEqual(json.loads(path.read_text()), entries)
+        updated = [{**row, "hours": 8} for row in entries]
+        with patch("printer_commands.os.replace", side_effect=OSError):
+            with self.assertRaises(OSError):
+                await execute_command(self.engine, "presets", {"presets": updated})
+        self.assertEqual(json.loads(path.read_text()), entries)
+        self.assertEqual(self.engine.presets, entries)
+        self.assertEqual(list(path.parent.iterdir()), [path])
+
+    async def test_purge_only_abandoned_upload_directories(self):
+        """Un lien, une entrée étrangère et un transfert récent restent hors du nettoyage."""
+        root = self.engine.state_dir
+        old = root / "upload-oldfile1"
+        fresh = root / "upload-newfile1"
+        foreign = root / "upload-foreign1"
+        for folder in (old, fresh, foreign):
+            folder.mkdir()
+        (old / "payload.gcode").write_text("G28")
+        (foreign / "other").write_text("conserver")
+        link = root / "upload-symbolic"
+        link.symlink_to(foreign, target_is_directory=True)
+        age = time.time() - 86401
+        for path in (old, old / "payload.gcode", foreign):
+            os.utime(path, (age, age))
+        adapter.purge_abandoned_uploads(root)
+        self.assertFalse(old.exists())
+        self.assertTrue(fresh.exists())
+        self.assertTrue(link.is_symlink())
+        self.assertTrue((foreign / "other").exists())
 
     async def test_upload_timeout_does_not_reserve_or_upload(self):
         """Vérifie que une attente expirée n’effectue ni transfert ni réservation de résultat."""

@@ -1905,9 +1905,9 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         ams_box_mapping: list[AnycubicMaterialMapping] | None = None,
         temp_file: bool = False,
         *,
-        allow_retry: bool = True,
+        allow_retry: bool = False,
     ) -> str | None:
-        """Renvoie l’identifiant de demande ou None ; ams_box_mapping associe les matériaux aux bobines ACE. allow_retry=False limite l’envoi à une tentative. Lève AnycubicAPIError si les données ou l’état sont invalides."""
+        """Renvoie l’identifiant ou None si incertain. allow_retry autorise uniquement une reprise sur fichier explicitement introuvable."""
         if printer is None:
             raise AnycubicAPIError(ErrorsGeneral.no_printer_to_print)
 
@@ -1922,24 +1922,18 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
             is_delete_file=temp_file,
         )
 
-        result = None
-        try_count = 0
-
-        while result is None and try_count < (3 if allow_retry else 1):
+        attempts = 3 if allow_retry else 1
+        for attempt in range(attempts):
             try:
-                result = await self._send_order_start_print(
+                return await self._send_order_start_print(
                     printer=printer,
                     print_request=print_request,
                     ams_box_mapping=ams_box_mapping,
                 )
             except AnycubicFileNotFoundError:
-                if not allow_retry:
+                if attempt == attempts - 1:
                     raise
                 await asyncio.sleep(3)
-
-            try_count += 1
-
-        return result
 
     async def print_with_cloud_gcode_id(
         self,
@@ -1948,7 +1942,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         slot_index_list: list[int] | None = None,
         file_name: str | None = None,
         *,
-        allow_retry: bool = True,
+        allow_retry: bool = False,
     ) -> AnycubicPrintResponse:
         """Renvoie une réponse d’impression ; slot_index_list suit l’ordre des matériaux du G-code. Lève AnycubicAPIError, AnycubicGcodeParsingError si les données ou l’état requis sont invalides."""
         if printer is None:
@@ -2101,7 +2095,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         )
 
         return AnycubicPrintResponse(
-            order_msg_id=str(order_msg_id),
+            order_msg_id=order_msg_id,
             printer_id=printer.id,
             saved_in_cloud=False,
             file_name=file_name,

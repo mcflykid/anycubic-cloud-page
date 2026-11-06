@@ -10,3 +10,32 @@ test('envoi lent : budget adapté et même demande après résultat incertain',a
  }
  expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);expect(await page.evaluate(()=>window.uploadBudgets.filter(ms=>ms>300000).length)).toBe(2);
 });
+
+test('le dépôt prépare un G-code valide sans déclencher son envoi', async ({page}) => {
+  let uploads = 0;
+  await page.route('**/imprimante-api/upload', (route) => {
+    uploads++;
+    return route.fulfill({json: {ok: true, message: 'Envoi accepté'}});
+  });
+  await login(page);
+  await page.getByRole('button', {name: 'Envoyer et imprimer', exact: true}).click();
+  const drop = async (name) => {
+    const data = await page.evaluateHandle((filename) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(['G28\n'], filename));
+      return transfer;
+    }, name);
+    await page.locator('.upload-file').dispatchEvent('drop', {dataTransfer: data});
+    await data.dispose();
+  };
+  await drop('fixture.txt');
+  await expect(page.getByText('Choisissez un seul fichier .gcode non vide.')).toBeVisible();
+  await drop('fixture.gcode');
+  expect(await page.locator('#upload-form input[type=file]').evaluate((input) => input.files[0].name))
+    .toBe('fixture.gcode');
+  expect(uploads).toBe(0);
+  await page.locator('#upload-form button[type=submit]').click();
+  await page.locator('#confirm-yes').click();
+  await expect(page.locator('#upload-state')).toHaveText('Envoi accepté');
+  expect(uploads).toBe(1);
+});

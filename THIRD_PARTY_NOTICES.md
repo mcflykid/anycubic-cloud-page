@@ -12,6 +12,8 @@ Les correctifs MQTT ciblés de la version amont **0.4.5** (`67c671a5aaa5415a84d0
 
 Le transport des transferts signés dispose également d’un délai borné proportionnel à la taille du fichier (#57), distinct du délai des requêtes API.
 
+L’interprétation de la pause et du nivellement suit les états documentés par le client amont 0.4.5 (#91).
+
 ## Caméra Agora
 
 Dépendance : `agora-rtc-sdk-ng` **4.24.9**, propriétaire de la publication npm : Agora. La métadonnée de licence du package npm annonce MIT ; les conditions et notices de l’éditeur demeurent applicables. Le bundle n’est pas versionné ici : le build utilise `npm ci` et copie le fichier distribué, avec son en-tête de copyright, dans l’image Docker.

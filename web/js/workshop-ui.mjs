@@ -1,7 +1,7 @@
 const preference = 'cloud-page-language';
 const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
-const catalogueURL = new URL('./workshop-translations.json?v=3b30ca86c7bd', import.meta.url);
-const catalogueIntegrity = 'sha256-OzDKhse9sxiUT2PeXZwyRFIkzEtcNJhvs1SI5wVktqY=';
+const catalogueURL = new URL('./workshop-translations.json?v=e0f0efcf37d5', import.meta.url);
+const catalogueIntegrity = 'sha256-4PDvzzfVZtMhUJ8ITxHyUiMJvoM8j2aN1+z2By0crjg=';
 let language = 'fr',
   catalogue = {};
 const serverFormats = [
@@ -108,6 +108,26 @@ async function initializeLanguage() {
   });
   choice.disabled = false;
 }
+function initializeTheme() {
+  const storageKey = 'cloud-page-theme',
+    root = document.documentElement,
+    choice = document.getElementById('interface-theme');
+  let theme = 'system';
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch {}
+  root.dataset.theme = theme;
+  if (!choice) return;
+  choice.value = theme;
+  choice.addEventListener('change', () => {
+    root.dataset.theme = choice.value;
+    try {
+      localStorage.setItem(storageKey, choice.value);
+    } catch {}
+  });
+}
+initializeTheme();
 await initializeLanguage();
 
 /** Fournit la locale réellement chargée pour les nombres, les dates et la recherche. */

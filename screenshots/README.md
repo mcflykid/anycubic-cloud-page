@@ -9,6 +9,7 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [01-imprimante.png](01-imprimante.png) | Vue imprimante, projet, températures et courbes. |
 | [02-ace-filaments.png](02-ace-filaments.png) | ACE, emplacements, RFID et séchage. |
 | [03-fichiers.png](03-fichiers.png) | Navigation et actions sur les fichiers. |
+| [11-dossiers-cloud.png](11-dossiers-cloud.png) | Dossier Cloud, sélection de fichiers et destination fictifs. |
 | [04-envoyer-imprimer.png](04-envoyer-imprimer.png) | Envoi de G-code et ordre des bobines. |
 | [05-camera.png](05-camera.png) | Lecteur, éclairage et axes ; illustration de démonstration, pas un flux réel. |
 | [06-historique.png](06-historique.png) | Cartes, statuts, dates, recherche et sélection de fiches. |

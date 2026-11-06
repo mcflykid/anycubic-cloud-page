@@ -1,4 +1,4 @@
-import { $, serverText, set, tr } from './workshop-ui.mjs?v=bd71f64e44b0';
+import { $, serverText, set, tr } from './workshop-ui.mjs?v=7bd3fdd4bc0d';
 
 /** Possède le lecteur et ses générations sans partager ses identifiants avec les autres panneaux. */
 export function createCamera(request, getPrinter) {
@@ -101,17 +101,28 @@ export function createCamera(request, getPrinter) {
       mine.on('user-left', () => {
         if (current()) set('camera-state', tr('Caméra déconnectée'));
       });
+      let renewing = false;
       mine.on('token-privilege-will-expire', async () => {
+        if (!current() || renewing) return;
+        renewing = true;
         try {
-          if (!current()) return;
           const updated = await request('/camera-session', options);
           if (!current()) {
             releaseViewer(options);
             return;
           }
+          // Un jeton Agora d’une autre session ne peut pas prolonger le canal déjà rejoint.
+          const sameSession = ['appid', 'channel', 'client_uid', 'encryption_mode', 'encryption_key', 'encryption_kdf_salt']
+            .every((field) => updated[field] === session[field]);
+          if (!sameSession || typeof updated.rtc_token !== 'string' || !updated.rtc_token) {
+            set('camera-state', tr('Session caméra expirée'));
+            return;
+          }
           await mine.renewToken(updated.rtc_token);
         } catch {
           if (current()) set('camera-state', tr('Session caméra expirée'));
+        } finally {
+          renewing = false;
         }
       });
       const salt = Uint8Array.from(atob(session.encryption_kdf_salt), (character) =>

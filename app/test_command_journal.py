@@ -1,6 +1,7 @@
 """Vérifie la rétention du journal et le filtrage des données hors transport Anycubic."""
 
 import json
+import asyncio
 import tempfile
 import time
 import unittest
@@ -74,6 +75,25 @@ class CommandJournalTests(unittest.TestCase):
 class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
     """Rejoue les retours du protocole sans transport cloud ni imprimante."""
 
+    async def test_concurrent_writes_keep_recent_rows_of_oversized_journal(self):
+        """Une rotation après un excès conserve les lignes lisibles et les écritures concurrentes."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "journal.jsonl"
+            journal = CommandJournal(path, max_bytes=4096)
+            seed = make_entry("pause", "fixture-seed", "printer", None, None, "unknown", {})
+            path.write_text("invalide\n" * 1000 + json.dumps(seed) + "\n")
+            self.assertEqual(journal.rows(), [seed])
+            rows = [
+                make_entry("pause", f"fixture-{index}", "printer", None, None, "unknown", {})
+                for index in range(8)
+            ]
+            await asyncio.gather(*(journal.record_async(row) for row in rows))
+            self.assertEqual(
+                {row["request_id"] for row in journal.rows()},
+                {row["request_id"] for row in [seed, *rows]},
+            )
+            self.assertLessEqual(path.stat().st_size, journal.max_bytes)
+
     async def test_early_report_does_not_need_another_mqtt_delivery(self):
         """Un retour reçu avant HTTP est conservé et exige la bonne imprimante et le bon état."""
         import asyncio
@@ -103,7 +123,7 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
             tracker.receive("fixture-printer", {**payload, "state": "pausing"})
             await asyncio.sleep(0)
             digest = mqtt_digest(payload["msgid"])
-            tracker.watch(entry, 2, digest, sent_at)
+            await tracker.watch(entry, 2, digest, sent_at)
             self.assertEqual(journal.rows()[0]["outcome"], "envoyée")
             tracker.receive("fixture-printer", {**payload, "action": "resume", "state": "resumed"})
             await asyncio.sleep(0)
@@ -111,6 +131,7 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
             tracker.receive("fixture-printer", payload)
             await asyncio.sleep(0)
             self.assertEqual(entry["outcome"], "confirmée")
+            await tracker.flush()
             self.assertNotIn("mqtt", journal.rows()[0])
             self.assertNotIn(payload["msgid"], journal.path.read_text())
             early = make_entry(
@@ -126,7 +147,7 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
             sent_at = time.time()
             tracker.receive("fixture-printer", payload)
             await asyncio.sleep(0)
-            tracker.watch(early, 2, mqtt_digest(payload["msgid"]), sent_at)
+            await tracker.watch(early, 2, mqtt_digest(payload["msgid"]), sent_at)
             self.assertEqual(early["outcome"], "confirmée")
 
     async def test_restarts_and_expired_reports(self):
@@ -150,7 +171,7 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
             sent_at = time.time()
             payload = {"type": "file", "action": "deleteLocal", "state": "success", "msgid": 12345}
             digest = mqtt_digest(payload["msgid"])
-            tracker.watch(entry, 104, digest, sent_at)
+            await tracker.watch(entry, 104, digest, sent_at)
             restart = JournalMQTT(journal, asyncio.get_running_loop())
             restart.apply_report(
                 ("fixture-printer", digest),
@@ -160,6 +181,7 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(journal.rows()[0]["outcome"], "acceptée")
             restart.receive("fixture-printer", payload)
             await asyncio.sleep(0)
+            await restart.flush()
             self.assertEqual(journal.rows()[0]["outcome"], "confirmée")
 
     async def test_cloud_order_and_router_correlate_the_same_request(self):
@@ -209,4 +231,5 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
                 message.retain = False
                 api._mqtt_message_router(message)
                 await asyncio.sleep(0)
+            await engine.command_mqtt.flush()
             self.assertEqual(journal.rows()[0]["outcome"], "confirmée")

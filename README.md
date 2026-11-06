@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.3.1**. [Changements](CHANGELOG.md).
+Version **1.4.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -11,7 +11,7 @@ Version **1.3.1**. [Changements](CHANGELOG.md).
 [![Dernière release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
 [![Issues ouvertes](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
 [![Issues fermées](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
-[![Milestone 1.3.1](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/5)](https://github.com/mcflykid/anycubic-cloud-page/milestone/5)
+[![Milestone 1.4.0](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/3)](https://github.com/mcflykid/anycubic-cloud-page/milestone/3)
 [![Dernier commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
 
 [English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md)
@@ -44,7 +44,7 @@ L’image suit `latest` ; remplacez-la par un tag publié dans compose.yaml pour
 
 ## Suivi des travaux
 
-Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.3.2](https://github.com/mcflykid/anycubic-cloud-page/milestone/6) regroupe les prochains correctifs prioritaires et leurs critères de validation.
+Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.4.0](https://github.com/mcflykid/anycubic-cloud-page/milestone/3) regroupe les prochains correctifs prioritaires et leurs critères de validation.
 
 La fiche d’historique peut proposer une réimpression après confirmation de la cible, du plateau et des bobines. La galerie timelapse est temporairement désactivée. La consultation paginée est testée sur des réponses fictives. La correspondance entre la liste, les miniatures et le téléchargement reste à vérifier sur une vidéo existante.
 
@@ -73,6 +73,8 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 
 <details>
 <summary><strong>Fichiers</strong> — mémoire, USB et cloud</summary>
+
+Dans **Fichiers → Cloud Anycubic**, le sélecteur **Dossier Cloud** ouvre la racine `/`, puis les dossiers existants. Sélectionnez les fichiers de la page, choisissez un dossier de destination et confirmez le déplacement. **Vue sans dossier** retrouve les autres actions de gestion Cloud.
 
 ![Fichiers](screenshots/03-fichiers.png)
 
@@ -159,6 +161,6 @@ Code sous **GPL-3.0-or-later**, avec conservation du moteur amont et de sa licen
 
 ## Connexion à l’atelier
 
-La page `/login` remplace la fenêtre du navigateur. La session est limitée à huit heures, avec cookie HttpOnly, SameSite=Strict et Secure lorsque `PUBLIC_ORIGIN` utilise HTTPS. Le bouton « Se déconnecter » révoque la session. Cinq échecs dans une fenêtre de cinq minutes limitent les tentatives par adresse de connexion ; derrière un proxy, configurez `TRUSTED_PROXIES` selon le [guide reverse proxy](docs/REVERSE-PROXY.md#compteurs-de-connexion-et-proxys-de-confiance) pour séparer les compteurs des utilisateurs. Les sessions sont aussi invalidées au redémarrage ou après changement du mot de passe web.
+La page `/login` remplace la fenêtre du navigateur. La session est limitée à huit heures, avec cookie HttpOnly, SameSite=Strict et Secure lorsque `PUBLIC_ORIGIN` utilise HTTPS. Le bouton « Se déconnecter » révoque la session. Cinq échecs dans une fenêtre de cinq minutes limitent les tentatives par adresse de connexion ; derrière un proxy, configurez `TRUSTED_PROXIES` selon le [guide reverse proxy](docs/REVERSE-PROXY.md#compteurs-de-connexion-et-proxys-de-confiance) pour séparer les compteurs des utilisateurs. Si plusieurs utilisateurs reçoivent une erreur 429 après les échecs d’une seule personne, vérifiez que le proxy transmet bien une adresse distincte par client et que seule son adresse est déclarée de confiance. Les sessions sont aussi invalidées au redémarrage ou après changement du mot de passe web.
 
 ![Page de connexion — démonstration](screenshots/00-connexion.jpg)

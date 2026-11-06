@@ -1,10 +1,48 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=bd71f64e44b0';
-import { workshopState } from './workshop-state.mjs?v=fbe334a8cef8';
-import { definition, statusBadge } from './workshop-overview.mjs?v=7c2871c58a5f';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=7bd3fdd4bc0d';
+import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
+import { definition, statusBadge } from './workshop-overview.mjs?v=5af065eebab4';
+
+/** Illustre la bobine avec la couleur annoncée par l’ACE et des dégradés propres à chaque emplacement. */
+function spoolIllustration(color, index) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 80 84');
+  svg.setAttribute('class', 'spool-illustration');
+  svg.setAttribute('aria-hidden', 'true');
+  const channels = Array.isArray(color) && color.length >= 3 ? color.slice(0, 3) : [150, 150, 150];
+  const rgb = channels.map((value) => Math.max(0, Math.min(255, Number(value) || 0))).join(',');
+  const filament = 'M25 10h26c6 0 10 13 10 29S57 68 51 68H25z';
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="spool-wind-${index}" x2="0" y2="1">
+        <stop stop-color="#fff" stop-opacity=".36"/><stop offset=".40" stop-color="#fff" stop-opacity=".04"/>
+        <stop offset=".72" stop-color="#1a1d22" stop-opacity=".10"/><stop offset="1" stop-color="#151719" stop-opacity=".33"/>
+      </linearGradient>
+      <linearGradient id="spool-rim-${index}" x2="1" y2="1">
+        <stop stop-color="#f7f8f8"/><stop offset=".50" stop-color="#e3e5e4"/><stop offset="1" stop-color="#b8c0be"/>
+      </linearGradient>
+      <pattern id="spool-wire-${index}" width="1.9" height="8" patternUnits="userSpaceOnUse">
+        <path d="M0 0v8" stroke="#182325" stroke-opacity=".17" stroke-width=".43"/>
+      </pattern>
+    </defs>
+    <g transform="rotate(12 39 41)">
+      <ellipse cx="53" cy="39" rx="11" ry="35" fill="url(#spool-rim-${index})" stroke="#bec5c2" stroke-width=".7"/>
+      <path d="${filament}" fill="rgb(${rgb})"/>
+      <path d="${filament}" fill="url(#spool-wind-${index})"/>
+      <path d="${filament}" fill="url(#spool-wire-${index})"/>
+      <ellipse cx="26" cy="39" rx="13" ry="36" fill="#bfc6c3" stroke="#b0b9b5" stroke-width=".6"/>
+      <ellipse cx="24" cy="39" rx="11.7" ry="35.3" fill="url(#spool-rim-${index})" stroke="#fbfcfc" stroke-width=".9"/>
+      <path d="M24 12c2.4 0 4.4 4.2 5 9l-3 5-4-2-1-9zm-4 40 4-1 4 5-1 7-4 4-3-6z" fill="#aab4ae" opacity=".68"/>
+      <ellipse cx="23.3" cy="39" rx="6.3" ry="12.2" fill="#c2cac5"/>
+      <ellipse cx="23.5" cy="39" rx="4" ry="8.5" fill="#69746d"/>
+      <path d="M17 16c-3.3 11.6-3.4 31.9-.4 44" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.25"/>
+    </g>`;
+  return svg;
+}
 
 /** Affiche l’ACE et relie les formulaires aux commandes de la machine. */
 export function createAce(command, refresh) {
-  let presetsReady = false;
+  let presetsReady = false, dryingPending = false;
+  const lastDryingSettings = new Map();
   /** Renvoie le premier ACE connu, ou null ; cette interface ne propose pas de sélection de second boîtier. */
   function selectedBox() {
     return workshopState.snapshot?.printer?.boxes?.[0] || null;
@@ -13,9 +51,10 @@ export function createAce(command, refresh) {
   function boxData() {
     return { box: selectedBox()?.box_id ?? 0 };
   }
-  /** Affiche les bobines et le séchage ; préserve une quantité nulle et distingue RFID d’une configuration manuelle. */
+  /** Affiche les bobines et le séchage ; distingue la lecture RFID de la saisie manuelle. */
   function renderAce(p) {
     const box = selectedBox();
+    updateDryToggle(box, p.printer_online);
     if (!box) {
       statusBadge('ace-status', tr('Aucun module ACE détecté.'), false);
       $('spools').replaceChildren();
@@ -36,16 +75,10 @@ export function createAce(command, refresh) {
       ['Relais automatique', box.auto_feed ? tr('Activé') : tr('Désactivé')],
     ]);
     $('spools').replaceChildren(
-      ...(box.spools || []).map((s) => {
-        const art = node('article', null, 'slot'),
-          sw = node('div', null, 'swatch');
-        if (Array.isArray(s.color))
-          sw.style.backgroundColor = `rgb(${s.color
-            .slice(0, 3)
-            .map((v) => Math.max(0, Math.min(255, Number(v) || 0)))
-            .join(',')})`;
+      ...(box.spools || []).map((s, index) => {
+        const art = node('article', null, 'slot');
         art.append(
-          sw,
+          spoolIllustration(s.color, index),
           node('h3', s.material_type || tr('Non renseigné')),
           node('p', formatText('Emplacement {0}', s.display_slot ?? s.slot)),
           node(
@@ -70,7 +103,7 @@ export function createAce(command, refresh) {
               : formatText('{0} % restants', s.remaining_percent),
           ),
         );
-        if (s.rfid === true) art.append(node('p', 'Anycubic · RFID reconnu', 'rfid-badge'));
+        if (s.rfid === true) art.append(node('p', tr('RFID reconnu'), 'rfid-badge'));
         else if (s.rfid === false) art.append(node('p', tr('Configuration manuelle'), 'muted'));
         const edit = node('button', s.rfid === true ? 'Voir' : 'Modifier');
         edit.type = 'button';
@@ -79,7 +112,9 @@ export function createAce(command, refresh) {
             ? tr('Consulter les informations RFID et gérer le chargement de cette bobine.')
             : tr('Modifier le matériau, la couleur et le chargement de cet emplacement.');
         edit.onclick = () => openSpool(s.local_slot || s.slot);
-        art.append(edit);
+        const actions = node('div', null, 'spool-actions');
+        actions.append(edit);
+        art.append(actions);
         return art;
       }),
     );
@@ -134,31 +169,74 @@ export function createAce(command, refresh) {
       ...workshopState.snapshot.presets.map((pr) => {
         const b = node('button', `${pr.name} ${pr.temperature} °C · ${pr.hours} h`);
         b.type = 'button';
-        b.onclick = () =>
-          command(
-            'dry-start',
-            { ...boxData(), temperature: pr.temperature, hours: pr.hours },
-            formatText(
-              'Démarrer le séchage {0} à {1} °C pendant {2} h ?',
-              pr.name,
-              pr.temperature,
-              pr.hours,
-            ),
-          );
+        b.onclick = () => startDrying(
+          { temperature: pr.temperature, hours: pr.hours },
+          formatText('Démarrer le séchage {0} à {1} °C pendant {2} h ?', pr.name, pr.temperature, pr.hours),
+        );
         return b;
       }),
     );
   }
   $('go-spool').onclick = () => openSpool($('spool-form').elements.slot.value);
+  /** Rend l’état signalé par le module, sans anticiper la réponse à une commande. */
+  function updateDryToggle(box, online) {
+    const toggle = $('dry-toggle'), drying = box?.drying?.is_drying;
+    toggle.disabled = !online || typeof drying !== 'boolean' || dryingPending;
+    toggle.setAttribute('aria-checked', String(drying === true));
+    set('dry-toggle-state', typeof drying !== 'boolean' ? '—' : tr(drying ? 'Actif' : 'Inactif'));
+  }
+  /** Retient le dernier réglage accepté séparément pour chaque imprimante et boîtier. */
+  async function startDrying(settings, question) {
+    const target = workshopState.selectedPrinter, box = boxData();
+    const result = await command('dry-start', { ...settings, ...box }, question);
+    if (result) lastDryingSettings.set(`${target}:${box.box}`, settings);
+  }
+  /** Choisit le réglage en cours, le dernier accepté, puis le préréglage du filament chargé. */
+  function dryingSettings() {
+    const box = selectedBox(), dry = box?.drying;
+    const known = lastDryingSettings.get(`${workshopState.selectedPrinter}:${boxData().box}`);
+    const reported = {temperature: dry?.target_temperature, hours: Math.ceil(dry?.total_duration / 60)};
+    const valid = Number.isInteger(reported.temperature) && reported.temperature >= 35 &&
+      reported.temperature <= 70 && reported.hours >= 1 && reported.hours <= 24;
+    if (valid && dry?.is_drying) return reported;
+    if (known) return known;
+    if (valid) return reported;
+    const spool = box?.spools?.find((entry) => (entry.local_slot ?? entry.slot) === box.loaded_slot + 1);
+    const material = String(spool?.material_type || '').trim().toUpperCase();
+    return workshopState.snapshot?.presets?.find((entry) =>
+      material && entry.name.toUpperCase().split('/').some((name) => name.trim() === material),
+    ) || {
+      temperature: Number($('dry-form').elements.temperature.defaultValue),
+      hours: Number($('dry-form').elements.hours.defaultValue),
+    };
+  }
   $('go-drying').onclick = () => {
-    const dry = selectedBox()?.drying;
-    if (dry?.is_drying) {
-      $('dry-form').elements.temperature.value = dry.target_temperature;
-      if (Number.isFinite(dry.total_duration) && dry.total_duration > 0)
-        $('dry-form').elements.hours.value = Math.max(1, Math.ceil(dry.total_duration / 60));
-    }
+    const form = $('dry-form'), settings = dryingSettings();
+    form.elements.temperature.value = settings.temperature;
+    form.elements.hours.value = settings.hours;
     if (!$('dry-dialog').open) $('dry-dialog').showModal();
-    $('dry-form').elements.temperature.focus({ preventScroll: true });
+    form.elements.temperature.focus({ preventScroll: true });
+  };
+  $('dry-toggle').onclick = async () => {
+    const printer = workshopState.snapshot?.printer, box = selectedBox();
+    const drying = box?.drying?.is_drying;
+    if (!printer?.printer_online || typeof drying !== 'boolean' || dryingPending) return;
+    dryingPending = true;
+    updateDryToggle(box, true);
+    try {
+      if (drying) {
+        await command('dry-stop', boxData(), tr('Arrêter le séchage du module sélectionné ?'));
+      } else {
+        const {temperature, hours} = dryingSettings();
+        await startDrying(
+          {temperature, hours},
+          formatText('Démarrer le séchage à {0} °C pendant {1} h ?', temperature, hours),
+        );
+      }
+    } finally {
+      dryingPending = false;
+      updateDryToggle(selectedBox(), workshopState.snapshot?.printer?.printer_online);
+    }
   };
   $('spool-color').oninput = () => set('spool-color-value', $('spool-color').value.toUpperCase());
   $('spool-form').onsubmit = (e) => {
@@ -187,9 +265,8 @@ export function createAce(command, refresh) {
       );
   $('dry-form').onsubmit = (e) => {
     e.preventDefault();
-    command(
-      'dry-start',
-      { ...Object.fromEntries(new FormData(e.target)), ...boxData() },
+    startDrying(
+      Object.fromEntries(new FormData(e.target)),
       tr('Démarrer le séchage avec ces paramètres ?'),
     );
   };

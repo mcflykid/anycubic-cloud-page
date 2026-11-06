@@ -2,7 +2,7 @@
 
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock, MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 from anycubic_cloud_api.api.base import AnycubicAPIBase
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIParsingError
 from anycubic_cloud_api.models.http import HTTP_METHODS

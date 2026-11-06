@@ -1,10 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Adaptateur web autonome de l’API Anycubic avec suivi MQTT et commandes sérialisées."""
 
-import uuid
-from urllib.parse import urlsplit
-import asyncio, base64, collections, contextlib, hashlib, json, logging, os, pathlib, re, secrets, time, tempfile
-from datetime import datetime, timezone
+import asyncio, collections, contextlib, json, logging, os, pathlib, re, shutil, time, tempfile
+from datetime import datetime
 import aiohttp, ssl
 from aiohttp import web
 from aiofiles import open as aio_open
@@ -12,15 +10,17 @@ from vendor_config import load_vendor_config
 
 load_vendor_config()
 from file_preview import find_project_preview_url
+from cloud_extras import download_preview, trusted_url
 from temperature_history import TemperatureHistory
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from account_transport import AccountTransport
-from printer_values import filepath, integer, now, safeget, serial
+from printer_values import integer, now, safeget, serial
 from printer_commands import execute_command, slot_indices
 import printer_files
 from account_auth import AccountAuth
 from web_host import (
+    APP_VERSION,
     SESSION_DIGEST_KEY,
     SENSITIVE_ACTIONS,
     access_control,
@@ -39,11 +39,10 @@ from command_journal import (
     mqtt_digest,
     request_key,
 )
-from session_api import SessionRecovery
+from session_api import CloudSessionAuthError, SessionRecovery
 from native_controls import task_details, ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
 from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
-from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
 from anycubic_cloud_api.const.enums import AnycubicOrderID
 from anycubic_cloud_api.data_models.orders import AnycubicBaseOrderRequest
 from anycubic_cloud_api.exceptions.exceptions import (
@@ -54,7 +53,6 @@ from anycubic_cloud_api.exceptions.exceptions import (
 
 ROOT = pathlib.Path(__file__).parent
 FIELDS = json.loads((ROOT / "fields.json").read_text())
-ALLOWED_ORIGIN = os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080")
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
@@ -81,7 +79,7 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             and not raw_data
         ):
             if (digest := mqtt_digest(result)) is not None:
-                tracker.watch(entry, order_id, digest, sent_at)
+                await tracker.watch(entry, order_id, digest, sent_at)
         return result
 
     def cloud_printer_updated(self):
@@ -113,24 +111,14 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                         and not getattr(message, "retain", False)
                     ):
                         tracker.receive(printer_key(owner.printer.id), payload)
-                    owner.receive_ai_reply(str(message.topic), payload)
+                    if not getattr(message, "retain", False):
+                        owner.receive_ai_reply(str(message.topic), payload)
                     owner.receive_video_reply(str(message.topic), payload)
-                    if (
-                        payload.get("type") == "file"
-                        and payload.get("action")
-                        in [
-                            "listLocal",
-                            "listUdisk",
-                            "fileDetails",
-                            "listVideo",
-                            "videoThumbnailList",
-                        ]
-                    ) or payload.get("type") in ["light", "aiSettings"]:
-                        owner.file_messages[str(payload.get("msgid"))] = payload
-                        if payload.get("type") == "light":
-                            owner.light_report = (time.monotonic(), payload)
-                        while len(owner.file_messages) > 60:
-                            owner.file_messages.pop(next(iter(owner.file_messages)))
+                    if not getattr(message, "retain", False) and payload.get("type") in (
+                        "file",
+                        "light",
+                    ):
+                        owner.mqtt_replies.receive(payload)
             return super()._mqtt_message_router(message)
         finally:
             self.message_engine = None
@@ -182,16 +170,14 @@ class Engine:
         self.events = collections.deque(maxlen=40)
         self.cloudfiles = {}
         self.commands = collections.OrderedDict()
-        self.file_tasks = {}
-        self.light_report = None
         self.preview_cache = {}
-        self.file_messages = {}
+        self.mqtt_replies = printer_files.MQTTReplies()
         self.dir_cache = {}
         self.raw_info = {}
         self.last_session = 0
         self.camera = None
         self.ai_query_started = None
-        self.ai_query_reply = None
+        self.ai_query_waiter = None
         self.ai_cache = None
         self.presets = [
             {"name": "PLA", "temperature": 45, "hours": 4},
@@ -407,7 +393,9 @@ class Engine:
                     getattr(self.account, "notice", None)
                     or "Connexion Anycubic indisponible (" + type(e).__name__ + ")."
                 )
-                if "Auth" in type(e).__name__ and type(e).__name__ != "CloudSessionAuthError":
+                if isinstance(e, (AnycubicAuthError, AnycubicAuthTokensExpired)) and not isinstance(
+                    e, CloudSessionAuthError
+                ):
                     owner = self.fleet_registry.default if self.fleet_registry else self
                     owner.reconnect_required = True
                     # Conserver le client jusqu’à la fin du fil permet de réessayer sa fermeture au cycle suivant.
@@ -475,6 +463,8 @@ class Engine:
             "presets": self.presets,
         }
         base["account_message"] = getattr(self.account, "notice", None)
+        token_expiry = getattr(self.account, "token_expiry", None)
+        base["token_expires_at"] = token_expiry(self.account_token) if token_expiry else None
         base["notifications"] = self.notifications.cache.get(1, (None, None))[1]
         base["notifications_error"] = self.notifications_error
         base["camera_diagnostic"] = self.camera_diagnostic
@@ -552,18 +542,17 @@ class Engine:
                     rawslots = rawboxes[i].get("slots") or []
                     if j < len(rawslots):
                         rawslot = rawslots[j]
-                        spool["remaining_percent"] = (
-                            rawslot.get("consumables_percent")
-                            if rawslot.get("edit_status") == 0
-                            else rawslot.get("consumables_percent") or None
-                        )
+                        if not isinstance(rawslot, dict):
+                            continue
                         edit = rawslot.get("edit_status")
-                        spool["rfid"] = (
-                            edit == 0
-                            if isinstance(edit, int) and not isinstance(edit, bool)
+                        spool["rfid"] = edit == 0 if type(edit) is int and edit in (0, 1) else None
+                        percent = rawslot.get("consumables_percent")
+                        # Le zéro est aussi utilisé par les boîtiers qui ne mesurent pas la quantité.
+                        spool["remaining_percent"] = (
+                            percent
+                            if edit != 2 and type(percent) in (int, float) and 0 < percent <= 100
                             else None
                         )
-                        spool["brand"] = "Anycubic" if spool["rfid"] is True else None
         fields["task_details"] = task_details(safeget(p, "latest_project"))
         fields["axes_supported"] = 67 in (self.raw_info.get("type_function_ids") or [])
         features = {
@@ -593,13 +582,13 @@ class Engine:
         """Renvoie fichiers et chemin de local ou usb ; lève ValueError si la consultation n’est pas confirmée."""
         return await printer_files.read_files(self, source, path)
 
-    async def cloud_files(self, page):
+    async def cloud_files(self, page, folder=None):
         """Renvoie une page de fichiers et le quota, avec références opaques pour les actions ultérieures."""
-        return await printer_files.cloud_files(self, page)
+        return await printer_files.cloud_files(self, page, folder)
 
-    async def print_history(self, page):
+    async def print_history(self, page, source=None):
         """Délègue la lecture au service du compte avec le transport courant."""
-        return await self.notifications.page(self.api, page)
+        return await self.notifications.page(self.api, page, source)
 
     async def mark_history_read(self, key=None, all_items=False):
         """Délègue le changement d’état au même service que la lecture."""
@@ -610,17 +599,12 @@ class Engine:
         return await self.notifications.delete(self.api, key, all_items)
 
     def receive_ai_reply(self, topic, payload):
-        """Retient uniquement la réponse IA de la machine et de la consultation en cours."""
+        """Transfère seulement la réponse IA non corrélable par msgid de la consultation active."""
         started = self.ai_query_started
-        if started is None or time.monotonic() - started > 30:
+        waiter = self.ai_query_waiter
+        if waiter is None or started is None or time.monotonic() - started > 30:
             return
-        parts = topic.split("/")
-        if (
-            len(parts) <= 6
-            or not self.printer
-            or not getattr(self.printer, "key", None)
-            or parts[6] != str(self.printer.key)
-        ):
+        if not self.printer or get_part_from_mqtt_topic(topic, 6) != str(self.printer.key):
             return
         if (
             payload.get("type") != "aiSettings"
@@ -630,49 +614,34 @@ class Engine:
             return
         data = payload.get("data")
         if isinstance(data, dict) and isinstance(data.get("ai_settings"), dict):
-            self.ai_query_reply = (started, payload)
 
-    async def cloud_query(self, order, data=None):
-        """Renvoie les données de consultation ; lève ValueError en cas de refus ou d’absence de réponse MQTT."""
-        from anycubic_cloud_api.data_models.orders import (
-            AnycubicBaseOrderRequest,
-            AnycubicProjectOrderRequest,
-        )
+            def deliver():
+                if self.ai_query_waiter is waiter and not waiter.done():
+                    waiter.set_result(data)
 
-        started = time.monotonic()
-        if order == 1242:
-            self.ai_query_started = started
-            self.ai_query_reply = None
-        request = (
-            AnycubicBaseOrderRequest(order_id=order, printer_id=self.printer.id)
-            if order == 1242
-            else AnycubicProjectOrderRequest(
-                order_id=order, printer_id=self.printer.id, project_id=0, order_data=data or {}
-            )
-        )
+            with contextlib.suppress(RuntimeError):
+                waiter.get_loop().call_soon_threadsafe(deliver)
+
+    async def cloud_query(self, order):
+        """Renvoie les réglages IA ; lève ValueError en cas de refus ou d’absence de réponse MQTT."""
+        if order != 1242 or self.ai_query_waiter is not None:
+            raise ValueError("Consultation Anycubic indisponible")
+        self.ai_query_started = time.monotonic()
+        waiter = self.ai_query_waiter = asyncio.get_running_loop().create_future()
         try:
-            mid = await self.api._send_anycubic_order(request)
+            mid = await self.api._send_anycubic_order(
+                AnycubicBaseOrderRequest(order_id=order, printer_id=self.printer.id)
+            )
             if not mid:
                 raise ValueError("La consultation n’a pas été acceptée par Anycubic")
-            deadline = time.monotonic() + (30 if order == 1242 else 15)
-            while True:
-                if order == 1242:
-                    reply = self.ai_query_reply
-                    if reply and reply[0] == started:
-                        response = reply[1]
-                        break
-                elif str(mid) in self.file_messages:
-                    response = self.file_messages.pop(str(mid))
-                    break
-                if time.monotonic() > deadline:
-                    raise ValueError("L’imprimante n’a pas répondu à cette consultation")
-                await asyncio.sleep(0.1)
-            if response.get("state") != "done":
-                raise ValueError("Cette fonction n’est pas disponible sur l’imprimante")
-            return response.get("data") or {}
+            try:
+                return await asyncio.wait_for(waiter, 30)
+            except TimeoutError:
+                raise ValueError("L’imprimante n’a pas répondu à cette consultation") from None
         finally:
-            if order == 1242:
-                self.ai_query_started = None
+            waiter.cancel()
+            self.ai_query_waiter = None
+            self.ai_query_started = None
 
     async def ai_settings(self):
         """Renvoie les réglages IA filtrés ; lève ValueError si la machine est occupée ou la réponse absente."""
@@ -706,14 +675,17 @@ def request_engine(request):
     return request.get("selected_engine", engine) if isinstance(request, web.Request) else engine
 
 
-def verify_printer_target(request, selected):
+def verify_printer_target(request, selected, *, require_model=True):
     """Refuse une cible modifiée pendant une attente ; la vérification précède tout envoi physique sous verrou."""
     if isinstance(request, web.Request):
         expected = request.get("printer_key")
         registry = getattr(selected, "fleet_registry", None)
         if expected and registry and expected not in registry.catalogue():
             raise ValueError("Cette imprimante a quitté le compte. Aucune commande envoyée.")
-        if expected and (not selected.printer or printer_key(selected.printer.id) != expected):
+        if expected and (
+            (selected.printer is None and require_model)
+            or (selected.printer is not None and printer_key(selected.printer.id) != expected)
+        ):
             raise ValueError(
                 "L’imprimante ciblée a changé ou n’est pas prête. Actualisez sans répéter la commande."
             )
@@ -770,14 +742,66 @@ async def health(req):
     return web.json_response({"service": "ok"})
 
 
+async def diagnostic(req):
+    """Télécharge les informations locales autorisées, même si le Cloud ne répond plus."""
+    engine = request_engine(req)
+    model = safeget(engine.printer, "machine_name")
+    firmware = safeget(engine.printer, "fw_version.firmware_version")
+    counters = getattr(engine.api, "mqtt_diagnostics", {})
+    features = engine.extras.features() if engine.extras else {}
+    payload = {
+        "version": APP_VERSION,
+        "cloud_available": bool(engine.ok and engine.api),
+        "model": model
+        if isinstance(model, str)
+        and re.fullmatch(
+            r"(?:Anycubic )?(?:Kobra|Photon|Mega|Chiron|Vyper)(?:[ A-Za-z0-9+-]{0,44})", model
+        )
+        else None,
+        "firmware": firmware
+        if isinstance(firmware, str) and re.fullmatch(r"[vV]?\d+(?:\.\d+){1,5}", firmware)
+        else None,
+        "capabilities": {
+            name: features[name]
+            for name in (
+                "camera_timelapse_support",
+                "fod_support",
+                "factory_reset_support",
+            )
+            if name in features
+        },
+        "mqtt": {
+            name: counters[name]
+            for name in (
+                "unknown_reports",
+                "unknown_types",
+                "unhandled_reports",
+                "decode_errors",
+                "processing_errors",
+            )
+            if name in counters and type(counters[name]) is int and counters[name] >= 0
+        },
+    }
+    return web.json_response(
+        payload,
+        headers={"Content-Disposition": 'attachment; filename="diagnostic-anycubic.json"'},
+    )
+
+
 async def files(req):
     """Renvoie les fichiers cloud sous verrou ; lève ValueError sans connexion ou si la page est invalide."""
     engine = request_engine(req)
     if not engine.api:
         raise ValueError("Connexion en cours")
+    page = integer(req.query.get("page", 1), 1, 1000)
+    folder = req.query.get("folder")
+    if folder is not None and not re.fullmatch(r"root|[a-f0-9]{20}", folder):
+        raise ValueError("Dossier Cloud invalide")
     async with engine.lock:
         return web.json_response(
-            await engine.cloud_files(integer(req.query.get("page", 1), 1, 1000)),
+            await (
+                engine.cloud_files(page) if folder is None else engine.cloud_files(page, folder)
+            ),
             headers={"Cache-Control": "no-store"},
         )
 
@@ -787,17 +811,22 @@ async def history(req):
     engine = request_engine(req)
     if not engine.api:
         raise ValueError("Connexion en cours")
+    page = integer(req.query.get("page", 1), 1, 1000)
+    source = req.query.get("source")
+    if source not in (None, "legacy", "slicer"):
+        raise ValueError("Journal de notifications invalide")
     async with engine.lock:
         return web.json_response(
-            await engine.print_history(integer(req.query.get("page", 1), 1, 1000)),
+            await (
+                engine.print_history(page) if source is None else engine.print_history(page, source)
+            ),
             headers={"Cache-Control": "no-store"},
         )
 
 
 async def history_read(req):
-    """Renvoie la confirmation de lecture ; rejette une origine étrangère ou une clé invalide."""
+    """Renvoie la confirmation de lecture ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
-    verify_origin(req)
     data = await req.json()
     if data.get("all") is not True and not re.fullmatch(r"[a-f0-9]{20}", str(data.get("key", ""))):
         raise ValueError("Notification invalide")
@@ -811,11 +840,10 @@ async def history_read(req):
 
 
 async def history_delete(req):
-    """Renvoie la confirmation d’effacement ; rejette une origine étrangère ou une clé invalide."""
+    """Renvoie la confirmation d’effacement ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
-    verify_origin(req)
     data = await req.json()
-    with audit_command(req, engine, "history-delete", None, {}) as audit:
+    async with audit_command(req, engine, "history-delete", None, {}) as audit:
         if data.get("all") is not True and not re.fullmatch(
             r"[a-f0-9]{20}", str(data.get("key", ""))
         ):
@@ -825,7 +853,7 @@ async def history_delete(req):
                 raise ValueError("Connexion en cours")
             if audit:
                 audit["outcome"] = "inconnue"
-                save_command_event(req, audit)
+                await save_command_event(req, audit)
             result = await engine.delete_history(data.get("key"), data.get("all") is True)
             if audit:
                 audit["outcome"] = "acceptée"
@@ -841,13 +869,6 @@ async def ai_settings(req):
         return web.json_response(
             {"settings": await engine.ai_settings()}, headers={"Cache-Control": "no-store"}
         )
-
-
-def verify_origin(req):
-    """Lève HTTPForbidden si une origine explicite diffère des origines locales autorisées."""
-    origin = req.headers.get("Origin")
-    if origin and origin not in [ALLOWED_ORIGIN, "http://127.0.0.1:8080"]:
-        raise web.HTTPForbidden()
 
 
 async def local_files(req):
@@ -871,18 +892,18 @@ class CommandWaitExpired(ValueError):
     """Signale une attente expirée avant l’envoi d’une commande."""
 
 
-def save_command_event(request, entry):
+async def save_command_event(request, entry):
     """Enregistre la trace sans empêcher une commande de sécurité si le disque est indisponible."""
     if not entry:
         return
     journal = request.app[COMMAND_JOURNAL_KEY]
     try:
-        journal.record(entry)
+        await journal.record_async(entry)
     except OSError:
         logging.getLogger(__name__).error("Écriture du journal des commandes impossible")
 
 
-def recorded_command(request, request_id):
+async def recorded_command(request, request_id):
     """Retrouve une tentative déjà engagée, même après la perte du cache de l’imprimante."""
     journal = request.app.get(COMMAND_JOURNAL_KEY) if isinstance(request, web.Request) else None
     if journal is None:
@@ -890,7 +911,7 @@ def recorded_command(request, request_id):
     key = request_key(request_id)
     printer = request.get("printer_key")
     try:
-        for row in reversed(journal.rows()):
+        for row in reversed(await asyncio.to_thread(journal.rows)):
             if (
                 row.get("printer") != printer
                 or row.get("request_id") != key
@@ -911,8 +932,8 @@ def recorded_command(request, request_id):
     return None
 
 
-@contextlib.contextmanager
-def audit_command(request, engine, action, request_id, parameters):
+@contextlib.asynccontextmanager
+async def audit_command(request, engine, action, request_id, parameters):
     """Garde un résultat local ou inconnu si la demande se termine avant son retour Anycubic."""
     if (
         isinstance(action, str)
@@ -943,13 +964,13 @@ def audit_command(request, engine, action, request_id, parameters):
         raise
     finally:
         command_mqtt_context.reset(context)
-        save_command_event(request, entry)
+        await save_command_event(request, entry)
 
 
 async def command_journal(request):
     """Liste les entrées privées filtrées ou télécharge une copie sans adresse ni empreinte de session."""
     try:
-        rows = request.app[COMMAND_JOURNAL_KEY].rows()
+        rows = await asyncio.to_thread(request.app[COMMAND_JOURNAL_KEY].rows)
     except OSError:
         return web.json_response(
             {"message": "Le journal des commandes est indisponible."}, status=503
@@ -977,7 +998,7 @@ async def command_journal(request):
 
 
 @contextlib.asynccontextmanager
-async def command_operation(req):
+async def command_operation(req, *, require_model=True):
     # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
     """Cède le verrou API à une seule opération ; lève ValueError si attente trop longue ou client parti."""
     engine = request_engine(req)
@@ -993,7 +1014,7 @@ async def command_operation(req):
         try:
             if req.transport is None or req.transport.is_closing():
                 raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
-            verify_printer_target(req, engine)
+            verify_printer_target(req, engine, require_model=require_model)
             yield
         finally:
             engine.lock.release()
@@ -1002,7 +1023,6 @@ async def command_operation(req):
 async def command(req):
     """Renvoie le résultat mémorisé par request_id ; rejette une demande invalide sans répéter une commande connue."""
     engine = request_engine(req)
-    verify_origin(req)
     d = await req.json()
     requestid = str(d.pop("request_id", ""))
     valid_id = re.fullmatch(r"[a-zA-Z0-9-]{16,80}", requestid)
@@ -1011,12 +1031,16 @@ async def command(req):
     if requestid in engine.commands:
         previous = engine.commands[requestid]
         return web.json_response(previous, status=200 if previous["ok"] else 409)
-    if valid_id and (previous := recorded_command(req, requestid)) is not None:
+    if valid_id and (previous := await recorded_command(req, requestid)) is not None:
         return previous
-    with audit_command(req, engine, name, requestid if valid_id else None, d) as audit:
+    async with audit_command(req, engine, name, requestid if valid_id else None, d) as audit:
         if not valid_id:
             raise ValueError("Identifiant de commande manquant")
-        async with command_operation(req):
+        async with command_operation(req, require_model=name != "presets"):
+            if requestid in engine.commands:
+                audit.clear()
+                previous = engine.commands[requestid]
+                return web.json_response(previous, status=200 if previous["ok"] else 409)
             if (
                 isinstance(name, str)
                 and name in SENSITIVE_ACTIONS
@@ -1035,7 +1059,7 @@ async def command(req):
             }
             sent = False
 
-            def before_send():
+            async def before_send():
                 nonlocal sent
                 if sent:
                     return
@@ -1045,7 +1069,7 @@ async def command(req):
                     engine.commands.popitem(last=False)
                 if audit:
                     audit["outcome"] = "inconnue"
-                    save_command_event(req, audit)
+                    await save_command_event(req, audit)
 
             dispatch = command_dispatch.set(before_send)
             try:
@@ -1110,7 +1134,6 @@ def camera_transport_failure(error):
 async def camera(req):
     """Renvoie une session en cache cinq secondes ; retente une seule panne de transport, propage les autres erreurs."""
     engine = request_engine(req)
-    verify_origin(req)
     viewer = req.headers.get("X-Camera-Viewer")
     if viewer and not re.fullmatch(r"[a-f0-9-]{36}", viewer):
         raise ValueError("Session vidéo invalide")
@@ -1180,7 +1203,6 @@ async def close_idle_camera(engine, target):
 async def camera_close(req):
     """Libère la session vidéo du navigateur et programme la fermeture si le flux est inutilisé."""
     engine = request_engine(req)
-    verify_origin(req)
     viewer = req.headers.get("X-Camera-Viewer")
     if not viewer or not re.fullmatch(r"[a-f0-9-]{36}", viewer):
         raise ValueError("Session vidéo invalide")
@@ -1212,8 +1234,7 @@ async def camera_close(req):
 async def upload(req):
     """Renvoie l’acceptation du G-code dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
     engine = request_engine(req)
-    verify_origin(req)
-    with audit_command(req, engine, "upload", None, {}) as audit:
+    async with audit_command(req, engine, "upload", None, {}) as audit:
         return await upload_operation(req, engine, audit)
 
 
@@ -1269,14 +1290,16 @@ async def upload_operation(req, engine, audit):
                 audit["parameters"] = filtered_parameters(mode, {"name": filename})
             if rid in engine.commands:
                 audit.clear()
-                return web.json_response(engine.commands[rid])
-            if (previous := recorded_command(req, rid)) is not None:
+                previous = engine.commands[rid]
+                return web.json_response(previous, status=200 if previous["ok"] else 409)
+            if (previous := await recorded_command(req, rid)) is not None:
                 audit.clear()
                 return previous
             async with command_operation(req):
                 if rid in engine.commands:
                     audit.clear()
-                    return web.json_response(engine.commands[rid])
+                    previous = engine.commands[rid]
+                    return web.json_response(previous, status=200 if previous["ok"] else 409)
                 if not engine.api:
                     raise ValueError("Connexion en cours")
                 if mode != "upload":
@@ -1294,7 +1317,7 @@ async def upload_operation(req, engine, audit):
                 }
                 if audit:
                     audit["outcome"] = "inconnue"
-                    save_command_event(req, audit)
+                    await save_command_event(req, audit)
                 if mode == "upload":
                     await engine.api.upload_file_to_cloud(
                         full_file_path=str(path), file_name=filename
@@ -1305,7 +1328,11 @@ async def upload_operation(req, engine, audit):
                         if mode == "save-print"
                         else engine.printer.print_and_upload_no_cloud_save
                     )
-                    await func(full_file_path=str(path), file_name=filename, slot_index_list=slots)
+                    response = await func(
+                        full_file_path=str(path), file_name=filename, slot_index_list=slots
+                    )
+                    if not response or not response.order_msg_id:
+                        return web.json_response(engine.commands[rid], status=409)
                 engine.event("G-code", "Envoi accepté")
                 if audit and audit["outcome"] != "confirmée":
                     audit["outcome"] = "acceptée"
@@ -1371,6 +1398,12 @@ async def temperatures(req):
 
 async def startup(app):
     """Préserve la collecte initiale et initialise le registre des cibles indépendantes."""
+    try:
+        await asyncio.to_thread(purge_abandoned_uploads, engine.state_dir)
+    except OSError as error:
+        logging.getLogger(__name__).warning(
+            "Dossiers d’envoi non inspectés (%s)", type(error).__name__
+        )
     with contextlib.suppress(Exception):
         engine.presets = json.loads(pathlib.Path("/appdata/state/presets.json").read_text())
     engine.catalogue_source = True
@@ -1378,10 +1411,45 @@ async def startup(app):
     app["poll_task"] = asyncio.create_task(engine.poll())
     app["temperature_history"] = TemperatureHistory()
     app[COMMAND_JOURNAL_KEY] = CommandJournal(engine.state_dir / "command-journal.jsonl")
-    engine.command_mqtt = app[COMMAND_MQTT_KEY] = JournalMQTT(
-        app[COMMAND_JOURNAL_KEY], asyncio.get_running_loop()
+    engine.command_mqtt = app[COMMAND_MQTT_KEY] = await asyncio.to_thread(
+        JournalMQTT, app[COMMAND_JOURNAL_KEY], asyncio.get_running_loop()
     )
     app["temperature_task"] = asyncio.create_task(sample_temperatures(app))
+
+
+def purge_abandoned_uploads(state_dir):
+    """Retire les répertoires temporaires d’envoi âgés d’au moins 24 h dans les seuls dossiers d’état."""
+    if state_dir.is_symlink() or not state_dir.is_dir():
+        return
+    roots = [state_dir]
+    printers = state_dir / "printers"
+    if printers.is_dir() and not printers.is_symlink():
+        roots.extend(
+            path
+            for path in printers.iterdir()
+            if re.fullmatch(r"[0-9a-f]{20}", path.name) and path.is_dir() and not path.is_symlink()
+        )
+    cutoff = time.time() - 86400
+    for root in roots:
+        for path in root.iterdir():
+            if not re.fullmatch(r"upload-[a-z0-9_]{8}", path.name) or path.is_symlink():
+                continue
+            try:
+                if not path.is_dir() or path.stat().st_mtime > cutoff:
+                    continue
+                if any(
+                    child.name != "payload.gcode"
+                    or child.is_symlink()
+                    or not child.is_file()
+                    or child.stat().st_mtime > cutoff
+                    for child in path.iterdir()
+                ):
+                    continue
+                shutil.rmtree(path)
+            except OSError as error:
+                logging.getLogger(__name__).warning(
+                    "Nettoyage d’un envoi abandonné impossible (%s)", type(error).__name__
+                )
 
 
 async def cleanup(app):
@@ -1404,14 +1472,14 @@ async def cleanup(app):
         await app["poll_task"]
     if engine.api:
         engine.api.disconnect_mqtt()
+    await app[COMMAND_MQTT_KEY].flush()
     if engine.session:
         await engine.session.close()
 
 
 async def preview(req):
-    """Renvoie une image validée ou None ; lève ValueError si la connexion manque ou l’image dépasse la limite."""
+    """Renvoie une image validée ou None ; lève ValueError si la connexion manque."""
     engine = request_engine(req)
-    verify_origin(req)
     d = await req.json()
     url = None
     async with engine.lock:
@@ -1430,34 +1498,12 @@ async def preview(req):
             f = engine.cloudfiles.get(str(d.get("handle")))
             if f:
                 url = safeget(f, "_thumbnail")
-        if not url:
-            projects = await engine.api.list_all_projects()
-            url = find_project_preview_url(projects, engine.printer.id, str(d.get("name", "")))
-    if not isinstance(url, str):
-        return web.json_response({"image": None})
-    parsed = urlsplit(url)
-    host = parsed.hostname or ""
-    if parsed.scheme != "https" or not any(
-        host == domain or host.endswith("." + domain)
-        for domain in ["anycubic.com", "anycubic-cloud.com", "amazonaws.com", "makeronline.com"]
-    ):
-        return web.json_response({"image": None})
-    async with engine.session.get(url, allow_redirects=False) as response:
-        mime = response.headers.get("Content-Type", "").split(";")[0]
-        if response.status != 200 or mime not in [
-            "image/png",
-            "image/jpeg",
-            "image/webp",
-            "image/gif",
-        ]:
-            return web.json_response({"image": None})
-        content = bytearray()
-        async for chunk in response.content.iter_chunked(65536):
-            content.extend(chunk)
-            if len(content) > 3 * 1024 * 1024:
-                raise ValueError("Aperçu trop volumineux")
+        if not trusted_url(url):
+            with contextlib.suppress(TimeoutError):
+                projects = await engine.extras.file_preview_projects()
+                url = find_project_preview_url(projects, engine.printer.id, str(d.get("name", "")))
     return web.json_response(
-        {"image": "data:" + mime + ";base64," + base64.b64encode(content).decode()},
+        {"image": await download_preview(engine.session, url)},
         headers={"Cache-Control": "no-store"},
     )
 
@@ -1469,6 +1515,7 @@ app.add_routes(
     [
         web.get("/imprimante-api/printers", printers),
         web.get("/imprimante-api/health", health),
+        web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),

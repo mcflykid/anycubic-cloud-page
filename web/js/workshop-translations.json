@@ -91,6 +91,10 @@
     "Hardened steel",
     "Acero templado"
   ],
+  "Actif": [
+    "Active",
+    "Activo"
+  ],
   "Action": [
     "Action",
     "Acción"
@@ -247,6 +251,10 @@
     "Device",
     "Dispositivo"
   ],
+  "Apparence": [
+    "Appearance",
+    "Apariencia"
+  ],
   "Appliquer ces options d’assistance ?": [
     "Apply these assistance options?",
     "¿Aplicar estas opciones de asistencia?"
@@ -326,6 +334,10 @@
   "Aucun message": [
     "No messages",
     "No hay mensajes"
+  ],
+  "Aucun message ne correspond aux filtres.": [
+    "No messages match the filters.",
+    "Ningún mensaje coincide con los filtros."
   ],
   "Aucun module ACE": [
     "No ACE module",
@@ -523,6 +535,10 @@
     "Choose a time range from the last 24 hours of readings.",
     "Elige un período entre las lecturas de las últimas 24 horas."
   ],
+  "Choisir un dossier": [
+    "Choose a folder",
+    "Elige una carpeta"
+  ],
   "Choisir un emplacement, son matériau et sa couleur.": [
     "Choose a slot, its material and its color.",
     "Elige una ranura, su material y su color."
@@ -530,6 +546,10 @@
   "Choisissez les calibrations à lancer, plateau libre.": [
     "Choose calibrations to run with the build plate clear.",
     "Elige las calibraciones que quieres ejecutar con la cama despejada."
+  ],
+  "Choisissez ou déposez un fichier .gcode de 100 Mo maximum.": [
+    "Select or drop a .gcode file of up to 100 MB.",
+    "Selecciona o suelta un archivo .gcode de hasta 100 MB."
   ],
   "Choisissez un fichier .gcode de 100 Mo maximum.": [
     "Choose a .gcode file up to 100 MB.",
@@ -542,6 +562,14 @@
   "Choisissez un matériau compatible avant d’enregistrer cette bobine.": [
     "Choose a compatible material before saving this spool.",
     "Elige un material compatible antes de guardar esta bobina."
+  ],
+  "Choisissez un seul fichier .gcode non vide.": [
+    "Choose one non-empty .gcode file.",
+    "Elige un único archivo .gcode no vacío."
+  ],
+  "Clair": [
+    "Light",
+    "Claro"
   ],
   "Cloud Anycubic": [
     "Anycubic Cloud",
@@ -855,6 +883,14 @@
     "Folder",
     "Carpeta"
   ],
+  "Dossier Cloud": [
+    "Cloud folder",
+    "Carpeta en la nube"
+  ],
+  "Dossier de destination": [
+    "Destination folder",
+    "Carpeta de destino"
+  ],
   "Dossier parent": [
     "Parent folder",
     "Carpeta superior"
@@ -919,6 +955,10 @@
     "Start the {0} drying preset at {1} °C for {2} h?",
     "¿Iniciar el secado {0} a {1} °C durante {2} h?"
   ],
+  "Démarrer le séchage à {0} °C pendant {1} h ?": [
+    "Start drying at {0} °C for {1} h?",
+    "¿Iniciar el secado a {0} °C durante {1} h?"
+  ],
   "Démonstration · Données fictives · Aucune imprimante connectée": [
     "Demo · Sample data · No printer connected",
     "Demostración · Datos ficticios · Sin impresora conectada"
@@ -951,6 +991,10 @@
     "Move in the positive Z direction.",
     "Mover en la dirección Z positiva."
   ],
+  "Déplacer la sélection": [
+    "Move selected files",
+    "Mover la selección"
+  ],
   "Déplacer la tête vers X négatif.": [
     "Move the toolhead towards negative X.",
     "Mover el cabezal hacia X negativo."
@@ -975,6 +1019,10 @@
     "Move the printer axes with these settings?",
     "¿Mover los ejes de la impresora con estos parámetros?"
   ],
+  "Déplacer {0} fichier(s) de « {1} » vers « {2} » ?": [
+    "Move {0} file(s) from “{1}” to “{2}”?",
+    "¿Mover {0} archivo(s) de «{1}» a «{2}»?"
+  ],
   "Désactiver les moteurs pour permettre un déplacement manuel.": [
     "Disable the motors to allow manual movement.",
     "Desactiva los motores para permitir el movimiento manual."
@@ -998,6 +1046,10 @@
   "Détails de l’impression et du matériel": [
     "Print and device details",
     "Detalles de la impresión y del equipo"
+  ],
+  "Détails du fichier": [
+    "File details",
+    "Detalles del archivo"
   ],
   "Détection IA": [
     "AI detection",
@@ -1151,6 +1203,10 @@
     "Example: 1, 3, 2",
     "Ejemplo: 1, 3, 2"
   ],
+  "Expiration du jeton Anycubic le {0}.": [
+    "Anycubic token expires on {0}.",
+    "El token de Anycubic caduca el {0}."
+  ],
   "Exporter le journal expurgé": [
     "Export redacted log",
     "Exportar registro anonimizado"
@@ -1214,6 +1270,10 @@
   "Fichiers": [
     "Files",
     "Archivos"
+  ],
+  "Fichiers déplacés dans le Cloud": [
+    "Files moved in the Cloud",
+    "Archivos movidos en la nube"
   ],
   "Fichiers supprimés du Cloud": [
     "Files deleted from the cloud",
@@ -1387,6 +1447,10 @@
     "Print again",
     "Volver a imprimir"
   ],
+  "Inactif": [
+    "Inactive",
+    "Inactivo"
+  ],
   "Indiquez des emplacements de 1 à 8.": [
     "Enter slot numbers from 1 to 8.",
     "Indica números de ranura del 1 al 8."
@@ -1435,9 +1499,17 @@
     "I want to reset this printer",
     "Quiero restablecer esta impresora"
   ],
+  "Jeton Anycubic expiré le {0}.": [
+    "Anycubic token expired on {0}.",
+    "El token de Anycubic caducó el {0}."
+  ],
   "Journal des commandes": [
     "Command log",
     "Registro de comandos"
+  ],
+  "Journal historique": [
+    "Legacy notifications",
+    "Notificaciones anteriores"
   ],
   "La caméra ne répond pas pour le moment. Réessayez dans quelques secondes.": [
     "The camera is not responding. Try again in a few seconds.",
@@ -1470,6 +1542,10 @@
   "La langue et l’imprimante sélectionnées sont mémorisées dans le stockage local de ce navigateur. Ces préférences restent sur cet appareil jusqu’à leur modification ou à l’effacement des données du site.": [
     "The selected language and printer are saved in this browser’s local storage. These preferences stay on this device until changed or until site data is cleared.",
     "El idioma y la impresora seleccionados se guardan en el almacenamiento local de este navegador. Estas preferencias permanecen en el dispositivo hasta que las cambies o borres los datos del sitio."
+  ],
+  "La langue, le thème et l’imprimante sélectionnés sont mémorisés dans le stockage local de ce navigateur. Ces préférences restent sur cet appareil jusqu’à leur modification ou à l’effacement des données du site.": [
+    "The selected language, theme, and printer are stored in this browser. These preferences stay on this device until you change them or clear the site data.",
+    "El idioma, el tema y la impresora seleccionados se guardan en este navegador. Estas preferencias permanecen en el dispositivo hasta que las cambies o borres los datos del sitio."
   ],
   "La liste des vidéos n’est pas fournie par ce firmware.": [
     "This firmware did not supply the video list.",
@@ -1547,9 +1623,17 @@
     "The file exceeds 100 MB.",
     "El archivo supera los 100 MB."
   ],
+  "Le jeton Anycubic expire bientôt, le {0}.": [
+    "Anycubic token expires soon, on {0}.",
+    "El token de Anycubic caduca pronto, el {0}."
+  ],
   "Le journal des commandes est indisponible.": [
     "The command log is unavailable.",
     "El registro de comandos no está disponible."
+  ],
+  "Le journal du slicer est temporairement indisponible": [
+    "Slicer notifications are temporarily unavailable",
+    "Las notificaciones del laminador no están disponibles temporalmente"
   ],
   "Le lecteur vidéo n’a pas pu être chargé.": [
     "The video player could not be loaded.",
@@ -1735,6 +1819,10 @@
     "Messages temporarily unavailable",
     "Mensajes no disponibles temporalmente"
   ],
+  "Mesures et éclairage": [
+    "Readings and light",
+    "Lecturas e iluminación"
+  ],
   "Mettre l’impression en cours en pause.": [
     "Pause the current print.",
     "Pausa la impresión en curso."
@@ -1918,6 +2006,10 @@
   "Notifications : {0} message{1} non lu{2}": [
     "Notifications: {0} unread",
     "Notificaciones: {0} sin leer"
+  ],
+  "Notifications Cloud": [
+    "Cloud notifications",
+    "Notificaciones de la nube"
   ],
   "Notifications effacées": [
     "Notifications deleted",
@@ -2138,6 +2230,10 @@
   "Questions": [
     "Questions",
     "Preguntas"
+  ],
+  "RFID reconnu": [
+    "RFID recognized",
+    "RFID reconocido"
   ],
   "Rechercher": [
     "Search",
@@ -2375,6 +2471,10 @@
     "Printer sections",
     "Secciones de la impresora"
   ],
+  "Sections des commandes courantes": [
+    "Quick control sections",
+    "Secciones de controles rápidos"
+  ],
   "Sensibilité": [
     "Sensitivity",
     "Sensibilidad"
@@ -2406,6 +2506,10 @@
   "Silencieux": [
     "Quiet",
     "Silencioso"
+  ],
+  "Sombre": [
+    "Dark",
+    "Oscuro"
   ],
   "Source : Anycubic Cloud et MQTT.": [
     "Source: Anycubic Cloud and MQTT.",
@@ -2478,6 +2582,14 @@
   "Synchroniser toutes les notifications comme lues dans Anycubic.": [
     "Mark all notifications as read in Anycubic.",
     "Marca todas las notificaciones como leídas en Anycubic."
+  ],
+  "Système": [
+    "System",
+    "Sistema"
+  ],
+  "Séchage": [
+    "Drying",
+    "Secado"
   ],
   "Séchage actif": [
     "Drying active",
@@ -2567,6 +2679,10 @@
     "Completed",
     "Completado"
   ],
+  "Thème de l’interface": [
+    "Interface theme",
+    "Tema de la interfaz"
+  ],
   "Tous": [
     "All",
     "Todos"
@@ -2610,6 +2726,10 @@
   "Télécharger": [
     "Download",
     "Descargar"
+  ],
+  "Télécharger le diagnostic": [
+    "Download diagnostics",
+    "Descargar el diagnóstico"
   ],
   "Un emplacement par couleur, dans l’ordre du G-code.": [
     "One slot per color in G-code order.",
@@ -2734,6 +2854,10 @@
   "Votre session reste ouverte pendant huit heures au maximum.": [
     "Your session stays open for up to eight hours.",
     "Tu sesión permanece abierta durante un máximo de ocho horas."
+  ],
+  "Vue sans dossier": [
+    "Flat view",
+    "Vista sin carpetas"
   ],
   "Vérification auprès d’Anycubic…": [
     "Checking with Anycubic…",

@@ -13,10 +13,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=bd71f64e44b0';
-import { workshopState } from './workshop-state.mjs?v=fbe334a8cef8';
-import { slots } from './workshop-commands.mjs?v=a8721fc1025f';
-import { definition } from './workshop-overview.mjs?v=7c2871c58a5f';
+} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
+import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
+import { slots } from './workshop-commands.mjs?v=6b2fda31cc66';
+import { definition } from './workshop-overview.mjs?v=5af065eebab4';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
@@ -29,32 +29,48 @@ export function createHistory(request, command, selectedBox) {
     noticeFilter = 'all',
     noticeMore = false,
     noticeSignature = '',
-    noticeUnread = 0;
+    noticeUnread = 0,
+    noticeError = '',
+    noticeSource = 'legacy',
+    legacySelected = false;
   /** Charge une page de notifications du compte, en empêchant deux lectures simultanées. */
-  async function loadHistory(force = false) {
+  async function loadHistory(force = false, page = 1) {
     if (historyPending) return;
     historyPending = true;
     try {
+      const source = legacySelected ? 'legacy' : page > 1 ? noticeSource : '';
       const d =
-        !force && historyPage === 1 && workshopState.snapshot?.notifications
+        !force && !source && workshopState.snapshot?.notifications &&
+          !workshopState.snapshot.notifications_error
           ? workshopState.snapshot.notifications
-          : await request(`/history?page=${historyPage}`);
-      noticeRows =
-        historyPage === 1
-          ? d.items
-          : [...new Map([...noticeRows, ...d.items].map((x) => [x.key, x])).values()];
-      noticeMore = d.has_more;
-      updateNoticeCount(d.unread);
-      renderNotifications();
+          : await request(`/history?page=${page}${source ? `&source=${source}` : ''}`);
+      applyNotifications(d, page);
     } catch (e) {
-      set('history-state', e.message);
+      noticeError = e.message || tr('Messages temporairement indisponibles');
+      renderNotifications();
     } finally {
       historyPending = false;
     }
   }
+  /** Actualise le panneau sans mélanger les pages issues de journaux différents. */
+  function applyNotifications(d, page = 1) {
+    const source = d.source || 'legacy';
+    noticeRows =
+      page === 1 || noticeSource !== source
+        ? d.items
+        : [...new Map([...noticeRows, ...d.items].map((item) => [item.key, item])).values()];
+    historyPage = page;
+    noticeSource = source;
+    noticeMore = d.has_more;
+    noticeError = '';
+    updateNoticeCount(d.unread);
+    renderNotifications();
+  }
   /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
   function updateNoticeCount(count) {
-    noticeUnread = Math.max(0, Number(count) || 0);
+    noticeUnread = count == null
+      ? noticeRows.filter((item) => item.unread).length
+      : Math.max(0, Number(count) || 0);
     const displayed = fmt(noticeUnread);
     const plural = noticeUnread > 1 ? 's' : '';
     $('notifications-dot').hidden = !noticeUnread;
@@ -64,7 +80,7 @@ export function createHistory(request, command, selectedBox) {
       'aria-label',
       formatText('Notifications : {0} message{1} non lu{2}', displayed, plural, plural),
     );
-    $('history-read-all').disabled = !noticeUnread;
+    $('history-read-all').disabled = !noticeUnread || noticeSource === 'slicer';
   }
   /** Filtre les messages chargés ; les noms du cloud restent du texte et les aperçus sont différés. */
   function renderNotifications() {
@@ -112,11 +128,20 @@ export function createHistory(request, command, selectedBox) {
       wrapper.append(details);
       list.append(wrapper);
     }
-    set('history-state', rows.length ? '' : tr('Aucun message'));
-    $('history-state').className = rows.length ? '' : 'empty-message';
-    $('history-state').hidden = !!rows.length;
+    const state = noticeError || (rows.length ? '' : tr(
+      noticeRows.length || query || noticeFilter !== 'all'
+        ? 'Aucun message ne correspond aux filtres.'
+        : 'Aucun message',
+    ));
+    set('history-state', state);
+    $('history-state').className = state && !noticeError ? 'empty-message' : '';
+    $('history-state').hidden = !state;
     $('notifications-more').hidden = !noticeMore;
-    $('history-delete-all').disabled = !noticeRows.length;
+    const fromSlicer = noticeSource === 'slicer';
+    $('history-read-all').hidden = $('history-delete-all').hidden = fromSlicer;
+    $('history-delete-all').disabled = fromSlicer || !noticeRows.length;
+    $('notifications-source').hidden = !fromSlicer && !legacySelected;
+    set('notifications-source', tr(legacySelected ? 'Notifications Cloud' : 'Journal historique'));
   }
   /** Chaque événement conserve sa miniature, son horodatage et ses actions individuelles. */
   function notificationRow(item) {
@@ -161,6 +186,7 @@ export function createHistory(request, command, selectedBox) {
     }
     open.onclick = () => openNotice(item);
     row.append(open);
+    if (noticeSource === 'slicer') return row;
     const remove = node('button', '×', 'notification-delete');
     remove.type = 'button';
     remove.setAttribute('aria-label', tr('Supprimer la notification : ') + item.name);
@@ -172,7 +198,7 @@ export function createHistory(request, command, selectedBox) {
   /** Le marquage est confirmé avant le détail ; aucune impression n’est déclenchée. */
   async function openNotice(item) {
     try {
-      if (item.unread) {
+      if (item.unread && noticeSource !== 'slicer') {
         await request('/history/read', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -224,8 +250,16 @@ export function createHistory(request, command, selectedBox) {
       renderNotifications();
     };
   $('notification-search').oninput = renderNotifications;
-  $('notifications-more').onclick = () => {
-    historyPage++;
+  $('notifications-more').onclick = () => void loadHistory(true, historyPage + 1);
+  $('notifications-source').onclick = () => {
+    if (historyPending) return;
+    legacySelected = !legacySelected;
+    noticeRows = [];
+    noticeMore = false;
+    noticeError = '';
+    noticeSignature = '';
+    historyPage = 1;
+    renderNotifications();
     void loadHistory(true);
   };
   /** Marque une notification ou toutes comme lues ; allItems exige une confirmation puis rafraîchit le journal. */
@@ -815,16 +849,18 @@ export function createHistory(request, command, selectedBox) {
     }
   };
 
+  /** Réconcilie la première page du statut sans remplacer un journal choisi manuellement. */
   function syncNotifications(notifications) {
-    updateNoticeCount(notifications.unread);
+    if (legacySelected || historyPending) return;
     const signature = JSON.stringify(notifications);
-    if (signature !== noticeSignature) {
-      noticeSignature = signature;
-      if (historyPage === 1) noticeRows = notifications.items;
-      else {
-        const merged = new Map([...noticeRows, ...notifications.items].map((x) => [x.key, x]));
-        noticeRows = [...merged.values()].sort((a, b) => b.time - a.time);
-      }
+    if (signature === noticeSignature) return;
+    noticeSignature = signature;
+    if (historyPage === 1 || (notifications.source || 'legacy') !== noticeSource) {
+      applyNotifications(notifications);
+    } else {
+      const merged = new Map([...noticeRows, ...notifications.items].map((item) => [item.key, item]));
+      noticeRows = [...merged.values()].sort((a, b) => b.time - a.time);
+      updateNoticeCount(notifications.unread);
       if (!$('notifications-panel').hidden) renderNotifications();
     }
   }

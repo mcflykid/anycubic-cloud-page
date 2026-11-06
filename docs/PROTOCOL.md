@@ -79,6 +79,6 @@ L’interface transmet la référence opaque du projet affiché au moment de dem
 
 ## Ouverture et fermeture Agora (#20, #64)
 
-L’ouverture conserve l’ordre numérique 1001 et `shengwang_rtc_support` au premier niveau. Les fixtures vérifient une session Agora, un refus et un format mal formé. Elles ne démontrent pas une différence de comportement entre une chaîne et un entier sur tous les firmwares.
+L’ouverture conserve l’ordre numérique 1001 et `shengwang_rtc_support` au premier niveau. Les fixtures vérifient une session Agora, un refus et un format mal formé. Le [client Bob-41](https://github.com/Bob-41/anycubic-plugin/blob/e3c5370efad625658e40d6fe5beb19a2597936f6/plugin/plugin.py#L3408-L3414) sérialise `1001` comme une chaîne. Faute de comparaison sur la même machine, l’atelier conserve la forme numérique déjà utilisée sur la Kobra S1. Un refus ou une réponse incertaine ne déclenche aucun nouvel ordre sous une autre forme.
 
 La fermeture 1002 reprend la forme du client communautaire RespawnDespair (commit 53c406b). Elle est programmée après le départ du dernier onglet suivi par l’atelier et annulée de fait si un spectateur revient pendant le délai. Un départ reçu avant une ouverture encore en transit empêche cette ouverture tardive. Les clients externes et les onglets qui disparaissent sans notifier le serveur ne peuvent pas être recensés de façon fiable. Ce comportement a été testé sans ordre physique.

@@ -234,6 +234,18 @@ class AccountAuth:
             return ""
         return max(sources, key=lambda path: path.stat().st_mtime_ns).read_text().strip()
 
+    def token_expiry(self, active=None):
+        """Renvoie uniquement l’expiration déclarée du jeton local, hors mode compte."""
+        if self.credentials.exists():
+            return None
+        try:
+            expires = claims(active or self.slicer_token()).get("exp")
+        except OSError:
+            return None
+        if type(expires) not in (int, float) or not 0 < expires <= 253402300799:
+            return None
+        return int(expires)
+
     async def token(self, session):
         """Renvoie un jeton utilisable ; lève RuntimeError si aucun repli valide ne survit à l’échec."""
         async with self.lock:

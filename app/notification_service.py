@@ -6,6 +6,7 @@ import json
 import time
 from datetime import datetime, timezone
 
+from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 
 
@@ -76,44 +77,143 @@ class AccountNotifications:
         self.keys = {}
         self.rows = {}
 
-    async def page(self, api, page):
-        """Renvoie les notifications paginées filtrées ; lève ValueError si le cloud refuse la lecture."""
+    async def page(self, api, page, source=None):
+        """Renvoie une page du journal choisi, avec repli sur le journal historique à l’ouverture."""
         async with self.lock:
-            cached = self.cache.get(page)
+            cache_key = page if source is None else (source, page)
+            cached = self.cache.get(cache_key)
             if cached and time.monotonic() - cached[0] < 30:
                 return cached[1]
-            response = await api._fetch_api_resp(
-                AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessages"),
-                params={"type": 1, "page": page, "limit": 20},
-            )
-            counts = await api._fetch_api_resp(
-                AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessageCount"), params={}
-            )
-            if response.get("code") != 1 or not isinstance(response.get("data"), list):
-                raise ValueError("Le journal Anycubic est temporairement indisponible")
-            rows = [history_entry(r) for r in response["data"] if isinstance(r, dict)]
-            for raw in response["data"]:
-                if isinstance(raw, dict) and isinstance(raw.get("id"), int):
-                    k = history_entry(raw)["key"]
-                    self.keys[k] = raw["id"]
-                    self.rows[k] = raw
-            while len(self.keys) > 1000:
-                self.keys.pop(next(iter(self.keys)))
-            while len(self.rows) > 1000:
-                self.rows.pop(next(iter(self.rows)))
-            count = next((r for r in counts.get("data") or [] if r.get("type") == 1), {})
-            result = {
-                "items": rows,
-                "page": page,
-                "total": int(count.get("count", len(rows))),
-                "unread": int(count.get("newcount", 0)),
-                "has_more": page * 20 < int(count.get("count", 0)),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
-            self.cache[page] = (time.monotonic(), result)
-            while len(self.cache) > 10:
-                self.cache.pop(next(iter(self.cache)))
+            slicer = None
+            if source != "legacy":
+                try:
+                    slicer = await self._slicer_page(api, page)
+                except (AnycubicAPIError, TimeoutError, ValueError):
+                    if source == "slicer":
+                        raise ValueError(
+                            "Le journal du slicer est temporairement indisponible"
+                        ) from None
+            if slicer is not None and (slicer["items"] or source == "slicer"):
+                result = slicer
+            else:
+                result = await self._legacy_page(api, page)
+            result["updated_at"] = datetime.now(timezone.utc).isoformat()
+            self.cache[cache_key] = (time.monotonic(), result)
+            for entries, limit in ((self.cache, 10), (self.keys, 1000), (self.rows, 1000)):
+                while len(entries) > limit:
+                    entries.pop(next(iter(entries)))
             return result
+
+    async def _slicer_page(self, api, page):
+        # Le mode normal du slicer lit tous les statuts sans modifier leur état.
+        response = await api._fetch_api_resp(
+            AnycubicAPIEndpoint(HTTP_METHODS.POST, "/farm/message/list"),
+            params={
+                "page": page,
+                "limit": 20,
+                "status": -1,
+                "aggregate_mode": 0,
+                "update_status": 0,
+                "keyword": "",
+            },
+        )
+        if (
+            not isinstance(response, dict)
+            or response.get("code") != 1
+            or not isinstance(response.get("data"), list)
+        ):
+            raise ValueError("Le journal du slicer est temporairement indisponible")
+        rows = []
+        for item in response["data"][:20]:
+            if not isinstance(item, dict) or type(item.get("id")) is not int or item["id"] <= 0:
+                continue
+            printers = item.get("printer_list")
+            printer = printers[0] if isinstance(printers, list) and len(printers) == 1 else None
+            printer = printer if isinstance(printer, dict) else {}
+            timestamp = item.get("latest_time")
+            if type(timestamp) is not int or not 0 < timestamp <= 4102444800:
+                timestamp = item.get("created_time")
+            raw = {
+                "project_name": item.get("task_name"),
+                "printer_name": printer.get("name") or item.get("device_type"),
+                "printer_id": printer.get("printer_id"),
+                "task_id": item.get("task_id"),
+                "create_time": timestamp
+                if type(timestamp) is int and 0 < timestamp <= 4102444800
+                else None,
+                "print_status": 2 if item.get("alarm_code") == 200 else None,
+                "read": item.get("status"),
+                "reason_desc": item.get("reason_desc"),
+                "img": item.get("img"),
+                "thumbnail": item.get("thumbnail"),
+            }
+            entry = history_entry(raw)
+            # Les deux API ont des identifiants indépendants et les actions historiques ne doivent jamais les résoudre.
+            key = hashlib.sha256(f"slicer:{item['id']}".encode()).hexdigest()[:20]
+            self.rows[key] = raw
+            rows.append({**entry, "key": key})
+
+        if response["data"] and not rows:
+            raise ValueError("Le journal du slicer est temporairement indisponible")
+        pagination = response.get("pageData")
+        total = pagination.get("total") if isinstance(pagination, dict) else None
+        unread = None
+        if rows or (type(total) is int and total > 0):
+            try:
+                counts = await api._fetch_api_resp(
+                    AnycubicAPIEndpoint(HTTP_METHODS.POST, "/farm/message/statistics"),
+                    params={"aggregate_mode": 0},
+                )
+            except (AnycubicAPIError, TimeoutError, ValueError):
+                counts = None
+            data = (
+                counts.get("data") if isinstance(counts, dict) and counts.get("code") == 1 else None
+            )
+            if (
+                isinstance(data, dict)
+                and type(data.get("unread_total")) is int
+                and data["unread_total"] >= 0
+            ):
+                unread = data["unread_total"]
+        return {
+            "items": rows,
+            "page": page,
+            "source": "slicer",
+            "unread": unread,
+            "has_more": page * 20 < total if type(total) is int else len(rows) == 20,
+        }
+
+    async def _legacy_page(self, api, page):
+        response = await api._fetch_api_resp(
+            AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessages"),
+            params={"type": 1, "page": page, "limit": 20},
+        )
+        if (
+            not isinstance(response, dict)
+            or response.get("code") != 1
+            or not isinstance(response.get("data"), list)
+        ):
+            raise ValueError("Le journal Anycubic est temporairement indisponible")
+        counts = await api._fetch_api_resp(
+            AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessageCount"), params={}
+        )
+        rows = []
+        for raw in response["data"]:
+            if not isinstance(raw, dict) or type(raw.get("id")) is not int:
+                continue
+            entry = history_entry(raw)
+            self.keys[entry["key"]] = raw["id"]
+            self.rows[entry["key"]] = raw
+            rows.append(entry)
+        count = next((r for r in counts.get("data") or [] if r.get("type") == 1), {})
+        return {
+            "items": rows,
+            "page": page,
+            "source": "legacy",
+            "total": int(count.get("count", len(rows))),
+            "unread": int(count.get("newcount", 0)),
+            "has_more": page * 20 < int(count.get("count", 0)),
+        }
 
     async def mark_read(self, api, key=None, all_items=False):
         """Marque une clé connue ou toutes les notifications ; lève ValueError sans confirmation cloud."""

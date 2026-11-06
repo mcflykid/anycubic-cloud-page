@@ -2,6 +2,8 @@
 
 from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
+from printer_values import filepath, integer
+from printer_files import MQTTReplies
 import asyncio, importlib.util, pathlib, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -113,8 +115,8 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         await self.e.restart_mqtt_auth(self.e.api)
         self.assertIsNone(self.e.transport.mqtt_thread)
 
-    async def test_rfid_identity_and_zero_remaining_are_preserved(self):
-        """Vérifie que l’identité RFID et une quantité restante nulle restent distinctes des données absentes."""
+    async def test_rfid_tag_does_not_prove_brand_or_empty_spool(self):
+        """Vérifie que le marquage RFID reste utilisable sans supposer de marque ou de mesure."""
         self.e.printer = SimpleNamespace(
             multi_color_box=[SimpleNamespace(box_id=0, loaded_slot=0)],
             primary_multi_color_box_spool_info_object=[{"local_slot": 1}, {"local_slot": 2}],
@@ -135,8 +137,8 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         data = self.e.snapshot()["printer"]["boxes"][0]
         self.assertEqual(data["loaded_slot"], 0)
         self.assertTrue(data["spools"][0]["rfid"])
-        self.assertEqual(data["spools"][0]["brand"], "Anycubic")
-        self.assertEqual(data["spools"][0]["remaining_percent"], 0)
+        self.assertNotIn("brand", data["spools"][0])
+        self.assertIsNone(data["spools"][0]["remaining_percent"])
         self.assertFalse(data["spools"][1]["rfid"])
         self.assertNotIn("sku", str(data))
 
@@ -174,7 +176,15 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_file_path_rejects_traversal(self):
         """Vérifie que les chemins ne peuvent pas sortir du dossier par traversée."""
         with self.assertRaises(ValueError):
-            adapter.filepath("/../media")
+            filepath("/../media")
+
+    async def test_integer_rejects_fractional_and_non_finite_values(self):
+        """Les valeurs non entières ne doivent jamais être arrondies avant un envoi."""
+        for value in (True, 1.5, float("inf"), float("nan"), None):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                integer(value, 0, 10)
+        self.assertEqual(integer("2", 0, 10), 2)
+        self.assertEqual(integer(2.0, 0, 10), 2)
 
     async def test_cloud_print_rejects_unknown_handle(self):
         """Vérifie que une référence cloud inconnue ne permet pas d’imprimer."""
@@ -212,7 +222,15 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
                 if file_path == "test_model"
                 else []
             )
-            e.file_messages[mid] = {"state": "done", "data": {"records": records}}
+            e.mqtt_replies.receive(
+                {
+                    "type": "file",
+                    "action": "listLocal",
+                    "msgid": mid,
+                    "state": "done",
+                    "data": {"records": records},
+                }
+            )
             return mid
 
         e.api = SimpleNamespace(
@@ -241,14 +259,19 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         async def listing(printer, file_path):
             """Simule les réponses de dossiers pour vérifier les chemins envoyés au firmware."""
             calls.append(file_path)
-            e.file_messages["reply"] = {
-                "state": "done",
-                "data": {
-                    "records": [
-                        {"filename": "a.gcode", "timestamp": 0, "size": 10, "is_dir": False}
-                    ]
-                },
-            }
+            e.mqtt_replies.receive(
+                {
+                    "type": "file",
+                    "action": "listLocal",
+                    "msgid": "reply",
+                    "state": "done",
+                    "data": {
+                        "records": [
+                            {"filename": "a.gcode", "timestamp": 0, "size": 10, "is_dir": False}
+                        ]
+                    },
+                }
+            )
             return "reply"
 
         e.api = SimpleNamespace(
@@ -281,10 +304,15 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
                 payload["data"],
                 {"root": "local", "filename": "test_model/benchy.gcode", "plate_index": 0},
             )
-            self.e.file_messages["preview"] = {
-                "state": "done",
-                "data": {"file_details": {"thumbnail": encoded, "png_image": ""}},
-            }
+            self.e.mqtt_replies.receive(
+                {
+                    "type": "file",
+                    "action": "fileDetails",
+                    "msgid": "preview",
+                    "state": "done",
+                    "data": {"file_details": {"thumbnail": encoded, "png_image": ""}},
+                }
+            )
             return "preview"
 
         self.e.api._send_anycubic_order = send
@@ -568,10 +596,10 @@ class AiReadProtocol(unittest.IsolatedAsyncioTestCase):
             await engine.cloud_query(1242)
 
 
-class AiReplyGuards(unittest.TestCase):
+class AiReplyGuards(unittest.IsolatedAsyncioTestCase):
     """Vérifications de la corrélation des réponses IA avec la machine et la demande courantes."""
 
-    def test_only_current_printer_and_active_query_can_supply_settings(self):
+    async def test_only_current_printer_and_active_query_can_supply_settings(self):
         """Vérifie que seule une réponse IA de la machine et de la demande courantes est acceptée."""
         import time
 
@@ -584,21 +612,26 @@ class AiReplyGuards(unittest.TestCase):
             "data": {"ai_settings": {"status": 3}},
         }
         e.receive_ai_reply("a/b/c/d/e/f/ours/report", payload)
-        self.assertIsNone(getattr(e, "ai_query_reply", None))
+        self.assertIsNone(e.ai_query_waiter)
+        e.ai_query_waiter = asyncio.get_running_loop().create_future()
         e.ai_query_started = time.monotonic()
         e.receive_ai_reply("a/b/c/d/e/f/other/report", payload)
-        self.assertIsNone(getattr(e, "ai_query_reply", None))
-        e.receive_ai_reply("a/b/c/d/e/f/ours/report", {**payload, "action": "set"})
-        self.assertIsNone(getattr(e, "ai_query_reply", None))
-        e.receive_ai_reply("a/b/c/d/e/f/ours/report", payload)
-        self.assertEqual(e.ai_query_reply[1]["data"]["ai_settings"]["status"], 3)
+        await asyncio.sleep(0)
+        self.assertFalse(e.ai_query_waiter.done())
 
-    def test_old_query_does_not_accept_unsolicited_report(self):
+        e.receive_ai_reply("a/b/c/d/e/f/ours/report", {**payload, "action": "set"})
+        await asyncio.sleep(0)
+        self.assertFalse(e.ai_query_waiter.done())
+        e.receive_ai_reply("a/b/c/d/e/f/ours/report", payload)
+        self.assertEqual((await asyncio.wait_for(e.ai_query_waiter, 1))["ai_settings"]["status"], 3)
+
+    async def test_old_query_does_not_accept_unsolicited_report(self):
         """Vérifie que une consultation expirée ne consomme pas un rapport spontané."""
         import time
 
         e = adapter.Engine()
         e.printer = SimpleNamespace(key="ours")
+        e.ai_query_waiter = asyncio.get_running_loop().create_future()
         e.ai_query_started = time.monotonic() - 31
         e.receive_ai_reply(
             "a/b/c/d/e/f/ours/report",
@@ -609,7 +642,39 @@ class AiReplyGuards(unittest.TestCase):
                 "data": {"ai_settings": {"status": 3}},
             },
         )
-        self.assertIsNone(getattr(e, "ai_query_reply", None))
+        await asyncio.sleep(0)
+        self.assertFalse(e.ai_query_waiter.done())
+
+
+class MQTTReplyTests(unittest.IsolatedAsyncioTestCase):
+    """Contrôle l’isolation et la libération des consultations, sans fil MQTT réel."""
+
+    async def test_wrong_target_timeout_and_cancellation_leave_no_waiter(self):
+        """Les retours d’une autre cible ou d’une autre action ne satisfont pas la consultation."""
+        first, second = MQTTReplies(), MQTTReplies()
+        second.loop = asyncio.get_running_loop()
+        payload = {"type": "file", "action": "listLocal", "msgid": "fixture"}
+
+        async def send():
+            second.receive(payload)
+            first.receive({**payload, "action": "listUdisk"})
+            await asyncio.sleep(0)
+            return "fixture"
+
+        with self.assertRaisesRegex(ValueError, "n’a pas confirmé"):
+            await first.ask("file", "listLocal", send, 0.01)
+        self.assertFalse(first.pending or first.early or second.pending or second.early)
+
+        task = asyncio.create_task(first.ask("file", "listLocal", send, 10))
+        async with asyncio.timeout(1):
+            while not first.pending:
+                await asyncio.sleep(0)
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        first.receive(payload)
+        await asyncio.sleep(0)
+        self.assertFalse(first.pending or first.early)
 
 
 if __name__ == "__main__":

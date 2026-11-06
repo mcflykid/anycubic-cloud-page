@@ -8,8 +8,8 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=bd71f64e44b0';
-import { workshopState } from './workshop-state.mjs?v=fbe334a8cef8';
+} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
+import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -19,7 +19,7 @@ export function definition(target, values) {
     ...values.map(([label, value]) => {
       const div = node('div');
       const title = node('dt', tr(label));
-      if (['temperatures', 'details', 'ace-stats'].includes(target))
+      if (['temperatures', 'details', 'ace-stats', 'control-metrics', 'task-file', 'task-parameters'].includes(target))
         decorateMetric(title, metricIcons[label]);
       div.append(title, node('dd', value));
       return div;
@@ -41,6 +41,22 @@ const metricPaths = {
   relay: 'M6 8h12a4 4 0 0 1 0 8H6a4 4 0 0 1 0-8zm1 2v4',
 };
 const metricIcons = {
+  Dimensions: 'model',
+  Couches: 'layers',
+  'Temps estimé': 'clock',
+  'Filament estimé': 'ace',
+  'Hauteur de couche': 'layers',
+  Remplissage: 'settings',
+  Supports: 'layers',
+  'Adhérence au plateau': 'bed',
+  Buse: 'nozzle',
+  Plateau: 'bed',
+  'Ventilation maximale': 'fan',
+  Rétraction: 'relay',
+  Parois: 'model',
+  'Largeur de paroi': 'model',
+  'Vitesse de paroi externe': 'gauge',
+  Déplacements: 'gauge',
   'Buse actuelle / cible': 'nozzle',
   'Plateau actuel / cible': 'bed',
   'Ventilation pièce': 'fan',

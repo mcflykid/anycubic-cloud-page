@@ -2,13 +2,16 @@
 
 from collections import OrderedDict
 from contextvars import ContextVar
+import asyncio
 import hashlib
+import inspect
 import ipaddress
 import json
 import logging
 import os
 import re
 import tempfile
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -36,6 +39,7 @@ ACTIONS = frozenset(
         "task-delete-many",
         "task-reprint",
         "cloud-rename",
+        "cloud-move",
         "print-local",
         "print-usb",
         "print-cloud",
@@ -127,16 +131,20 @@ class CommandJournal:
         self.path = Path(path)
         self.max_bytes = max_bytes
         self.max_age = max_age
+        self._write_lock = threading.Lock()
 
     def rows(self):
         """Relit les lignes récentes, de la plus ancienne à la plus récente."""
         try:
             with self.path.open("rb") as stream:
+                size = stream.seek(0, os.SEEK_END)
+                stream.seek(max(0, size - self.max_bytes - 1))
                 raw = stream.read(self.max_bytes + 1)
+                if size > self.max_bytes:
+                    # Le premier octet sert à repérer une ligne coupée lors de la lecture de la fin.
+                    _, _, raw = raw.partition(b"\n")
         except FileNotFoundError:
             return []
-        if len(raw) > self.max_bytes:
-            raise OSError("Journal de commandes trop volumineux")
         result = []
         now = time.time()
         for line in raw.splitlines():
@@ -159,9 +167,31 @@ class CommandJournal:
 
     def record(self, entry):
         """Garde une entrée par imprimante et identifiant, en éliminant les plus anciennes."""
+        with self._write_lock:
+            self._record(entry)
+
+    async def record_async(self, entry):
+        """Attend la persistance sur un fil de travail, avec un instantané du résultat."""
+        await asyncio.to_thread(self.record, entry.copy())
+
+    def _record(self, entry):
         rows = self.rows()
         if entry["request_id"]:
             key = (entry["printer"], entry["request_id"])
+            order = {
+                "refusée": 0,
+                "expirée": 0,
+                "inconnue": 1,
+                "envoyée": 2,
+                "acceptée": 3,
+                "confirmée": 4,
+            }
+            if any(
+                (row.get("printer"), row.get("request_id")) == key
+                and order[row["outcome"]] > order[entry["outcome"]]
+                for row in rows
+            ):
+                return
             rows = [row for row in rows if (row.get("printer"), row.get("request_id")) != key]
         rows.append(entry)
         chunks = []
@@ -170,6 +200,8 @@ class CommandJournal:
             chunk = (json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n").encode()
             size += len(chunk)
             if size > self.max_bytes:
+                if not chunks:
+                    raise OSError("Entrée de journal trop volumineuse")
                 break
             chunks.append(chunk)
         self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -241,7 +273,12 @@ async def dispatch_command(operation):
     """Persiste une tentative juste avant de confier la mutation au transport."""
     before_send = command_dispatch.get()
     if before_send is not None:
-        before_send()
+        try:
+            await before_send()
+        except BaseException:
+            if inspect.iscoroutine(operation):
+                operation.close()
+            raise
     return await operation
 
 
@@ -254,6 +291,7 @@ class JournalMQTT:
         self.loop = loop
         self.pending = {}
         self.early = OrderedDict()
+        self.writes = set()
         try:
             rows = journal.rows()
         except OSError:
@@ -276,13 +314,13 @@ class JournalMQTT:
             ):
                 self.pending[(row["printer"], digest)] = row
 
-    def _save(self, entry):
+    async def _save(self, entry):
         try:
-            self.journal.record(entry)
+            await self.journal.record_async(entry)
         except OSError:
             logging.getLogger(__name__).error("Mise à jour MQTT du journal impossible")
 
-    def watch(self, entry, order_id, digest, sent_at):
+    async def watch(self, entry, order_id, digest, sent_at):
         """Persiste uniquement l’empreinte de l’ordre physique retourné par le Cloud."""
         key = (entry["printer"], digest)
         entry["mqtt"] = {"digest": digest, "order": order_id, "expires": sent_at + MQTT_WINDOW}
@@ -291,12 +329,17 @@ class JournalMQTT:
         self.pending = {
             key: row for key, row in self.pending.items() if row["mqtt"]["expires"] > now
         }
-        self._save(entry)
+        await self._save(entry)
         for signature in MQTT_CONFIRMATIONS[order_id]:
             received_at = self.early.pop((key, signature), None)
             if received_at is not None and sent_at <= received_at <= sent_at + MQTT_WINDOW:
                 self.apply_report(key, signature, received_at)
                 break
+
+    async def flush(self):
+        """Attend les confirmations déjà reçues avant de fermer le suivi."""
+        if self.writes:
+            await asyncio.gather(*self.writes)
 
     def receive(self, printer, payload):
         """Transfère seulement une signature connue et une empreinte depuis le fil MQTT."""
@@ -329,4 +372,6 @@ class JournalMQTT:
         self.pending.pop(key)
         entry.pop("mqtt")
         entry["outcome"] = "confirmée"
-        self._save(entry)
+        task = self.loop.create_task(self._save(entry.copy()))
+        self.writes.add(task)
+        task.add_done_callback(self.writes.discard)

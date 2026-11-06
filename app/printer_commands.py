@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Validation et exécution des commandes d’une imprimante sélectionnée."""
 
-import asyncio
 import json
+import os
 import re
-import time
+import tempfile
 
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
@@ -26,12 +26,39 @@ def slot_indices(target, data):
 
 async def execute_command(target, name, d):
     """Renvoie le résultat textuel d’une commande validée ; lève ValueError si interdite ou non acceptée."""
+    if name == "presets":
+        presets = d.get("presets")
+        if not isinstance(presets, list) or len(presets) != 4:
+            raise ValueError("Quatre préréglages attendus")
+        validated = [
+            {
+                "name": str(row["name"])[:25],
+                "temperature": integer(row["temperature"], 35, 70),
+                "hours": integer(row["hours"], 1, 24),
+            }
+            for row in presets
+        ]
+        target.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        path = target.state_dir / "presets.json"
+        fd, temporary = tempfile.mkstemp(prefix=".presets-", dir=path.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as output:
+                json.dump(validated, output)
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary, path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+        target.presets = validated
+        return "Préréglages enregistrés"
     p = target.printer
     a = target.api
     if not p or not a:
         raise ValueError("Imprimante non connectée")
     if name in [
         "cloud-rename",
+        "cloud-move",
         "cloud-delete-many",
         "task-delete-many",
         "task-reprint",
@@ -78,30 +105,29 @@ async def execute_command(target, name, d):
     elif name == "light":
         enabled = bool(d["enabled"])
         channel = 2 if p.machine_name == "Anycubic Kobra S1" else p.camera_light_type
-        started = time.monotonic()
         result = await dispatch_command(
             a._send_order_set_light_status(p, enabled, light_type=channel)
         )
         if result is None:
             raise ValueError("La commande d’éclairage n’a pas été acceptée")
-        await p.query_camera_light_status()
-        deadline = time.monotonic() + 6
-        while time.monotonic() < deadline:
-            if target.light_report and target.light_report[0] >= started:
-                response = target.light_report[1]
-                data = response.get("data") or {}
-                value = data.get("status", data.get("light")) if isinstance(data, dict) else None
-                if (
-                    response.get("state") == "done"
-                    and value is not None
-                    and bool(int(value)) == enabled
-                ):
-                    return (
-                        "Éclairage "
-                        + ("allumé" if enabled else "éteint")
-                        + " : état confirmé par l’imprimante"
-                    )
-            await asyncio.sleep(0.1)
+        try:
+            response = await target.mqtt_replies.ask(
+                "light", "query", p.query_camera_light_status, 6
+            )
+        except ValueError:
+            response = {}
+        data = response.get("data")
+        value = data.get("status", data.get("light")) if isinstance(data, dict) else None
+        if (
+            response.get("state") == "done"
+            and value in (0, 1, "0", "1")
+            and bool(int(value)) == enabled
+        ):
+            return (
+                "Éclairage "
+                + ("allumé" if enabled else "éteint")
+                + " : état confirmé par l’imprimante"
+            )
         return "Demande d’éclairage envoyée. Vérifiez son état dans la vidéo."
     elif name == "dry-start":
         result = await dispatch_command(
@@ -186,11 +212,13 @@ async def execute_command(target, name, d):
         else:
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
-            if f.gcode_id is None:
+            if f.gcode_id is None or f.gcode_id <= 0:
                 raise ValueError("Ce fichier ne dispose pas de G-code cloud")
             result = await dispatch_command(
                 p.print_with_cloud_gcode_id(f.gcode_id, target.slots(d))
             )
+            if not result or not result.order_msg_id:
+                raise ValueError("Anycubic n’a pas confirmé le lancement de l’impression")
     elif name == "rename":
         value = str(d.get("name", "")).strip()
         if not 1 <= len(value) <= 64:
@@ -229,22 +257,6 @@ async def execute_command(target, name, d):
         owner.transport.mqtt_enabled = False
         a.disconnect_mqtt()
         return "Déconnexion MQTT du compte demandée"
-    elif name == "presets":
-        presets = d.get("presets", [])
-        if len(presets) != 4:
-            raise ValueError("Quatre préréglages attendus")
-        target.presets = [
-            {
-                "name": str(x["name"])[:25],
-                "temperature": integer(x["temperature"], 35, 70),
-                "hours": integer(x["hours"], 1, 24),
-            }
-            for x in presets
-        ]
-        target.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        path = target.state_dir / "presets.json"
-        path.write_text(json.dumps(target.presets))
-        return "Préréglages enregistrés"
     else:
         raise ValueError("Commande inconnue")
     if result is None or result is False:

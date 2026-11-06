@@ -1,10 +1,16 @@
 """Tests isolés : cloud extras, sans commande physique ni connexion au cloud."""
 
 from urllib.parse import urlsplit
-import asyncio, pathlib, sys, tempfile, time, unittest
+import asyncio, unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
-from cloud_extras import CloudExtras, ResetChallenges, trusted_url, history_minutes
+from unittest.mock import AsyncMock
+from cloud_extras import (
+    CloudExtras,
+    ResetChallenges,
+    download_preview,
+    trusted_url,
+    history_minutes,
+)
 
 
 class ResetTests(unittest.TestCase):
@@ -286,7 +292,7 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [c.args[1] for c in self.x.api.await_args_list], [{"ids": [13]}, {"ids": [12]}]
         )
-        for item, expected in zip(result["downloads"], ["b", "a"]):
+        for item, expected in zip(result["downloads"], ["b", "a"], strict=True):
             self.assertEqual(item["name"], expected + ".gcode")
             ticket = urlsplit(item["url"]).path.split("/")[-1]
             self.assertEqual(self.x.downloads[ticket]["url"], "https://anycubic.com/" + expected)
@@ -347,6 +353,31 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             self.x.task(other)
 
+    async def test_all_printers_history_pages_follow_global_order(self):
+        """Une imprimante très active ne relègue pas ses tâches récentes à la mauvaise page."""
+        self.e.known_printers = [SimpleNamespace(id=7), SimpleNamespace(id=8)]
+        by_device = {7: list(range(65, 24, -1)), 8: [60, 24, 23]}
+
+        async def cloud(path, *, query, method):
+            if path != "/v2/project/printHistory":
+                return []
+            identifier = query["printer_id"]
+            start = (query["page"] - 1) * query["limit"]
+            return [
+                {"task_id": value, "printer_id": identifier, "start_time": value}
+                for value in by_device[identifier][start : start + query["limit"]]
+            ]
+
+        self.x.api = AsyncMock(side_effect=cloud)
+        pages = [await self.x.task_list(page, all_printers=True) for page in (1, 2, 3)]
+        items = [item for page in pages for item in page["items"]]
+        self.assertEqual([len(page["items"]) for page in pages], [20, 20, 4])
+        self.assertEqual([page["has_more"] for page in pages], [True, True, False])
+        self.assertEqual(
+            [item["start"] for item in items], sorted(by_device[7] + by_device[8], reverse=True)
+        )
+        self.assertEqual(len({item["key"] for item in items}), 44)
+
     async def test_tasks_are_printer_scoped_and_paged(self):
         """Vérifie que l’historique reste paginé et limité à la machine courante."""
         self.x.api = AsyncMock(
@@ -387,6 +418,32 @@ class HistoryPreviewTests(unittest.IsolatedAsyncioTestCase):
 
     setUp = ExtrasTests.setUp
     task = ExtrasTests.task
+
+    async def test_file_preview_rejects_untrusted_authority_and_times_out(self):
+        """Les URL hors périmètre sont ignorées et un stockage muet ne bloque pas l’atelier."""
+        context = unittest.mock.MagicMock()
+        context.__aenter__ = AsyncMock(side_effect=TimeoutError)
+        session = SimpleNamespace(get=unittest.mock.Mock(return_value=context))
+        for url in ("https://user@anycubic.com/image.png", "https://anycubic.com:444/image.png"):
+            self.assertIsNone(await download_preview(session, url))
+        session.get.assert_not_called()
+        self.assertIsNone(await download_preview(session, "https://anycubic.com/image.png"))
+        self.assertEqual(session.get.call_args.kwargs["timeout"].total, 12)
+        self.assertFalse(session.get.call_args.kwargs["allow_redirects"])
+
+    async def test_project_preview_cache_expires_and_changes_with_client(self):
+        """Un inventaire récent est partagé, puis relu à son expiration ou après reconnexion."""
+        api = self.e.api = SimpleNamespace(list_all_projects=AsyncMock(return_value=[]))
+        await self.x.file_preview_projects()
+        await self.x.file_preview_projects()
+        api.list_all_projects.assert_awaited_once()
+        _, stored_at, projects = self.x.file_projects
+        self.x.file_projects = (api, stored_at - 31, projects)
+        await self.x.file_preview_projects()
+        self.assertEqual(api.list_all_projects.await_count, 2)
+        self.e.api = SimpleNamespace(list_all_projects=AsyncMock(return_value=[]))
+        await self.x.file_preview_projects()
+        self.e.api.list_all_projects.assert_awaited_once()
 
     async def test_zero_reason_is_hidden_but_real_warning_retained(self):
         """Vérifie que le code zéro est masqué sans supprimer une alerte réelle."""

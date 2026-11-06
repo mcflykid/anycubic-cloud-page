@@ -1,9 +1,40 @@
 """Pause/reprise/arrêt : une relecture fictive doit confirmer la même tâche avant tout envoi."""
 
-import unittest, asyncio
+import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 import server
+from anycubic_cloud_api.const.enums import AnycubicPrintStatus
+from anycubic_cloud_api.data_models.project import AnycubicProject
+
+
+class ProjectState(unittest.TestCase):
+    """Vérifie les états et estimations issus des rapports du constructeur."""
+
+    def test_leveling_stays_active_and_missing_pause_flag_means_unpaused(self):
+        """Le nivellement reste actif, même sans indicateur de pause."""
+        project = AnycubicProject.__new__(AnycubicProject)
+        project._print_status = AnycubicPrintStatus.Leveling
+        project._pause = None
+        self.assertTrue(project.print_in_progress)
+        self.assertFalse(project.print_is_paused)
+        project._pause = 1
+        self.assertTrue(project.print_is_paused)
+        project._print_status = AnycubicPrintStatus.Complete
+        self.assertFalse(project.print_is_paused)
+
+    def test_eta_without_remaining_time_stays_unknown(self):
+        """Une estimation positive ou une heure explicite peuvent être affichées."""
+        project = AnycubicProject.__new__(AnycubicProject)
+        project._end_time = None
+        for remaining in (None, 0, -1):
+            project._remain_time = remaining
+            self.assertIsNone(project.print_approximate_completion_time)
+        project._remain_time = 2
+        with patch("anycubic_cloud_api.data_models.project.time.time", return_value=100):
+            self.assertEqual(project.print_approximate_completion_time, 220)
+        project._end_time = 300
+        self.assertEqual(project.print_approximate_completion_time, 300)
 
 
 class ProjectFreshness(unittest.IsolatedAsyncioTestCase):

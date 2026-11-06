@@ -34,9 +34,14 @@ def serial(obj):
 
 def integer(value, lo, hi):
     """Renvoie un entier entre lo et hi ; lève ValueError pour un booléen ou une valeur invalide."""
-    if isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         raise ValueError("Nombre invalide")
-    n = int(value)
+    try:
+        n = int(value)
+    except (ValueError, OverflowError):
+        raise ValueError("Nombre invalide") from None
+    if isinstance(value, float) and value != n:
+        raise ValueError("Nombre entier requis")
     if not lo <= n <= hi:
         raise ValueError(f"Valeur attendue entre {lo} et {hi}")
     return n

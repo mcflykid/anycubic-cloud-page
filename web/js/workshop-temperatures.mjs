@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=bd71f64e44b0';
+} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {
@@ -32,7 +32,7 @@ function renderTemperatureChart(key, rows, hours) {
     R = 12,
     T = 12,
     B = 28,
-    colors = { nozzle: '#b85c35', bed: '#3372a5', ace: '#42765c' },
+    colors = { nozzle: 'light-dark(#b85c35,#ffa980)', bed: 'light-dark(#3372a5,#83c4ff)', ace: 'light-dark(#42765c,#88d5ae)' },
     color = colors[key],
     end = Date.now() / 1000,
     start = end - hours * 3600,
@@ -61,7 +61,7 @@ function renderTemperatureChart(key, rows, hours) {
         x2: W - R,
         y1: y(value),
         y2: y(value),
-        stroke: '#e5e7eb',
+        stroke: 'var(--line)',
         'stroke-width': 1,
       }),
       chartElement(

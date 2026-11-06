@@ -18,7 +18,7 @@ class ProtocolContracts(unittest.TestCase):
         ]:
             printer = types.SimpleNamespace(records=["fixture-before"])
 
-            def replace(records, file_path):
+            def replace(records, file_path, printer=printer):
                 """Applique une liste fictive comme le ferait le modèle, sans transport."""
                 printer.records = records
 

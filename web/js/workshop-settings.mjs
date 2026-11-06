@@ -10,10 +10,10 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=bd71f64e44b0';
-import { workshopState } from './workshop-state.mjs?v=fbe334a8cef8';
-import { definition } from './workshop-overview.mjs?v=7c2871c58a5f';
-import { api } from './workshop-api.mjs?v=5d4f71a42036';
+} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
+import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
+import { definition } from './workshop-overview.mjs?v=5af065eebab4';
+import { api } from './workshop-api.mjs?v=a1d0ee576b60';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
@@ -29,7 +29,16 @@ export function createSettings(request, command, camera) {
       button.disabled = true;
     set('control-light-state', tr('État inconnu'));
   }
+  function showControlView(settings) {
+    $('controls-monitor').hidden = settings;
+    $('settings-form').hidden = !settings;
+    $('control-view-monitor').setAttribute('aria-pressed', String(!settings));
+    $('control-view-settings').setAttribute('aria-pressed', String(settings));
+  }
+  $('control-view-monitor').onclick = () => showControlView(false);
+  $('control-view-settings').onclick = () => showControlView(true);
   $('controls-open').onclick = () => {
+    showControlView(false);
     controlFeedback('');
     $('controls-dialog').showModal();
   };
@@ -128,23 +137,23 @@ export function createSettings(request, command, camera) {
         : '—';
     definition('task-file', [
       [
-        tr('Dimensions'),
+        'Dimensions',
         d.dimensions?.every((v) => v != null)
           ? d.dimensions.map((v) => fmt(v)).join(' × ') + ' mm'
           : '—',
       ],
-      [tr('Couches'), fmt(d.layers)],
-      [tr('Temps estimé'), time],
-      [tr('Filament estimé'), fmt(d.material_grams, ' g')],
+      ['Couches', fmt(d.layers)],
+      ['Temps estimé', time],
+      ['Filament estimé', fmt(d.material_grams, ' g')],
     ]);
     const yes = (v) =>
       v == null ? '—' : [true, 1, '1', 'true'].includes(single(v)) ? tr('Activé') : tr('Désactivé');
     definition('task-parameters', [
-      [tr('Hauteur de couche'), valueUnit(params.layer_height, ' mm')],
+      ['Hauteur de couche', valueUnit(params.layer_height, ' mm')],
       ['Remplissage', valueUnit(params.fill_density, ' %')],
       ['Supports', yes(params.enable_support)],
       [
-        tr('Adhérence au plateau'),
+        'Adhérence au plateau',
         params.brim_type == null
           ? '—'
           : {
@@ -155,14 +164,14 @@ export function createSettings(request, command, camera) {
               outer_and_inner: tr('Bordures interne et externe'),
             }[params.brim_type] || tr('Activée'),
       ],
-      [tr('Buse'), valueUnit(params.temperature, ' °C')],
-      [tr('Plateau'), valueUnit(params.bed_temperature, ' °C')],
-      [tr('Ventilation maximale'), valueUnit(params.fan_max_speed, ' %')],
-      [tr('Rétraction'), valueUnit(params.filament_retract_length, ' mm')],
+      ['Buse', valueUnit(params.temperature, ' °C')],
+      ['Plateau', valueUnit(params.bed_temperature, ' °C')],
+      ['Ventilation maximale', valueUnit(params.fan_max_speed, ' %')],
+      ['Rétraction', valueUnit(params.filament_retract_length, ' mm')],
       ['Parois', valueUnit(params.perimeters)],
-      [tr('Largeur de paroi'), valueUnit(params.perimeter_extrusion_width, ' mm')],
-      [tr('Vitesse de paroi externe'), valueUnit(params.outer_wall_speed, ' mm/s')],
-      [tr('Déplacements'), valueUnit(params.travel_speed, ' mm/s')],
+      ['Largeur de paroi', valueUnit(params.perimeter_extrusion_width, ' mm')],
+      ['Vitesse de paroi externe', valueUnit(params.outer_wall_speed, ' mm/s')],
+      ['Déplacements', valueUnit(params.travel_speed, ' mm/s')],
     ]);
   }
   $('task-details-open').onclick = () => {

@@ -5,4 +5,4 @@ extend-exclude = ["app/anycubic_cloud_api"]
 force-exclude = true
 
 [tool.ruff.lint]
-select = ["E9", "F63", "F7", "F82"]
+select = ["E9", "F", "B"]

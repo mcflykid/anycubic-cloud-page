@@ -216,6 +216,8 @@ async def select_printer(request, handler):
         key = request.headers.get("X-Printer-Key") or (
             request.query.get("printer") if request.method in ["GET", "HEAD"] else None
         )
+        if request.path == "/imprimante-api/diagnostic" and key not in registry.catalogue():
+            key = None
         request["selected_engine"] = await registry.resolve(
             key, require_explicit=request.method not in ["GET", "HEAD"]
         )

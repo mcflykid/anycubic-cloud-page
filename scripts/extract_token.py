@@ -103,7 +103,7 @@ def main():
                 print("Token récupéré localement (valeur non affichée).", flush=True)
         except (ValueError, OSError) as error:
             if not args.watch:
-                raise SystemExit(str(error))
+                raise SystemExit(str(error)) from None
             if previous is None:
                 print("En attente d’un token valide dans les journaux du slicer.", flush=True)
                 previous = "waiting"

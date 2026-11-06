@@ -27,3 +27,63 @@ test('un rafraîchissement de l’historique conserve les aperçus de la cloche'
  await page.evaluate(async()=>{const {renderTasks}=await import(document.querySelector('#workshop-script').src);renderTasks();window.deliverVisiblePreviews();});
  await expect(page.locator('.notification-row img').first()).toBeVisible();
 });
+
+test('la cloche distingue un journal indisponible d’un journal vide', async ({page}) => {
+ await page.route('**/imprimante-api/status', async (route) => {
+  const response = await route.fetch();
+  const json = await response.json();
+  json.notifications = {items:[], unread:0, has_more:false};
+  json.notifications_error = 'Messages temporairement indisponibles';
+  await route.fulfill({response,json});
+ });
+ await page.route('**/imprimante-api/history?*', (route) => route.fulfill({
+  status:400, json:{message:'Messages temporairement indisponibles'},
+ }));
+ const {login} = require('./helpers.cjs');
+ await login(page);
+ await expect(page.locator('#connection')).toHaveText('En ligne');
+ await page.locator('#notifications-toggle').click();
+ await expect(page.locator('#history-state')).toBeVisible();
+ await expect(page.locator('#history-state')).toContainText('Messages temporairement indisponibles');
+});
+
+test('la cloche affiche une fin d’impression du slicer et conserve le journal historique', async ({page}) => {
+ const writes = [];
+ const slicer = {
+  source: 'slicer', unread: 1, has_more: false,
+  items: [{key:'slicer-fixture',name:'Cube du slicer',printer:'Kobra de démonstration',
+   result:'Impression terminée',kind:'success',unread:true,time:1762340000}],
+ };
+ await page.route('**/imprimante-api/status', async (route) => {
+  const response = await route.fetch();
+  const data = await response.json();
+  await route.fulfill({response,json:{...data,notifications:slicer}});
+ });
+ await page.route('**/imprimante-api/history?*', async (route) => {
+  if (new URL(route.request().url()).searchParams.get('source') === 'legacy') await route.continue();
+  else await route.fulfill({json:slicer});
+ });
+ page.on('request', (req) => {
+  if (req.method() === 'POST' && /\/history\/(read|delete)$/.test(req.url())) writes.push(req.url());
+ });
+ await openWorkshop(page);
+ await page.locator('#notifications-toggle').click();
+ const row = page.locator('.notification-row');
+ await expect(page.locator('#notifications-title')).toHaveText('Messages (1)');
+ await expect(row).toContainText('Cube du slicer');
+ await expect(row).toContainText('Impression terminée');
+ await page.getByRole('button',{name:'Non lu',exact:true}).click();
+ await expect(row).toContainText('Cube du slicer');
+ await expect(page.locator('#history-read-all')).toBeHidden();
+ await expect(page.locator('#history-delete-all')).toBeHidden();
+ await row.locator('.notification-open').click();
+ await expect(page.locator('#notification-preview-dialog')).toBeVisible();
+ await page.keyboard.press('Escape');
+ expect(writes).toHaveLength(0);
+ await page.getByRole('button',{name:'Tous',exact:true}).click();
+ await page.getByRole('button',{name:'Journal historique',exact:true}).click();
+ await expect(row).toHaveCount(3);
+ await expect(page.locator('#history-delete-all')).toBeVisible();
+ await page.getByRole('button',{name:'Notifications Cloud',exact:true}).click();
+ await expect(row).toContainText('Cube du slicer');
+});

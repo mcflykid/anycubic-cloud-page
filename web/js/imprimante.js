@@ -1,26 +1,27 @@
 import {
   $,
   date,
+  formatText,
   message,
   node,
   serverText,
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=bd71f64e44b0';
-import { workshopState } from './workshop-state.mjs?v=fbe334a8cef8';
-import { createRequest } from './workshop-api.mjs?v=5d4f71a42036';
-import { createCamera } from './workshop-camera.mjs?v=18d0ff063551';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=2b1dae63d44d';
-import { createCommands } from './workshop-commands.mjs?v=a8721fc1025f';
-import { createOverview } from './workshop-overview.mjs?v=7c2871c58a5f';
-import { createAce } from './workshop-ace.mjs?v=b0397b5e175d';
-import { createFiles } from './workshop-files.mjs?v=9568927376a4';
-import { createHistory } from './workshop-history.mjs?v=570903ace8bc';
-import { createSettings } from './workshop-settings.mjs?v=fb5879382ce2';
-import { createTimelapses } from './workshop-timelapses.mjs?v=c4e077615ee7';
-import './workshop-help.mjs?v=f94e80df77bd';
-export { previewJob } from './workshop-overview.mjs?v=7c2871c58a5f';
+} from './workshop-ui.mjs?v=7bd3fdd4bc0d';
+import { workshopState } from './workshop-state.mjs?v=624f78b33a34';
+import { createRequest } from './workshop-api.mjs?v=a1d0ee576b60';
+import { createCamera } from './workshop-camera.mjs?v=d932a5fbb068';
+import { createTemperatureLoader } from './workshop-temperatures.mjs?v=6bbe0abd0aaa';
+import { createCommands } from './workshop-commands.mjs?v=6b2fda31cc66';
+import { createOverview } from './workshop-overview.mjs?v=5af065eebab4';
+import { createAce } from './workshop-ace.mjs?v=2181c0fc508d';
+import { createFiles } from './workshop-files.mjs?v=6a348b185e0e';
+import { createHistory } from './workshop-history.mjs?v=0402ab723790';
+import { createSettings } from './workshop-settings.mjs?v=d49ab6034f79';
+import { createTimelapses } from './workshop-timelapses.mjs?v=e84b3ff6e1ae';
+import './workshop-help.mjs?v=97ba21271abe';
+export { previewJob } from './workshop-overview.mjs?v=5af065eebab4';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
@@ -47,6 +48,7 @@ async function loadPrinters() {
     selector.value = workshopState.selectedPrinter;
     $('printer-selector-wrap').hidden = items.length < 2;
     printerCatalogueReady = true;
+    if (workshopState.currentTab === 'files') void files.loadFiles();
   } finally {
     printerCataloguePending = false;
   }
@@ -88,10 +90,22 @@ export function renderTasks() {
 }
 
 /** Actualise l’interface depuis l’état serveur et signale les erreurs de connexion sans répéter de commande. */
-export async function refresh() {
+export function refresh() {
+  if (!refreshPending)
+    refreshPending = refreshState().finally(() => {
+      refreshPending = null;
+    });
+  return refreshPending;
+}
+
+let refreshPending = null;
+
+async function refreshState() {
+  let received = false;
   try {
     if (!printerCatalogueReady) await loadPrinters();
     const d = await request('/status');
+    received = true;
     if (connectionFailure && d.ok) {
       message('');
       connectionFailure = false;
@@ -115,6 +129,24 @@ export async function refresh() {
     }
     if (d.account_message)
       message(serverText(d.account_message, 'Échec de la lecture auprès d’Anycubic.'), true);
+    const diagnosticLink = $('diagnostic-download'),
+      diagnosticQuery = workshopState.selectedPrinter
+        ? '?' + new URLSearchParams({printer: workshopState.selectedPrinter})
+        : '';
+    diagnosticLink.href = '/imprimante-api/diagnostic' + diagnosticQuery;
+    const expiry = $('token-expiry');
+    expiry.hidden = !Number.isFinite(d.token_expires_at);
+    if (!expiry.hidden) {
+      const remaining = d.token_expires_at - Date.now() / 1000;
+      expiry.textContent = formatText(
+        remaining <= 0
+          ? 'Jeton Anycubic expiré le {0}.'
+          : remaining <= 15 * 86400
+            ? 'Le jeton Anycubic expire bientôt, le {0}.'
+            : 'Expiration du jeton Anycubic le {0}.',
+        date(d.token_expires_at),
+      );
+    }
     if (!p) {
       settings.disableQuickControls();
       return;
@@ -133,6 +165,7 @@ export async function refresh() {
     );
     files.update();
   } catch {
+    if (received) console.warn('Échec du rendu après réception de l’état de l’atelier.');
     settings.disableQuickControls();
     connectionFailure = true;
     set('connection', tr('Connexion indisponible'));

@@ -21,7 +21,7 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
         self.engine = types.SimpleNamespace(
             printer=self.printer, camera=None, last_session=0, lock=asyncio.Lock()
         )
-        self.request = types.SimpleNamespace(headers={"Origin": adapter.ALLOWED_ORIGIN})
+        self.request = types.SimpleNamespace(headers={"Origin": "http://localhost:8080"})
         self.patch_engine = patch.object(adapter, "engine", self.engine)
         self.patch_engine.start()
         self.addCleanup(self.patch_engine.stop)
@@ -132,7 +132,7 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
         engine = adapter.Engine()
         engine.printer = types.SimpleNamespace(id=42, get_camera_session=AsyncMock())
         request = types.SimpleNamespace(
-            headers={"Origin": adapter.ALLOWED_ORIGIN, "X-Camera-Viewer": "a" * 36}
+            headers={"Origin": "http://localhost:8080", "X-Camera-Viewer": "a" * 36}
         )
         with patch.object(adapter, "engine", engine):
             await adapter.camera_close(request)

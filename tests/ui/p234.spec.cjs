@@ -6,7 +6,10 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
  await page.setViewportSize({width:360,height:800});
  await page.route('**/imprimante-api/status',route=>route.fulfill({json:{ok:false,message:'Cloud indisponible'}}));
  await login(page);
- await expect(page.getByRole('link',{name:'Version '+version,exact:true})).toHaveAttribute('href','https://github.com/mcflykid/anycubic-cloud-page');
+ const versionLink = page.getByRole('link',{name:'Version '+version,exact:true});
+ await expect(versionLink).toHaveAttribute('href','https://github.com/mcflykid/anycubic-cloud-page/releases/tag/v'+version);
+ await expect(versionLink).toHaveCSS('border-top-width','0px');
+ await expect(versionLink).toHaveCSS('padding-left','0px');
  const links=page.locator('.printer-footer nav a');
  await expect(links).toHaveText(['Confidentialité','Conditions','Cookies']);
  for(const [path,title] of [['/about','Confidentialité'],['/conditions','Conditions d’utilisation'],['/cookies','Cookies et stockage local'],['/credits','Crédits']]){
@@ -258,6 +261,8 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  const panel=page.getByRole('dialog',{name:'Commandes courantes'});
  await expect(panel).toContainText('20 °C / 0 °C');
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
+ await expect(panel.locator('#settings-form')).toBeHidden();
+ await panel.getByRole('button',{name:'Réglages d’impression',exact:true}).click();
  await panel.getByLabel('Enceinte (0–3)',{exact:true}).fill('3');
  await panel.getByRole('button',{name:'Appliquer les réglages'}).click();
  await page.locator('#confirm-yes').click();
@@ -265,4 +270,138 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  expect(commands).toHaveLength(1);
  expect(commands[0]).toMatchObject({data:{action:'settings',box_fan_level:'3'},target:'demo-printer'});
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
+});
+
+test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur et restent lisibles sur mobile', async ({page}) => {
+  await page.setViewportSize({width: 1280, height: 900});
+  await login(page);
+  await expect(page.locator('#connection')).toHaveText('En ligne');
+  const overview = page.locator('#tab-overview > .overview-grid');
+  const lower = page.locator('.printer-lower-grid');
+  const printerCard = await overview.boundingBox();
+  const lowerCards = await lower.boundingBox();
+  expect(printerCard.width).toBe(1136);
+  expect(printerCard.height).toBeLessThan(320);
+  const preview = page.locator('#job-preview');
+  await expect(preview).toBeVisible();
+  const [machine, thumbnail] = await Promise.all([
+    page.locator('#printer-illustration').boundingBox(), preview.boundingBox(),
+  ]);
+  expect(thumbnail.x).toBeGreaterThan(machine.x + machine.width);
+  expect(Math.abs(thumbnail.height - machine.height)).toBeLessThan(15);
+  expect(lowerCards.width).toBe(896);
+  expect(Math.abs(printerCard.x + printerCard.width / 2 - 640)).toBeLessThan(2);
+  await page.getByRole('button', {name: 'ACE et filaments', exact: true}).click();
+  const ace = page.locator('.ace-overview');
+  const aceCard = await ace.boundingBox();
+  expect(aceCard.width).toBe(printerCard.width);
+  expect(aceCard.height).toBeLessThan(260);
+  const spoolButtons = await page.locator('#spools .spool-actions button').evaluateAll((buttons) =>
+    buttons.map((button) => button.getBoundingClientRect().top),
+  );
+  expect(spoolButtons).toHaveLength(4);
+  expect(Math.max(...spoolButtons) - Math.min(...spoolButtons)).toBeLessThan(1);
+  await page.setViewportSize({width: 390, height: 800});
+  const mobile = await ace.boundingBox();
+  expect(mobile.width).toBeLessThan(390);
+  expect(mobile.width).toBeGreaterThan(300);
+  expect(await ace.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.getByRole('button', {name: 'Imprimante', exact: true}).click();
+  expect(await overview.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  const [left, right] = await lower.locator('section').evaluateAll((cards) =>
+    cards.map((card) => card.getBoundingClientRect().top),
+  );
+  expect(right).toBeGreaterThan(left);
+});
+
+test('les réglages affichent la connexion avant l’imprimante, sur une colonne', async ({page}) => {
+  await page.setViewportSize({width: 1280, height: 900});
+  await login(page);
+  await page.getByRole('button', {name: 'Réglages', exact: true}).click();
+  const connection = page.locator('.settings-connection');
+  const printer = page.locator('.settings-device');
+  const before = await connection.boundingBox();
+  const after = await printer.boundingBox();
+  expect(after.y).toBeGreaterThanOrEqual(before.y + before.height);
+  expect(Math.abs(after.x - before.x)).toBeLessThan(1);
+  expect(after.width).toBe(before.width);
+  await page.setViewportSize({width: 390, height: 800});
+  expect(await connection.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
+test('les détails de la tâche gardent leurs pictogrammes et tiennent dans une fenêtre de bureau', async ({page}) => {
+  await page.setViewportSize({width: 1050, height: 720});
+  await login(page);
+  const open = page.getByRole('button', {name: 'Détails', exact: true});
+  await expect(open).toBeEnabled();
+  await open.click();
+  const dialog = page.locator('#task-dialog');
+  await expect(dialog.locator('#task-file dt .metric-icon')).toHaveCount(4);
+  await expect(dialog.locator('#task-parameters dt .metric-icon')).toHaveCount(12);
+  expect(await dialog.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+});
+
+test('les dossiers Cloud limitent le déplacement à la sélection de la page', async ({page}) => {
+ const destination = 'abcdef0123456789abcd';
+ const handle = '0123456789abcdef0123';
+ const command = [];
+ await page.route('**/imprimante-api/files/cloud?*', async (route) => {
+  const url = new URL(route.request().url());
+  const folder = url.searchParams.get('folder');
+  await route.fulfill({json:{
+   files: folder === 'root' ? [{handle, name:'Exemple.gcode', size_mb:1, printable:true}] : [],
+   has_more:false, store:{used_bytes:1,total_bytes:100},
+   ...(folder && {folders:[{reference:'root',path:'/'},{reference:destination,path:'/Atelier'}]}),
+  }});
+ });
+ await page.route('**/imprimante-api/command', async (route) => {
+  command.push(route.request().postDataJSON());
+  await route.fulfill({json:{ok:true,message:'Fichiers déplacés dans le Cloud'}});
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Fichiers',exact:true}).click();
+ await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();
+ await page.getByRole('combobox',{name:'Dossier Cloud',exact:true}).selectOption('root');
+ await page.getByRole('checkbox',{name:'Sélectionner Exemple.gcode',exact:true}).check();
+ await page.getByRole('combobox',{name:'Dossier de destination',exact:true}).selectOption(destination);
+ await page.getByRole('button',{name:'Déplacer la sélection',exact:true}).click();
+ await expect(page.locator('#confirm-text')).toContainText('/Atelier');
+ expect(command).toHaveLength(0);
+ await page.locator('#confirm-yes').click();
+ await expect.poll(() => command.length).toBe(1);
+ expect(command[0]).toMatchObject({action:'cloud-move',source:'root',destination,handles:[handle]});
+});
+
+test('le raccourci de séchage demande confirmation et utilise le réglage confirmé', async ({page}) => {
+ const commands = [];
+ let active = false;
+ await page.route('**/imprimante-api/status', async (route) => {
+  const response = await route.fetch();
+  const data = await response.json();
+  data.printer.boxes[0].drying = {is_drying:active, target_temperature:45, total_duration:240};
+  await route.fulfill({response,json:data});
+ });
+ await page.route('**/imprimante-api/command', async (route) => {
+  const data = route.request().postDataJSON();
+  commands.push(data);
+  active = data.action === 'dry-start';
+  await route.fulfill({json:{ok:true,message:'Réponse fictive'}});
+ });
+ await login(page);
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ const toggle = page.getByRole('switch',{name:'Séchage'});
+ await expect(toggle).toBeEnabled();
+ await expect(toggle).toHaveAttribute('aria-checked','false');
+ await toggle.click();
+ await expect(page.locator('#confirm-text')).toContainText('45 °C pendant 4 h');
+ await page.locator('#confirm-no').click();
+ expect(commands).toHaveLength(0);
+ await toggle.click();
+ await page.locator('#confirm-yes').click();
+ await expect(toggle).toHaveAttribute('aria-checked','true');
+ expect(commands[0]).toMatchObject({action:'dry-start',temperature:45,hours:4,box:0});
+ await toggle.click();
+ await page.locator('#confirm-yes').click();
+ await expect(toggle).toHaveAttribute('aria-checked','false');
+ expect(commands[1]).toMatchObject({action:'dry-stop',box:0});
 });

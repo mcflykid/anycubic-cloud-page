@@ -59,3 +59,34 @@ test('un abonnement vidéo tardif ne réactive pas le lecteur fermé',async({pag
  await expect(page.locator('#camera-state')).toHaveText('Caméra éteinte');
  expect(await page.evaluate(()=>window.playCalls)).toBe(0);
 });
+
+test('Agora renouvelle uniquement le canal et la session déjà ouverts', async ({page}) => {
+  const {login} = require('./helpers.cjs');
+  const session = {
+    appid: 'fixture-app', channel: 'fixture-channel', client_uid: 1,
+    rtc_token: 'fixture-token', encryption_mode: 'aes-128-gcm2',
+    encryption_key: 'fixture-key', encryption_kdf_salt: 'Zml4dHVyZQ==',
+  };
+  let response = session;
+  await page.route('**/js/agora-rtc.js', (route) => route.fulfill({
+    contentType: 'application/javascript',
+    body: `window.renewals = [];
+      window.AgoraRTC = {setLogLevel(){}, createClient(){return {
+        remoteUsers: [], setEncryptionConfig(){}, async setClientRole(){}, async join(){},
+        async leave(){}, async renewToken(token){window.renewals.push(token);},
+        on(event, callback){if(event === 'token-privilege-will-expire') window.expireCamera = callback;}
+      };}};`,
+  }));
+  await page.route('**/imprimante-api/camera-session', (route) => route.fulfill({json: response}));
+  await login(page);
+  await page.getByRole('button', {name: 'Caméra', exact: true}).click();
+  await page.locator('#camera-start').click();
+  await expect(page.locator('#camera-state')).toHaveText('En attente de la vidéo');
+  response = {...session, rtc_token: 'fixture-renewed'};
+  await page.evaluate(() => window.expireCamera());
+  expect(await page.evaluate(() => window.renewals)).toEqual(['fixture-renewed']);
+  response = {...session, channel: 'other-channel', rtc_token: 'fixture-other'};
+  await page.evaluate(() => window.expireCamera());
+  await expect(page.locator('#camera-state')).toHaveText('Session caméra expirée');
+  expect(await page.evaluate(() => window.renewals)).toEqual(['fixture-renewed']);
+});

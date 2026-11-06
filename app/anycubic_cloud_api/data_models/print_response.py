@@ -42,6 +42,11 @@ class AnycubicPrintResponse:
         self._ams_box_mapping: list[AnycubicMaterialMapping] | None = ams_box_mapping
 
     @property
+    def order_msg_id(self) -> str | None:
+        """Renvoie l’identifiant confirmé par le Cloud, ou None si le résultat reste incertain."""
+        return self._order_msg_id
+
+    @property
     def event_dict(self) -> dict[str, Any]:
         """Événement sérialisé à partir de la réponse d’impression."""
         ams_box_mapping = None

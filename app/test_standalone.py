@@ -22,6 +22,7 @@ from web_host import (
 from printer_registry import printer_key, select_printer
 from command_journal import CommandJournal
 from printer_commands import execute_command
+from printer_files import MQTTReplies
 from server import COMMAND_JOURNAL_KEY, command, command_journal, errors, upload
 from demo import create_demo
 
@@ -299,6 +300,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         engine = self.engines[printer_key(1)]
         engine.printer.connected_ace_units = 1
         engine.printer.machine_name = "Anycubic Kobra S1"
+        engine.mqtt_replies = MQTTReplies()
         engine.printer.query_camera_light_status = AsyncMock(
             side_effect=TypeError("fixture-private-detail")
         )
@@ -339,6 +341,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         engine.commands.clear()
         self.assertEqual((await self.client.post(url, json=request, headers=headers)).status, 409)
         engine.api._send_order_set_light_status.assert_awaited_once()
+        engine.printer.query_camera_light_status.assert_awaited_once()
 
     async def test_wrong_login_does_not_echo_password(self):
         """L’erreur reste générique, y compris pour un identifiant inconnu."""

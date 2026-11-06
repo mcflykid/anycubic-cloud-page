@@ -38,6 +38,16 @@ class AccountTests(unittest.IsolatedAsyncioTestCase):
         """Libère les fichiers temporaires créés par le scénario."""
         self.tmp.cleanup()
 
+    def test_local_expiry_contains_only_the_expiration_claim(self):
+        """Le mode compte et les jetons opaques n’ont pas de date affichable."""
+        expiry = int(time.time()) + 86400
+        current = token(sub="private-identity", exp=expiry)
+        self.assertIsNone(self.a.token_expiry(current))
+        self.a.credentials.unlink()
+        self.a.fallback.write_text(current)
+        self.assertEqual(self.a.token_expiry(), expiry)
+        self.assertIsNone(self.a.token_expiry("opaque-token"))
+
     async def test_login_binds_code_to_pkce_and_persists(self):
         """Vérifie que le code est lié au vérificateur PKCE et la session est persistée."""
         self.a.post = AsyncMock(

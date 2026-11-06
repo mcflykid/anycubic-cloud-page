@@ -69,7 +69,7 @@ class AnycubicAPIBase:
         self._debug_logger: Any = debug_logger
         self._tokens_changed: bool = False
         self._log_api_call_info: bool = False
-        self._last_warn_api_duration: int | None = None
+        self._last_warn_api_duration: float | None = None
         self._anycubic_auth: AnycubicAuthentication | None = None
 
         if auth_token:
@@ -168,7 +168,7 @@ class AnycubicAPIBase:
         return_url: bool = False,
     ) -> dict[Any, Any] | str:
         url = base_url
-        time_start: float = time.time()
+        time_start = time.monotonic()
         headers = {**self._web_headers(with_origin=with_origin), **extra_headers}
         if method == HTTP_METHODS.POST:
             if params is not None and (isinstance(params, dict) or isinstance(params, list)):
@@ -189,34 +189,44 @@ class AnycubicAPIBase:
 
         response_url = None
 
+        status = None
         try:
             async with h_coro as resp:
+                status = resp.status
                 if method == HTTP_METHODS.PUT and not 200 <= resp.status < 300:
-                    raise ValueError('Transfert cloud refusé')
+                    raise AnycubicAPIParsingError(f'Transfert cloud refusé (HTTP {status})')
                 if is_json:
                     resp_data: dict[str, Any] | str = await resp.json()
                 else:
                     resp_data = await resp.text()
 
                 response_url = resp.url
-        except Exception:
-            raise AnycubicAPIParsingError(ErrorsAPIParsing.api_error_server_maintenance)
+        except asyncio.TimeoutError as error:
+            raise AnycubicAPIParsingError('Délai de réponse Anycubic dépassé') from error
+        except (aiohttp.ContentTypeError, ValueError, UnicodeError) as error:
+            suffix = f' (HTTP {status})' if status is not None else ''
+            raise AnycubicAPIParsingError(f'Réponse Anycubic illisible{suffix}') from error
+        except aiohttp.ClientResponseError as error:
+            raise AnycubicAPIParsingError(f'Requête Anycubic refusée (HTTP {error.status})') from error
+        except (aiohttp.ClientError, OSError) as error:
+            raise AnycubicAPIParsingError('Connexion Anycubic interrompue') from error
 
-        time_end: float = time.time()
+        time_end = time.monotonic()
         time_diff: float = time_end - time_start
         over_limit: bool = int(time_diff) > MAX_API_FETCH_TIME_WARN
         if (
             over_limit
             and (
-                not self._last_warn_api_duration
-                or time_end > self._last_warn_api_duration + WARN_INTERVAL_API_DURATION
+                self._last_warn_api_duration is None
+                or time_end >= self._last_warn_api_duration + WARN_INTERVAL_API_DURATION
             )
         ):
+            self._last_warn_api_duration = time_end
             self._log_to_warn(
                 f"Responses from server are taking over {MAX_API_FETCH_TIME_WARN}s (Took {int(time_diff)}s)"
             )
         if self._log_api_call_info:
-            destination = 'stockage cloud' if method == HTTP_METHODS.PUT else url
+            destination = 'stockage cloud' if method == HTTP_METHODS.PUT else 'API Anycubic'
             self._log_to_debug(
                 f"Finished fetching {destination} in {time_diff:.2f}s."
             )

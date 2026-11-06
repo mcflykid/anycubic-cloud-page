@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      discussions: write
       packages: write
     steps:
       - uses: actions/checkout@v7
@@ -68,8 +69,15 @@ jobs:
           print('Image publique : linux/amd64 et linux/arm64 disponibles.')
           PY_MANIFEST
           python3 scripts/ci_compose.py host
-      - name: Créer la release GitHub et joindre les fichiers de démarrage
+      - name: Publier la release et son annonce dans les Discussions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --latest compose.yaml ".env.example#.env.example"
+        run: |
+          category=$(gh api graphql \
+            -f query='query($id: ID!) { node(id: $id) { ... on DiscussionCategory { name } } }' \
+            -f id=DIC_kwDOVj9Xvc4DKg5T --jq '.data.node.name')
+          test -n "$category"
+          gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" --latest --discussion-category "$category" \
+            compose.yaml ".env.example#.env.example"

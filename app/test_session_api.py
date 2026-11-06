@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 from session_api import SessionRecovery, CloudSessionAuthError
 from anycubic_cloud_api.api.base import AnycubicAPIBase
-from types import SimpleNamespace
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError
 
 

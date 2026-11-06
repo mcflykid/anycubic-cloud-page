@@ -124,7 +124,15 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
         """Deux cibles partagent la lecture et les références de notification du compte."""
         secondary = await self.secondary()
         self.root.api = SimpleNamespace(
-            _fetch_api_resp=AsyncMock(side_effect=[{"code": 1, "data": [{"id": 11}]}, {"data": []}])
+            _fetch_api_resp=AsyncMock(
+                side_effect=[
+                    {
+                        "code": 1,
+                        "data": [{"id": 11, "task_name": "Cube", "status": 0, "alarm_code": 200}],
+                    },
+                    {"code": 1, "data": {"total": 1, "unread_total": 1}},
+                ]
+            )
         )
         first, second = await asyncio.gather(self.root.print_history(1), secondary.print_history(1))
         self.assertEqual(first, second)
@@ -246,7 +254,7 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(second.state_dir.is_relative_to(self.root.state_dir / "printers"))
         self.assertEqual(second.state_dir.stat().st_mode & 0o777, 0o700)
         self.assertIsNot(second.commands, self.root.commands)
-        self.assertIsNot(second.file_messages, self.root.file_messages)
+        self.assertIsNot(second.mqtt_replies, self.root.mqtt_replies)
         self.assertIsNot(second.extras, self.root.extras if hasattr(self.root, "extras") else None)
         self.assertNotEqual(self.registry.history(second), self.registry.history(self.root))
 
@@ -389,6 +397,8 @@ class EngineSelection(unittest.IsolatedAsyncioTestCase):
         other = adapter.Engine()
         api = object.__new__(adapter.CloudPageAPI)
         api.cloud_engine = owner
+        owner.mqtt_replies.receive = Mock()
+        other.mqtt_replies.receive = Mock()
         payload = {"type": "file", "action": "listLocal", "msgid": "fixture-id", "data": {}}
         with patch.object(adapter.AnycubicMQTTAPI, "_mqtt_message_router", return_value=None):
             api._mqtt_message_router(
@@ -397,12 +407,12 @@ class EngineSelection(unittest.IsolatedAsyncioTestCase):
                     payload=json.dumps(payload).encode(),
                 )
             )
-            self.assertFalse(owner.file_messages)
+            owner.mqtt_replies.receive.assert_not_called()
             api._mqtt_message_router(
                 SimpleNamespace(
                     topic="anycubic/anycubicCloud/v1/printer/app/20025/fixture-a/file",
                     payload=json.dumps(payload).encode(),
                 )
             )
-        self.assertIn("fixture-id", owner.file_messages)
-        self.assertFalse(other.file_messages)
+        owner.mqtt_replies.receive.assert_called_once_with(payload)
+        other.mqtt_replies.receive.assert_not_called()

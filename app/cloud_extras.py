@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Fonctions cloud complémentaires avec filtrage des données exposées au navigateur."""
 
-import os
 import logging
-import asyncio, base64, contextlib, hashlib, hmac, json, math, pathlib, re, secrets, time, urllib.parse
+import asyncio, base64, contextlib, hashlib, heapq, hmac, math, pathlib, re, secrets, time, urllib.parse
 import aiohttp
 from aiohttp import web
 from datetime import datetime
@@ -65,6 +64,32 @@ def trusted_url(url):
         )
     except ValueError:
         return False
+
+
+async def download_preview(session, url):
+    """Renvoie une image intégrable après validation du stockage, ou None si elle est inutilisable."""
+    if not session or not trusted_url(url):
+        return None
+    try:
+        async with session.get(
+            url, allow_redirects=False, timeout=aiohttp.ClientTimeout(total=12)
+        ) as response:
+            mime = response.headers.get("Content-Type", "").split(";")[0]
+            if response.status != 200 or mime not in {
+                "image/png",
+                "image/jpeg",
+                "image/webp",
+                "image/gif",
+            }:
+                return None
+            content = bytearray()
+            async for chunk in response.content.iter_chunked(65536):
+                content.extend(chunk)
+                if len(content) > 3 * 1024 * 1024:
+                    return None
+            return "data:" + mime + ";base64," + base64.b64encode(content).decode()
+    except (aiohttp.ClientError, TimeoutError):
+        return None
 
 
 def diagnostic_text(value):
@@ -129,6 +154,18 @@ class CloudExtras:
         self.device_cache = None
         self.notification_projects = None
         self.notification_projects_lock = asyncio.Lock()
+        self.file_projects = None
+        self.folder_selection = None
+
+    async def file_preview_projects(self):
+        """Partage un inventaire court par cible et par client, sous le verrou de lecture appelant."""
+        cached = self.file_projects
+        if cached and cached[0] is self.e.api and time.monotonic() - cached[1] < 30:
+            return cached[2]
+        api = self.e.api
+        projects = await asyncio.wait_for(api.list_all_projects(), timeout=12)
+        self.file_projects = (api, time.monotonic(), projects)
+        return projects
 
     async def api(self, path, data=None, query=None, method="POST"):
         """Renvoie data après succès cloud ; lève ValueError si la connexion ou l’opération est refusée."""
@@ -167,8 +204,8 @@ class CloudExtras:
         """Renvoie les capacités annoncées avec une valeur strictement booléenne vraie."""
         return {
             r["name"]: r.get("value") is True
-            for r in self.e.raw_info.get("features", [])
-            if isinstance(r, dict) and "name" in r
+            for r in (self.e.raw_info.get("features") or [])
+            if isinstance(r, dict) and isinstance(r.get("name"), str)
         }
 
     async def storage(self):
@@ -184,22 +221,16 @@ class CloudExtras:
         if not printers:
             printers = [self.e.printer]
         allowed = {str(p.id): p for p in printers}
-        rows = []
-        more = False
-        for identifier in allowed:
-            page_rows = await self.api(
-                "/v2/project/printHistory",
-                query={"printer_id": int(identifier), "page": page, "limit": 20},
-                method="GET",
-            )
-            if not isinstance(page_rows, list):
-                raise ValueError("Historique des impressions indisponible")
-            rows.extend(
-                r
-                for r in page_rows
-                if isinstance(r, dict) and str(r.get("printer_id")) == identifier
-            )
-            more = more or len(page_rows) >= 20
+        if all_printers:
+            try:
+                async with asyncio.timeout(20):
+                    rows, more = await self.merged_task_page(allowed, page)
+            except TimeoutError:
+                raise ValueError(
+                    "L’historique de toutes les imprimantes est indisponible"
+                ) from None
+        else:
+            rows, more = await self.task_rows(next(iter(allowed)), page)
         projects = []
         with contextlib.suppress(Exception):
             projects = await self.api(
@@ -257,6 +288,68 @@ class CloudExtras:
         items.sort(key=lambda r: number(r.get("start"), 0), reverse=True)
         return {"items": items, "page": page, "has_more": more}
 
+    async def task_rows(self, identifier, page):
+        """Renvoie les lignes de la cible et l’indice de continuation du Cloud."""
+        rows = await self.api(
+            "/v2/project/printHistory",
+            query={"printer_id": int(identifier), "page": page, "limit": 20},
+            method="GET",
+        )
+        if not isinstance(rows, list):
+            raise ValueError("Historique des impressions indisponible")
+        return [
+            row
+            for row in rows
+            if isinstance(row, dict) and str(row.get("printer_id")) == identifier
+        ], len(rows) >= 20
+
+    async def merged_task_page(self, allowed, page):
+        """Fusionne les flux chronologiques avant de découper la page globale."""
+
+        def stamp(row):
+            return number(row.get("start_time") or row.get("create_time"), 0)
+
+        async def stream(identifier):
+            seen = set()
+            previous = math.inf
+            for source_page in range(1, 1001):
+                rows, more = await self.task_rows(identifier, source_page)
+                for row in sorted(rows, key=stamp, reverse=True):
+                    task = row.get("task_id") or row.get("taskid") or row.get("id")
+                    if not task or str(task) in seen:
+                        continue
+                    current = stamp(row)
+                    if current > previous:
+                        raise ValueError(
+                            "Le Cloud a modifié l’ordre de l’historique. Actualisez la liste."
+                        )
+                    previous = current
+                    seen.add(str(task))
+                    yield row
+                if not more:
+                    return
+
+        streams = {identifier: stream(identifier) for identifier in sorted(allowed)}
+        queue = []
+
+        async def advance(identifier):
+            row = await anext(streams[identifier], None)
+            if row is not None:
+                heapq.heappush(queue, (-stamp(row), identifier, row))
+
+        for identifier in streams:
+            await advance(identifier)
+        selected = []
+        offset = (page - 1) * 20
+        for index in range(offset + 20):
+            if not queue:
+                break
+            _, identifier, row = heapq.heappop(queue)
+            if index >= offset:
+                selected.append(row)
+            await advance(identifier)
+        return selected, bool(queue)
+
     def task(self, k, allow_other=False):
         """Résout une fiche connue ; seul un parcours de consultation ou d’historique autorise une autre machine du compte."""
         r = self.tasks.get(str(k))
@@ -303,7 +396,6 @@ class CloudExtras:
                     return PROJECT_IMAGE_URL_BASE + image_id
 
         url = image_url(r)
-        image = None
         if not url and lookup_detail:
             with contextlib.suppress(Exception):
                 detail = await self.api(
@@ -313,26 +405,7 @@ class CloudExtras:
                 )
                 if isinstance(detail, dict):
                     url = image_url(detail)
-        if url:
-            try:
-                async with self.e.session.get(
-                    url, allow_redirects=False, timeout=aiohttp.ClientTimeout(total=12)
-                ) as response:
-                    mime = response.headers.get("Content-Type", "").split(";")[0]
-                    if response.status == 200 and mime in [
-                        "image/png",
-                        "image/jpeg",
-                        "image/webp",
-                        "image/gif",
-                    ]:
-                        content = bytearray()
-                        async for chunk in response.content.iter_chunked(65536):
-                            content.extend(chunk)
-                            if len(content) > 3 * 1024 * 1024:
-                                raise ValueError("Aperçu trop volumineux")
-                        image = "data:" + mime + ";base64," + base64.b64encode(content).decode()
-            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
-                pass
+        image = await download_preview(self.e.session, url) if url else None
         self.previews[k] = (time.monotonic(), image)
         while len(self.previews) > 20:
             self.previews.pop(next(iter(self.previews)))
@@ -526,7 +599,7 @@ class CloudExtras:
         now = time.monotonic()
         self.downloads = {k: v for k, v in self.downloads.items() if v["expires"] > now}
         links = []
-        for row, url in zip(rows, urls):
+        for row, url in zip(rows, urls, strict=True):
             ticket = secrets.token_urlsafe(24)
             self.downloads[ticket] = {
                 "url": url,
@@ -740,7 +813,7 @@ class CloudExtras:
         ) != len(identifiers):
             raise ValueError("Références de fiches non valides")
         removed = 0
-        for (k, row), identifier in zip(rows, identifiers):
+        for (k, _), identifier in zip(rows, identifiers, strict=True):
             try:
                 await dispatch_command(
                     self.api("/work/project/unsetprojects", {"id": identifier, "checkSign": False})
@@ -759,6 +832,10 @@ class CloudExtras:
         """Valide puis exécute une action complémentaire ; lève ValueError si non autorisée ou non confirmée."""
         if name == "task-delete-many":
             return await self.delete_tasks(d.get("keys"))
+        if name == "cloud-move":
+            from printer_files import move_cloud_files
+
+            return await move_cloud_files(self.e, d)
         if name == "cloud-rename":
             rows = self.files([d.get("handle")])
             value = str(d.get("name", "")).strip()
@@ -910,6 +987,20 @@ async def load(req):
     e = req.get("selected_engine", req.app["extras"].e).extras
     section = req.match_info["section"]
     async with e.e.lock:
+        if (
+            section
+            in {
+                "tasks",
+                "task",
+                "task-preview",
+                "notification-preview",
+                "device",
+                "rating",
+                "videos",
+            }
+            and not e.e.printer
+        ):
+            raise ValueError("Connexion Anycubic en cours")
         if section == "storage":
             result = await e.storage()
         elif section == "tasks":
@@ -940,17 +1031,12 @@ async def load(req):
 
 
 async def downloads(req):
-    # server.py peut être chargé comme __main__ : un import recréerait une autre instance du moteur.
-    """Renvoie les liens temporaires de la sélection ; lève HTTPForbidden si l’origine est étrangère."""
-    origin = req.headers.get("Origin")
-    if origin and origin not in [
-        os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080"),
-        "http://127.0.0.1:8080",
-    ]:
-        raise web.HTTPForbidden()
+    """Renvoie les liens temporaires de la sélection ; lève ValueError sans cible prête."""
     e = req.get("selected_engine", req.app["extras"].e).extras
     d = await req.json()
     async with e.e.lock:
+        if not e.e.printer or not e.e.api:
+            raise ValueError("Connexion Anycubic en cours")
         result = await e.download(d.get("handles"))
     return web.json_response(result, headers={"Cache-Control": "no-store"})
 
@@ -969,14 +1055,10 @@ async def download_file(req):
 
 async def reset_challenge(req):
     """Renvoie une confirmation liée à la machine ; lève ValueError si elle ne peut pas être réinitialisée."""
-    origin = req.headers.get("Origin")
-    if origin and origin not in [
-        os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080"),
-        "http://127.0.0.1:8080",
-    ]:
-        raise web.HTTPForbidden()
     e = req.get("selected_engine", req.app["extras"].e).extras
     async with e.e.lock:
+        if not e.e.printer or not e.e.api:
+            raise ValueError("Connexion Anycubic en cours")
         e.idle()
         state = await e.device()
         if not state["factory_reset"]:

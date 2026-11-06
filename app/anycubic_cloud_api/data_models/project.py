@@ -879,13 +879,13 @@ class AnycubicProject:
         return self._remain_time
 
     @property
-    def print_approximate_completion_time(self) -> int:
-        """Heure estimée de fin calculée depuis le temps restant."""
+    def print_approximate_completion_time(self) -> int | None:
+        """Renvoie l’heure estimée de fin, ou None tant qu’aucune estimation n’est disponible."""
         if self._end_time and self._end_time > 0:
             return self._end_time
 
-        if self._remain_time is None:
-            return 0
+        if self._remain_time is None or self._remain_time <= 0:
+            return None
 
         return int(time.time() + (self._remain_time * 60))
 
@@ -921,7 +921,8 @@ class AnycubicProject:
             self._print_status == AnycubicPrintStatus.Printing or
             self._print_status == AnycubicPrintStatus.Downloading or
             self._print_status == AnycubicPrintStatus.Checking or
-            self._print_status == AnycubicPrintStatus.Preheating
+            self._print_status == AnycubicPrintStatus.Preheating or
+            self._print_status == AnycubicPrintStatus.Leveling
         )
 
     @property
@@ -942,7 +943,7 @@ class AnycubicProject:
     @property
     def print_is_paused(self) -> bool:
         """Indique si le projet actif est en pause."""
-        return self._pause != 0 and self.print_in_progress
+        return self._pause not in (None, 0) and self.print_in_progress
 
     @property
     def print_supplies_usage(self) -> int | None:

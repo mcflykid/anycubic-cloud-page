@@ -2,7 +2,7 @@
 """Configuration interactive locale du compte Anycubic ou d’un jeton existant."""
 
 import os
-import getpass, json, pathlib, sys
+import getpass, json
 from prepare_vendor import prepare, private_write, ROOT, appdata_path
 
 

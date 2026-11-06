@@ -1,6 +1,6 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 
-import argparse, base64, math, os, pathlib, re, time
+import argparse, base64, math, os, re, time
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 from web_host import (
@@ -278,6 +278,13 @@ async def api(request):
             "path": "/",
             "store": {"used_bytes": 184 * 1024**2, "total_bytes": 2 * 1024**3},
         }
+        if path == "files/cloud" and (folder := request.query.get("folder")):
+            d["folders"] = [
+                {"reference": "root", "path": "/"},
+                {"reference": "demo-pieces", "path": "/Pièces d’atelier"},
+                {"reference": "demo-prototypes", "path": "/Prototypes"},
+            ]
+            d["files"] = FILES[:2] if folder == "root" else []
     elif path == "extras/storage":
         d = {"total": 2 * 1024**3, "used": 184 * 1024**2, "free": 2 * 1024**3 - 184 * 1024**2}
     elif path == "extras/tasks":

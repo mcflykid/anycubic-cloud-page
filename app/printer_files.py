@@ -5,10 +5,75 @@ import asyncio
 import base64
 import contextlib
 import hashlib
+import re
 import time
 import uuid
 
 from printer_values import filepath, safeget, serial
+from cloud_extras import key, number
+from anycubic_cloud_api.data_models.files import AnycubicCloudFile
+from command_journal import dispatch_command
+
+
+class MQTTReplies:
+    """Corrèle les réponses MQTT sur la boucle de la cible, y compris avant l’acquittement HTTP."""
+
+    def __init__(self):
+        """Garde les attentes actives et un tampon précoce borné."""
+        self.loop = None
+        self.opening = 0
+        self.pending = {}
+        self.early = {}
+
+    def receive(self, payload):
+        """Transfère une réponse du fil MQTT sans modifier les attentes depuis ce fil."""
+        identifier = payload.get("msgid")
+        if (
+            self.loop
+            and type(identifier) in (int, str)
+            and 0 < len(str(identifier)) <= 128
+            and isinstance(payload.get("type"), str)
+            and isinstance(payload.get("action"), str)
+        ):
+            with contextlib.suppress(RuntimeError):
+                self.loop.call_soon_threadsafe(self._deliver, payload, time.monotonic())
+
+    def _deliver(self, payload, received):
+        key = (payload.get("type"), payload.get("action"), str(payload["msgid"]))
+        waiter = self.pending.get(key)
+        if waiter is not None and not waiter.done():
+            waiter.set_result(payload)
+        elif self.opening:
+            self.early[key] = (received, payload)
+            if len(self.early) > 24:
+                self.early.pop(next(iter(self.early)))
+
+    async def ask(self, kind, action, send, timeout):
+        """Attend l’identifiant de send puis sa réponse, ou lève ValueError au refus ou au délai."""
+        self.loop = asyncio.get_running_loop()
+        started = time.monotonic()
+        self.opening += 1
+        try:
+            identifier = await send()
+            if type(identifier) not in (int, str) or identifier == "":
+                raise ValueError("La consultation n’a pas été acceptée par Anycubic")
+            key = (kind, action, str(identifier))
+            cached = self.early.pop(key, None)
+            if cached and cached[0] >= started:
+                return cached[1]
+            if key in self.pending:
+                raise ValueError("Une consultation identique est déjà en cours")
+            waiter = self.pending[key] = self.loop.create_future()
+        finally:
+            self.opening -= 1
+            if not self.opening:
+                self.early.clear()
+        try:
+            return await asyncio.wait_for(waiter, timeout)
+        except TimeoutError:
+            raise ValueError("L’imprimante n’a pas confirmé cette demande") from None
+        finally:
+            self.pending.pop(key, None)
 
 
 async def direct_request(target, kind, action, data):
@@ -16,23 +81,22 @@ async def direct_request(target, kind, action, data):
     if not target.api or not target.api._mqtt_client or not target.api._mqtt_client.is_connected():
         raise ValueError("La connexion à l’imprimante n’est pas disponible")
     msgid = str(uuid.uuid4())
-    target.api._mqtt_publish_to_printer(
-        target.printer,
-        kind,
-        {
-            "type": kind,
-            "action": action,
-            "timestamp": int(time.time() * 1000),
-            "msgid": msgid,
-            "data": data,
-        },
-    )
-    deadline = time.monotonic() + 10
-    while msgid not in target.file_messages:
-        if time.monotonic() > deadline:
-            raise ValueError("L’imprimante n’a pas confirmé cette demande")
-        await asyncio.sleep(0.1)
-    return target.file_messages.pop(msgid)
+
+    async def publish():
+        target.api._mqtt_publish_to_printer(
+            target.printer,
+            kind,
+            {
+                "type": kind,
+                "action": action,
+                "timestamp": int(time.time() * 1000),
+                "msgid": msgid,
+                "data": data,
+            },
+        )
+        return msgid
+
+    return await target.mqtt_replies.ask(kind, action, publish, 10)
 
 
 async def local_preview(target, source, name, path):
@@ -46,24 +110,19 @@ async def local_preview(target, source, name, path):
     # La consultation native Slicer 1239 reçoit son aperçu par MQTT, pas dans la réponse HTTP.
     from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest
 
-    msgid = await target.api._send_anycubic_order(
-        AnycubicProjectOrderRequest(
-            order_id=1239,
-            printer_id=target.printer.id,
-            project_id=0,
-            order_data={
-                "root": "local" if source == "local" else "udisk",
-                "filename": filename,
-                "plate_index": 0,
-            },
-        )
+    order = AnycubicProjectOrderRequest(
+        order_id=1239,
+        printer_id=target.printer.id,
+        project_id=0,
+        order_data={
+            "root": "local" if source == "local" else "udisk",
+            "filename": filename,
+            "plate_index": 0,
+        },
     )
-    deadline = time.monotonic() + 12
-    while str(msgid) not in target.file_messages:
-        if time.monotonic() > deadline:
-            raise ValueError("L’imprimante n’a pas répondu à la demande d’aperçu")
-        await asyncio.sleep(0.1)
-    response = target.file_messages.pop(str(msgid))
+    response = await target.mqtt_replies.ask(
+        "file", "fileDetails", lambda: target.api._send_anycubic_order(order), 12
+    )
     data = response.get("data") or {}
     if isinstance(data, dict) and isinstance(data.get("file_details"), dict):
         data = data["file_details"]
@@ -111,15 +170,12 @@ async def read_files(target, source, path):
             if source == "local"
             else target.api._send_order_list_udisk_files
         )
-        msgid = await method(p, file_path=wire)
-        deadline = time.monotonic() + 12
-        while str(msgid) not in target.file_messages:
-            if time.monotonic() > deadline:
-                raise ValueError(
-                    "L’imprimante n’a pas répondu à la demande de fichiers. Réessayez."
-                )
-            await asyncio.sleep(0.1)
-        response = target.file_messages.pop(str(msgid))
+        response = await target.mqtt_replies.ask(
+            "file",
+            "listLocal" if source == "local" else "listUdisk",
+            lambda: method(p, file_path=wire),
+            12,
+        )
         if response.get("state") != "done":
             raise ValueError("Ce dossier n’est pas accessible sur l’imprimante")
         data = response.get("data") or {}
@@ -148,27 +204,170 @@ async def read_files(target, source, path):
     return {"files": rows, "path": canonical}
 
 
-async def cloud_files(target, page):
+async def cloud_files(target, page, folder=None):
     """Renvoie une page de fichiers et le quota, avec références opaques pour les actions ultérieures."""
-    files = await target.api.get_user_cloud_files(page=page, limit=20)
+    folder_result = {}
+    if folder is None:
+        files = await target.api.get_user_cloud_files(page=page, limit=20)
+        count = len(files or [])
+    else:
+        files, count, folder_result = await folder_files(target, page, folder)
     rows = []
     for f in files or []:
         handle = hashlib.sha256(str(f.id).encode()).hexdigest()[:20]
-        target.cloudfiles[handle] = f
+        # La liste native possède ses propres références, réservées au déplacement.
+        if folder is None:
+            target.cloudfiles[handle] = f
+        details = {}
+        for name, attribute, upper in (
+            ("seconds", "_estimate", 30 * 86400),
+            ("layer_mm", "_layer_height", 10),
+            ("x", "_size_x", 2000),
+            ("y", "_size_y", 2000),
+            ("z", "_size_z", 2000),
+        ):
+            raw = safeget(f, attribute)
+            value = number(raw) if not isinstance(raw, bool) else None
+            if value is not None and 0 < value <= upper:
+                details[name] = value
+        material = safeget(f, "_material_name")
+        if isinstance(material, str) and re.fullmatch(
+            r"(?:PLA|PETG|ABS|ASA|TPU|PA|PC|PVA|HIPS|PPS)(?:[ -](?:Silk|Matte|High Speed|Pro|HS|CF|GF|Plus|Glow|Basic|SE)){0,2}",
+            material,
+            re.I,
+        ):
+            details["material"] = material
         rows.append(
             {
                 "handle": handle,
                 "name": f.old_filename,
                 "size_mb": f.size_mb,
-                "printable": f.gcode_id is not None,
+                "printable": f.gcode_id is not None and f.gcode_id > 0,
+                **({"details": details} if details else {}),
             }
         )
     store = await target.api.get_user_cloud_store()
     return {
         "files": rows,
         "page": page,
-        "has_more": len(rows) == 20,
+        "has_more": count == 20,
+        **folder_result,
         "store": {
             k: serial(safeget(store, k)) for k in ["total_bytes", "used_bytes", "available_bytes"]
         },
     }
+
+
+async def folder_files(target, page, reference):
+    """Liste le dossier natif et conserve les références nécessaires à un déplacement confirmé."""
+    extras = target.extras
+    api = target.api
+    extras.folder_selection = None
+    response = await extras.api(
+        "/v5/cloud-file/folder/list", query={"parent_folder_id": "0", "all": "true"}, method="GET"
+    )
+    if not isinstance(response, list) or len(response) > 1000:
+        raise ValueError("Arborescence Cloud indisponible")
+    folders = {0: ("root", "/")}
+    children = {}
+    for row in response:
+        if not isinstance(row, dict):
+            continue
+        identifier, parent, name = row.get("id"), row.get("parent_folder_id"), row.get("name")
+        if (
+            type(identifier) is int
+            and 0 < identifier <= 2**31 - 1
+            and type(parent) is int
+            and 0 <= parent <= 2**31 - 1
+            and isinstance(name, str)
+            and re.fullmatch(r"[^/\\\x00-\x1f]{1,100}", name)
+            and name.strip() not in ("", ".", "..")
+        ):
+            children.setdefault(parent, []).append((identifier, name))
+    queue = [(0, 0)]
+    for parent, depth in queue:
+        for identifier, name in children.get(parent, ()):
+            if identifier in folders or depth >= 20:
+                continue
+            path = folders[parent][1].rstrip("/") + "/" + name
+            folders[identifier] = (key(f"folder:{identifier}"), path)
+            queue.append((identifier, depth + 1))
+    by_ref = {ref: (identifier, path) for identifier, (ref, path) in folders.items()}
+    if reference not in by_ref:
+        raise ValueError("Dossier Cloud introuvable. Actualisez l’arborescence.")
+    source, _ = by_ref[reference]
+    records = await extras.api(
+        "/work/index/userFiles",
+        {
+            "page": page,
+            "limit": 20,
+            "file_type": 0,
+            "orderby": 1,
+            "machine_type": 0,
+            "folder_id": source,
+            "filename": "",
+            "file_extension_type": 0,
+        },
+    )
+    if target.api is not api or not isinstance(records, list) or len(records) > 20:
+        raise ValueError("Liste du dossier Cloud indisponible")
+    files = []
+    for row in records:
+        if (
+            not isinstance(row, dict)
+            or type(row.get("id")) is not int
+            or not 0 < row["id"] <= 2**31 - 1
+            or type(row.get("folder_id")) is not int
+            or row["folder_id"] != source
+            or type(row.get("is_folder")) not in (bool, int)
+            or row["is_folder"] != 0
+            or not isinstance(row.get("old_filename"), str)
+            or not row["old_filename"]
+        ):
+            continue
+        with contextlib.suppress(ValueError, TypeError, OverflowError):
+            files.append(AnycubicCloudFile.from_json(row))
+    extras.folder_selection = (
+        api,
+        time.monotonic() + 300,
+        reference,
+        by_ref,
+        {key(file.id): file.id for file in files},
+    )
+    return (
+        files,
+        len(records),
+        {"folders": [{"reference": ref, "path": path} for ref, (_, path) in by_ref.items()]},
+    )
+
+
+async def move_cloud_files(target, data):
+    """Déplace une sélection de la dernière page consultée vers un dossier connu du même compte."""
+    selection = target.extras.folder_selection
+    source, destination, handles = data.get("source"), data.get("destination"), data.get("handles")
+    if (
+        not selection
+        or selection[0] is not target.api
+        or selection[1] <= time.monotonic()
+        or source != selection[2]
+        or not isinstance(destination, str)
+        or destination in ("root", source)
+        or destination not in selection[3]
+        or not isinstance(handles, list)
+        or not 1 <= len(handles) <= 20
+        or any(not isinstance(handle, str) or handle not in selection[4] for handle in handles)
+        or len(set(handles)) != len(handles)
+    ):
+        raise ValueError("Sélection ou dossier périmé. Actualisez les fichiers Cloud.")
+    target.extras.folder_selection = None
+    await dispatch_command(
+        target.extras.api(
+            "/v5/cloud-file/item/move",
+            {
+                "target_folder_id": selection[3][destination][0],
+                "file_ids": [selection[4][handle] for handle in handles],
+                "folder_ids": [],
+            },
+        )
+    )
+    return "Fichiers déplacés dans le Cloud"

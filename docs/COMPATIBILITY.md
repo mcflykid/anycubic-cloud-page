@@ -15,7 +15,7 @@ Référence initiale : observations du 2–3 novembre 2026 sur **Kobra S1 Combo 
 | Fichiers locaux | Navigation du dossier constructeur `test_model`, 14 fichiers observés ; miniatures Benchy/Dinosaur affichées. |
 | Fichiers cloud | Téléchargement comparé octet par octet, renommage avec extensions et suppression vérifiés sur fichiers d’essai sans ordre d’impression. |
 | Historique et détails | Lectures réelles et aperçus obtenus. Retrait d’une seule fiche explicitement désignée confirmé par relecture cloud, sans changement des autres références ; vérification dans les interfaces du fournisseur à la charge du propriétaire. Les sélections, lots et erreurs partielles sont testés sur fixtures. |
-| Aperçus de notifications | Tests de résolution et interface avec données fictives ; journal réel vide au contrôle. |
+| Notifications | Lecture directe du journal Cloud utilisé par Anycubic Slicer Next. Liste, compteur, filtres et aperçus vérifiés sur réponses fictives. Le journal historique conserve ses actions de lecture et de suppression. |
 | Lecture IA | Réponse réelle reçue après correction de corrélation MQTT ; formulaire modifiable vu dans Safari. |
 | Écriture IA | Charges utiles testées par simulation ; aucune modification réelle appliquée pour cette publication. |
 | Lancement/réimpression et mapping ACE | Parcours et garde-fous présents ; pas de validation physique complète par cette publication. |

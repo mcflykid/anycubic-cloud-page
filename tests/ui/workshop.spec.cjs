@@ -135,3 +135,47 @@ test('un catalogue qui ne répond pas ne bloque pas la connexion',async({page})=
  await expect(page.locator('#interface-language')).toHaveValue('fr');
  expect(requests).toBeGreaterThanOrEqual(1);
 });
+
+test('les actualisations simultanées partagent une seule lecture et le rendu masque les données brutes', async ({page}) => {
+  const {login} = require('./helpers.cjs');
+  let calls = 0;
+  let finish;
+  const warnings = [];
+  page.on('console', (message) => {
+    if (message.type() === 'warning') warnings.push(message.text());
+  });
+  await page.route('**/imprimante-api/status', async (route) => {
+    calls++;
+    await new Promise((resolve) => { finish = resolve; });
+    await route.fulfill({json: {ok: true, printer: {printer_online: true}, events: 'fixture-private'}});
+  });
+  await login(page);
+  await expect.poll(() => typeof finish).toBe('function');
+  await page.evaluate(() => {
+    for (let i = 0; i < 6; i++) document.dispatchEvent(new Event('visibilitychange'));
+  });
+  expect(calls).toBe(1);
+  finish();
+  await expect.poll(() => warnings.some((text) => text.includes('Échec du rendu'))).toBe(true);
+  expect(warnings.join(' ')).not.toContain('fixture-private');
+});
+
+test('l’apparence suit le système ou garde le choix explicite après rechargement', async ({page}) => {
+  const {login} = require('./helpers.cjs');
+  await page.emulateMedia({colorScheme: 'dark'});
+  await login(page);
+  await page.getByRole('button', {name: 'Réglages', exact: true}).click();
+  const theme = page.getByLabel('Thème de l’interface');
+  await expect(theme).toHaveValue('system');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await theme.selectOption('light');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await page.reload();
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await page.getByRole('button', {name: 'Réglages', exact: true}).click();
+  await theme.selectOption('dark');
+  await page.emulateMedia({colorScheme: 'light'});
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await theme.selectOption('system');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+});
