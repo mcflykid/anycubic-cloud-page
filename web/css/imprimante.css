@@ -45,6 +45,7 @@ dialog{width:min(90%,480px);max-height:90dvh;overflow:auto;padding:28px;border:1
 .connection-action{flex-direction:row;min-height:52px;padding:12px 10px;gap:9px}.connection-action>svg{width:20px;height:20px}.connection-action>span{display:block}.connection-action strong{font-size:.85rem;white-space:nowrap}.settings-connection .settings-help{margin-top:16px}.temperature-section>.section-title{margin-bottom:8px}#temperature-note{font-size:.8rem;line-height:1.5;max-width:none;margin:0 0 20px;white-space:nowrap}@media(max-width:1000px){#temperature-note{white-space:normal}}@media(max-width:500px){.connection-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.connection-action{min-height:76px;flex-direction:column;gap:8px;padding:12px 4px}.connection-action strong{font-size:.72rem}}
 
 .ace-overview .overview-content>.actions{justify-content:center}
+.ace-overview #ace-status{align-self:flex-start}
 
 #tab-overview .overview-content>.actions{justify-content:center}
 
