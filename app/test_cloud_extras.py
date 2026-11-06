@@ -531,12 +531,16 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.x.preview_row.await_args.args[1]["id"], 55)
 
     async def test_recent_catalogue_is_shared_by_two_notification_lookups(self):
-        """Deux miniatures absentes ne provoquent pas deux lectures du même catalogue."""
+        """Deux miniatures visibles en même temps partagent la lecture du catalogue."""
         self.e.notifications = SimpleNamespace(rows={"a": {"task_id": 44}, "b": {"task_id": 55}})
         self.x.preview_row = AsyncMock(return_value={"image": None})
-        self.x.api = AsyncMock(return_value=[])
-        await self.x.notification_preview("a")
-        await self.x.notification_preview("b")
+
+        async def delayed_catalogue(*args, **kwargs):
+            await asyncio.sleep(0)
+            return []
+
+        self.x.api = AsyncMock(side_effect=delayed_catalogue)
+        await asyncio.gather(self.x.notification_preview("a"), self.x.notification_preview("b"))
         self.x.api.assert_awaited_once()
 
     async def test_ambiguous_reference_keeps_preview_unavailable(self):

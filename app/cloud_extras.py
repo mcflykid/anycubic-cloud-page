@@ -126,6 +126,7 @@ class CloudExtras:
         self.resets = ResetChallenges()
         self.device_cache = None
         self.notification_projects = None
+        self.notification_projects_lock = asyncio.Lock()
 
     async def api(self, path, data=None, query=None, method="POST"):
         """Renvoie data après succès cloud ; lève ValueError si la connexion ou l’opération est refusée."""
@@ -372,24 +373,14 @@ class CloudExtras:
             if task and (not project_id or str(task.get("id")) == project_id):
                 matches = [task]
         if not matches:
-            if (
-                not self.notification_projects
-                or time.monotonic() - self.notification_projects[0] >= 30
-            ):
-                try:
-                    projects = await self.api(
-                        "/work/project/getProjects", query={"page": 1, "limit": 100}, method="GET"
-                    )
-                except (ValueError, aiohttp.ClientError, asyncio.TimeoutError):
-                    self.previews.pop(cachekey, None)
-                    return {"image": None}
-                self.notification_projects = (
-                    time.monotonic(),
-                    projects if isinstance(projects, list) else [],
-                )
+            try:
+                projects = await self._notification_project_rows()
+            except (ValueError, aiohttp.ClientError, asyncio.TimeoutError):
+                self.previews.pop(cachekey, None)
+                return {"image": None}
             matches = [
                 project
-                for project in self.notification_projects[1]
+                for project in projects
                 if isinstance(project, dict)
                 and str(project.get("printer_id")) == printer_id
                 and (not task_id or task_id == str(project.get("taskid") or project.get("task_id")))
@@ -407,6 +398,19 @@ class CloudExtras:
             project = {**project, "taskid": task_reference}
             return await self.preview_row(cachekey, project)
         return await self.preview_row(cachekey, project, lookup_detail=False)
+
+    async def _notification_project_rows(self):
+        # L’observateur peut demander plusieurs vignettes visibles pendant la même lecture.
+        async with self.notification_projects_lock:
+            cached = self.notification_projects
+            if cached and time.monotonic() - cached[0] < 30:
+                return cached[1]
+            projects = await self.api(
+                "/work/project/getProjects", query={"page": 1, "limit": 100}, method="GET"
+            )
+            rows = projects if isinstance(projects, list) else []
+            self.notification_projects = (time.monotonic(), rows)
+            return rows
 
     async def detail(self, k):
         """Renvoie les détails filtrés d’une tâche ; lève ValueError si Anycubic ne les fournit pas."""
