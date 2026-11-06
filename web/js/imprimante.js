@@ -645,6 +645,35 @@ $('task-reprint-form').onsubmit=async e=>{
   if(ok)$('task-reprint-dialog').close();
  }finally{submit.disabled=false;}
 };
+let journalLoad=0;
+/** Affiche la dernière lecture demandée et garde l’export cohérent avec les filtres. */
+async function loadCommandJournal(){
+ const generation=++journalLoad,form=$('journal-filters'),filters=new URLSearchParams(new FormData(form));
+ const exportLink=$('journal-export');
+ exportLink.hidden=true;set('journal-state','Chargement du journal…');
+ try{
+  const {items,printers,actions}=await request('/journal?'+filters);
+  if(generation!==journalLoad)return;
+  const {printer,action}=form.elements;
+  printer.replaceChildren(new Option('Toutes les imprimantes',''),...Object.entries(printers).map(([key,name])=>new Option(name||key,key)));
+  action.replaceChildren(new Option('Toutes les actions',''),...actions.map(value=>new Option(value,value)));
+  printer.value=filters.get('printer');action.value=filters.get('action');
+  $('journal-entries').replaceChildren(...items.map(row=>{
+   const item=node('li');
+   const details=Object.entries(row.parameters||{}).map(([key,value])=>key+' '+value).join(' · ');
+   item.append(node('strong',row.action+' · '+row.outcome),node('p',[date(row.time),row.printer_name,details].filter(Boolean).join(' · ')));
+   return item;
+  }));
+  set('journal-state',items.length?items.length+' entrée(s) récente(s)':'Aucune commande pour ces filtres.');
+  filters.set('export','1');exportLink.href=api+'/journal?'+filters;exportLink.hidden=!items.length;
+ }catch(error){
+  if(generation!==journalLoad)return;
+  $('journal-entries').replaceChildren();set('journal-state',error.message);
+ }
+}
+$('journal-panel').ontoggle=()=>{if($('journal-panel').open)void loadCommandJournal();};
+$('journal-filters').onsubmit=event=>{event.preventDefault();void loadCommandJournal();};
+$('journal-filters').onchange=()=>void loadCommandJournal();
 const assistLabels={0:'Contrôle de la courroie',1:'Détection de perte de pas',2:'Relais automatique',3:'Alerte de fin de filament',4:'Alerte de blocage du filament',5:'Suivi du filament restant'};
 /** N’expose les réglages avancés que si les capacités et options constructeur les autorisent. */
 async function loadDeviceOptions(){const button=$('device-options-load');button.disabled=true;set('device-options-state','Lecture des options du constructeur…');try{const d=await request('/extras/device');deviceOptions=d;set('device-options-state',d.message||'Options reçues de l’imprimante');$('calibration-choices').replaceChildren(...d.calibrations.map(c=>{const label=node('label',null,'check'),input=node('input');input.type='checkbox';input.name='items';input.value=c.key;label.append(input,document.createTextNode(c.label));return label;}));$('calibration-fields').disabled=!d.calibrations.length;set('calibration-help',d.calibrations.length?'Choisissez les calibrations à lancer, plateau libre.':d.calibration_advertised?'Le nivellement et la compensation sont annoncés, mais leur commande à distance n’est pas confirmée pour ce firmware.':'Aucune calibration à distance fournie pour ce firmware.');$('hardware-form').hidden=!d.hardware_editable;$('hardware-form').querySelector('fieldset').disabled=!d.hardware_editable;set('hardware-help',d.hardware_editable?'Réglages déclarés par le constructeur.':'Le Cloud ne permet pas de modifier le matériel sur ce firmware.');if(d.hardware_editable){for(const k of ['diameter','material'])if(d.hardware[k]!=null)$('hardware-form').elements[k].value=d.hardware[k];if(d.bed.material!=null)$('hardware-form').elements.bed.value=d.bed.material;}$('assist-options').replaceChildren(...d.assistance.filter(r=>[0,3,4,5].includes(r.option)).map(r=>{const label=node('label',null,'check'),input=node('input');input.type='checkbox';input.name=String(r.option);input.checked=!!Number(r.value);label.append(input,document.createTextNode(assistLabels[r.option]||r.label||'Option constructeur'));return label;}));$('assist-form').querySelector('fieldset').disabled=!d.assistance.length;set('assist-help',d.assistance.length?'Options actuelles communiquées par la machine.':'Options d’assistance non fournies par ce firmware.');$('screen-option').replaceChildren(...d.screen.filter(r=>[0,1].includes(r.option)).map(r=>new Option(r.option===0?'Extinction de l’écran':'Mise en veille',r.option)));$('screen-form').querySelector('fieldset').disabled=!$('screen-option').options.length;set('screen-help',d.screen.length?'Délai avant la mise en veille.':'Réglage de veille non fourni par ce firmware.');const visible=[d.calibrations.length>0,d.hardware_editable,d.assistance.some(r=>[0,3,4,5].includes(r.option)),d.screen.some(r=>[0,1].includes(r.option)),d.factory_reset];document.querySelectorAll('.extras-settings-grid>section').forEach((card,i)=>card.hidden=!visible[i]);document.querySelector('.extras-settings-grid').hidden=!visible.some(Boolean);document.querySelector('.extras-settings-heading').hidden=!visible.some(Boolean);$('reset-open').disabled=!d.factory_reset||!snapshot?.printer?.is_available;set('reset-help',d.factory_reset?'Rétablit les réglages d’usine après saisie du code et du mot de passe web.':'La réinitialisation Cloud n’est pas annoncée pour ce firmware.');}catch(e){set('device-options-state',e.message);}finally{button.disabled=false;}}

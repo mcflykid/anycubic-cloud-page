@@ -57,3 +57,16 @@ test('une mise à jour demande le mot de passe web avant toute commande',async({
  expect(commands[0].confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
  expect(commands[0]).not.toHaveProperty('password');
 });
+
+test('le journal en lecture seule applique les filtres à l’export',async({page})=>{
+ await page.route('**/imprimante-api/journal?**',route=>route.fulfill({json:{
+  items:[{action:'light',outcome:'confirmée',time:Date.now()/1000,printer_name:'Imprimante fictive',parameters:{enabled:true}}],
+  printers:{fixture:'Imprimante fictive'},actions:['light']
+ }}));
+ await login(page);
+ await page.getByRole('button',{name:'Réglages',exact:true}).click();
+ await page.getByText('Journal des commandes',{exact:true}).click();
+ await expect(page.locator('#journal-entries')).toContainText('light · confirmée');
+ await page.locator('#journal-filters select[name=printer]').selectOption('fixture');
+ await expect(page.getByRole('link',{name:'Exporter le journal expurgé'})).toHaveAttribute('href','/imprimante-api/journal?printer=fixture&action=&export=1');
+});

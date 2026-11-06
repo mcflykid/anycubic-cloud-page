@@ -11,7 +11,8 @@ from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
 from printer_registry import PrinterRegistry,SharedCloudAPI,select_printer,printer_key
 from account_auth import AccountAuth
-from web_host import SENSITIVE_ACTIONS,access_control,consume_action_ticket
+from web_host import SESSION_DIGEST_KEY,SENSITIVE_ACTIONS,access_control,client_address,consume_action_ticket
+from command_journal import ACTIONS,CommandJournal,filtered_parameters,make_entry,request_key
 from session_api import SessionRecovery
 from native_controls import task_details,axis_payload,ai_payload,ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
@@ -633,10 +634,14 @@ async def history_delete(req):
  """Renvoie la confirmation d’effacement ; rejette une origine étrangère ou une clé invalide."""
  engine=request_engine(req)
  verify_origin(req);data=await req.json()
- if data.get('all') is not True and not re.fullmatch(r'[a-f0-9]{20}',str(data.get('key',''))):raise ValueError('Notification invalide')
- async with engine.lock:
-  if not engine.api:raise ValueError('Connexion en cours')
-  return web.json_response(await engine.delete_history(data.get('key'),data.get('all') is True),headers={'Cache-Control':'no-store'})
+ with audit_command(req,engine,'history-delete',None,{}) as audit:
+  if data.get('all') is not True and not re.fullmatch(r'[a-f0-9]{20}',str(data.get('key',''))):raise ValueError('Notification invalide')
+  async with engine.lock:
+   if not engine.api:raise ValueError('Connexion en cours')
+   if audit:audit['outcome']='inconnue';save_command_event(req,audit)
+   result=await engine.delete_history(data.get('key'),data.get('all') is True)
+   if audit:audit['outcome']='acceptée'
+   return web.json_response(result,headers={'Cache-Control':'no-store'})
 async def ai_settings(req):
  """Renvoie les réglages IA en JSON ; lève ValueError sans machine ou connexion disponible."""
  engine=request_engine(req)
@@ -655,6 +660,58 @@ async def local_files(req):
  if source not in ['local','usb']:raise web.HTTPNotFound()
  async with engine.lock:return web.json_response(await engine.read_files(source,req.query.get('path','/')),headers={'Cache-Control':'no-store'})
 
+COMMAND_JOURNAL_KEY=web.AppKey('command_journal',CommandJournal)
+
+class CommandWaitExpired(ValueError):
+ """Signale une attente expirée avant l’envoi d’une commande."""
+
+def save_command_event(request,entry):
+ """Enregistre la trace sans empêcher une commande de sécurité si le disque est indisponible."""
+ if not entry:return
+ journal=request.app[COMMAND_JOURNAL_KEY]
+ try:journal.record(entry)
+ except OSError:logging.getLogger(__name__).error('Écriture du journal des commandes impossible')
+
+def recorded_command(request,request_id):
+ """Retrouve une tentative déjà engagée, même après la perte du cache de l’imprimante."""
+ journal=request.app.get(COMMAND_JOURNAL_KEY) if isinstance(request,web.Request) else None
+ if journal is None:return None
+ key=request_key(request_id);printer=request.get('printer_key')
+ try:
+  for row in reversed(journal.rows()):
+   if row.get('printer')!=printer or row.get('request_id')!=key or row['outcome'] in ('refusée','expirée'):continue
+   known=row['outcome']!='inconnue'
+   message='Demande déjà traitée.' if known else 'Demande déjà engagée, résultat inconnu. Vérifiez l’imprimante.'
+   return web.json_response({'ok':known,'message':message})
+ except OSError:logging.getLogger(__name__).error('Lecture du journal des commandes impossible')
+ return None
+
+@contextlib.contextmanager
+def audit_command(request,engine,action,request_id,parameters):
+ """Garde un résultat local ou inconnu si la demande se termine avant son retour Anycubic."""
+ if isinstance(action,str) and action in ACTIONS and isinstance(request,web.Request) and COMMAND_JOURNAL_KEY in request.app:
+  entry=make_entry(action,request_id,request.get('printer_key'),getattr(engine.printer,'name',None),
+   request.get(SESSION_DIGEST_KEY),client_address(request),parameters)
+ else:entry={}
+ try:yield entry
+ except CommandWaitExpired:
+  if entry:entry['outcome']='expirée'
+  raise
+ finally:save_command_event(request,entry)
+
+async def command_journal(request):
+ """Liste les entrées privées filtrées ou télécharge une copie sans adresse ni empreinte de session."""
+ try:rows=request.app[COMMAND_JOURNAL_KEY].rows()
+ except OSError:return web.json_response({'message':'Le journal des commandes est indisponible.'},status=503)
+ printers={row['printer']:row.get('printer_name') for row in rows if row.get('printer')}
+ actions=sorted({row['action'] for row in rows})
+ printer=request.query.get('printer');action=request.query.get('action')
+ rows=[row for row in reversed(rows) if (not printer or row.get('printer')==printer) and (not action or row['action']==action)]
+ if request.query.get('export')=='1':
+  public=[{key:value for key,value in row.items() if key not in ('client','session')} for row in rows]
+  return web.json_response(public,headers={'Content-Disposition':'attachment; filename="journal-commandes.json"'})
+ return web.json_response({'items':rows[:100],'printers':printers,'actions':actions})
+
 @contextlib.asynccontextmanager
 async def command_operation(req):
  # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
@@ -663,7 +720,7 @@ async def command_operation(req):
  if engine.command_lock.locked():raise ValueError('Une opération est en cours. Réessayez après sa fin.')
  async with engine.command_lock:
   try:await asyncio.wait_for(engine.lock.acquire(),timeout=COMMAND_READ_WAIT_SECONDS)
-  except asyncio.TimeoutError:raise ValueError('La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes.') from None
+  except asyncio.TimeoutError:raise CommandWaitExpired('La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes.') from None
   try:
    if req.transport is None or req.transport.is_closing():raise ValueError('La demande a été interrompue. Aucune commande envoyée.')
    verify_printer_target(req,engine)
@@ -675,20 +732,28 @@ async def command(req):
  engine=request_engine(req)
  verify_origin(req)
  d=await req.json();requestid=str(d.pop('request_id',''))
- if not re.fullmatch(r'[a-zA-Z0-9-]{16,80}',requestid):raise ValueError('Identifiant de commande manquant')
+ valid_id=re.fullmatch(r'[a-zA-Z0-9-]{16,80}',requestid)
+ name=d.pop('action',None);ticket=d.pop('confirmation',None)
  if requestid in engine.commands:return web.json_response(engine.commands[requestid])
- async with command_operation(req):
-  name=d.pop('action',None);ticket=d.pop('confirmation',None)
-  if isinstance(name,str) and name in SENSITIVE_ACTIONS and not consume_action_ticket(req,name,ticket):
-   return web.json_response({'ok':False,'message':'Confirmez à nouveau l’action avec votre mot de passe web.'},status=403)
-  engine.commands[requestid]={'ok':False,'message':'Opération en cours ou résultat inconnu ; ne pas répéter la commande'}
-  try:message=await engine.action(name,d)
-  except Exception:
-   engine.event(str(name),'Échec ou résultat inconnu');raise
-  engine.event(str(name),'Acceptée')
-  result={'ok':True,'message':message};engine.commands[requestid]=result
-  while len(engine.commands)>200:engine.commands.popitem(last=False)
-  return web.json_response(result)
+ if valid_id and (previous:=recorded_command(req,requestid)) is not None:return previous
+ with audit_command(req,engine,name,requestid if valid_id else None,d) as audit:
+  if not valid_id:raise ValueError('Identifiant de commande manquant')
+  async with command_operation(req):
+   if isinstance(name,str) and name in SENSITIVE_ACTIONS and not consume_action_ticket(req,name,ticket):
+    return web.json_response({'ok':False,'message':'Confirmez à nouveau l’action avec votre mot de passe web.'},status=403)
+   engine.commands[requestid]={'ok':False,'message':'Opération en cours ou résultat inconnu ; ne pas répéter la commande'}
+   if audit:audit['outcome']='inconnue';save_command_event(req,audit)
+   try:message=await engine.action(name,d)
+   except Exception:
+    engine.event(str(name),'Échec ou résultat inconnu');raise
+   if audit:
+    if name=='light' and message.endswith('état confirmé par l’imprimante'):audit['outcome']='confirmée'
+    elif name in ('axis','axis-off','ai-settings','task-reprint','light'):audit['outcome']='envoyée'
+    elif name!='task-delete-many' or 'non confirmé' not in message:audit['outcome']='acceptée'
+   engine.event(str(name),'Acceptée')
+   result={'ok':True,'message':message};engine.commands[requestid]=result
+   while len(engine.commands)>200:engine.commands.popitem(last=False)
+   return web.json_response(result)
 
 def camera_transport_failure(error):
  """Reconnaît une panne de connexion ou un délai, même enveloppé ; refuse les erreurs TLS, d’authentification et de format."""
@@ -774,6 +839,11 @@ async def upload(req):
  """Renvoie l’acceptation du G-code dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
  engine=request_engine(req)
  verify_origin(req)
+ with audit_command(req,engine,'upload',None,{}) as audit:
+  return await upload_operation(req,engine,audit)
+
+async def upload_operation(req,engine,audit):
+ """Inscrit le mode et les paramètres validés avant de solliciter le transport Anycubic."""
  if not engine.printer:raise ValueError('Connexion en cours')
  if engine.command_lock.locked():raise ValueError('Une opération est déjà en cours')
  if UPLOAD_STAGING.locked():raise ValueError('Un envoi de fichier est déjà en cours')
@@ -803,20 +873,28 @@ async def upload(req):
    if not size or not filename:raise ValueError('Fichier manquant')
    mode=data.get('mode','upload');rid=data.get('request_id','')
    if not re.fullmatch(r'[a-zA-Z0-9-]{16,80}',rid):raise ValueError('Identifiant de commande manquant')
-   if rid in engine.commands:return web.json_response(engine.commands[rid])
    if mode not in ('upload','save-print','temp-print'):raise ValueError('Mode invalide')
+   if audit:
+    audit['action']=mode;audit['request_id']=request_key(rid)
+    audit['parameters']=filtered_parameters(mode,{'name':filename})
+   if rid in engine.commands:audit.clear();return web.json_response(engine.commands[rid])
+   if (previous:=recorded_command(req,rid)) is not None:audit.clear();return previous
    async with command_operation(req):
-    if rid in engine.commands:return web.json_response(engine.commands[rid])
+    if rid in engine.commands:audit.clear();return web.json_response(engine.commands[rid])
     if not engine.api:raise ValueError('Connexion en cours')
     if mode!='upload':
      if not engine.printer.is_available:raise ValueError('Imprimante non disponible')
-     slots=engine.slots({'slots':json.loads(data.get('slots','[]'))})
+     requested_slots=json.loads(data.get('slots','[]'))
+     slots=engine.slots({'slots':requested_slots})
+     if audit:audit['parameters']=filtered_parameters(mode,{'name':filename,'slots':requested_slots})
     engine.commands[rid]={'ok':False,'message':'Envoi déjà demandé ; résultat en attente'}
+    if audit:audit['outcome']='inconnue';save_command_event(req,audit)
     if mode=='upload':await engine.api.upload_file_to_cloud(full_file_path=str(path),file_name=filename)
     else:
      func=engine.printer.print_and_upload_save_in_cloud if mode=='save-print' else engine.printer.print_and_upload_no_cloud_save
      await func(full_file_path=str(path),file_name=filename,slot_index_list=slots)
     engine.event('G-code','Envoi accepté')
+    if audit:audit['outcome']='acceptée'
     result={'ok':True,'message':'Envoi accepté par Anycubic'};engine.commands[rid]=result
     return web.json_response(result)
 
@@ -848,6 +926,7 @@ async def startup(app):
  app['printer_registry']=PrinterRegistry(engine,Engine,sample_temperatures,app)
  app['poll_task']=asyncio.create_task(engine.poll())
  app['temperature_history']=TemperatureHistory()
+ app[COMMAND_JOURNAL_KEY]=CommandJournal(engine.state_dir/'command-journal.jsonl')
  app['temperature_task']=asyncio.create_task(sample_temperatures(app))
 async def cleanup(app):
  """Arrête la collecte, sauvegarde les températures et ferme les connexions."""
@@ -899,6 +978,7 @@ app=web.Application(middlewares=[access_control,errors,select_printer],client_ma
 app.add_routes([web.get('/imprimante-api/printers',printers),web.get('/imprimante-api/health',health),web.get('/imprimante-api/status',status),web.get('/imprimante-api/history',history),web.post('/imprimante-api/history/read',history_read),web.post('/imprimante-api/history/delete',history_delete),web.get('/imprimante-api/ai-settings',ai_settings),web.get('/imprimante-api/temperatures',temperatures),web.get('/imprimante-api/files/cloud',files),web.get('/imprimante-api/files/{source}',local_files),web.post('/imprimante-api/command',command),web.post('/imprimante-api/camera-session',camera),web.post('/imprimante-api/camera-close',camera_close),web.post('/imprimante-api/upload',upload),web.post('/imprimante-api/preview',preview)])
 from cloud_extras import install as install_extras
 install_extras(app,engine)
+app.router.add_get('/imprimante-api/journal',command_journal)
 app.on_startup.append(startup);app.on_cleanup.append(cleanup)
 from web_host import install_static
 install_static(app)
