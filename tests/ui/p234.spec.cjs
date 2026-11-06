@@ -6,7 +6,7 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
  await page.setViewportSize({width:360,height:800});
  await page.route('**/imprimante-api/status',route=>route.fulfill({json:{ok:false,message:'Cloud indisponible'}}));
  await login(page);
- await expect(page.locator('#app-version')).toHaveText('Version '+version);
+ await expect(page.getByRole('link',{name:'Version '+version,exact:true})).toHaveAttribute('href','https://github.com/mcflykid/anycubic-cloud-page');
  const links=page.locator('.printer-footer nav a');
  await expect(links).toHaveText(['Confidentialité','Conditions','Cookies']);
  for(const [path,title] of [['/about','Confidentialité'],['/conditions','Conditions d’utilisation'],['/cookies','Cookies et stockage local'],['/credits','Crédits']]){
