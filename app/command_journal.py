@@ -234,6 +234,15 @@ def mqtt_digest(value):
 
 
 command_mqtt_context = ContextVar("command_mqtt_context", default=None)
+command_dispatch = ContextVar("command_dispatch", default=None)
+
+
+async def dispatch_command(operation):
+    """Persiste une tentative juste avant de confier la mutation au transport."""
+    before_send = command_dispatch.get()
+    if before_send is not None:
+        before_send()
+    return await operation
 
 
 class JournalMQTT:

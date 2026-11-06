@@ -1,4 +1,31 @@
 const {test,expect}=require('@playwright/test');
+
+for (const failure of ['HTTP 503', 'coupure réseau']) {
+  test(`un POST caméra incertain est envoyé une seule fois par clic (${failure})`, async ({page}) => {
+    const {login} = require('./helpers.cjs');
+    let calls = 0;
+    // Le lecteur est chargé avant l’appel de session, même dans la démonstration.
+    await page.route('**/imprimante-api/ui/js/agora-rtc.js', route => route.fulfill({
+      contentType: 'application/javascript',
+      body: 'window.AgoraRTC = { setLogLevel() {} };',
+    }));
+    await page.route('**/imprimante-api/camera-session', route => {
+      expect(route.request().method()).toBe('POST');
+      calls++;
+      return failure === 'coupure réseau'
+        ? route.abort('failed')
+        : route.fulfill({status: 503, body: 'Panne simulée'});
+    });
+    await page.route('**/imprimante-api/camera-close', route => route.fulfill({json: {ok: true}}));
+    await login(page);
+    await expect(page.locator('#connection')).toHaveText('En ligne');
+    await page.getByRole('button', {name: 'Caméra', exact: true}).click();
+    await page.locator('#camera-start').click();
+    await expect(page.locator('#camera-state')).toHaveText('Caméra indisponible');
+    expect(calls).toBe(1);
+  });
+}
+
 test('diagnostics caméra distincts, sans secret ni répétition automatique',async({page})=>{await page.route('**/js/agora-rtc.js',route=>route.fulfill({contentType:'application/javascript',body:"window.AgoraRTC={setLogLevel(){},createClient(){throw new Error('fixture-private-sdk-secret')}};"}));let reason='missing_credentials',calls=0;const messages={missing_credentials:'La réponse cloud ne contient pas les identifiants Agora nécessaires à la vidéo.',invalid_format:'Le cloud a renvoyé une session caméra de format invalide.',unsupported_transport:'Cette caméra utilise un transport vidéo non pris en charge par l’atelier (KVS).'};await page.route('**/imprimante-api/camera-session',route=>{calls++;return route.fulfill({status:reason?409:200,json:reason?{ok:false,message:messages[reason],camera_error:reason}:{appid:'fixture-app'}});});await page.goto('/login');await page.getByLabel('Identifiant').fill('admin');await page.getByLabel('Mot de passe').fill('ui-fixture-password');await page.getByRole('button',{name:'Se connecter',exact:true}).click();await expect(page.locator('#connection')).toHaveText('En ligne');await page.getByRole('button',{name:'Caméra',exact:true}).click();for(const [key,text] of Object.entries(messages)){reason=key;await page.locator('#camera-start').click();await expect(page.locator('#camera-state')).toHaveText(text);}expect(calls).toBe(3);reason='';await page.locator('#camera-start').click();await expect(page.locator('#camera-state')).toHaveText('Caméra indisponible');await expect(page.locator('#camera-state')).not.toHaveAttribute('data-tooltip',/fixture-private/);expect(calls).toBe(4);});
 
 test('un abonnement vidéo tardif ne réactive pas le lecteur fermé',async({page})=>{

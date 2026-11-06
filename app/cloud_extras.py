@@ -2,10 +2,12 @@
 """Fonctions cloud complémentaires avec filtrage des données exposées au navigateur."""
 
 import os
+import logging
 import asyncio, base64, contextlib, hashlib, hmac, json, math, pathlib, re, secrets, time, urllib.parse
 import aiohttp
 from aiohttp import web
 from datetime import datetime
+from command_journal import dispatch_command
 from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
@@ -715,7 +717,7 @@ class CloudExtras:
                 order_id=order, printer_id=self.e.printer.id, project_id=0, order_data=data or {}
             )
         )
-        result = await self.e.api._send_anycubic_order(request)
+        result = await dispatch_command(self.e.api._send_anycubic_order(request))
         if result is None:
             raise ValueError("Commande non acceptée par Anycubic")
         self.device_cache = None
@@ -740,10 +742,13 @@ class CloudExtras:
         removed = 0
         for (k, row), identifier in zip(rows, identifiers):
             try:
-                await self.api(
-                    "/work/project/unsetprojects", {"id": identifier, "checkSign": False}
+                await dispatch_command(
+                    self.api("/work/project/unsetprojects", {"id": identifier, "checkSign": False})
                 )
-            except Exception:
+            except Exception as error:
+                logging.getLogger(__name__).warning(
+                    "Retrait de fiche non confirmé (%s)", type(error).__name__
+                )
                 return f"{removed} fiche(s) retirée(s) sur {len(rows)}. Résultat suivant non confirmé : opération arrêtée. Actualisez et vérifiez l’historique avant tout nouvel essai."
             removed += 1
             self.tasks.pop(k, None)
@@ -770,12 +775,16 @@ class CloudExtras:
                     value = value[: -len(suffix)].rstrip()
             if not value or value in [".", ".."]:
                 raise ValueError("Nom de fichier invalide")
-            await self.api("/work/index/renameFile", {"id": rows[0].id, "name": value})
+            await dispatch_command(
+                self.api("/work/index/renameFile", {"id": rows[0].id, "name": value})
+            )
             self.e.cloudfiles.clear()
             return "Fichier renommé dans Anycubic Cloud"
         if name == "cloud-delete-many":
             rows = self.files(d.get("handles"))
-            await self.api("/work/index/delFiles", {"idArr": [r.id for r in rows]})
+            await dispatch_command(
+                self.api("/work/index/delFiles", {"idArr": [r.id for r in rows]})
+            )
             self.e.cloudfiles.clear()
             return "Fichiers supprimés du Cloud"
         if name == "task-reprint":
@@ -794,8 +803,8 @@ class CloudExtras:
             if self.e.printer is not printer:
                 raise ValueError("L’imprimante a changé. Aucune commande envoyée.")
             self.idle()
-            result = await printer.print_with_cloud_gcode_id(
-                gid, self.e.slots(d), allow_retry=False
+            result = await dispatch_command(
+                printer.print_with_cloud_gcode_id(gid, self.e.slots(d), allow_retry=False)
             )
             if not result or not getattr(result, "order_msg_id", None):
                 raise ValueError(
@@ -810,8 +819,11 @@ class CloudExtras:
                 raise ValueError("Évaluation indisponible ou déjà envoyée")
             if isinstance(star, bool) or not isinstance(star, int) or not 1 <= star <= 5:
                 raise ValueError("Choisissez une note entre 1 et 5")
-            await self.api(
-                "/v3/work/sumbitComment", {"project_id": r.get("taskid") or r["id"], "star": star}
+            await dispatch_command(
+                self.api(
+                    "/v3/work/sumbitComment",
+                    {"project_id": r.get("taskid") or r["id"], "star": star},
+                )
             )
             r["is_comment"] = True
             return "Votre note a été envoyée à Anycubic"

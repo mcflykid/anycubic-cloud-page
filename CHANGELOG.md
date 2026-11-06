@@ -1,5 +1,11 @@
 # Changements
 
+## 1.3.1 — 2026-11-06
+
+- Ouverture caméra envoyée une seule fois par clic, y compris après une coupure réseau ou une réponse HTTP temporaire (#76).
+- Refus avant envoi distingué d’un résultat incertain après transmission. Le même identifiant de demande conserve ce résultat sans nouvel envoi (#77).
+- Collecte des températures maintenue après une erreur inattendue sur un relevé (#78).
+
 ## 1.3.0 — 2026-11-06
 
 - Sélecteur français, anglais et espagnol, avec repli automatique en français si le catalogue de traduction manque ou tarde à répondre (#55).

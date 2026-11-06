@@ -1,4 +1,4 @@
-import { $, bytes, date, fmt, node, set, tr } from './workshop-ui.mjs?v=1f94d1ca2939';
+import { $, bytes, date, fmt, node, set, tr } from './workshop-ui.mjs?v=bd71f64e44b0';
 
 /** Prépare la consultation des timelapses lorsque le panneau est activé. */
 export function createTimelapses(request) {

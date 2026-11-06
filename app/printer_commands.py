@@ -9,6 +9,7 @@ import time
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
 
+from command_journal import dispatch_command
 from native_controls import ai_payload, axis_payload
 from printer_values import filepath, integer, now, safeget
 
@@ -63,20 +64,24 @@ async def execute_command(target, name, d):
             payload = ai_payload(d, previous)
             order = 1243
             target.ai_cache = None
-        await a._send_anycubic_order(
-            AnycubicProjectOrderRequest(
-                order_id=order, printer_id=p.id, project_id=0, order_data=payload
+        await dispatch_command(
+            a._send_anycubic_order(
+                AnycubicProjectOrderRequest(
+                    order_id=order, printer_id=p.id, project_id=0, order_data=payload
+                )
             )
         )
         return "Commande transmise à Anycubic ; vérifiez son application sur la machine"
     if name in ["pause", "resume", "cancel"]:
         project = await target.verify_active_project(name, d.get("project_key"))
-        result = await getattr(p, name + "_print")(project=project)
+        result = await dispatch_command(getattr(p, name + "_print")(project=project))
     elif name == "light":
         enabled = bool(d["enabled"])
         channel = 2 if p.machine_name == "Anycubic Kobra S1" else p.camera_light_type
         started = time.monotonic()
-        result = await a._send_order_set_light_status(p, enabled, light_type=channel)
+        result = await dispatch_command(
+            a._send_order_set_light_status(p, enabled, light_type=channel)
+        )
         if result is None:
             raise ValueError("La commande d’éclairage n’a pas été acceptée")
         await p.query_camera_light_status()
@@ -99,21 +104,27 @@ async def execute_command(target, name, d):
             await asyncio.sleep(0.1)
         return "Demande d’éclairage envoyée. Vérifiez son état dans la vidéo."
     elif name == "dry-start":
-        result = await p.multi_color_box_drying_start(
-            duration=integer(d["hours"], 1, 24) * 60,
-            target_temp=integer(d["temperature"], 35, 70),
-            box_id=box,
+        result = await dispatch_command(
+            p.multi_color_box_drying_start(
+                duration=integer(d["hours"], 1, 24) * 60,
+                target_temp=integer(d["temperature"], 35, 70),
+                box_id=box,
+            )
         )
     elif name == "dry-stop":
-        result = await p.multi_color_box_drying_stop(box_id=box)
+        result = await dispatch_command(p.multi_color_box_drying_stop(box_id=box))
     elif name == "auto-feed":
-        result = await p.multi_color_box_set_auto_feed(bool(d["enabled"]), box_id=box)
+        result = await dispatch_command(
+            p.multi_color_box_set_auto_feed(bool(d["enabled"]), box_id=box)
+        )
     elif name == "feed":
-        result = await p.multi_color_box_feed_filament(
-            slot_index=slot, box_id=box, finish=bool(d.get("finish", False))
+        result = await dispatch_command(
+            p.multi_color_box_feed_filament(
+                slot_index=slot, box_id=box, finish=bool(d.get("finish", False))
+            )
         )
     elif name == "retract":
-        result = await p.multi_color_box_retract_filament(box_id=box)
+        result = await dispatch_command(p.multi_color_box_retract_filament(box_id=box))
     elif name == "slot":
         color = str(d["color"])
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -122,8 +133,8 @@ async def execute_command(target, name, d):
         if material not in ["PLA", "PETG", "ABS", "PACF", "PC", "ASA", "HIPS", "PA", "PLA SE"]:
             raise ValueError("Matériau non pris en charge par la commande du dépôt")
         c = AnycubicMaterialColor(*[int(color[i : i + 2], 16) for i in (1, 3, 5)])
-        result = await p.multi_color_box_set_slot(
-            slot, slot_color=c, slot_material_type=material, box_id=box
+        result = await dispatch_command(
+            p.multi_color_box_set_slot(slot, slot_color=c, slot_material_type=material, box_id=box)
         )
     elif name == "settings":
         ranges = {
@@ -145,7 +156,9 @@ async def execute_command(target, name, d):
             raise ValueError("Aucun réglage fourni")
         if not p.latest_project:
             raise ValueError("Ces réglages nécessitent une impression active, comme dans le dépôt")
-        result = await a._send_order_change_print_settings(p, AnycubicPrintingSettings(**values))
+        result = await dispatch_command(
+            a._send_order_change_print_settings(p, AnycubicPrintingSettings(**values))
+        )
     elif name in ["files-local", "files-usb"]:
         await target.read_files("local" if name == "files-local" else "usb", d.get("path"))
         return "Liste reçue de l’imprimante"
@@ -159,32 +172,36 @@ async def execute_command(target, name, d):
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             kw["slot_index_list"] = target.slots(d)
-        result = await getattr(
-            p, ("delete_" if name.startswith("delete") else "print_") + source + "_file"
-        )(**kw)
+        result = await dispatch_command(
+            getattr(p, ("delete_" if name.startswith("delete") else "print_") + source + "_file")(
+                **kw
+            )
+        )
     elif name in ["delete-cloud", "print-cloud"]:
         f = target.cloudfiles.get(str(d.get("handle")))
         if f is None:
             raise ValueError("Actualisez la liste des fichiers cloud")
         if name == "delete-cloud":
-            result = await a.delete_file_from_cloud(f.id)
+            result = await dispatch_command(a.delete_file_from_cloud(f.id))
         else:
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             if f.gcode_id is None:
                 raise ValueError("Ce fichier ne dispose pas de G-code cloud")
-            result = await p.print_with_cloud_gcode_id(f.gcode_id, target.slots(d))
+            result = await dispatch_command(
+                p.print_with_cloud_gcode_id(f.gcode_id, target.slots(d))
+            )
     elif name == "rename":
         value = str(d.get("name", "")).strip()
         if not 1 <= len(value) <= 64:
             raise ValueError("Nom entre 1 et 64 caractères")
-        result = await a.set_printer_name(p, value)
+        result = await dispatch_command(a.set_printer_name(p, value))
     elif name == "firmware":
         if not p.is_available:
             raise ValueError("Imprimante non disponible")
         if safeget(p, "fw_version.update_available") is not True:
             raise ValueError("Aucune mise à jour de l’imprimante n’est proposée par Anycubic")
-        result = await p.update_printer_firmware()
+        result = await dispatch_command(p.update_printer_firmware())
     elif name == "ace-firmware":
         if not p.is_available:
             raise ValueError("Imprimante non disponible")
@@ -194,7 +211,7 @@ async def execute_command(target, name, d):
         fw = versions[box]
         if safeget(fw, "update_available") is not True:
             raise ValueError("Aucune mise à jour de cet ACE n’est proposée par Anycubic")
-        result = await p.update_printer_multi_color_box_firmware(box_id=box)
+        result = await dispatch_command(p.update_printer_multi_color_box_firmware(box_id=box))
     elif name == "query":
         await p.update_info_from_api()
         target.raw_info = (await a.printer_info_for_id(p.id, raw_data=True)).get("data") or {}

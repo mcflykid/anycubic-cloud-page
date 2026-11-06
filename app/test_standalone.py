@@ -21,6 +21,7 @@ from web_host import (
 )
 from printer_registry import printer_key, select_printer
 from command_journal import CommandJournal
+from printer_commands import execute_command
 from server import COMMAND_JOURNAL_KEY, command, command_journal, errors, upload
 from demo import create_demo
 
@@ -291,6 +292,53 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rows[0]["outcome"], "inconnue")
         self.assertEqual(rows[0]["parameters"], {"name": "fixture.gcode"})
         self.assertNotIn("fixture-secret-error", str(rows))
+
+    async def test_command_distinguishes_validation_from_failure_after_dispatch(self):
+        """Un refus reste local et une panne après envoi conserve la déduplication."""
+        await self.sign_in()
+        engine = self.engines[printer_key(1)]
+        engine.printer.connected_ace_units = 1
+        engine.printer.machine_name = "Anycubic Kobra S1"
+        engine.printer.query_camera_light_status = AsyncMock(
+            side_effect=TypeError("fixture-private-detail")
+        )
+        engine.api._send_order_set_light_status = AsyncMock(return_value=True)
+
+        async def actual_action(name, data):
+            return await execute_command(engine, name, data)
+
+        engine.action.side_effect = actual_action
+        headers = {"Origin": self.origin, "X-Printer-Key": printer_key(1)}
+        url = "/imprimante-api/sensitive-fixture"
+        rid = str(uuid.uuid4())
+        request = {"request_id": rid, "action": "light", "enabled": True, "box": 9}
+        rejected = await self.client.post(url, json=request, headers=headers)
+        self.assertEqual(rejected.status, 400)
+        self.assertIn("Valeur attendue", (await rejected.json())["message"])
+        journal = self.app[COMMAND_JOURNAL_KEY]
+        self.assertEqual(journal.rows()[0]["outcome"], "refusée")
+        self.assertNotIn(rid, engine.commands)
+        engine.api._send_order_set_light_status.assert_not_awaited()
+
+        malformed = {**request, "box": 0}
+        del malformed["enabled"]
+        with self.assertLogs(level="WARNING"):
+            invalid = await self.client.post(url, json=malformed, headers=headers)
+        self.assertEqual(invalid.status, 400)
+        self.assertEqual((await invalid.json())["message"], "Données de la demande invalides.")
+        self.assertEqual(journal.rows()[0]["outcome"], "refusée")
+
+        request["box"] = 0
+        with self.assertLogs(level="WARNING") as logs:
+            unknown = await self.client.post(url, json=request, headers=headers)
+        self.assertEqual(unknown.status, 409)
+        self.assertNotIn("fixture-private-detail", await unknown.text())
+        self.assertNotIn("fixture-private-detail", " ".join(logs.output))
+        self.assertEqual(journal.rows()[0]["outcome"], "inconnue")
+        self.assertEqual((await self.client.post(url, json=request, headers=headers)).status, 409)
+        engine.commands.clear()
+        self.assertEqual((await self.client.post(url, json=request, headers=headers)).status, 409)
+        engine.api._send_order_set_light_status.assert_awaited_once()
 
     async def test_wrong_login_does_not_echo_password(self):
         """L’erreur reste générique, y compris pour un identifiant inconnu."""

@@ -155,6 +155,32 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
         store.add.assert_called_once()
         self.assertEqual(secondary.snapshot()["mqtt_diagnostics"], {"fixture": 1})
 
+    async def test_sampling_recovers_from_unexpected_exception(self):
+        """Une lecture cassée n’arrête pas les relevés et l’annulation reste effective."""
+        selected = SimpleNamespace(
+            snapshot=Mock(
+                side_effect=[
+                    RuntimeError("fixture-private-detail"),
+                    {
+                        "ok": True,
+                        "updated_at": adapter.now(),
+                        "printer": {"printer_online": True, "curr_nozzle_temp": 25},
+                    },
+                ]
+            )
+        )
+        store = SimpleNamespace(rows=[], add=Mock())
+        with (
+            patch.object(adapter.asyncio, "sleep", side_effect=[None, asyncio.CancelledError]),
+            self.assertLogs(adapter.__name__, level="WARNING") as logs,
+            self.assertRaises(asyncio.CancelledError),
+        ):
+            await adapter.sample_temperatures({}, selected, store)
+        store.add.assert_called_once()
+        self.assertEqual(store.add.call_args.args[1]["nozzle"], 25)
+        self.assertIn("RuntimeError", logs.output[0])
+        self.assertNotIn("fixture-private-detail", logs.output[0])
+
     async def test_missing_unknown_and_query_only_targets_never_dispatch(self):
         """Une mutation exige un en-tête explicite autorisé, sans repli silencieux."""
         for key, query in [(None, ""), ("unknown", ""), (None, "?printer=" + printer_key(1))]:

@@ -32,6 +32,7 @@ from command_journal import (
     MQTT_CONFIRMATIONS,
     CommandJournal,
     JournalMQTT,
+    command_dispatch,
     command_mqtt_context,
     filtered_parameters,
     make_entry,
@@ -730,8 +731,13 @@ async def errors(request, handler):
         return web.json_response(
             {"ok": False, "message": str(e), "camera_error": e.reason}, status=409
         )
-    except (ValueError, KeyError, TypeError) as e:
+    except ValueError as e:
         return web.json_response({"ok": False, "message": str(e)[:200]}, status=400)
+    except (KeyError, TypeError) as e:
+        logging.getLogger(__name__).warning("Structure de requête invalide (%s)", type(e).__name__)
+        return web.json_response(
+            {"ok": False, "message": "Données de la demande invalides."}, status=400
+        )
     except Exception as e:
         request_engine(request).event("Erreur", type(e).__name__)
         return web.json_response(
@@ -897,7 +903,9 @@ def recorded_command(request, request_id):
                 if known
                 else "Demande déjà engagée, résultat inconnu. Vérifiez l’imprimante."
             )
-            return web.json_response({"ok": known, "message": message})
+            return web.json_response(
+                {"ok": known, "message": message}, status=200 if known else 409
+            )
     except OSError:
         logging.getLogger(__name__).error("Lecture du journal des commandes impossible")
     return None
@@ -1001,7 +1009,8 @@ async def command(req):
     name = d.pop("action", None)
     ticket = d.pop("confirmation", None)
     if requestid in engine.commands:
-        return web.json_response(engine.commands[requestid])
+        previous = engine.commands[requestid]
+        return web.json_response(previous, status=200 if previous["ok"] else 409)
     if valid_id and (previous := recorded_command(req, requestid)) is not None:
         return previous
     with audit_command(req, engine, name, requestid if valid_id else None, d) as audit:
@@ -1020,22 +1029,45 @@ async def command(req):
                     },
                     status=403,
                 )
-            engine.commands[requestid] = {
+            uncertain = {
                 "ok": False,
-                "message": "Opération en cours ou résultat inconnu ; ne pas répéter la commande",
+                "message": "Résultat de la commande inconnu. Vérifiez l’état de l’imprimante avant tout nouvel envoi.",
             }
-            if audit:
-                audit["outcome"] = "inconnue"
-                save_command_event(req, audit)
+            sent = False
+
+            def before_send():
+                nonlocal sent
+                if sent:
+                    return
+                sent = True
+                engine.commands[requestid] = uncertain
+                while len(engine.commands) > 200:
+                    engine.commands.popitem(last=False)
+                if audit:
+                    audit["outcome"] = "inconnue"
+                    save_command_event(req, audit)
+
+            dispatch = command_dispatch.set(before_send)
             try:
                 message = await engine.action(name, d)
-            except Exception:
-                engine.event(str(name), "Échec ou résultat inconnu")
-                raise
+            except Exception as error:
+                if not sent:
+                    raise
+                logging.getLogger(__name__).warning(
+                    "Résultat de commande inconnu après transmission (%s)", type(error).__name__
+                )
+                engine.event(str(name), "Résultat inconnu")
+                return web.json_response(uncertain, status=409)
+            finally:
+                command_dispatch.reset(dispatch)
+            if name == "task-delete-many" and "non confirmé" in message:
+                uncertain = {"ok": False, "message": message}
+                engine.commands[requestid] = uncertain
+                return web.json_response(uncertain, status=409)
             if audit and audit["outcome"] != "confirmée":
                 if name in ("axis", "axis-off", "ai-settings", "task-reprint", "light"):
                     audit["outcome"] = "envoyée"
-                elif name != "task-delete-many" or "non confirmé" not in message:
+                else:
                     audit["outcome"] = "acceptée"
             engine.event(str(name), "Acceptée")
             result = {"ok": True, "message": message}
@@ -1314,8 +1346,10 @@ async def sample_temperatures(app, selected=None, store=None):
                     last_source = source
             if history.rows and time.monotonic() - history.saved_at >= 60:
                 history.save()
-        except (OSError, ValueError, TypeError):
-            pass
+        except Exception as error:
+            logging.getLogger(__name__).warning(
+                "Relevé de température ignoré (%s)", type(error).__name__
+            )
         await asyncio.sleep(10)
 
 

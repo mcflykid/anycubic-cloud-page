@@ -839,6 +839,10 @@
     "Manufacturer data",
     "Datos del fabricante"
   ],
+  "Données de la demande invalides.": [
+    "Invalid request data.",
+    "Los datos de la solicitud no son válidos."
+  ],
   "Données sur cette installation": [
     "Data on this installation",
     "Datos de esta instalación"
@@ -2322,6 +2326,10 @@
   "Réinitialiser": [
     "Reset",
     "Restablecer"
+  ],
+  "Résultat de la commande inconnu. Vérifiez l’état de l’imprimante avant tout nouvel envoi.": [
+    "Command outcome unknown. Check the printer before sending another command.",
+    "Se desconoce el resultado de la orden. Comprueba la impresora antes de enviar otra orden."
   ],
   "Résultat de l’envoi incertain. Vérifiez les fichiers du cloud et l’état de l’imprimante avant tout nouvel essai.": [
     "Upload outcome uncertain. Check your cloud files and the printer before trying again.",

@@ -13,10 +13,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=1f94d1ca2939';
-import { workshopState } from './workshop-state.mjs?v=b83c95878022';
-import { slots } from './workshop-commands.mjs?v=101db2700727';
-import { definition } from './workshop-overview.mjs?v=8791fd1d4eda';
+} from './workshop-ui.mjs?v=bd71f64e44b0';
+import { workshopState } from './workshop-state.mjs?v=fbe334a8cef8';
+import { slots } from './workshop-commands.mjs?v=a8721fc1025f';
+import { definition } from './workshop-overview.mjs?v=7c2871c58a5f';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {

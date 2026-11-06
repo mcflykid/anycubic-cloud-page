@@ -27,7 +27,7 @@ Les lectures automatiques ne sont plus prises pour une commande utilisateur conc
 
 Pour changer de version, adoptez le Compose de la livraison souhaitée et préservez `APPDATA_DIR`. Lancez `docker compose pull` puis `docker compose up -d`. Utilisez le même Compose et le même environnement qu’au démarrage. Ne supprimez pas les données pendant la mise à jour.
 
-Une erreur caméra d’authentification, TLS ou de format n’entraîne pas une seconde ouverture automatique. Une panne de transport reconnue peut être retentée une fois ; les réponses valides restent en cache cinq secondes. Aucun délai de déduplication du cloud n’est supposé.
+Le navigateur envoie une seule demande d’ouverture par clic. Côté serveur, une panne de transport reconnue peut être retentée une fois. Une erreur d’authentification, TLS ou de format interrompt l’ouverture. Les réponses valides restent en cache cinq secondes.
 
 
 ## Proxy, 403 et 502

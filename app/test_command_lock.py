@@ -4,6 +4,8 @@ import asyncio, importlib.util, json, pathlib, tempfile, tracemalloc, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
+from printer_commands import execute_command
+
 spec = importlib.util.spec_from_file_location(
     "command_lock_adapter", pathlib.Path(__file__).with_name("server.py")
 )
@@ -192,13 +194,24 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(self.engine.command_lock.locked())
 
     async def test_unknown_physical_result_is_not_automatically_retried(self):
-        """Vérifie que un résultat physique inconnu ne provoque pas de répétition automatique."""
-        self.engine.action.side_effect = TimeoutError("ambiguous result")
-        with self.assertRaises(TimeoutError):
-            await adapter.command(self.req())
-        result = await adapter.command(self.req())
-        self.assertFalse(json.loads(result.body)["ok"])
-        self.engine.action.assert_awaited_once()
+        """Vérifie qu’un délai dépassé au transport garde un résultat inconnu sans nouvel envoi."""
+        self.engine.printer.connected_ace_units = 1
+        self.engine.printer.machine_name = "Anycubic Kobra S1"
+        transport = AsyncMock(side_effect=TimeoutError("fixture-ambiguous-result"))
+        self.engine.api._send_order_set_light_status = transport
+
+        async def action(name, data):
+            """Passe par la validation de la commande avant le transport fictif."""
+            return await execute_command(self.engine, name, data)
+
+        self.engine.action.side_effect = action
+        first = await adapter.command(self.req())
+        repeat = await adapter.command(self.req())
+        for result in (first, repeat):
+            self.assertEqual(result.status, 409)
+            self.assertFalse(json.loads(result.body)["ok"])
+            self.assertNotIn("fixture-ambiguous-result", result.text)
+        transport.assert_awaited_once_with(self.engine.printer, True, light_type=2)
         self.assertFalse(self.engine.lock.locked())
         self.assertFalse(self.engine.command_lock.locked())
 

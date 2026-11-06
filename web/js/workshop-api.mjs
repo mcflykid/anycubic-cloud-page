@@ -1,4 +1,4 @@
-import { formatText, serverText, tr } from './workshop-ui.mjs?v=1f94d1ca2939';
+import { formatText, serverText, tr } from './workshop-ui.mjs?v=bd71f64e44b0';
 export const api = '/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */
@@ -6,7 +6,7 @@ export function createRequest(getPrinter) {
   return async function request(path, options = {}) {
     const { timeoutMs, ...fetchOptions } = options;
     const target = options.printerKey ?? getPrinter();
-    const read = !options.method || options.method === 'GET' || path === '/camera-session';
+    const read = !options.method || options.method === 'GET';
     let response;
     for (let attempt = 0; attempt < (read ? 2 : 1); attempt++) {
       try {
