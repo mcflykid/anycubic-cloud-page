@@ -1,6 +1,6 @@
 # Changements
 
-## 1.2.9 — en préparation
+## 1.2.9 — 2026-11-06
 
 - Rétablissement des illustrations d’origine dans Imprimante, ACE et filaments, et la carte Imprimante des Réglages pour la Kobra S1 Combo, même lorsque la génération de l’ACE n’est pas fournie. La génération est détectée via le nom de boîtier fourni par Anycubic dans les données de micrologiciel (#37).
 - États imprimante, ACE et séchage sous forme de pastilles, texte RFID raccourci et aide sur le relais des bobines. Barre de navigation plus compacte et pastilles de fin centrées dans l’historique. Le panneau de notifications vide reprend le logo du projet.
