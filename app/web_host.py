@@ -28,15 +28,29 @@ def home_url(value):
  return value
 
 COOKIE_NAME='anycubic_session'
+SECURE_COOKIE_NAME='__Host-'+COOKIE_NAME
 SESSION_SECONDS=8*60*60
 FAILURE_SECONDS=5*60
 FAILURE_LIMIT=5
+REAUTH_SECONDS=120
+SENSITIVE_ACTIONS=frozenset(('firmware','ace-firmware','factory-reset'))
+
+@dataclass
+class ActionTicket:
+ """Lie une confirmation à une action et à une imprimante sans stocker le jeton brut."""
+ digest:bytes
+ action:str
+ printer:str
+ expires:float
 
 @dataclass
 class Session:
  """Session opaque à expiration fixe, liée aux identifiants actuels pour invalider un changement de mot de passe."""
  expires:float
  fingerprint:bytes
+ ticket:ActionTicket|None=None
+ reauth_failures:int=0
+ reauth_until:float=0
 
 class AccessState:
  """Conserve uniquement les empreintes de sessions et compte les échecs récents, sans persistance de cookie."""
@@ -52,6 +66,19 @@ class AccessState:
 ACCESS_KEY=web.AppKey('access',AccessState)
 ORIGIN_KEY=web.AppKey('public_origin',str)
 TRUSTED_PROXIES_KEY=web.AppKey('trusted_proxies',tuple)
+SESSION_DIGEST_KEY=web.RequestKey('session_digest',bytes)
+
+def session_cookie_name(request):
+ """Active la protection navigateur __Host- lorsque l’origine configurée est HTTPS."""
+ return SECURE_COOKIE_NAME if request.app[ORIGIN_KEY].startswith('https://') else COOKIE_NAME
+
+def session_digest(token):
+ """Renvoie l’empreinte d’un jeton à conserver en mémoire."""
+ return hashlib.sha256(token.encode()).digest()
+
+def set_session_cookie(response,name,token,remaining,secure):
+ """Garde la portée et les attributs du cookie à la connexion, à la migration et à l’effacement."""
+ response.set_cookie(name,token,max_age=remaining,path='/',httponly=True,secure=secure,samesite='Strict')
 
 def client_address(request):
  """Résout le premier pair non fiable depuis la droite de X-Forwarded-For ; sans proxy déclaré, ignore l’en-tête."""
@@ -91,10 +118,12 @@ def install_access(app):
  app[TRUSTED_PROXIES_KEY]=trusted
  app[ORIGIN_KEY]=origin;app[ACCESS_KEY]=AccessState()
  app.router.add_get('/login',login);app.router.add_post('/login',login);app.router.add_post('/logout',logout)
+ app.router.add_post('/imprimante-api/reauth',reauthenticate)
 
 @web.middleware
 async def access_control(request,handler):
  """Protège l’atelier par cookie, garde health public et applique Origin aux écritures authentifiées."""
+ migration=None
  try:
   ui_path=request.path.startswith(UI_PREFIX+'/')
   if request.path=='/imprimante-api/health' or request.method in {'GET','HEAD'} and request.path.removeprefix(UI_PREFIX) in PUBLIC_ASSETS:
@@ -102,7 +131,10 @@ async def access_control(request,handler):
   else:
    username,password,fingerprint=credentials()
    state=request.app[ACCESS_KEY];state.prune()
-   token=request.cookies.get(COOKIE_NAME,'');key=hashlib.sha256(token.encode()).digest()
+   name=session_cookie_name(request);token=request.cookies.get(name)
+   legacy=name==SECURE_COOKIE_NAME and token is None
+   if legacy:token=request.cookies.get(COOKIE_NAME)
+   key=session_digest(token or '')
    session=state.sessions.get(key)
    authenticated=session is not None and hmac.compare_digest(session.fingerprint,fingerprint)
    if request.path=='/login':response=await handler(request)
@@ -111,9 +143,18 @@ async def access_control(request,handler):
     else:response=web.Response(status=303,headers={'Location':'/login'})
    else:
     if request.method not in {'GET','HEAD','OPTIONS'}:require_origin(request)
+    if legacy and request.path!='/logout':
+     state.sessions.pop(key)
+     token=secrets.token_urlsafe(32);key=session_digest(token)
+     state.sessions[key]=session
+     migration=(token,max(1,int(session.expires-time.monotonic())))
+    request[SESSION_DIGEST_KEY]=key
     response=await handler(request)
  except web.HTTPException as error:
   response=web.Response(body=error.body,status=error.status,headers=error.headers)
+ if migration is not None:
+  set_session_cookie(response,SECURE_COOKIE_NAME,*migration,True)
+  set_session_cookie(response,COOKIE_NAME,'',0,True)
  # no-referrer rend Origin nul sur les formulaires ; same-origin le conserve sans fuite vers les sites externes.
  response.headers['X-Content-Type-Options']='nosniff';response.headers['Referrer-Policy']='same-origin'
  response.headers['Cache-Control']='no-store'
@@ -152,18 +193,69 @@ async def login(request):
  state.failures.pop(client,None)
  if len(state.sessions)>=128:state.sessions.pop(next(iter(state.sessions)))
  # Le jeton change à chaque connexion et seule son empreinte est conservée côté serveur.
- old=request.cookies.get(COOKIE_NAME,'');state.sessions.pop(hashlib.sha256(old.encode()).digest(),None)
- token=secrets.token_urlsafe(32);state.sessions[hashlib.sha256(token.encode()).digest()]=Session(time.monotonic()+SESSION_SECONDS,fingerprint)
+ name=session_cookie_name(request);secure=name==SECURE_COOKIE_NAME
+ for old_name in {name,COOKIE_NAME}:
+  state.sessions.pop(session_digest(request.cookies.get(old_name,'')),None)
+ token=secrets.token_urlsafe(32);state.sessions[session_digest(token)]=Session(time.monotonic()+SESSION_SECONDS,fingerprint)
  response=web.Response(status=303,headers={'Location':'/imprimante.html'})
- response.set_cookie(COOKIE_NAME,token,max_age=SESSION_SECONDS,path='/',httponly=True,secure=request.app[ORIGIN_KEY].startswith('https://'),samesite='Strict')
+ set_session_cookie(response,name,token,SESSION_SECONDS,secure)
+ if secure and COOKIE_NAME in request.cookies:set_session_cookie(response,COOKIE_NAME,'',0,True)
  return response
 
 async def logout(request):
  """Révoque la session côté serveur et efface le cookie ; Origin est contrôlé par le middleware."""
- token=request.cookies.get(COOKIE_NAME,'');request.app[ACCESS_KEY].sessions.pop(hashlib.sha256(token.encode()).digest(),None)
+ name=session_cookie_name(request)
  response=web.Response(status=303,headers={'Location':'/login'})
- response.del_cookie(COOKIE_NAME,path='/',httponly=True,secure=request.app[ORIGIN_KEY].startswith('https://'),samesite='Strict')
+ for old_name in {name,COOKIE_NAME}:
+  request.app[ACCESS_KEY].sessions.pop(session_digest(request.cookies.get(old_name,'')),None)
+  set_session_cookie(response,old_name,'',0,name==SECURE_COOKIE_NAME)
  return response
+
+def active_session(request):
+ """Relit la session après une attente pour respecter une expiration ou déconnexion concurrente."""
+ state=request.app.get(ACCESS_KEY)
+ session=state.sessions.get(request.get(SESSION_DIGEST_KEY)) if state else None
+ return session if session and session.expires>time.monotonic() else None
+
+async def reauthenticate(request):
+ """Émet une confirmation à usage unique après vérification et limitation propres à la session."""
+ if request.content_type!='application/json':raise web.HTTPUnsupportedMediaType()
+ try:raw=await request.content.readexactly(4097)
+ except asyncio.IncompleteReadError as error:raw=error.partial
+ if len(raw)>4096:raise web.HTTPRequestEntityTooLarge(max_size=4096,actual_size=len(raw))
+ try:data=json.loads(raw)
+ except (ValueError,UnicodeError):data=None
+ action=data.get('action') if isinstance(data,dict) else None
+ password=data.get('password') if isinstance(data,dict) else None
+ printer=request.headers.get('X-Printer-Key','')
+ if not isinstance(action,str) or action not in SENSITIVE_ACTIONS or not printer or not isinstance(password,str):
+  return web.json_response({'message':'Demande de confirmation invalide.'},status=400)
+ session=active_session(request)
+ if session is None:return web.json_response({'message':'Session expirée.'},status=401)
+ now=time.monotonic()
+ if session.reauth_until<=now:session.reauth_failures=0;session.reauth_until=now+FAILURE_SECONDS
+ if session.reauth_failures>=FAILURE_LIMIT:
+  return web.json_response({'message':'Trop de tentatives. Réessayez dans quelques minutes.'},status=429,headers={'Retry-After':str(max(1,int(session.reauth_until-now)+1))})
+ _,expected,fingerprint=credentials()
+ if not hmac.compare_digest(fingerprint,session.fingerprint):return web.json_response({'message':'Session expirée.'},status=401)
+ if not hmac.compare_digest(password.encode(errors='surrogatepass'),expected.encode()):
+  session.reauth_failures+=1
+  return web.json_response({'message':'Mot de passe web incorrect.'},status=403)
+ session.reauth_failures=0
+ token=secrets.token_urlsafe(32)
+ session.ticket=ActionTicket(session_digest(token),action,printer,now+REAUTH_SECONDS)
+ return web.json_response({'confirmation':token})
+
+def consume_action_ticket(request,action,token):
+ """Valide et consomme la confirmation sous le verrou qui protège l’envoi physique."""
+ session=active_session(request);ticket=session.ticket if session else None
+ if not ticket or ticket.expires<=time.monotonic() or ticket.action!=action or ticket.printer!=request.get('printer_key'):
+  return False
+ if not isinstance(token,str) or len(token)!=43 or not token.isascii() or not hmac.compare_digest(ticket.digest,session_digest(token)):
+  return False
+ if not hmac.compare_digest(credentials()[2],session.fingerprint):return False
+ session.ticket=None
+ return True
 
 def render_page(destination,time_zone):
  """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""

@@ -4,6 +4,10 @@ Ne joignez aucun token, email de compte, mot de passe, clé privée, certificat 
 
 Le service exige un mot de passe web et refuse l’accès si son fichier est absent/vide. Docker lie l’application à la boucle locale par défaut. HTTPS et l’accès distant passent par votre reverse proxy séparé. Pour un accès distant, utilisez HTTPS et votre propre contrôle d’accès réseau. Le token du compte reste côté serveur ; le navigateur reçoit uniquement ce dont le lecteur caméra a besoin pour une session temporaire.
 
+Sur une origine HTTPS, la session utilise le cookie `__Host-anycubic_session`, limité à l’hôte. En HTTP local, elle conserve `anycubic_session`. Une ancienne session HTTPS encore valide est migrée à sa première requête et son ancien jeton est révoqué.
+
+Une mise à jour de micrologiciel ou une réinitialisation d’usine demande le mot de passe web. La confirmation expire après deux minutes, vaut une seule fois pour l’action et l’imprimante choisies, et s’ajoute au code de réinitialisation. Cinq échecs en cinq minutes limitent la session concernée. La connexion principale garde son propre compteur.
+
 Les certificats historiques du fournisseur demandent une compatibilité TLS particulière, documentée dans `docs/PROTOCOL.md`. Ce dépôt ne fournit pas de clé privée ni de secret de signature embarqué. Le préparateur place le matériel amont dans des fichiers locaux ignorés par Git.
 
 Pour signaler une vulnérabilité, utilisez le signalement privé GitHub si disponible, avec une description expurgée. En cas d’exposition d’un identifiant personnel, révoquez/renouvelez-le auprès de son fournisseur.

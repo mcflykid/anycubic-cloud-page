@@ -11,7 +11,7 @@ from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
 from printer_registry import PrinterRegistry,SharedCloudAPI,select_printer,printer_key
 from account_auth import AccountAuth
-from web_host import access_control
+from web_host import SENSITIVE_ACTIONS,access_control,consume_action_ticket
 from session_api import SessionRecovery
 from native_controls import task_details,axis_payload,ai_payload,ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
@@ -678,8 +678,10 @@ async def command(req):
  if not re.fullmatch(r'[a-zA-Z0-9-]{16,80}',requestid):raise ValueError('Identifiant de commande manquant')
  if requestid in engine.commands:return web.json_response(engine.commands[requestid])
  async with command_operation(req):
+  name=d.pop('action',None);ticket=d.pop('confirmation',None)
+  if isinstance(name,str) and name in SENSITIVE_ACTIONS and not consume_action_ticket(req,name,ticket):
+   return web.json_response({'ok':False,'message':'Confirmez à nouveau l’action avec votre mot de passe web.'},status=403)
   engine.commands[requestid]={'ok':False,'message':'Opération en cours ou résultat inconnu ; ne pas répéter la commande'}
-  name=d.pop('action',None)
   try:message=await engine.action(name,d)
   except Exception:
    engine.event(str(name),'Échec ou résultat inconnu');raise

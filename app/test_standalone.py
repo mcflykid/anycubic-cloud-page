@@ -1,9 +1,13 @@
 """Tests isolés des sessions web, sans commande physique ni connexion au cloud."""
-import os,pathlib,tempfile,time,unittest
-from unittest.mock import patch
+import asyncio,os,pathlib,tempfile,time,unittest,uuid
+from collections import OrderedDict
+from types import SimpleNamespace
+from unittest.mock import AsyncMock,patch
 from aiohttp import web
 from aiohttp.test_utils import TestClient,TestServer
-from web_host import access_control,install_access,ACCESS_KEY,COOKIE_NAME,TRUSTED_PROXIES_KEY
+from web_host import access_control,credentials,install_access,session_digest,Session,ACCESS_KEY,COOKIE_NAME,SECURE_COOKIE_NAME,TRUSTED_PROXIES_KEY
+from printer_registry import printer_key,select_printer
+from server import command
 from demo import create_demo
 
 class WebBoundary(unittest.IsolatedAsyncioTestCase):
@@ -14,9 +18,16 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
   self.origin='http://localhost:8080'
   self.env=patch.dict(os.environ,{'WEB_PASSWORD_FILE':str(self.path),'WEB_USER':'admin','PUBLIC_ORIGIN':self.origin});self.env.start()
   async def ok(request):"""Renvoie un témoin pour tester uniquement la frontière d’accès.""";return web.json_response({'ok':True})
-  app=web.Application(middlewares=[access_control]);install_access(app)
+  app=web.Application(middlewares=[access_control,select_printer]);install_access(app)
   app.router.add_get('/',ok);app.router.add_get('/imprimante.html',ok);app.router.add_post('/command',ok)
   app.router.add_get('/imprimante-api/status',ok);app.router.add_post('/imprimante-api/command',ok);app.router.add_get('/imprimante-api/health',ok)
+  app.router.add_post('/imprimante-api/sensitive-fixture',command)
+  self.engines={
+   printer_key(i):SimpleNamespace(printer=SimpleNamespace(id=i),commands=OrderedDict(),
+    command_lock=asyncio.Lock(),lock=asyncio.Lock(),action=AsyncMock(return_value='Acceptée fictivement'),event=lambda *args:None)
+   for i in (1,2)
+  }
+  app['printer_registry']=SimpleNamespace(resolve=AsyncMock(side_effect=lambda key,**_:self.engines.get(key)))
   self.client=TestClient(TestServer(app));await self.client.start_server();self.app=app
  async def asyncTearDown(self):
   """Ferme la frontière locale et restaure les variables de chaque scénario."""
@@ -47,7 +58,65 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
    app=web.Application(middlewares=[access_control]);install_access(app)
   self.client=TestClient(TestServer(app));await self.client.start_server()
   response=await self.sign_in(origin='https://printer.example.com',headers={'X-Forwarded-Proto':'http'})
-  self.assertEqual(response.status,303);self.assertTrue(response.cookies[COOKIE_NAME]['secure'])
+  cookie=response.cookies[SECURE_COOKIE_NAME]
+  self.assertEqual(response.status,303);self.assertTrue(cookie['secure'])
+  self.assertEqual(cookie['path'],'/');self.assertFalse(cookie['domain'])
+  self.assertNotIn(COOKIE_NAME,response.cookies)
+ async def test_https_migrates_a_live_legacy_cookie_once(self):
+  """Tourne le jeton d’origine en HTTPS et expire l’ancien cookie sans prolonger la session."""
+  await self.client.close()
+  with patch.dict(os.environ,{'PUBLIC_ORIGIN':'https://printer.example.com'}):
+   app=web.Application(middlewares=[access_control]);install_access(app)
+  async def status(request):
+   """Renvoie une réponse authentifiée sans toucher au cloud."""
+   return web.json_response({'ok':True})
+  app.router.add_get('/imprimante-api/status',status)
+  legacy='fixture-legacy-session'
+  expiry=time.monotonic()+60
+  app[ACCESS_KEY].sessions[session_digest(legacy)]=Session(expiry,credentials()[2])
+  self.client=TestClient(TestServer(app));await self.client.start_server()
+  response=await self.client.get('/imprimante-api/status',headers={'Cookie':COOKIE_NAME+'='+legacy})
+  self.assertEqual(response.status,200)
+  self.assertEqual(response.cookies[COOKIE_NAME]['max-age'],'0')
+  secure=response.cookies[SECURE_COOKIE_NAME]
+  self.assertLessEqual(int(secure['max-age']),60)
+  self.assertEqual(app[ACCESS_KEY].sessions[session_digest(secure.value)].expires,expiry)
+  replay=await self.client.get('/imprimante-api/status',headers={'Cookie':COOKIE_NAME+'='+legacy})
+  self.assertEqual(replay.status,401)
+ async def confirm_action(self,action='firmware',printer=1,password='test-only-password'):
+  """Demande un ticket au vrai gestionnaire avec un secret et une cible fictifs."""
+  return await self.client.post('/imprimante-api/reauth',json={'action':action,'password':password},
+   headers={'Origin':self.origin,'X-Printer-Key':printer_key(printer)})
+ async def submit_sensitive_action(self,action='firmware',printer=1,confirmation=None):
+  """Passe par le vrai verrou de commande en substituant uniquement le moteur physique."""
+  return await self.client.post('/imprimante-api/sensitive-fixture',
+   json={'action':action,'confirmation':confirmation,'request_id':str(uuid.uuid4())},
+   headers={'Origin':self.origin,'X-Printer-Key':printer_key(printer)})
+ async def test_sensitive_actions_require_matching_unused_confirmation(self):
+  """Vérifie les trois actions, le refus d’un autre appareil et la consommation unique."""
+  await self.sign_in()
+  for action in ('firmware','ace-firmware','factory-reset'):
+   self.assertEqual((await self.submit_sensitive_action(action)).status,403)
+  response=await self.confirm_action(password='fixture-incorrect')
+  self.assertEqual(response.status,403);self.assertNotIn('fixture-incorrect',await response.text())
+  token=(await (await self.confirm_action()).json())['confirmation']
+  self.assertEqual((await self.submit_sensitive_action(printer=2,confirmation=token)).status,403)
+  self.assertEqual((await self.submit_sensitive_action('ace-firmware',confirmation=token)).status,403)
+  self.assertEqual((await self.submit_sensitive_action(confirmation=token)).status,200)
+  self.assertEqual((await self.submit_sensitive_action(confirmation=token)).status,403)
+  self.engines[printer_key(1)].action.assert_awaited_once_with('firmware',{})
+  self.engines[printer_key(2)].action.assert_not_awaited()
+ async def test_expired_confirmation_and_failed_attempts_do_not_block_login(self):
+  """Une confirmation expirée échoue et une autre session reste utilisable après le blocage."""
+  await self.sign_in()
+  token=(await (await self.confirm_action()).json())['confirmation']
+  session=next(iter(self.app[ACCESS_KEY].sessions.values()))
+  session.ticket.expires=time.monotonic()-1
+  self.assertEqual((await self.submit_sensitive_action(confirmation=token)).status,403)
+  for _ in range(5):self.assertEqual((await self.confirm_action(password='fixture-wrong')).status,403)
+  self.assertEqual((await self.confirm_action()).status,429)
+  self.assertEqual((await self.sign_in()).status,303)
+  self.assertEqual((await self.confirm_action()).status,200)
  async def test_wrong_login_does_not_echo_password(self):
   """L’erreur reste générique, y compris pour un identifiant inconnu."""
   response=await self.sign_in(username='other',password='fixture-wrong-password')

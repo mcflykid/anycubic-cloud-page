@@ -4,6 +4,8 @@ L’application écoute en HTTP sur le port interne 8080. Votre proxy fournit HT
 
 Un seul `compose.yaml` couvre les deux modes. `APPDATA_DIR` vaut `./appdata` par défaut. Dans `.env`, `PUBLIC_ORIGIN` est l’origine exacte du navigateur, protocole, domaine et port éventuel, sans chemin ; le proxy ne doit pas réécrire Origin.
 
+Avec une origine HTTPS, le cookie de session `__Host-anycubic_session` est émis avec `Secure`, `Path=/` et sans attribut `Domain`. L’origine HTTP locale conserve `anycubic_session`.
+
 ## Proxy sur l’hôte
 
 ```dotenv
