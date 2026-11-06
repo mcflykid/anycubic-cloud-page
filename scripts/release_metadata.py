@@ -1,4 +1,4 @@
-"""Valide un tag de livraison et extrait uniquement son entrée du changelog."""
+"""Valide un tag de livraison et prépare ses notes avec l’historique des versions."""
 
 import argparse
 import json
@@ -17,17 +17,26 @@ def release_metadata(tag, package, changelog):
     if not re.fullmatch("v" + VERSION, tag) or package.get("version") != tag[1:]:
         raise ValueError("Le tag doit être vX.Y.Z et correspondre exactement à package.json.")
     version = tag[1:]
-    sections = re.split(r"^## ", changelog, flags=re.MULTILINE)[1:]
-    matches = [
-        section
-        for section in sections
-        if re.fullmatch(re.escape(version) + r"(?: — [^\n]+)?", section.split("\n", 1)[0])
-    ]
-    if len(matches) != 1 or "\n" not in matches[0] or not matches[0].split("\n", 1)[1].strip():
+    current = tuple(map(int, version.split(".")))
+    sections = []
+    for section in re.split(r"^## ", changelog, flags=re.MULTILINE)[1:]:
+        title, _, body = section.partition("\n")
+        match = re.fullmatch(rf"({VERSION})(?: — .+)?", title)
+        if match:
+            number = tuple(map(int, match[1].split(".")))
+            sections.append((number, title, body.strip()))
+
+    matches = [body for number, _, body in sections if number == current]
+    if len(matches) != 1 or not matches[0]:
         raise ValueError(
             "Le changelog doit contenir une entrée unique et non vide pour cette version."
         )
-    return version, matches[0].split("\n", 1)[1].strip() + "\n"
+    notes = [
+        f"## {title}\n\n{body}"
+        for number, title, body in sorted(sections, reverse=True)
+        if number <= current and body
+    ]
+    return version, "\n\n".join(notes) + "\n"
 
 
 def require_unpublished(version):

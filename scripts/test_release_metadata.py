@@ -1,4 +1,4 @@
-"""Vérifie les refus de publication et l’isolation des notes d’une version."""
+"""Vérifie les refus de publication et la composition des notes de release."""
 
 import io
 import unittest
@@ -8,13 +8,22 @@ from release_metadata import release_metadata, require_unpublished
 
 
 class ReleaseMetadataTests(unittest.TestCase):
-    """Empêche un tag incohérent, une réutilisation de version ou des notes mélangées."""
+    """Protège la validation du tag et l’historique associé à chaque release."""
 
-    def test_notes_stop_at_next_version(self):
-        """Une release ne doit pas reprendre les changements d’une autre version."""
-        text = "# Changements\n\n## 2.3.4 — 2026-11-05\n\n- Correction #42.\n\n## 2.3.3\n\n- Autre entrée.\n"
+    def test_notes_include_current_and_earlier_versions(self):
+        """La release conserve les anciens titres et laisse les versions suivantes hors des notes."""
+        text = (
+            "# Changements\n\n## 2.4.0 — en préparation\n\n- Version suivante.\n\n"
+            "## 2.3.9\n\n- Ancien correctif.\n\n## 2.3.10 — 2026-11-06\n\n- Correction #42.\n\n"
+            "## 2.3.8\n\n- Autre entrée.\n"
+        )
         self.assertEqual(
-            release_metadata("v2.3.4", {"version": "2.3.4"}, text), ("2.3.4", "- Correction #42.\n")
+            release_metadata("v2.3.10", {"version": "2.3.10"}, text),
+            (
+                "2.3.10",
+                "## 2.3.10 — 2026-11-06\n\n- Correction #42.\n\n"
+                "## 2.3.9\n\n- Ancien correctif.\n\n## 2.3.8\n\n- Autre entrée.\n",
+            ),
         )
 
     def test_wrong_tag_or_version_is_rejected(self):

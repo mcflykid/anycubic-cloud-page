@@ -44,7 +44,7 @@ Ce contrôle porte sur les formats textuels reconnus ; il ne décode pas les for
 
 Un push sur main ou une fusion lance les tests, sans publier d’image. Pour publier, mettre à jour la version de package.json et son entrée du CHANGELOG, puis pousser un nouveau tag vX.Y.Z après validation des tests de main. Le numéro doit être inédit ; une image existante bloque la publication.
 
-Le workflow Publish Docker image vérifie le tag, appelle tous les tests du workflow de CI (dont les deux installations Docker), puis publie les images amd64 et arm64. Après vérification anonyme de l’image, il crée la release GitHub à partir de l’entrée correspondante du CHANGELOG, avec compose.yaml et .env.example en pièces jointes. Une erreur de version, de changelog, de registre ou de test arrête la procédure.
+Le workflow Publish Docker image vérifie le tag, appelle tous les tests du workflow de CI (dont les deux installations Docker), puis publie les images amd64 et arm64. Après vérification anonyme de l’image, il crée la release GitHub avec les notes de la version et toutes les entrées précédentes du CHANGELOG, de la plus récente à la plus ancienne. Il joint compose.yaml et .env.example. Une erreur de version, de changelog, de registre ou de test arrête la procédure.
 
 Suivre les exécutions avec gh run watch et vérifier ensuite les fichiers de la release et l’accès public à l’image. Ne jamais déplacer un tag ni relancer une publication sous un numéro déjà utilisé. Les améliorations en attente sont suivies dans les issues de leur milestone. La livraison 1.2.5 regroupe les sept correctifs P1. La 1.2.8 regroupe les travaux P2, P3 et P4 détaillés dans le [changelog](../CHANGELOG.md).
 
