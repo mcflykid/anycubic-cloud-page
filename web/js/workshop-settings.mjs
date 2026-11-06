@@ -10,10 +10,10 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9c50a4daf36a';
-import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
-import { definition } from './workshop-overview.mjs?v=4d2a3c830400';
-import { api } from './workshop-api.mjs?v=21ca36e85657';
+} from './workshop-ui.mjs?v=a95fcbb5c8e7';
+import { workshopState } from './workshop-state.mjs?v=f9e767d932e4';
+import { definition } from './workshop-overview.mjs?v=677c9b0a997f';
+import { api } from './workshop-api.mjs?v=5626b7e96179';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
@@ -84,7 +84,7 @@ export function createSettings(request, command, camera) {
   /** Conditionne axes et IA aux capacités annoncées et à une imprimante disponible. */
   function updateNativeControls(p) {
     const canMove = !!p.axes_supported && p.is_available && !p.job_in_progress;
-    for (const button of document.querySelectorAll('[data-axis],#axis-release,#axis-step'))
+    for (const button of document.querySelectorAll('[data-axis],#axis-release,#axis-step input'))
       button.disabled = !canMove;
     set(
       'axis-state',
@@ -261,7 +261,7 @@ export function createSettings(request, command, camera) {
         {
           axis: Number(b.dataset.axis),
           direction: Number(b.dataset.direction),
-          distance: Number($('axis-step').value),
+          distance: Number($('axis-step').querySelector('input:checked').value),
         },
         tr('Déplacer les axes de l’imprimante avec ces paramètres ?'),
       );

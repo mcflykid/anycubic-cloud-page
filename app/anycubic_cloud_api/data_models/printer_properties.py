@@ -526,6 +526,11 @@ class AnycubicSpoolInfo:
         return self._status
 
     @property
+    def rfid(self) -> bool | None:
+        """Distingue l’identification verrouillée par l’ACE des réglages manuels et états inconnus."""
+        return {0: True, 1: False}.get(self._edit_status)
+
+    @property
     def spool_loaded(self) -> bool:
         """Indique si la bobine est actuellement chargée."""
         return self._status == 5
@@ -728,6 +733,7 @@ class AnycubicMultiColorBox:
                 "color": slot.color,
                 "status": slot.status,
                 "spool_loaded": slot.spool_loaded,
+                "rfid": slot.rfid,
                 "local_slot": slot.index + 1,
                 "slot": slot.index + 1,
                 "display_slot": slot.index + 1,

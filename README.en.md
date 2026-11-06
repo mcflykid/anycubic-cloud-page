@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.4.2**. [Changelog](CHANGELOG.md).
+Version **1.5.0**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 
@@ -34,7 +34,7 @@ The image follows `latest`; pin a published image tag in compose.yaml if you nee
 
 ## Work tracking
 
-[Open issues](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) describe proposed fixes and improvements. The [1.3.0 milestone](https://github.com/mcflykid/anycubic-cloud-page/milestone/3) groups work for the next release and its acceptance criteria.
+[Open issues](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) describe proposed fixes and improvements. The [upcoming release milestone](https://github.com/mcflykid/anycubic-cloud-page/milestone/8) groups work for the next release and its acceptance criteria.
 
 ## Screens
 
@@ -45,12 +45,14 @@ The language selector next to the notification bell remembers French, English or
 | Printer | State, preview, progress, temperatures and local charts | [View](screenshots/10-session.jpg) |
 | ACE / filaments | Spools, RFID information, remaining filament and drying | [View](screenshots/02-ace-filaments.png) |
 | Files | Printer memory, USB and cloud file operations | [View](screenshots/03-fichiers.png) |
-| Upload / print | G-code upload and ACE mapping | [View](screenshots/04-envoyer-imprimer.png) |
+| Upload / print | Cloud storage for G-code, STL and 3MF, plus G-code printing with ACE mapping | [View](screenshots/04-envoyer-imprimer.png) |
 | Camera | Agora video, zoom, lights and guarded axis controls | [View](screenshots/05-camera.png) |
 | History | Status/date/name filters, preview cards, details and confirmed cloud history removal; notifications in the top-bar bell | [View](screenshots/06-historique.png) |
 | Settings | Connection, AI settings and update eligibility | [View](screenshots/07-reglages.png) |
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
+
+In **Settings → Appearance**, choose the default, Apple Design, Halloween or Christmas style. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
 
 ## Offline demo
 

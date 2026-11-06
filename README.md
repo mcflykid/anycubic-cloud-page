@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.4.2**. [Changements](CHANGELOG.md).
+Version **1.5.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -44,7 +44,7 @@ L’image suit `latest` ; remplacez-la par un tag publié dans compose.yaml pour
 
 ## Suivi des travaux
 
-Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone 1.4.1](https://github.com/mcflykid/anycubic-cloud-page/milestone/3) regroupe les prochains correctifs prioritaires et leurs critères de validation.
+Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone Prochaine livraison](https://github.com/mcflykid/anycubic-cloud-page/milestone/8) regroupe les prochains correctifs prioritaires et leurs critères de validation.
 
 La fiche d’historique peut proposer une réimpression après confirmation de la cible, du plateau et des bobines. La galerie timelapse est temporairement désactivée. La consultation paginée est testée sur des réponses fictives. La correspondance entre la liste, les miniatures et le téléchargement reste à vérifier sur une vidéo existante.
 
@@ -59,10 +59,12 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 | **Imprimante** | Consulter l’état, le projet, sa miniature, la progression, les couches, les températures et les courbes locales sur 24 h. Pause/reprise/arrêt soumis à l’état de la machine. |
 | **ACE et filaments** | Voir les quatre emplacements, les informations RFID disponibles, les quantités rapportées, la bobine engagée et le séchage ; ouvrir les fenêtres de configuration. |
 | **Fichiers** | Parcourir la mémoire de l’imprimante, l’USB ou le cloud ; prévisualiser, préparer une impression et gérer les fichiers selon les fonctions fournies. |
-| **Envoyer et imprimer** | Envoyer un G-code au cloud, le conserver sans imprimer ou préparer son impression avec l’ordre des bobines ACE. |
+| **Envoyer et imprimer** | Stocker un G-code, un STL ou un 3MF dans le Cloud. Un fichier .gcode peut aussi être envoyé à l’impression avec l’ordre des bobines ACE. |
 | **Caméra** | Ouvrir le flux Agora, zoomer, passer en plein écran, piloter l’éclairage et accéder aux déplacements autorisés. |
 | **Historique** | Filtrer les impressions par statut, dates et nom ; consulter cartes et détails ; retirer les fiches sélectionnées de l’historique cloud après confirmation. Les notifications sont dans la cloche. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
+
+Dans **Réglages → Apparence**, choisissez le style par défaut, Apple Design, Halloween ou Noël. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
 
 <details>
 <summary><strong>ACE et filaments</strong> — bobines, RFID et séchage</summary>
@@ -74,7 +76,7 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 <details>
 <summary><strong>Fichiers</strong> — mémoire, USB et cloud</summary>
 
-Dans **Fichiers → Cloud Anycubic**, le sélecteur **Dossier Cloud** ouvre la racine `/`, puis les dossiers existants. Sélectionnez les fichiers de la page, choisissez un dossier de destination et confirmez le déplacement. **Vue sans dossier** retrouve les autres actions de gestion Cloud.
+Dans **Fichiers → Cloud Anycubic**, le sélecteur **Dossier Cloud** ouvre la racine `/`, puis les dossiers existants. Sélectionnez les fichiers de la page, choisissez un dossier de destination et confirmez le déplacement. **Tous les fichiers** retrouve les autres actions de gestion Cloud. **Dossier parent** remonte d’un niveau.
 
 ![Fichiers](screenshots/03-fichiers.png)
 

@@ -88,6 +88,8 @@ Aucun code des projets examinés, du JavaScript officiel ou du SDK n’est repri
 | Miniatures de fichiers, variante récente | `/v5/printer/file/thumbnail/list` ; méthode et paramètres inconnus | S2 | Code — route | Lecture seule | Non via cette variante. |
 | Éclairage | Ordres `1232` lecture / `1233` réglage ; MQTT `light/control` | S6, P1, P2 | Code — appel / réception | Lecture seule pour l’état ; ordre physique à l’imprimante pour le réglage | Oui. |
 
+Pour l’ouverture caméra (#20), le [module officiel](https://cloud-universe.anycubic.com/w/p/AcOrcaWeb/js/790.c5d070ef.js) envoie l’entier `1001` à `/work/operation/sendOrder` dans son parcours principal. Sa fonction de jeton KVS utilise la chaîne `"1001"` sur une autre route, `/api/work/operation/sendOrder?checkSign=false`. Les deux formes appartiennent à des parcours distincts. L’atelier conserve l’entier et le drapeau Agora au niveau supérieur. Les réponses acceptées, refusées et mal formées sont couvertes par des fixtures.
+
 ## Historique et notifications
 
 | Fonction | Adresse / message et paramètres établis | Source | Confiance | Risque | Implémenté dans le projet : oui/non |

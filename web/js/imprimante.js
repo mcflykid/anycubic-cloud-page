@@ -8,20 +8,20 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=9c50a4daf36a';
-import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
-import { createRequest } from './workshop-api.mjs?v=21ca36e85657';
-import { createCamera } from './workshop-camera.mjs?v=deda2e9c7774';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=0df2652e1419';
-import { createCommands } from './workshop-commands.mjs?v=20b98ddbe833';
-import { createOverview } from './workshop-overview.mjs?v=4d2a3c830400';
-import { createAce } from './workshop-ace.mjs?v=69d37d287319';
-import { createFiles } from './workshop-files.mjs?v=e4dd626b1688';
-import { createHistory } from './workshop-history.mjs?v=7d06d89f41b6';
-import { createSettings } from './workshop-settings.mjs?v=ca3c6de7469f';
-import { createTimelapses } from './workshop-timelapses.mjs?v=7f66a0c031a8';
-import './workshop-help.mjs?v=797de0f4a5e0';
-export { previewJob } from './workshop-overview.mjs?v=4d2a3c830400';
+} from './workshop-ui.mjs?v=a95fcbb5c8e7';
+import { workshopState } from './workshop-state.mjs?v=f9e767d932e4';
+import { createRequest } from './workshop-api.mjs?v=5626b7e96179';
+import { createCamera } from './workshop-camera.mjs?v=2e583ecfaded';
+import { createTemperatureLoader } from './workshop-temperatures.mjs?v=a0cad523c4e4';
+import { createCommands } from './workshop-commands.mjs?v=6f2373519b45';
+import { createOverview } from './workshop-overview.mjs?v=677c9b0a997f';
+import { createAce } from './workshop-ace.mjs?v=aa12cd5fc3a7';
+import { createFiles } from './workshop-files.mjs?v=b0194c19594b';
+import { createHistory } from './workshop-history.mjs?v=b39d5f1ce3a0';
+import { createSettings } from './workshop-settings.mjs?v=715fb9701ddf';
+import { createTimelapses } from './workshop-timelapses.mjs?v=a6f135f8705b';
+import './workshop-help.mjs?v=92114b0739ec';
+export { previewJob } from './workshop-overview.mjs?v=677c9b0a997f';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
@@ -203,7 +203,11 @@ function showTab(name) {
   }
   if (name !== 'camera') void camera.close();
 }
-document.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+// Les onglets restent inactifs jusqu’au chargement des modules et de leurs gestionnaires.
+for (const button of document.querySelectorAll('[data-tab]')) {
+  button.onclick = () => showTab(button.dataset.tab);
+  button.disabled = false;
+}
 document
   .querySelectorAll('[data-command]')
   .forEach((b) => (b.onclick = () => command(b.dataset.command, ace.boxData(), b.dataset.confirm)));

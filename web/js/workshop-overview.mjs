@@ -8,8 +8,9 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=9c50a4daf36a';
-import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
+  valueUnit,
+} from './workshop-ui.mjs?v=a95fcbb5c8e7';
+import { workshopState } from './workshop-state.mjs?v=f9e767d932e4';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -70,7 +71,7 @@ const metricIcons = {
   'Fin estimée': 'clock',
   'Épaisseur de couche': 'layers',
   'Mode de vitesse': 'gauge',
-  'Vitesse (%)': 'gauge',
+  Vitesse: 'gauge',
   Température: 'thermometer',
   Humidité: 'drop',
   'Relais automatique': 'relay',
@@ -95,7 +96,7 @@ const detailNames = {
   job_z_thick: tr('Épaisseur de couche'),
   job_model_height: tr('Hauteur du modèle'),
   job_speed_mode: tr('Mode de vitesse'),
-  print_speed_pct: 'Vitesse (%)',
+  print_speed_pct: 'Vitesse',
   job_anti_alias_count: tr('Anticrénelage'),
   job_on_time: 'Exposition',
   job_off_time: tr('Pause exposition'),
@@ -104,6 +105,11 @@ const detailNames = {
   job_z_up_height: tr('Levée Z'),
   job_z_up_speed: tr('Vitesse de levée Z'),
   job_z_down_speed: tr('Vitesse de descente Z'),
+};
+const detailUnits = {
+  job_z_thick: ' mm',
+  job_model_height: ' mm',
+  print_speed_pct: ' %',
 };
 /** Garde le texte de statut et la couleur synchronisés avec la dernière mesure. */
 export function statusBadge(id, text, active) {
@@ -297,8 +303,8 @@ export function createOverview(request) {
         ),
       ],
       ...Object.entries(detailNames)
-        .filter(([key]) => p[key] != null)
-        .map(([key, label]) => [label, key === 'job_eta' ? date(p[key]) : fmt(p[key])]),
+        .filter(([key]) => p[key] != null && (key !== 'job_eta' || p.job_in_progress))
+        .map(([key, label]) => [label, key === 'job_eta' ? date(p[key]) : valueUnit(p[key], detailUnits[key])]),
     ]);
     for (const action of ['pause', 'resume', 'cancel'])
       document.querySelector(`[data-command="${action}"]`).disabled =

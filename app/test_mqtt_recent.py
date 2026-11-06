@@ -101,6 +101,62 @@ class RecentReports(unittest.TestCase):
         )
         self.assertEqual(box.loaded_slot, 2)
 
+    def test_ace_measurements_override_http_independently_until_stale(self):
+        """Une actualisation HTTP ne rétablit pas un relevé plus ancien pendant le séchage."""
+        box = AnycubicMultiColorBox(
+            id=0,
+            status=1,
+            model_id=1,
+            curr_nozzle_temp=None,
+            target_nozzle_temp=None,
+            auto_feed=0,
+            loaded_slot=0,
+            slots=[],
+            temp=28,
+            feed_status=None,
+            drying_status=None,
+        )
+        self.p._multi_color_box = [box]
+        engine = server.Engine()
+        engine.printer = self.p
+        engine.raw_info = {"multi_color_box": [{"id": 0, "humidity": 17}]}
+        with patch("anycubic_cloud_api.data_models.printer.monotonic", return_value=10) as clock:
+            self.p._process_mqtt_update_multicolorbox(
+                "autoUpdateDryStatus",
+                "success",
+                Data(
+                    {
+                        "data": {
+                            "multi_color_box": [
+                                {
+                                    "id": 0,
+                                    "temp": 39,
+                                    "humidity": 18,
+                                    "drying_status": None,
+                                }
+                            ]
+                        }
+                    }
+                ),
+            )
+            box.set_current_temperature(28)
+            clock.return_value = 80
+            self.p._process_mqtt_update_multicolorbox(
+                "autoUpdateInfo",
+                "done",
+                Data({"data": {"id": 0, "humidity": 0}}),
+            )
+            clock.return_value = 100
+            fields = engine.snapshot()["printer"]
+            self.assertEqual(fields["ace_current_temperature"], 39)
+            self.assertEqual(fields["boxes"][0]["humidity"], 0)
+            clock.return_value = 131
+            fields = engine.snapshot()["printer"]
+            self.assertEqual(fields["boxes"][0]["temperature"], 28)
+            self.assertEqual(fields["boxes"][0]["humidity"], 0)
+            clock.return_value = 201
+            self.assertEqual(engine.snapshot()["printer"]["boxes"][0]["humidity"], 17)
+
     def test_informative_reports_and_fan_query(self):
         """Les formats connus sont consommés sans inventer une bobine ni une erreur de protocole."""
         for typ, action, data in [

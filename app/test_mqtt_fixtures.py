@@ -43,6 +43,10 @@ class MQTTFixtures(unittest.TestCase):
         self.printer._multi_color_box_index_by_id = types.MethodType(
             AnycubicPrinter._multi_color_box_index_by_id, self.printer
         )
+        self.printer._mqtt_ace_measurements = {}
+        self.printer._remember_ace_measurements = types.MethodType(
+            AnycubicPrinter._remember_ace_measurements, self.printer
+        )
 
         def replace_boxes(rows):
             """Simule uniquement la construction de boîtiers ; les branches MQTT exécutées restent celles du projet."""

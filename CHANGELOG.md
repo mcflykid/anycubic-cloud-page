@@ -1,5 +1,18 @@
 # Changements
 
+## 1.5.0 — 2026-11-06
+
+- Les réglages s’organisent sur deux colonnes sur grand écran. Le style par défaut, Apple Design, Halloween et Noël se choisissent séparément du mode clair, sombre ou système (#102, #118).
+- La vue Imprimante aligne le résumé, les mesures et les courbes. Les métriques indiquent leurs unités et la fenêtre de détail garde son en-tête accessible sur un écran court.
+- L’Espace Cloud et les fichiers de l’imprimante partagent la recherche et le tri. La navigation Cloud distingue la racine, le dossier courant et la vue de tous les fichiers (#112).
+- L’envoi Cloud accepte le stockage de modèles STL et 3MF avec contrôle de structure côté serveur. Le lancement direct reste réservé aux fichiers .gcode (#103).
+- L’historique adopte des cartes harmonisées et un calendrier de période utilisable au clavier (#114, #115).
+- Les illustrations suivent le matériel reconnu. Les images Kobra S1 et ACE 2 Pro sont servies via le préfixe de l’atelier et disposent d’un repli (#37, #111).
+- Le PLA Glow reconnu en blanc à lueur bleue affiche une bande indicative. Les variantes PLA Marble sont identifiées par matière et couleur. Les matières et couleurs reconnues par RFID sont protégées côté serveur (#117, #93).
+- Les mesures récentes de température et d’humidité de l’ACE sont conservées indépendamment entre deux relevés HTTP. La pastille de séchage s’aligne à droite.
+- L’atelier applique le même relevé HTTP au modèle de l’imprimante et à ses capacités. L’écart de compteur entre clients reste à comparer (#105).
+- Le pavé d’axes dispose de pas visibles et d’un avertissement. Le format de l’ordre d’ouverture Agora est confirmé par le module officiel (#20).
+
 ## 1.4.2 — 2026-11-06
 
 - Une redirection ou une coupure après l’envoi d’un ordre sensible ne rejoue pas la demande. Une erreur après le début d’un transfert Cloud conserve un résultat inconnu et la protection contre les doublons (#77).

@@ -13,10 +13,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9c50a4daf36a';
-import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
-import { slots } from './workshop-commands.mjs?v=20b98ddbe833';
-import { definition } from './workshop-overview.mjs?v=4d2a3c830400';
+} from './workshop-ui.mjs?v=a95fcbb5c8e7';
+import { workshopState } from './workshop-state.mjs?v=f9e767d932e4';
+import { slots } from './workshop-commands.mjs?v=6f2373519b45';
+import { definition } from './workshop-overview.mjs?v=677c9b0a997f';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
@@ -504,6 +504,22 @@ export function createHistory(request, command, selectedBox) {
     $('history-period-apply').disabled = !dateFrom.value || !dateTo.value || dateFrom.value > dateTo.value;
     if (focusDay) calendar.querySelector(`[data-day="${focusDay}"]`)?.focus();
   }
+  calendar.onkeydown = (event) => {
+    const day = event.target.dataset.day;
+    const offset = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
+    if (!day || !offset) return;
+    event.preventDefault();
+    const date = new Date(day);
+    date.setUTCDate(date.getUTCDate() + offset);
+    const nextDay = calendarDate(date);
+    const nextButton = calendar.querySelector(`[data-day="${nextDay}"]`);
+    if (nextButton?.getClientRects().length) {
+      nextButton.focus();
+    } else {
+      calendarMonth = monthAt(date);
+      renderCalendar(nextDay);
+    }
+  };
   /** Le bouton résume la plage appliquée, indépendamment des valeurs en cours de saisie. */
   function setRangeButton() {
     rangeButton.textContent = `${dateLabel.format(new Date(from))} – ${dateLabel.format(new Date(to))}`;

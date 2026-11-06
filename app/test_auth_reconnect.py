@@ -34,7 +34,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         self.assertIs(e.api, old)
         self.assertTrue(e.reconnect_required)
         self.assertTrue(stopped.is_set())
-        printer = SimpleNamespace(id=1, update_info_from_api=AsyncMock())
+        printer = SimpleNamespace(id=1, update_info_from_api=AsyncMock(return_value={}))
         new = SimpleNamespace(
             check_api_tokens=AsyncMock(return_value=True),
             list_my_printers=AsyncMock(return_value=[printer]),

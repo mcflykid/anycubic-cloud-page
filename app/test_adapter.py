@@ -1,5 +1,7 @@
 """Tests isolés : adapter, sans commande physique ni connexion au cloud."""
 
+from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
 from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
 from printer_values import filepath, integer
@@ -67,6 +69,43 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.e.error)
         self.assertEqual(self.e.notifications_error, "Messages temporairement indisponibles")
         self.e.print_history.assert_awaited_once_with(1)
+
+    async def test_statistics_use_same_printer_details_without_defaulting_missing_to_zero(self):
+        """Un relevé constructeur du bon appareil alimente les statistiques et les capacités ensemble."""
+        data = {
+            "id": 42,
+            "name": "Machine fictive",
+            "key": "fixture",
+            "machine_type": 20025,
+            "model": "Anycubic Kobra S1",
+            "img": None,
+            "device_status": 1,
+            "is_printing": 1,
+            "type_function_ids": [],
+            "version": None,
+        }
+        api = SimpleNamespace(
+            printer_info_for_id=AsyncMock(return_value={"data": data}),
+            get_latest_project=AsyncMock(return_value=None),
+        )
+        self.e.printer = AnycubicPrinter(
+            api_parent=api,
+            id=42,
+            machine_type=20025,
+            machine_name=data["model"],
+            device_status=1,
+            ignore_init_errors=True,
+        )
+        for base, expected in (({"print_count": 68}, 68), ({"print_count": 0}, 0), ({}, None)):
+            data["base"] = base
+            await self.e.refresh_printer_details()
+            self.assertEqual(self.e.snapshot()["printer"]["statistics"]["print_count"], expected)
+            self.assertIs(self.e.raw_info, data)
+        self.assertEqual(api.printer_info_for_id.await_count, 3)
+        data["id"] = 43
+        with self.assertRaisesRegex(AnycubicAPIError, "imprimante sélectionnée"):
+            await self.e.refresh_printer_details()
+        self.assertIsNone(self.e.printer.print_count)
 
     async def test_status_uses_cached_notifications_without_cloud_request(self):
         """Les lectures fréquentes du statut partagent le cache du relevé cloud habituel."""
@@ -190,6 +229,16 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         args = self.p.multi_color_box_set_slot.call_args
         self.assertEqual(args.args, (2,))
         self.assertEqual(args.kwargs["slot_color"].red, 0)
+
+    async def test_rfid_slot_cannot_be_changed_directly(self):
+        """Un envoi direct ne contourne pas le verrou d’un emplacement reconnu par l’ACE."""
+        self.p.multi_color_box_set_slot = AsyncMock()
+        self.p.multi_color_box = [
+            SimpleNamespace(box_id=0, slots=[SimpleNamespace(index=2, rfid=True)])
+        ]
+        with self.assertRaisesRegex(ValueError, "RFID"):
+            await self.e.action("slot", {"color": "#000000", "material": "PLA", "slot": 3})
+        self.p.multi_color_box_set_slot.assert_not_called()
 
     async def test_mapping_order_preserved(self):
         """Vérifie que la correspondance des bobines conserve l’ordre des matériaux."""
@@ -511,11 +560,13 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_query_refreshes_cloud_without_device_orders(self):
         """Vérifie que l’actualisation HTTP n’envoie pas de commande physique."""
         self.p.id = 42
-        self.p.update_info_from_api = AsyncMock()
-        self.e.api.printer_info_for_id = AsyncMock(return_value={"data": {}})
+        self.p.update_info_from_api = AsyncMock(return_value={"base": {"print_count": 68}})
+        self.e.api.printer_info_for_id = AsyncMock()
         self.p.query_printer_options = AsyncMock()
         await self.e.action("query", {})
-        self.p.update_info_from_api.assert_awaited_once()
+        self.p.update_info_from_api.assert_awaited_once_with(include_details=True)
+        self.e.api.printer_info_for_id.assert_not_called()
+        self.assertEqual(self.e.raw_info["base"]["print_count"], 68)
         self.p.query_printer_options.assert_not_called()
 
 

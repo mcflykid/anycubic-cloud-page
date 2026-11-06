@@ -33,4 +33,6 @@ Le nom constructeur renvoyé par le Cloud sélectionne les silhouettes originale
 
 Le nom constructeur du boîtier sélectionne ACE Pro ou ACE 2 Pro. Un boîtier présent sans génération explicite utilise le visuel générique. Une machine sans boîtier ne montre pas d’illustration ACE.
 
+Dans la liste des bobines, le PLA Glow déclaré en `#ECECE7` reçoit une bande bleue indicative. [Le catalogue Anycubic](https://eu.anycubic.com/products/pla-glow) associe cette couleur de base à la variante Glow Blue. La fiche matière affiche la couleur de base telle que reçue. Une palette multicolore fournie par le boîtier reste prioritaire. La fiche indique aussi les variantes confirmées du [PLA Marble](https://eu.anycubic3d.com/products/pla-marble), blanc marbre (`#EFF0F1`) et rouge brique (`#9D4815`). L’identification combine la matière et le code couleur.
+
 Les guides d’association [Kobra S1](https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1/printer-binding-guide), [Kobra 3](https://wiki.anycubic.com/k3/anycubic_kobra_3_user_manual-en-v1.3.pdf) et [Kobra X](https://wiki.anycubic.com/kobra-x/M02010203-Kobra%20X%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C-EN.pdf) documentent la liaison au compte Anycubic. Les variantes et leurs commandes restent soumises aux capacités effectivement rapportées par la machine.

@@ -1,6 +1,7 @@
 """État agrégé d’une imprimante et adaptation de ses rapports HTTP et MQTT."""
 from __future__ import annotations
 
+from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 from ..const.enums import (
@@ -100,6 +101,7 @@ class AnycubicPrinter:
         "_external_shelves",
         "_multi_color_box",
         "_mqtt_drying_statuses",
+        "_mqtt_ace_measurements",
         "_latest_project",
         "_fan_speed",
         "_aux_fan_speed_pct",
@@ -213,6 +215,7 @@ class AnycubicPrinter:
         self._set_external_shelves(external_shelves)
         self._set_multi_color_box(multi_color_box)
         self._mqtt_drying_statuses = {}
+        self._mqtt_ace_measurements = {}
 
         self._latest_project: AnycubicProject | None = None
         self._fan_speed: int = 0
@@ -659,6 +662,7 @@ class AnycubicPrinter:
         self._is_printing = data['is_printing']
         if not self.printer_online:
             self._mqtt_drying_statuses.clear()
+            self._mqtt_ace_measurements.clear()
         self._material_used = extra_data.get('material_used')
         self._set_total_print_time(extra_data.get('print_totaltime'))
         self._print_count = extra_data.get('print_count')
@@ -792,6 +796,7 @@ class AnycubicPrinter:
         elif action == 'onlineReport' and state == 'offline':
             self._device_status = 2
             self._mqtt_drying_statuses.clear()
+            self._mqtt_ace_measurements.clear()
             return
         else:
             raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.lastwill)
@@ -1152,6 +1157,27 @@ class AnycubicPrinter:
             return mqtt_status
         return box.drying_status
 
+    def _remember_ace_measurements(self, box_id, report):
+        stamp = monotonic()
+        for source, name, minimum, maximum in (
+            ('temp', 'temperature', -40, 150),
+            ('humidity', 'humidity', 0, 100),
+        ):
+            value = report.get(source)
+            if type(value) in (int, float) and minimum <= value <= maximum:
+                self._mqtt_ace_measurements.setdefault(box_id, {})[name] = (stamp, value)
+
+    def recent_ace_measurements(self, box_id: int) -> dict[str, int | float]:
+        """Privilégie MQTT pendant deux cycles HTTP, puis restitue la main au dernier relevé HTTP."""
+        if not self.printer_online:
+            return {}
+        now = monotonic()
+        return {
+            name: value
+            for name, (stamp, value) in self._mqtt_ace_measurements.get(box_id, {}).copy().items()
+            if now - stamp <= 120
+        }
+
     def _process_mqtt_update_multicolorbox(
         self,
         action: str,
@@ -1163,6 +1189,9 @@ class AnycubicPrinter:
             data = payload_data['multi_color_box']
             payload_data.get('head_tools_model')
             self._set_multi_color_box(data)
+            if data is not None:
+                for box in data if isinstance(data, list) else [data]:
+                    self._remember_ace_measurements(int(box['id']), box)
             if self.is_kobra_x and data is not None and self._multi_color_box:
                 # Le nouvel état MQTT remplace le précédent pour ce boîtier.
                 for box in data if isinstance(data, list) else [data]:
@@ -1185,13 +1214,14 @@ class AnycubicPrinter:
         elif action == 'autoUpdateInfo' and state == 'done':
             data = payload['data']
             box_id = int(data['id'])
-            loaded_slot = int(data['loaded_slot'])
             box_index = self._multi_color_box_index_by_id(box_id)
             if box_index is None:
                 return
 
             assert self._multi_color_box
-            self._multi_color_box[box_index].set_slot_loaded(loaded_slot)
+            if (loaded_slot := data.get('loaded_slot')) is not None:
+                self._multi_color_box[box_index].set_slot_loaded(int(loaded_slot))
+            self._remember_ace_measurements(box_id, data)
             return
         elif action in ['autoUpdateDryStatus', 'setDry'] and state == 'success':
             data = payload['data']['multi_color_box']
@@ -1206,6 +1236,7 @@ class AnycubicPrinter:
                 if (temperature := box.get('temp')) is not None:
                     ace.set_current_temperature(temperature)
 
+                self._remember_ace_measurements(box_id, box)
                 self._update_mqtt_drying_status(ace, box['drying_status'], action)
             return
         elif action == 'feedFilament' and state == 'done':
@@ -2683,18 +2714,29 @@ class AnycubicPrinter:
     async def update_info_from_api(
         self,
         with_project: bool = True,
-    ) -> None:
-        """Actualise les détails cloud et, si with_project est vrai, le dernier projet ; lève AnycubicAPIError sans identifiant de machine."""
+        *,
+        include_details: bool = False,
+    ) -> dict[str, Any] | None:
+        """Actualise la machine et son projet, puis renvoie le même relevé si include_details est vrai."""
         if self._id is None:
             raise AnycubicAPIError(ErrorsGeneral.noid_update_info_from_api)
 
-        await self._api_parent.printer_info_for_id(self._id, self)
+        details = None
+        if include_details:
+            response = await self._api_parent.printer_info_for_id(self._id, raw_data=True)
+            details = response.get('data')
+            if not isinstance(details, dict) or str(details.get('id')) != str(self._id):
+                raise AnycubicAPIError("Le détail reçu ne correspond pas à l’imprimante sélectionnée")
+            self.update_from_info_json(details)
+        else:
+            await self._api_parent.printer_info_for_id(self._id, self)
 
         if with_project:
             self._latest_project = await self._api_parent.get_latest_project(
                 printer_id=self.id,
                 project_to_update=self._latest_project
             )
+        return details
 
     async def request_local_file_list(
         self,

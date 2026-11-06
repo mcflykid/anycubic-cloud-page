@@ -152,6 +152,12 @@ async def execute_command(target, name, d):
     elif name == "retract":
         result = await dispatch_command(p.multi_color_box_retract_filament(box_id=box))
     elif name == "slot":
+        # L’état MQTT du boîtier peut déjà avoir changé depuis l’ouverture du formulaire.
+        for ace in safeget(p, "multi_color_box") or []:
+            if ace.box_id == box and any(
+                spool.index == slot and spool.rfid is True for spool in ace.slots
+            ):
+                raise ValueError("Les matériaux identifiés par RFID ne peuvent pas être modifiés.")
         color = str(d["color"])
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
             raise ValueError("Couleur invalide")
@@ -241,8 +247,7 @@ async def execute_command(target, name, d):
             raise ValueError("Aucune mise à jour de cet ACE n’est proposée par Anycubic")
         result = await dispatch_command(p.update_printer_multi_color_box_firmware(box_id=box))
     elif name == "query":
-        await p.update_info_from_api()
-        target.raw_info = (await a.printer_info_for_id(p.id, raw_data=True)).get("data") or {}
+        await target.refresh_printer_details()
         target.updated = now()
         target.ok = True
         target.error = None

@@ -1,4 +1,22 @@
 {
+  "Conserver le fichier dans votre espace cloud sans lancer d’impression.": ["Keep the file in your cloud storage without starting a print.", "Guarda el archivo en tu espacio en la nube sin iniciar una impresión."],
+  "Choisissez un seul fichier G-code, STL ou 3MF non vide.": ["Choose one non-empty G-code, STL or 3MF file.", "Elige un único archivo G-code, STL o 3MF que no esté vacío."],
+  "G-code, STL ou 3MF, jusqu’à 100 Mo. Seul le G-code peut être imprimé.": ["G-code, STL or 3MF, up to 100 MB. Only G-code can be printed.", "G-code, STL o 3MF, hasta 100 MB. Solo se puede imprimir G-code."],
+  "Stockez un modèle dans le Cloud ou envoyez un G-code à l’imprimante.": ["Store a model in the cloud or send G-code to the printer.", "Guarda un modelo en la nube o envía G-code a la impresora."],
+  "Rouge brique": ["Brick Red", "Rojo ladrillo"],
+  "Blanc marbre": ["Marble White", "Blanco mármol"],
+  "Blanc à lueur verte": ["White (Green Glow)", "Blanco (brillo verde)"],
+  "Blanc à lueur bleue": ["White (Blue Glow)", "Blanco (brillo azul)"],
+  "Racine (/)": ["Root (/)", "Raíz (/)"],
+  "Tous les fichiers": ["All files", "Todos los archivos"],
+  "Les matériaux identifiés par RFID ne peuvent pas être modifiés.": [
+    "RFID-identified materials cannot be edited.",
+    "Los materiales identificados por RFID no se pueden modificar."
+  ],
+  "Trier": ["Sort", "Ordenar"],
+  "Halloween": ["Halloween", "Halloween"],
+  "Apple Design": ["Apple Design", "Diseño Apple"],
+  "Appliquer": ["Apply", "Aplicar"],
   "Rechercher sur cette page": ["Search this page", "Buscar en esta página"],
   "Ordre d’origine": ["Original order", "Orden original"],
   "Filtrer par date": ["Filter by date", "Filtrar por fecha"],
@@ -1522,9 +1540,9 @@
     "The camera is not responding. Try again in a few seconds.",
     "La cámara no responde. Inténtalo de nuevo en unos segundos."
   ],
-  "La caméra s’ouvre avant un déplacement. Surveillez la distance entre la buse et le plateau.": [
-    "The camera opens before movement. Watch the distance between the nozzle and the build plate.",
-    "La cámara se abre antes del movimiento. Vigila la distancia entre la boquilla y la base."
+  "Le contrôle des axes activera automatiquement la surveillance à distance. Surveillez la distance buse-plateau pour éviter toute collision.": [
+    "Axis control automatically starts remote monitoring. Watch the distance between the nozzle and build plate to avoid collisions.",
+    "El control de los ejes activa automáticamente la supervisión remota. Vigila la distancia entre la boquilla y la base para evitar colisiones."
   ],
   "La cible a changé : commande annulée.": [
     "The target changed. The command was cancelled.",
@@ -2686,6 +2704,9 @@
     "Completed",
     "Completado"
   ],
+  "Style de l’interface": ["Interface style", "Estilo de la interfaz"],
+  "Par défaut": ["Default", "Predeterminado"],
+  "Noël": ["Christmas", "Navidad"],
   "Thème de l’interface": [
     "Interface theme",
     "Tema de la interfaz"

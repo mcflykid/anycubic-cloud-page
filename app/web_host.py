@@ -14,6 +14,12 @@ PUBLIC_ASSETS = {
     "/css/landing.css",
     "/css/imprimante.css",
     "/icons/cloud-page.svg",
+    # Ces visuels sont des fichiers publics du dépôt ; une session expirée ne doit pas servir une page de connexion à leur place.
+    "/icons/kobra-s1-ace2pro.png",
+    "/icons/ace2pro.png",
+    "/icons/kobra-s1.svg",
+    "/icons/ace.svg",
+    "/icons/printer.svg",
     "/js/workshop-ui.mjs",
     "/js/workshop-translations.json",
 }

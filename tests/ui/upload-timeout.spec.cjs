@@ -29,7 +29,7 @@ test('le dépôt prépare un G-code valide sans déclencher son envoi', async ({
     await data.dispose();
   };
   await drop('fixture.txt');
-  await expect(page.getByText('Choisissez un seul fichier .gcode non vide.')).toBeVisible();
+  await expect(page.getByText('Choisissez un seul fichier G-code, STL ou 3MF non vide.')).toBeVisible();
   await drop('fixture.gcode');
   expect(await page.locator('#upload-form input[type=file]').evaluate((input) => input.files[0].name))
     .toBe('fixture.gcode');
@@ -38,4 +38,18 @@ test('le dépôt prépare un G-code valide sans déclencher son envoi', async ({
   await page.locator('#confirm-yes').click();
   await expect(page.locator('#upload-state')).toHaveText('Envoi accepté');
   expect(uploads).toBe(1);
+});
+
+test('un modèle 3MF ne peut sélectionner que le stockage Cloud', async ({page}) => {
+  await login(page);
+  await page.getByRole('button',{name:'Envoyer et imprimer',exact:true}).click();
+  const form=page.locator('#upload-form');
+  const file=form.locator('input[type=file]'), mode=form.locator('select[name=mode]');
+  await mode.selectOption('save-print');
+  await file.setInputFiles({name:'fixture.3mf',mimeType:'application/zip',buffer:Buffer.from('fixture')});
+  await expect(mode).toHaveValue('upload');
+  await expect(mode.locator('option[value=save-print]')).toHaveJSProperty('disabled', true);
+  await expect(form.locator('input[name=slots]')).toBeDisabled();
+  await file.setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('G28')});
+  await expect(mode.locator('option[value=save-print]')).toHaveJSProperty('disabled', false);
 });

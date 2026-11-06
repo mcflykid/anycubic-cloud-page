@@ -12,6 +12,7 @@ load_vendor_config()
 from file_preview import find_project_preview_url
 from cloud_extras import download_preview, trusted_url
 from temperature_history import TemperatureHistory
+from upload_formats import validate_cloud_model
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from account_transport import AccountTransport
@@ -284,6 +285,12 @@ class Engine:
         """Relance le suivi du compte après le renouvellement de session."""
         await self.transport.restart(api, self.mqtt_start)
 
+    async def refresh_printer_details(self):
+        """Partage un relevé HTTP entre le modèle et les capacités pour éviter deux états divergents."""
+        self.raw_info = (
+            await self.printer.update_info_from_api(include_details=True) if self.printer else {}
+        )
+
     async def connect(self):
         """Connecte la cible du moteur ; le défaut facultatif se replie sur la première machine, jamais une cible secondaire explicite."""
         if self.fleet_registry and self is not self.fleet_registry.default:
@@ -314,6 +321,7 @@ class Engine:
         if self.printer:
             self.pinned_id = str(self.printer.id)
         if self.printer is None:
+            self.raw_info = {}
             if self.catalogue_source and self.fleet_registry:
                 self.transport_only = True
                 self.reconnect_required = False
@@ -321,7 +329,7 @@ class Engine:
                 self.mqtt_start()
                 return
             raise RuntimeError("Imprimante absente")
-        await self.printer.update_info_from_api()
+        await self.refresh_printer_details()
         self.reconnect_required = False
         self.api.mqtt_add_subscribed_printer(self.printer)
         if self.fleet_registry:
@@ -362,16 +370,8 @@ class Engine:
                     )
                     if reconnect:
                         await self.connect()
-                    elif self.printer:
-                        await self.printer.update_info_from_api()
-                    self.raw_info = (
-                        (await self.api.printer_info_for_id(self.printer.id, raw_data=True)).get(
-                            "data"
-                        )
-                        or {}
-                        if self.printer
-                        else {}
-                    )
+                    else:
+                        await self.refresh_printer_details()
                     self.updated = now()
                     self.ok = bool(self.printer)
                     self.error = (
@@ -536,6 +536,7 @@ class Engine:
         rawboxes = (
             [box for box in rawboxes if isinstance(box, dict)] if isinstance(rawboxes, list) else []
         )
+        recent = getattr(p, "recent_ace_measurements", None)
         for b in boxes:
             matches = [box for box in rawboxes if str(box.get("id")) == str(b["box_id"])]
             if len(matches) == 1:
@@ -547,8 +548,11 @@ class Engine:
             model = ace_model(b["box_id"], self.raw_info.get("multi_color_box_version"), raw_box)
             if model:
                 b["model"] = model
+            if raw_box is not None and raw_box.get("humidity") is not None:
+                b["humidity"] = raw_box["humidity"]
+            if recent:
+                b.update(recent(b["box_id"]))
             if isinstance(raw_box, dict):
-                b["humidity"] = raw_box.get("humidity")
                 rawslots = raw_box.get("slots")
                 if not isinstance(rawslots, list):
                     continue
@@ -558,7 +562,10 @@ class Engine:
                         if not isinstance(rawslot, dict):
                             continue
                         edit = rawslot.get("edit_status")
-                        spool["rfid"] = edit == 0 if type(edit) is int and edit in (0, 1) else None
+                        if spool.get("rfid") is None:
+                            spool["rfid"] = (
+                                edit == 0 if type(edit) is int and edit in (0, 1) else None
+                            )
                         percent = rawslot.get("consumables_percent")
                         # Le zéro est aussi utilisé par les boîtiers qui ne mesurent pas la quantité.
                         spool["remaining_percent"] = (
@@ -575,10 +582,18 @@ class Engine:
         }
         fields["foreign_detection_supported"] = bool(features.get("fod_support"))
         fields["boxes"] = boxes
+        if boxes and boxes[0]["temperature"] is not None:
+            fields["ace_current_temperature"] = boxes[0]["temperature"]
         fields["material_rack"] = safeget(p, "material_rack_spool_info_object", [])
+        # Le détail constructeur donne une durée en minutes que le modèle arrondit en heures entières.
+        duration = (
+            safeget(p, "total_print_time_delta")
+            if safeget(p, "total_print_time") is not None
+            else None
+        )
         fields["statistics"] = {
             "material": safeget(p, "material_used"),
-            "hours": safeget(p, "total_print_time_hrs"),
+            "hours": duration.total_seconds() / 3600 if duration is not None else None,
             "print_count": safeget(p, "print_count"),
         }
         return serial({**base, "printer": fields})
@@ -1245,7 +1260,7 @@ async def camera_close(req):
 
 
 async def upload(req):
-    """Renvoie l’acceptation du G-code dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
+    """Renvoie l’acceptation du transfert dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
     engine = request_engine(req)
     async with audit_command(req, engine, "upload", None, {}) as audit:
         return await upload_operation(req, engine, audit)
@@ -1266,14 +1281,15 @@ async def upload_operation(req, engine, audit):
             data = {}
             filename = None
             size = 0
-            path = pathlib.Path(directory) / "payload.gcode"
             async for part in reader:
                 if part.name == "file":
                     if filename is not None:
                         raise ValueError("Un seul fichier est accepté")
                     filename = pathlib.PurePath(part.filename or "").name
-                    if not filename.lower().endswith(".gcode"):
-                        raise ValueError("Un fichier .gcode est requis")
+                    extension = pathlib.PurePath(filename).suffix.lower()
+                    if extension not in (".gcode", ".stl", ".3mf"):
+                        raise ValueError("Choisissez un fichier G-code, STL ou 3MF.")
+                    path = pathlib.Path(directory) / ("payload" + extension)
                     async with aio_open(path, "wb") as output:
                         while chunk := await part.read_chunk(256 * 1024):
                             size += len(chunk)
@@ -1297,6 +1313,10 @@ async def upload_operation(req, engine, audit):
                 raise ValueError("Identifiant de commande manquant")
             if mode not in ("upload", "save-print", "temp-print"):
                 raise ValueError("Mode invalide")
+            if extension != ".gcode":
+                if mode != "upload":
+                    raise ValueError("Seul un fichier .gcode peut être envoyé à l’impression.")
+                await asyncio.to_thread(validate_cloud_model, path, extension, size)
             if audit:
                 audit["action"] = mode
                 audit["request_id"] = request_key(rid)
@@ -1353,7 +1373,7 @@ async def upload_operation(req, engine, audit):
                         "Résultat d’envoi inconnu (%s)", type(error).__name__
                     )
                     return web.json_response(engine.commands[rid], status=409)
-                engine.event("G-code", "Envoi accepté")
+                engine.event("Fichier", "Envoi accepté")
                 if audit and audit["outcome"] != "confirmée":
                     audit["outcome"] = "acceptée"
                 result = {"ok": True, "message": "Envoi accepté par Anycubic"}

@@ -12,6 +12,7 @@ from web_host import (
     access_control,
     credentials,
     install_access,
+    install_ui_resources,
     session_digest,
     Session,
     ACCESS_KEY,
@@ -52,6 +53,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
 
         app = web.Application(middlewares=[access_control, errors, select_printer])
         install_access(app)
+        install_ui_resources(app)
         app.router.add_get("/", ok)
         app.router.add_get("/imprimante.html", ok)
         app.router.add_post("/command", ok)
@@ -113,6 +115,24 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(page.headers["Referrer-Policy"], "same-origin")
         self.assertEqual((await self.client.get("/imprimante-api/status")).status, 401)
         self.assertEqual((await self.client.post("/imprimante-api/command")).status, 401)
+
+    async def test_public_hardware_illustrations_do_not_redirect_to_login(self):
+        """Le proxy peut servir les illustrations embarquées sans exposer les données machine."""
+        for icon in (
+            "kobra-s1-ace2pro.png",
+            "ace2pro.png",
+            "kobra-s1.svg",
+            "ace.svg",
+            "printer.svg",
+        ):
+            response = await self.client.get(
+                f"/imprimante-api/ui/icons/{icon}", allow_redirects=False
+            )
+            self.assertEqual(response.status, 200)
+            self.assertEqual(
+                response.content_type, "image/png" if icon.endswith(".png") else "image/svg+xml"
+            )
+        self.assertEqual((await self.client.get("/imprimante-api/status")).status, 401)
 
     async def test_login_sets_limited_httponly_strict_cookie(self):
         """Le cookie opaque a une durée fixe ; une lecture et une écriture de même origine deviennent possibles."""

@@ -1,7 +1,9 @@
 """Tests isolés : command lock, sans commande physique ni connexion au cloud."""
 
 import asyncio, importlib.util, json, os, pathlib, tempfile, time, tracemalloc, unittest
+from io import BytesIO
 from types import SimpleNamespace
+from zipfile import ZipFile
 from unittest.mock import AsyncMock, Mock, patch
 
 from printer_commands import execute_command
@@ -228,6 +230,49 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
         call = self.engine.api.upload_file_to_cloud.call_args.kwargs
         self.assertEqual(call["file_name"], "fixture.gcode")
         self.assertFalse(pathlib.Path(call["full_file_path"]).exists())
+
+    async def test_cloud_model_uploads_never_use_print_transport(self):
+        """STL et 3MF valides sont stockés, même si un formulaire falsifié demande une impression."""
+        package = BytesIO()
+        with ZipFile(package, "w") as archive:
+            archive.writestr("[Content_Types].xml", "<Types/>")
+            archive.writestr("3D/3dmodel.model", "<model/>")
+        stl = b"mesh".ljust(80, b"\0") + b"\x01\0\0\0" + b"\0" * 50
+        printer = self.engine.printer
+        printer.print_and_upload_save_in_cloud = AsyncMock()
+        for index, (name, content) in enumerate(
+            (("cube.stl", stl), ("cube.3mf", package.getvalue()))
+        ):
+            for mode in ("save-print", "upload"):
+                request = self.upload_req()
+                request.multipart.return_value = Parts(
+                    [
+                        Part("file", content, name),
+                        Part("request_id", f"fixture-model-{index:04}"),
+                        Part("mode", mode),
+                    ]
+                )
+                if mode == "save-print":
+                    with self.assertRaisesRegex(ValueError, "Seul un fichier .gcode"):
+                        await adapter.upload(request)
+                else:
+                    result = await adapter.upload(request)
+                    self.assertTrue(json.loads(result.body)["ok"])
+                    self.assertEqual(
+                        self.engine.api.upload_file_to_cloud.call_args.kwargs["file_name"], name
+                    )
+        invalid = self.upload_req()
+        invalid.multipart.return_value = Parts(
+            [
+                Part("file", b"not a zip archive", "invalid.3mf"),
+                Part("request_id", "fixture-model-invalid"),
+                Part("mode", "upload"),
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "3MF est invalide"):
+            await adapter.upload(invalid)
+        self.assertEqual(self.engine.api.upload_file_to_cloud.await_count, 2)
+        printer.print_and_upload_save_in_cloud.assert_not_awaited()
 
     async def test_local_presets_replace_file_only_after_success(self):
         """Le fichier et la mémoire gardent leur ancienne valeur si le remplacement échoue."""

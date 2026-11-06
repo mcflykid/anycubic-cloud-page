@@ -179,3 +179,25 @@ test('l’apparence suit le système ou garde le choix explicite après recharge
   await theme.selectOption('system');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
 });
+
+test('le style visuel se mémorise indépendamment du mode sombre', async ({page}) => {
+  const {login} = require('./helpers.cjs');
+  await login(page);
+  const settings = page.getByRole('button', {name: 'Réglages', exact: true});
+  await settings.click();
+  const style = page.getByLabel('Style de l’interface');
+  const theme = page.getByLabel('Thème de l’interface');
+  await theme.selectOption('dark');
+  await style.selectOption({label: 'Apple Design'});
+  await expect(page.locator('.atelier-tabs')).toHaveCSS('border-radius', '18px');
+  await style.selectOption({label: 'Halloween'});
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(24, 19, 25)');
+  await style.selectOption({label: 'Noël'});
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 30, 25)');
+  await page.reload();
+  await settings.click();
+  await expect(style).toHaveValue('christmas');
+  await expect(theme).toHaveValue('dark');
+  await style.selectOption({label: 'Par défaut'});
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+});

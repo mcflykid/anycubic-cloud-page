@@ -1,9 +1,24 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=9c50a4daf36a';
-import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
-import { definition, statusBadge } from './workshop-overview.mjs?v=4d2a3c830400';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=a95fcbb5c8e7';
+import { workshopState } from './workshop-state.mjs?v=f9e767d932e4';
+import { definition, statusBadge } from './workshop-overview.mjs?v=677c9b0a997f';
 
-/** Illustre la bobine avec la couleur annoncée par l’ACE et des dégradés propres à chaque emplacement. */
-function spoolIllustration(color, index) {
+// Le même hexadécimal peut désigner deux produits, par exemple PLA blanc et PLA Marble blanc.
+const filamentVariants = new Map([
+  ['pla glow:236,236,231', { name: 'Blanc à lueur bleue', band: [0, 174, 239] }],
+  ['pla glow:215,217,210', { name: 'Blanc à lueur verte' }],
+  ['pla marble:239,240,241', { name: 'Blanc marbre' }],
+  ['pla marble:157,72,21', { name: 'Rouge brique' }],
+]);
+
+/** Associe une couleur unie au catalogue sans remplacer une palette fournie par l’ACE. */
+function filamentVariant(spool) {
+  if (typeof spool.material_type !== 'string' || !Array.isArray(spool.color) || spool.color.length !== 3)
+    return null;
+  return filamentVariants.get(`${spool.material_type.trim().toLowerCase()}:${spool.color.join(',')}`);
+}
+
+/** Illustre la bobine avec les couleurs annoncées par l’ACE et un repère pour les bobines RFID. */
+function spoolIllustration(color, index, rfid) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 80 84');
   svg.setAttribute('class', 'spool-illustration');
@@ -44,6 +59,7 @@ function spoolIllustration(color, index) {
       <ellipse cx="26" cy="39" rx="13" ry="36" fill="#bfc6c3" stroke="#b0b9b5" stroke-width=".6"/>
       <ellipse cx="24" cy="39" rx="11.7" ry="35.3" fill="url(#spool-rim-${index})" stroke="#fbfcfc" stroke-width=".9"/>
       <path d="M24 12c2.4 0 4.4 4.2 5 9l-3 5-4-2-1-9zm-4 40 4-1 4 5-1 7-4 4-3-6z" fill="#aab4ae" opacity=".68"/>
+      ${rfid === true ? '<text class="spool-rfid-mark" x="23.5" y="17.5" text-anchor="middle" font-size="7" font-weight="700" fill="#8b4a05">A</text>' : ''}
       <ellipse cx="23.3" cy="39" rx="6.3" ry="12.2" fill="#c2cac5"/>
       <ellipse cx="23.5" cy="39" rx="4" ry="8.5" fill="#69746d"/>
       <path d="M17 16c-3.3 11.6-3.4 31.9-.4 44" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.25"/>
@@ -88,9 +104,9 @@ export function createAce(command, refresh) {
     ]);
     $('spools').replaceChildren(
       ...(box.spools || []).map((s, index) => {
-        const art = node('article', null, 'slot');
+        const art = node('article', null, 'slot'), variant = filamentVariant(s);
         art.append(
-          spoolIllustration(s.color, index),
+          spoolIllustration(variant?.band ? [...s.color, ...variant.band] : s.color, index, s.rfid),
           node('h3', s.material_type || tr('Non renseigné')),
           node('p', formatText('Emplacement {0}', s.display_slot ?? s.slot)),
           node(
@@ -250,9 +266,16 @@ export function createAce(command, refresh) {
       updateDryToggle(selectedBox(), workshopState.snapshot?.printer?.printer_online);
     }
   };
-  $('spool-color').oninput = () => set('spool-color-value', $('spool-color').value.toUpperCase());
+  $('spool-color').oninput = () => {
+    const value = $('spool-color').value;
+    set('spool-color-value', value.toUpperCase());
+    $('spool-catalog-color').hidden = true;
+    const color = [1, 3, 5].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
+    $('spool-dialog-preview').replaceChildren(spoolIllustration(color, 'dialog', false));
+  };
   $('spool-form').onsubmit = (e) => {
     e.preventDefault();
+    if (e.target.elements.material.disabled) return;
     const d = Object.fromEntries(new FormData(e.target));
     if (!d.material) {
       message(tr('Choisissez un matériau compatible avant d’enregistrer cette bobine.'), true);
@@ -333,7 +356,12 @@ export function createAce(command, refresh) {
     form.elements.material.disabled = automatic;
     form.elements.color.disabled = automatic;
     form.querySelector('[type=submit]').hidden = automatic;
-    set('spool-rfid-note', automatic ? tr('Bobine RFID · matière et couleur détectées.') : '');
+    // La fiche indique la couleur de base, même si la liste représente plusieurs composantes.
+    $('spool-dialog-preview').replaceChildren(spoolIllustration(data.color?.slice(0, 3), 'dialog', automatic));
+    const variant = filamentVariant(data);
+    $('spool-catalog-color').hidden = !variant;
+    set('spool-catalog-color', variant ? tr(variant.name) : '');
+    set('spool-rfid-note', automatic ? tr('Les matériaux identifiés par RFID ne peuvent pas être modifiés.') : '');
     $('spool-rfid-note').hidden = !automatic;
   }
   /** Ouvre les données du numéro local de bobine et place le focus sur sa sélection. */

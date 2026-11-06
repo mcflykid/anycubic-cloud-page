@@ -96,8 +96,15 @@ test('les axes conservent leurs directions et les pictogrammes restent sur les l
  await expect(page.locator('#temperatures dt svg').first()).toHaveAttribute('aria-hidden','true');
  await expect(page.locator('#temperatures dd svg,#details dd svg')).toHaveCount(0);
  await page.getByRole('button',{name:'Caméra',exact:true}).click();
- await page.getByLabel('Pas',{exact:true}).selectOption('15');
- await expect(page.getByLabel('Pas',{exact:true})).toHaveValue('15');
+ const steps=page.getByRole('radiogroup',{name:'Pas',exact:true});
+ await expect(steps.getByRole('radio',{name:'1 mm',exact:true})).toBeChecked();
+ await steps.getByRole('radio',{name:'15 mm',exact:true}).check();
+ await expect(steps.getByRole('radio',{name:'15 mm',exact:true})).toBeChecked();
+ await expect(page.getByText('Surveillez la distance buse-plateau',{exact:false})).toBeVisible();
+ const grid=page.locator('.axis-grid');
+ const [left,middle,right]=await grid.locator(':scope > div').evaluateAll(groups=>groups.map(group=>group.getBoundingClientRect().x));
+ expect(left).toBeLessThan(middle);
+ expect(middle).toBeLessThan(right);
  await expect(page.locator('.camera-control-group h3')).toHaveText(['Caméra','Affichage','Éclairage']);
  await expect(page.getByRole('button',{name:'X −',exact:true})).toHaveAttribute('data-direction','0');
  await expect(page.getByRole('button',{name:'Y +',exact:true})).toHaveAttribute('data-axis','2');
@@ -206,6 +213,14 @@ test('un proxy qui conserve ses anciens chemins sert toute l’interface',async(
  await expect.poll(()=>page.locator('#printer-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  await expect.poll(()=>page.locator('#ace-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
+ await page.getByRole('button',{name:'Réglages',exact:true}).click();
+ await expect.poll(()=>page.locator('#settings-printer-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
+ for (const name of ['kobra-s1-ace2pro.png','ace2pro.png']) {
+  const asset=await page.request.get('/imprimante-api/ui/icons/'+name);
+  expect(asset.status()).toBe(200);
+  expect(asset.headers()['content-type']).toContain('image/png');
+ }
+
  for(const [label,heading] of [['Conditions','Conditions d’utilisation'],['Cookies','Cookies et stockage local'],['Crédits','Crédits']]){
   const [response]=await Promise.all([
    page.waitForResponse(response=>response.request().isNavigationRequest()&&response.url().includes('/imprimante-api/ui/')),
@@ -301,7 +316,18 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
   ]);
   expect(thumbnail.x).toBeGreaterThan(machine.x + machine.width);
   expect(Math.abs(thumbnail.height - machine.height)).toBeLessThan(15);
-  expect(lowerCards.width).toBe(896);
+  const charts = await page.locator('#tab-overview > .temperature-section').boundingBox();
+  const [temperature, details] = await lower.locator(':scope > section').evaluateAll(cards =>
+    cards.map(card => ({left:card.getBoundingClientRect().left,right:card.getBoundingClientRect().right})),
+  );
+  expect(lowerCards.width).toBe(printerCard.width);
+  expect(temperature.left).toBeCloseTo(printerCard.x);
+  expect(details.right).toBeCloseTo(printerCard.x + printerCard.width);
+  expect(charts.x).toBeCloseTo(printerCard.x);
+  expect(charts.width).toBeCloseTo(printerCard.width);
+  expect(lowerCards.y - printerCard.y - printerCard.height)
+    .toBeCloseTo(charts.y - lowerCards.y - lowerCards.height);
+  expect(details.left - temperature.right).toBeCloseTo(lowerCards.y - printerCard.y - printerCard.height);
   expect(Math.abs(printerCard.x + printerCard.width / 2 - 640)).toBeLessThan(2);
   await page.getByRole('button', {name: 'ACE et filaments', exact: true}).click();
   const ace = page.locator('.ace-overview');
@@ -329,7 +355,13 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
 test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
   await page.route('**/imprimante-api/status', async route => {
     const response = await route.fetch(), data = await response.json();
-    data.printer.boxes[0].spools[0].color = [243, 241, 230, 0, 167, 235];
+    const spools = data.printer.boxes[0].spools;
+    spools.forEach(spool => { spool.rfid = false; });
+    spools[0].color = [243, 241, 230, 0, 167, 235];
+    spools[0].rfid = true;
+    Object.assign(spools[1], {material_type:'PLA Glow',color:[236,236,231],rfid:true});
+    Object.assign(spools[2], {material_type:'PLA Marble',color:[239,240,241]});
+    Object.assign(spools[3], {material_type:'PLA',color:[239,240,241]});
     await route.fulfill({response, json:data});
   });
   await login(page);
@@ -338,6 +370,26 @@ test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
   await expect(colors).toHaveCount(4);
   await expect(colors.first()).toHaveAttribute('stop-color', 'rgb(243,241,230)');
   await expect(colors.last()).toHaveAttribute('stop-color', 'rgb(0,167,235)');
+  await expect(page.locator('.spool-rfid-mark')).toHaveText(['A', 'A']);
+  await expect(page.locator('#spool-colors-1 stop').last()).toHaveAttribute('stop-color','rgb(0,174,239)');
+  await expect(page.locator('#spool-colors-2, #spool-colors-3')).toHaveCount(0);
+  const spool = page.locator('.slot').first();
+  await expect(spool.locator('.spool-rfid-mark')).toHaveCount(1);
+  await spool.getByRole('button', {name:'Voir',exact:true}).click();
+  const dialog = page.locator('#spool-dialog');
+  await expect(dialog.locator('#spool-color-value')).toHaveText('#F3F1E6');
+  await expect(dialog.getByLabel('Matériau', {exact:true})).toBeDisabled();
+  await expect(dialog.getByLabel('Couleur du filament')).toBeDisabled();
+  await expect(dialog.getByText('Les matériaux identifiés par RFID ne peuvent pas être modifiés.')).toBeVisible();
+  await expect(dialog.getByRole('button', {name:'Charger',exact:true})).toBeVisible();
+  await dialog.locator('select[name="slot"]').selectOption('2');
+  await expect(dialog.locator('#spool-color-value')).toHaveText('#ECECE7');
+  await expect(dialog.locator('#spool-colors-dialog')).toHaveCount(0);
+  await expect(dialog.locator('#spool-catalog-color')).toHaveText('Blanc à lueur bleue');
+  await dialog.locator('select[name="slot"]').selectOption('3');
+  await expect(dialog.locator('#spool-catalog-color')).toHaveText('Blanc marbre');
+  await dialog.locator('select[name="slot"]').selectOption('4');
+  await expect(dialog.locator('#spool-catalog-color')).toBeHidden();
 });
 
 test('les réglages équilibrent les cartes sur ordinateur et les empilent sur mobile', async ({page}) => {
@@ -369,7 +421,17 @@ test('les détails de la tâche gardent leurs pictogrammes et tiennent dans une 
   const dialog = page.locator('#task-dialog');
   await expect(dialog.locator('#task-file dt .metric-icon')).toHaveCount(4);
   await expect(dialog.locator('#task-parameters dt .metric-icon')).toHaveCount(12);
-  expect(await dialog.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  const scroller = dialog.locator('.task-scroll');
+  expect(await scroller.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+  await page.setViewportSize({width:390,height:480});
+  const close = dialog.getByRole('button', {name:'Fermer les détails de la tâche',exact:true});
+  const before = await close.boundingBox();
+  const bottomGap = await scroller.evaluate(el => {
+    el.scrollTop = el.scrollHeight;
+    return el.getBoundingClientRect().bottom - el.lastElementChild.getBoundingClientRect().bottom;
+  });
+  expect(bottomGap).toBeGreaterThanOrEqual(16);
+  expect((await close.boundingBox()).y).toBe(before.y);
 });
 
 test('les dossiers Cloud limitent le déplacement à la sélection de la page', async ({page}) => {
@@ -401,6 +463,14 @@ test('les dossiers Cloud limitent le déplacement à la sélection de la page', 
  await page.locator('#confirm-yes').click();
  await expect.poll(() => command.length).toBe(1);
  expect(command[0]).toMatchObject({action:'cloud-move',source:'root',destination,handles:[handle]});
+ await page.setViewportSize({width:390,height:800});
+ const folder=page.getByRole('combobox',{name:'Dossier Cloud',exact:true});
+ await folder.selectOption(destination);
+ const parent=page.getByRole('button',{name:'Dossier parent',exact:true});
+ await expect(parent).toBeEnabled();
+ await parent.click();
+ await expect(folder).toHaveValue('root');
+ await expect(page.getByRole('checkbox',{name:'Sélectionner Exemple.gcode',exact:true})).not.toBeChecked();
 });
 
 test('le raccourci de séchage demande confirmation et utilise le réglage confirmé', async ({page}) => {
