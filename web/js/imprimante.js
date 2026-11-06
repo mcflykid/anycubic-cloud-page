@@ -7,20 +7,20 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=68fab6c5e108';
-import { workshopState } from './workshop-state.mjs?v=5678652a821c';
-import { createRequest } from './workshop-api.mjs?v=c152ce64a39e';
-import { createCamera } from './workshop-camera.mjs?v=0dba4b84adb5';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=2b09419c55e6';
-import { createCommands } from './workshop-commands.mjs?v=fc9466503925';
-import { createOverview } from './workshop-overview.mjs?v=7abf0e8ed928';
-import { createAce } from './workshop-ace.mjs?v=ed076fbe8764';
-import { createFiles } from './workshop-files.mjs?v=120d4ab2dd0e';
-import { createHistory } from './workshop-history.mjs?v=e845b3107574';
-import { createSettings } from './workshop-settings.mjs?v=ac676a5a25f7';
-import { createTimelapses } from './workshop-timelapses.mjs?v=13bbaf3bf014';
-import './workshop-help.mjs?v=d7d8e93671a7';
-export { previewJob } from './workshop-overview.mjs?v=7abf0e8ed928';
+} from './workshop-ui.mjs?v=1f94d1ca2939';
+import { workshopState } from './workshop-state.mjs?v=b83c95878022';
+import { createRequest } from './workshop-api.mjs?v=3c4682c5816e';
+import { createCamera } from './workshop-camera.mjs?v=bbcf8db59d35';
+import { createTemperatureLoader } from './workshop-temperatures.mjs?v=0f38571c928c';
+import { createCommands } from './workshop-commands.mjs?v=101db2700727';
+import { createOverview } from './workshop-overview.mjs?v=8791fd1d4eda';
+import { createAce } from './workshop-ace.mjs?v=dc2b7b79bba3';
+import { createFiles } from './workshop-files.mjs?v=756cac784b1c';
+import { createHistory } from './workshop-history.mjs?v=8ea68f64c9b0';
+import { createSettings } from './workshop-settings.mjs?v=61a6a55fc12f';
+import { createTimelapses } from './workshop-timelapses.mjs?v=1bfa89115538';
+import './workshop-help.mjs?v=bac1e86e80d4';
+export { previewJob } from './workshop-overview.mjs?v=8791fd1d4eda';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
@@ -159,8 +159,8 @@ function showTab(name) {
     timelapses.loadTimelapse();
     if (workshopState.snapshot?.demo) {
       const image = node('img');
-      image.src = '/imprimante-api/ui/icons/kobra-s1-ace2pro.png';
-      image.alt = tr('Illustration de la Kobra S1');
+      image.src = $('printer-illustration').src;
+      image.alt = tr('Illustration de l’imprimante');
       $('camera-video').classList.add('demo-camera');
       $('camera-video').replaceChildren(
         image,

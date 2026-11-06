@@ -251,9 +251,9 @@
     "Apply these assistance options?",
     "¿Aplicar estas opciones de asistencia?"
   ],
-  "Appliquer ces réglages de détection IA à la Kobra S1 ?": [
-    "Apply these AI detection settings to the Kobra S1?",
-    "¿Aplicar estos ajustes de detección por IA a la Kobra S1?"
+  "Appliquer ces réglages de détection IA à l’imprimante sélectionnée ?": [
+    "Apply these AI detection settings to the selected printer?",
+    "¿Aplicar estos ajustes de detección por IA a la impresora seleccionada?"
   ],
   "Appliquer ces réglages à l’impression active ?": [
     "Apply these settings to the active print?",
@@ -1315,9 +1315,9 @@
     "Incorrect username or password.",
     "Usuario o contraseña incorrectos."
   ],
-  "Illustration de la Kobra S1": [
-    "Kobra S1 illustration",
-    "Ilustración de la Kobra S1"
+  "Illustration de l’imprimante": [
+    "Printer illustration",
+    "Ilustración de la impresora"
   ],
   "Impression arrêtée": [
     "Print stopped",
@@ -2267,9 +2267,9 @@
     "Settings",
     "Ajustes"
   ],
-  "Réglages actuels de la Kobra S1": [
-    "Current Kobra S1 settings",
-    "Ajustes actuales de la Kobra S1"
+  "Réglages actuels de l’imprimante": [
+    "Current printer settings",
+    "Ajustes actuales de la impresora"
   ],
   "Réglages de la machine": [
     "Device settings",

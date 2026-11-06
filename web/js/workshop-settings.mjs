@@ -10,10 +10,10 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=68fab6c5e108';
-import { workshopState } from './workshop-state.mjs?v=5678652a821c';
-import { definition } from './workshop-overview.mjs?v=7abf0e8ed928';
-import { api } from './workshop-api.mjs?v=c152ce64a39e';
+} from './workshop-ui.mjs?v=1f94d1ca2939';
+import { workshopState } from './workshop-state.mjs?v=b83c95878022';
+import { definition } from './workshop-overview.mjs?v=8791fd1d4eda';
+import { api } from './workshop-api.mjs?v=3c4682c5816e';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
@@ -201,7 +201,7 @@ export function createSettings(request, command, camera) {
         'ai-state',
         printerBusy
           ? tr('Imprimante occupée. Les modifications seront disponibles lorsqu’elle sera libre.')
-          : tr('Réglages actuels de la Kobra S1'),
+          : tr('Réglages actuels de l’imprimante'),
       );
     } catch (e) {
       set(
@@ -233,7 +233,7 @@ export function createSettings(request, command, camera) {
           foreign_level: Number(f.elements.foreign_level.value),
           pause: f.elements.pause.value === 'true',
         },
-        tr('Appliquer ces réglages de détection IA à la Kobra S1 ?'),
+        tr('Appliquer ces réglages de détection IA à l’imprimante sélectionnée ?'),
       );
     if (result) $('ai-dialog').close();
   };

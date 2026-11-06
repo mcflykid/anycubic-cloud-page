@@ -1,6 +1,6 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=68fab6c5e108';
-import { workshopState } from './workshop-state.mjs?v=5678652a821c';
-import { definition, statusBadge } from './workshop-overview.mjs?v=7abf0e8ed928';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=1f94d1ca2939';
+import { workshopState } from './workshop-state.mjs?v=b83c95878022';
+import { definition, statusBadge } from './workshop-overview.mjs?v=8791fd1d4eda';
 
 /** Affiche l’ACE et relie les formulaires aux commandes de la machine. */
 export function createAce(command, refresh) {

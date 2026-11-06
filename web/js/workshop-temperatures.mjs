@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=68fab6c5e108';
+} from './workshop-ui.mjs?v=1f94d1ca2939';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {

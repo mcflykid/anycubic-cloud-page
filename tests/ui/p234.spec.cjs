@@ -10,14 +10,18 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
  const links=page.locator('.printer-footer nav a');
  await expect(links).toHaveText(['Confidentialité','Conditions','Cookies']);
  for(const [path,title] of [['/about','Confidentialité'],['/conditions','Conditions d’utilisation'],['/cookies','Cookies et stockage local'],['/credits','Crédits']]){
+  await expect(page.locator('#connection')).toHaveText('Cloud indisponible');
   await page.locator(`.printer-footer a[href="/imprimante-api/ui${path}"]`).click();
   await expect(page.getByRole('heading',{level:1})).toHaveText(title);
   await page.getByRole('link',{name:'Retour à l’atelier'}).click();
  }
  expect(await page.locator('footer').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
- const legal=await links.first().boundingBox();
- const credit=await page.locator('.footer-credits').boundingBox();
- expect(Math.abs(legal.y-credit.y)).toBeLessThan(2);
+ const offset=await page.locator('.printer-footer').evaluate(footer=>{
+  const legal=footer.querySelector('nav a').getBoundingClientRect();
+  const credit=footer.querySelector('.footer-credits').getBoundingClientRect();
+  return Math.abs(legal.y-credit.y);
+ });
+ expect(offset).toBeLessThan(2);
 });
 
 test('les crédits restent alignés à droite sur ordinateur',async({page})=>{
@@ -126,6 +130,7 @@ test('les pauses regroupées gardent leurs événements individuels',async({page
   const response=await route.fetch();
   await route.fulfill({response,json:{...await response.json(),notifications}});
  });
+ await page.route('**/imprimante-api/history?page=1',route=>route.fulfill({json:notifications}));
  await login(page);
  await page.locator('#notifications-toggle').click();
  const group=page.locator('.notification-group');
@@ -229,6 +234,8 @@ test('les visuels suivent le modèle constructeur et la présence réelle de l�
  await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
  await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-x.svg');
  await expect(page.locator('#ace-illustration')).toBeHidden();
+ await page.getByRole('button',{name:'Caméra',exact:true}).click();
+ await expect(page.locator('#camera-video img')).toHaveAttribute('src',new RegExp(icons+'kobra-x.svg$'));
  model='Modèle inconnu';
  await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
  await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'printer.svg');
