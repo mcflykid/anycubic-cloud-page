@@ -95,6 +95,19 @@ test('les axes conservent leurs directions et les pictogrammes restent sur les l
  await expect(page.getByRole('button',{name:'X −',exact:true})).toHaveAttribute('data-direction','0');
  await expect(page.getByRole('button',{name:'Y +',exact:true})).toHaveAttribute('data-axis','2');
  await expect(page.getByRole('button',{name:'Z +',exact:true})).toHaveAttribute('data-direction','1');
+ await expect(page.getByRole('button',{name:'Origine XY',exact:true})).toHaveAttribute('data-axis','4');
+ await expect(page.getByRole('button',{name:'Origine Z',exact:true})).toHaveAttribute('data-direction','2');
+ const pad=page.getByRole('group',{name:'Déplacement XY'});
+ await expect(pad).toHaveCSS('border-top-left-radius','50%');
+ await pad.scrollIntoViewIfNeeded();
+ const shape=await pad.evaluate(element=>{
+  const bounds=element.getBoundingClientRect();
+  const points=[[.5,.23],[.23,.5],[.77,.5],[.5,.77],[.5,.5]];
+  return {width:bounds.width,height:bounds.height,axes:points.map(([x,y])=>document.elementFromPoint(bounds.left+x*bounds.width,bounds.top+y*bounds.height)?.closest('button')?.dataset.axis)};
+ });
+ expect(shape.width).toBeCloseTo(shape.height);
+ expect(shape.axes).toEqual(['2','1','1','2','4']);
+
  await expect(page.locator('.timelapse-panel')).toBeHidden();
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
  await expect(page.locator('#tab-settings')).not.toContainText('Commandes courantes');

@@ -85,7 +85,7 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 [hidden]{display:none!important}
 #tasks-list{background:transparent;border:0;padding:0;display:grid;gap:16px}
 /* Keep movement alongside the live image on desktop. */
-.camera-layout{max-width:1136px;grid-template-columns:minmax(0,1fr) 320px;grid-template-areas:"video axes" "tools axes";align-items:start;gap:18px 24px}.camera-heading{max-width:1136px}.camera-stage{grid-area:video}.camera-layout>.axis-card{grid-area:axes;max-width:none;margin:0;padding:22px;align-self:stretch}.camera-layout>.camera-controls{grid-area:tools;display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:18px;padding:16px;align-items:start}.camera-control-group{min-width:0}.camera-controls .camera-control-group h3{margin:0 0 10px;padding:0}.camera-controls .camera-buttons{gap:6px}.camera-controls .camera-zoom{margin-bottom:8px;grid-template-columns:32px 1fr 32px}.camera-controls button{padding:8px 6px;font-size:12px}.camera-layout .axis-card .section-title{display:block;margin-bottom:20px;text-align:center}.camera-layout .axis-card .section-title label{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;min-width:0}.camera-layout #axis-step{width:130px}.camera-layout .axis-grid{gap:8px}.camera-layout .axis-grid button{min-width:0;width:100%;padding:10px 4px;margin-bottom:8px}.camera-layout .axis-home{display:grid;grid-template-columns:1fr 1fr;gap:8px}.camera-layout .axis-home button{font-size:12px;padding:10px 5px}.camera-layout .axis-card>.settings-help{font-size:12px;line-height:1.5;margin-bottom:0}
+.camera-layout{max-width:1136px;grid-template-columns:minmax(0,1fr) 320px;grid-template-areas:"video axes" "tools axes";align-items:start;gap:18px 24px}.camera-heading{max-width:1136px}.camera-stage{grid-area:video}.camera-layout>.axis-card{grid-area:axes;max-width:none;margin:0;padding:22px;align-self:stretch}.camera-layout>.camera-controls{grid-area:tools;display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:18px;padding:16px;align-items:start}.camera-control-group{min-width:0}.camera-controls .camera-control-group h3{margin:0 0 10px;padding:0}.camera-controls .camera-buttons{gap:6px}.camera-controls .camera-zoom{margin-bottom:8px;grid-template-columns:32px 1fr 32px}.camera-controls button{padding:8px 6px;font-size:12px}.camera-layout .axis-card .section-title{display:block;margin-bottom:20px;text-align:center}.camera-layout .axis-card .section-title label{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;min-width:0}.camera-layout #axis-step{width:130px}.camera-layout .axis-grid{gap:8px}.camera-layout .axis-home{display:grid;grid-template-columns:1fr 1fr;gap:8px}.camera-layout .axis-home button{font-size:12px;padding:10px 5px}.camera-layout .axis-card>.settings-help{font-size:12px;line-height:1.5;margin-bottom:0}
 @media(max-width:850px){.camera-layout{max-width:640px;grid-template-columns:1fr;grid-template-areas:"video" "axes" "tools";gap:16px}.camera-layout>.axis-card{padding:20px}.camera-layout .axis-card .section-title{display:flex;gap:12px;text-align:left;align-items:center}.camera-layout .axis-card .section-title label{margin-top:0;flex-shrink:0}.camera-layout .axis-home{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-layout>.camera-controls{grid-template-columns:1fr;gap:16px}.camera-controls .camera-buttons{grid-template-columns:1fr 1fr}.camera-control-group h3{text-align:center}.camera-layout .axis-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.camera-layout .axis-grid button{font-size:13px}.camera-layout .axis-card h3{font-size:18px}.camera-layout .axis-card .section-title label{font-size:12px}.camera-layout #axis-step{width:95px}.camera-layout .axis-card .muted{font-size:12px}}
 .rfid-badge{display:inline-block;background:#e7f1eb;color:#27664a;border-radius:99px;padding:5px 10px;font-size:12px;margin:6px auto 12px}#spool-rfid-note{padding:12px 14px;background:#f1f6f3;border-radius:10px;color:#35634b}
 
@@ -152,12 +152,19 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .connection-actions .connection-action{display:grid;grid-template-columns:20px minmax(0,1fr) 20px;text-align:center}
 .connection-actions .connection-action strong{white-space:normal}
 .axis-grid{display:flex;align-items:center;justify-content:center;gap:1.5rem}
-.axis-grid .axis-xy{display:grid;grid-template-columns:repeat(3,minmax(44px,1fr));grid-template-areas:". yp ." "xm . xp" ". ym .";gap:.35rem}
-.axis-xy [data-axis="2"][data-direction="1"]{grid-area:yp}
-.axis-xy [data-axis="1"][data-direction="0"]{grid-area:xm}
-.axis-xy [data-axis="1"][data-direction="1"]{grid-area:xp}
-.axis-xy [data-axis="2"][data-direction="0"]{grid-area:ym}
-.axis-grid .axis-z{display:grid;gap:.5rem}
+.axis-grid .axis-xy{position:relative;width:152px;max-width:100%;aspect-ratio:1;flex-shrink:0;overflow:hidden;border:1px solid var(--line);border-radius:50%;background:var(--line)}
+.axis-xy button{position:absolute;display:grid;place-items:center;margin:0;padding:0;border:0;border-radius:0;background:var(--surface)}
+.axis-xy [data-axis="2"]{width:100%;height:50%;left:0}
+.axis-xy [data-axis="1"]{width:50%;height:100%;top:0}
+.axis-xy [data-axis="2"][data-direction="1"]{top:0;clip-path:polygon(1% 0,99% 0,50% 98%)}
+.axis-xy [data-axis="1"][data-direction="0"]{left:0;clip-path:polygon(0 1%,98% 50%,0 99%)}
+.axis-xy [data-axis="1"][data-direction="1"]{right:0;clip-path:polygon(100% 1%,100% 99%,2% 50%)}
+.axis-xy [data-axis="2"][data-direction="0"]{bottom:0;clip-path:polygon(50% 2%,99% 100%,1% 100%)}
+.axis-xy .axis-origin{left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border:1px solid var(--line);border-radius:50%;color:var(--accent)}
+.axis-xy button:hover:not(:disabled),.axis-xy button:focus-visible{background:var(--accent);color:#fff}
+.axis-grid .axis-z{display:grid;gap:.25rem}
+.axis-z button,.axis-home button{margin:0;border-radius:999px}
+.axis-z .axis-origin{color:var(--accent)}
 .camera-layout .axis-grid button{min-height:44px;min-width:44px}
 #past-task-parameters details{margin-block:.75rem}
 @media(max-width:520px){
@@ -176,7 +183,7 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .camera-layout .axis-card .section-title{display:block;text-align:center;margin-bottom:20px}
 .axis-step-control{display:grid;gap:.55rem;margin:18px auto 0;max-width:130px}
 .camera-layout .axis-card .axis-step-control label{margin:0}
-#axis-step{width:100%}
+.camera-layout #axis-step{width:100%;border-radius:999px}
 
 @media(max-width:520px){
  .nav-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
