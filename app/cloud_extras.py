@@ -340,10 +340,12 @@ class CloudExtras:
         row = self.e.notifications.rows.get(str(k))
         if row is None:
             raise ValueError("Actualisez les notifications avant de consulter leur aperçu")
-        printer_id = str(row.get("printer_id") or self.e.printer.id)
+        printer_id = str(row.get("printer_id") or "")
+        if printer_id == "0":
+            printer_id = ""
         allowed = {str(printer.id) for printer in self.account_printers()}
         allowed.add(str(self.e.printer.id))
-        if printer_id not in allowed:
+        if printer_id and printer_id not in allowed:
             return {"image": None}
         cachekey = "notification:" + str(k)
         cached = self.previews.get(cachekey)
@@ -352,6 +354,11 @@ class CloudExtras:
         direct = await self.preview_row(cachekey, row, lookup_detail=False)
         if direct["image"]:
             return direct
+        if not printer_id:
+            # Une notification sans cible ne dépend jamais de l’imprimante choisie dans le navigateur.
+            if len(allowed) != 1:
+                return {"image": None}
+            printer_id = next(iter(allowed))
         # Les identifiants de tâche et de projet ont des espaces distincts.
         task_id = str(row.get("task_id") or row.get("taskid") or "")
         project_id = str(row.get("project_id") or "")
@@ -394,7 +401,12 @@ class CloudExtras:
         if len(matches) != 1:
             return {"image": None}
         self.previews.pop(cachekey, None)
-        return await self.preview_row(cachekey, matches[0])
+        project = matches[0]
+        task_reference = project.get("taskid") or project.get("task_id")
+        if task_reference not in (None, "", 0, "0"):
+            project = {**project, "taskid": task_reference}
+            return await self.preview_row(cachekey, project)
+        return await self.preview_row(cachekey, project, lookup_detail=False)
 
     async def detail(self, k):
         """Renvoie les détails filtrés d’une tâche ; lève ValueError si Anycubic ne les fournit pas."""

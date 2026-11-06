@@ -500,6 +500,24 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue((await self.x.notification_preview("a"))["image"])
         self.assertEqual(self.x.preview_row.await_args.args[1]["printer_id"], 8)
 
+    async def test_missing_printer_does_not_use_the_selected_machine(self):
+        """Une notification sans cible garde sa propre image ou un repli neutre sur un compte multi-imprimantes."""
+        self.e.known_printers = [SimpleNamespace(id=8)]
+        self.e.notifications = SimpleNamespace(rows={"a": {"project_id": 44}})
+        self.x.preview_row = AsyncMock(return_value={"image": None})
+        self.x.api = AsyncMock()
+        self.assertEqual(await self.x.notification_preview("a"), {"image": None})
+        self.x.api.assert_not_called()
+
+    async def test_project_only_does_not_query_task_detail_with_a_project_id(self):
+        """Une référence de projet seule ne sert jamais à lire un détail de tâche."""
+        self.e.notifications = SimpleNamespace(rows={"a": {"project_id": 44, "printer_id": 7}})
+        self.x.api = AsyncMock(return_value=[{"id": 44, "printer_id": 7}])
+        self.assertEqual(await self.x.notification_preview("a"), {"image": None})
+        self.x.api.assert_awaited_once_with(
+            "/work/project/getProjects", query={"page": 1, "limit": 100}, method="GET"
+        )
+
     async def test_task_reference_never_matches_a_project_id(self):
         """Les aperçus de deux impressions distinctes ne sont pas interchangeables."""
         self.e.notifications = SimpleNamespace(rows={"a": {"task_id": 44, "printer_id": 7}})
