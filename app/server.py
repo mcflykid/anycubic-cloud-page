@@ -3,7 +3,7 @@
 
 import uuid
 from urllib.parse import urlsplit
-import asyncio, base64, collections, contextlib, hashlib, json, logging, os, pathlib, re, secrets, threading, time, tempfile
+import asyncio, base64, collections, contextlib, hashlib, json, logging, os, pathlib, re, secrets, time, tempfile
 from datetime import datetime, timezone
 import aiohttp, ssl
 from aiohttp import web
@@ -14,7 +14,11 @@ load_vendor_config()
 from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
 from notification_service import AccountNotifications
-from printer_registry import AccountTransport, PrinterRegistry, select_printer, printer_key
+from printer_registry import PrinterRegistry, select_printer, printer_key
+from account_transport import AccountTransport
+from printer_values import filepath, integer, now, safeget, serial
+from printer_commands import execute_command, slot_indices
+import printer_files
 from account_auth import AccountAuth
 from web_host import (
     SESSION_DIGEST_KEY,
@@ -35,12 +39,9 @@ from command_journal import (
     request_key,
 )
 from session_api import SessionRecovery
-from native_controls import task_details, axis_payload, ai_payload, ace_model
+from native_controls import task_details, ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
 from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
-from anycubic_cloud_api.models.auth import AnycubicAuthMode
-from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
-from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
 from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
 from anycubic_cloud_api.const.enums import AnycubicOrderID
 from anycubic_cloud_api.data_models.orders import AnycubicBaseOrderRequest
@@ -56,52 +57,6 @@ ALLOWED_ORIGIN = os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080")
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
-
-
-def now():
-    """Renvoie un horodatage ISO en UTC pour comparer les mises à jour HTTP et MQTT."""
-    return datetime.now(timezone.utc).isoformat()
-
-
-def safeget(obj, key, default=None):
-    """Renvoie un attribut imbriqué, ou default si le modèle cloud ne le fournit pas."""
-    try:
-        for part in key.split("."):
-            obj = getattr(obj, part)
-        return obj
-    except Exception:
-        return default
-
-
-def serial(obj):
-    """Renvoie une structure JSON compatible, avec conversion ISO des dates."""
-    if obj is None or isinstance(obj, (str, bool, int, float)):
-        return obj
-    if isinstance(obj, dict):
-        return {str(k): serial(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [serial(v) for v in obj]
-    if hasattr(obj, "isoformat"):
-        return obj.isoformat()
-    return str(obj)
-
-
-def integer(value, lo, hi):
-    """Renvoie un entier entre lo et hi ; lève ValueError pour un booléen ou une valeur invalide."""
-    if isinstance(value, bool):
-        raise ValueError("Nombre invalide")
-    n = int(value)
-    if not lo <= n <= hi:
-        raise ValueError(f"Valeur attendue entre {lo} et {hi}")
-    return n
-
-
-def filepath(value):
-    """Renvoie un chemin absolu canonique ; lève ValueError en cas de traversée ou de caractère nul."""
-    value = str(value or "/")
-    if len(value) > 500 or "\x00" in value or ".." in value.split("/"):
-        raise ValueError("Chemin invalide")
-    return "/" + value.strip("/")
 
 
 class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
@@ -211,12 +166,11 @@ class Engine:
         self.camera_close_task = None
         self.command_lock = asyncio.Lock()
         self.notifications = AccountNotifications()
+        self.extras = None
         self.notifications_error = None
         self.fleet_registry = None
         self.pinned_id = None
         self.temperature_history = None
-        self.mqtt_auth_lock = asyncio.Lock()
-        self.mqtt_auth_pending = False
         self.account = AccountAuth()
         self.printer = None
         self.ok = False
@@ -232,11 +186,12 @@ class Engine:
         self.preview_cache = {}
         self.file_messages = {}
         self.dir_cache = {}
-        self.mqtt_enabled = True
         self.raw_info = {}
         self.last_session = 0
         self.camera = None
-        self.mqtt_thread = None
+        self.ai_query_started = None
+        self.ai_query_reply = None
+        self.ai_cache = None
         self.presets = [
             {"name": "PLA", "temperature": 45, "hours": 4},
             {"name": "PETG", "temperature": 55, "hours": 6},
@@ -324,93 +279,43 @@ class Engine:
         """Consigne l’établissement du suivi MQTT dans le journal affichable."""
         self.event("MQTT", "Connecté")
 
-    def mqtt_run(self):
-        """Exécute le suivi bloquant ; consigne son échec sans exposer le contenu de l’exception."""
-        try:
-            self.api.connect_mqtt()
-        except Exception as e:
-            self.event("MQTT", "Connexion indisponible (" + type(e).__name__ + ")")
-
     def mqtt_start(self):
-        """Démarre un seul fil de suivi, uniquement si MQTT reste activé."""
-        if getattr(self, "fleet_registry", None) and self is not self.fleet_registry.default:
+        """Réabonne les cibles connues avant de démarrer le suivi du compte."""
+        if self.fleet_registry and self is not self.fleet_registry.default:
             return
-        if not self.mqtt_enabled or (self.mqtt_thread and self.mqtt_thread.is_alive()):
-            return
-        if getattr(self, "fleet_registry", None):
-            self.fleet_registry.restore_subscriptions()
-        self.mqtt_thread = threading.Thread(target=self.mqtt_run, daemon=True)
-        self.mqtt_thread.start()
-
-    async def refresh_access(self):
-        """Renvoie le jeton renouvelé après refus explicite ; propage les erreurs d’authentification."""
-        token = await self.account.renew_after_rejection(self.session)
-        self.account_token = token
-        return token
+        restore = self.fleet_registry.restore_subscriptions if self.fleet_registry else None
+        self.transport.start(self.event, restore)
 
     def session_renewed(self, api):
         """Programme la reconnexion MQTT pour employer la nouvelle session HTTP."""
         self.event("Cloud", "Session renouvelée automatiquement")
         if self.api is api and self.printer and not self.reconnect_required:
-            self.mqtt_auth_pending = True
+            self.transport.mqtt_auth_pending = True
             asyncio.create_task(self.restart_mqtt_auth(api))
 
     async def restart_mqtt_auth(self, api):
-        """Relance MQTT après l’arrêt de l’ancien fil afin d’éviter deux suivis simultanés."""
-        async with self.mqtt_auth_lock:
-            if self.api is not api or not self.mqtt_auth_pending:
-                return
-            api.disconnect_mqtt()
-            thread = self.mqtt_thread
-            if thread and thread.is_alive():
-                await asyncio.to_thread(thread.join, 3)
-            if self.api is not api or (thread and thread.is_alive()):
-                return
-            self.mqtt_thread = None
-            self.mqtt_auth_pending = False
-            self.mqtt_start()
+        """Relance le suivi du compte après le renouvellement de session."""
+        await self.transport.restart(api, self.mqtt_start)
 
     async def connect(self):
         """Connecte la cible du moteur ; le défaut facultatif se replie sur la première machine, jamais une cible secondaire explicite."""
-        if getattr(self, "fleet_registry", None) and self is not self.fleet_registry.default:
+        if self.fleet_registry and self is not self.fleet_registry.default:
             await self.fleet_registry.connect_secondary(self)
             return
-        self.reconnect_required = True
-        if not self.session:
-            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45))
-        token = await self.account.token(self.session)
-        self.account_token = token
-        if self.api:
-            self.api.disconnect_mqtt()
-        if self.mqtt_thread and self.mqtt_thread.is_alive():
-            await asyncio.to_thread(self.mqtt_thread.join, 3)
-            if self.mqtt_thread.is_alive():
-                raise RuntimeError("Reconnexion du suivi en attente")
-        self.mqtt_thread = None
-        self.mqtt_auth_pending = False
-        self.api = CloudPageAPI(
-            self.session,
-            self.session.cookie_jar,
-            refresh_access=self.refresh_access,
-            session_renewed=self.session_renewed,
-            auth_token=token,
-            auth_mode=AnycubicAuthMode.SLICER,
-            mqtt_callback_printer_update=self.mqtt_changed,
-            mqtt_callback_subscribed=self.mqtt_connected,
+        printers = await self.transport.connect(
+            self.account,
+            CloudPageAPI,
+            self,
+            self.session_renewed,
+            self.mqtt_changed,
+            self.mqtt_connected,
         )
-        if not await self.api.check_api_tokens():
-            raise RuntimeError("Authentification refusée")
-        self.api.cloud_engine = self
-        self.api._mqtt_callback_printer_update = getattr(
-            self.api, "cloud_printer_updated", self.mqtt_changed
-        )
-        printers = await self.api.list_my_printers()
         self.known_printers = printers
         if self.fleet_registry:
             await self.fleet_registry.retire_missing()
-        selected = getattr(self, "pinned_id", None) or self.selected_id
+        selected = self.pinned_id or self.selected_id
         candidates = [p for p in printers if str(p.id) == selected] if selected else printers[:1]
-        if not candidates and not getattr(self, "pinned_id", None):
+        if not candidates and not self.pinned_id:
             candidates = printers[:1]
         if (
             self.selected_id
@@ -422,7 +327,7 @@ class Engine:
         if self.printer:
             self.pinned_id = str(self.printer.id)
         if self.printer is None:
-            if self.catalogue_source and getattr(self, "fleet_registry", None):
+            if self.catalogue_source and self.fleet_registry:
                 self.transport_only = True
                 self.reconnect_required = False
                 self.fleet_registry.restore_subscriptions()
@@ -446,10 +351,10 @@ class Engine:
             self.api.mqtt_unsubscribe_printer_status(self.printer)
             self.printer = None
             self.transport_only = True
-        if self.transport_only and getattr(self, "pinned_id", None) in rows:
+        if self.transport_only and self.pinned_id in rows:
             self.printer = rows[self.pinned_id]
             self.transport_only = False
-        if getattr(self, "fleet_registry", None):
+        if self.fleet_registry:
             await self.fleet_registry.retire_missing()
             self.fleet_registry.restore_subscriptions()
 
@@ -458,10 +363,7 @@ class Engine:
         while True:
             try:
                 async with self.lock:
-                    primary = (
-                        not getattr(self, "fleet_registry", None)
-                        or self is self.fleet_registry.default
-                    )
+                    primary = not self.fleet_registry or self is self.fleet_registry.default
                     if self.catalogue_source and self.api and not self.reconnect_required:
                         await self.refresh_catalogue()
                     reconnect = (
@@ -490,7 +392,7 @@ class Engine:
                         if self.printer
                         else "Choisissez une imprimante disponible dans le compte."
                     )
-                    if self.mqtt_auth_pending:
+                    if self.transport.mqtt_auth_pending:
                         await self.restart_mqtt_auth(self.api)
                     self.mqtt_start()
                     try:
@@ -505,7 +407,7 @@ class Engine:
                     or "Connexion Anycubic indisponible (" + type(e).__name__ + ")."
                 )
                 if "Auth" in type(e).__name__ and type(e).__name__ != "CloudSessionAuthError":
-                    owner = getattr(getattr(self, "fleet_registry", None), "default", self)
+                    owner = self.fleet_registry.default if self.fleet_registry else self
                     owner.reconnect_required = True
                     # Conserver le client jusqu’à la fin du fil permet de réessayer sa fermeture au cycle suivant.
                     if owner.api:
@@ -573,7 +475,7 @@ class Engine:
         }
         base["account_message"] = getattr(self.account, "notice", None)
         base["notifications"] = self.notifications.cache.get(1, (None, None))[1]
-        base["notifications_error"] = getattr(self, "notifications_error", None)
+        base["notifications_error"] = self.notifications_error
         base["camera_diagnostic"] = self.camera_diagnostic
         base["mqtt_diagnostics"] = getattr(api, "mqtt_diagnostics", {})
         if not p:
@@ -680,163 +582,19 @@ class Engine:
 
     async def direct_request(self, kind, action, data):
         """Renvoie la réponse MQTT corrélée ; lève ValueError sans connexion ou sans réponse sous dix secondes."""
-        if not self.api or not self.api._mqtt_client or not self.api._mqtt_client.is_connected():
-            raise ValueError("La connexion à l’imprimante n’est pas disponible")
-        msgid = str(uuid.uuid4())
-        self.api._mqtt_publish_to_printer(
-            self.printer,
-            kind,
-            {
-                "type": kind,
-                "action": action,
-                "timestamp": int(time.time() * 1000),
-                "msgid": msgid,
-                "data": data,
-            },
-        )
-        deadline = time.monotonic() + 10
-        while msgid not in self.file_messages:
-            if time.monotonic() > deadline:
-                raise ValueError("L’imprimante n’a pas confirmé cette demande")
-            await asyncio.sleep(0.1)
-        return self.file_messages.pop(msgid)
+        return await printer_files.direct_request(self, kind, action, data)
 
     async def local_preview(self, source, name, path):
         """Renvoie une image locale en ligne ou None ; lève ValueError si le chemin ou la réponse est invalide."""
-        filename = "/".join(x for x in [filepath(path).strip("/"), str(name)] if x)
-        if ".." in filename.split("/") or "\x00" in filename:
-            raise ValueError("Nom de fichier invalide")
-        cachekey = (source, filename)
-        if cachekey in self.preview_cache:
-            return self.preview_cache[cachekey]
-        # La consultation native Slicer 1239 reçoit son aperçu par MQTT, pas dans la réponse HTTP.
-        from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest
-
-        msgid = await self.api._send_anycubic_order(
-            AnycubicProjectOrderRequest(
-                order_id=1239,
-                printer_id=self.printer.id,
-                project_id=0,
-                order_data={
-                    "root": "local" if source == "local" else "udisk",
-                    "filename": filename,
-                    "plate_index": 0,
-                },
-            )
-        )
-        deadline = time.monotonic() + 12
-        while str(msgid) not in self.file_messages:
-            if time.monotonic() > deadline:
-                raise ValueError("L’imprimante n’a pas répondu à la demande d’aperçu")
-            await asyncio.sleep(0.1)
-        response = self.file_messages.pop(str(msgid))
-        data = response.get("data") or {}
-        if isinstance(data, dict) and isinstance(data.get("file_details"), dict):
-            data = data["file_details"]
-        if isinstance(data, dict):
-            for key in ["png_image", "thumbnail"]:
-                encoded = data.get(key)
-                if isinstance(encoded, str) and len(encoded) < 4 * 1024 * 1024:
-                    with contextlib.suppress(Exception):
-                        raw = base64.b64decode(encoded, validate=True)
-                        if raw.startswith(b"\x89PNG\r\n\x1a\n") or raw.startswith(b"\xff\xd8"):
-                            image = (
-                                "data:"
-                                + ("image/png" if raw.startswith(b"\x89PNG") else "image/jpeg")
-                                + ";base64,"
-                                + encoded
-                            )
-                            self.preview_cache[cachekey] = image
-                            while len(self.preview_cache) > 20:
-                                self.preview_cache.pop(next(iter(self.preview_cache)))
-                            return image
-        return None
+        return await printer_files.local_preview(self, source, name, path)
 
     async def read_files(self, source, path):
         """Renvoie fichiers et chemin de local ou usb ; lève ValueError si la consultation n’est pas confirmée."""
-        p = self.printer
-        if not p or not self.api:
-            raise ValueError("Connexion à l’imprimante en cours")
-        if not (self.api._mqtt_client and self.api._mqtt_client.is_connected()):
-            raise ValueError(
-                "La connexion à l’imprimante se rétablit. Réessayez dans quelques secondes."
-            )
-        canonical = filepath(path)
-
-        async def fetch_records(folder):
-            """Corrèle la réponse au dossier demandé, le firmware pouvant omettre son chemin."""
-            wire = folder.strip("/") or "/"
-            setattr(
-                p,
-                "_pending_" + ("local" if source == "local" else "udisk") + "_file_list_path",
-                folder,
-            )
-            method = (
-                self.api._send_order_list_local_files
-                if source == "local"
-                else self.api._send_order_list_udisk_files
-            )
-            msgid = await method(p, file_path=wire)
-            deadline = time.monotonic() + 12
-            while str(msgid) not in self.file_messages:
-                if time.monotonic() > deadline:
-                    raise ValueError(
-                        "L’imprimante n’a pas répondu à la demande de fichiers. Réessayez."
-                    )
-                await asyncio.sleep(0.1)
-            response = self.file_messages.pop(str(msgid))
-            if response.get("state") != "done":
-                raise ValueError("Ce dossier n’est pas accessible sur l’imprimante")
-            data = response.get("data") or {}
-            return data.get("records") or []
-
-        records = await fetch_records(canonical)
-        if source == "local" and canonical == "/" and p.machine_name == "Anycubic Kobra S1":
-            # Le firmware S1 omet les modèles usine de la liste racine ; vérifier leur dossier avant de l’ajouter.
-            cached = self.dir_cache.get("test_model")
-            if not cached or time.time() - cached[0] > 300:
-                try:
-                    factory = await fetch_records("/test_model")
-                    self.dir_cache["test_model"] = (time.time(), bool(factory))
-                except ValueError:
-                    self.dir_cache["test_model"] = (time.time(), False)
-            if self.dir_cache.get("test_model", (0, False))[1] and not any(
-                r.get("filename") == "test_model" for r in records
-            ):
-                records = [
-                    {"filename": "test_model", "is_dir": True, "timestamp": 0, "size": 0},
-                    *records,
-                ]
-        setter = p._set_local_file_list if source == "local" else p._set_udisk_file_list
-        setter(records, file_path=canonical)
-        rows = p.local_file_list_object if source == "local" else p.udisk_file_list_object
-        return {"files": rows, "path": canonical}
+        return await printer_files.read_files(self, source, path)
 
     async def cloud_files(self, page):
         """Renvoie une page de fichiers et le quota, avec références opaques pour les actions ultérieures."""
-        files = await self.api.get_user_cloud_files(page=page, limit=20)
-        rows = []
-        for f in files or []:
-            handle = hashlib.sha256(str(f.id).encode()).hexdigest()[:20]
-            self.cloudfiles[handle] = f
-            rows.append(
-                {
-                    "handle": handle,
-                    "name": f.old_filename,
-                    "size_mb": f.size_mb,
-                    "printable": f.gcode_id is not None,
-                }
-            )
-        store = await self.api.get_user_cloud_store()
-        return {
-            "files": rows,
-            "page": page,
-            "has_more": len(rows) == 20,
-            "store": {
-                k: serial(safeget(store, k))
-                for k in ["total_bytes", "used_bytes", "available_bytes"]
-            },
-        }
+        return await printer_files.cloud_files(self, page)
 
     async def print_history(self, page):
         """Délègue la lecture au service du compte avec le transport courant."""
@@ -852,7 +610,7 @@ class Engine:
 
     def receive_ai_reply(self, topic, payload):
         """Retient uniquement la réponse IA de la machine et de la consultation en cours."""
-        started = getattr(self, "ai_query_started", None)
+        started = self.ai_query_started
         if started is None or time.monotonic() - started > 30:
             return
         parts = topic.split("/")
@@ -898,7 +656,7 @@ class Engine:
             deadline = time.monotonic() + (30 if order == 1242 else 15)
             while True:
                 if order == 1242:
-                    reply = getattr(self, "ai_query_reply", None)
+                    reply = self.ai_query_reply
                     if reply and reply[0] == started:
                         response = reply[1]
                         break
@@ -919,7 +677,7 @@ class Engine:
         """Renvoie les réglages IA filtrés ; lève ValueError si la machine est occupée ou la réponse absente."""
         if not self.printer.is_available or self.printer.latest_project_print_in_progress:
             raise ValueError("Les réglages IA sont disponibles lorsque l’imprimante est libre")
-        cache = getattr(self, "ai_cache", None)
+        cache = self.ai_cache
         if cache and time.monotonic() - cache[0] < 5:
             return cache[1]
         result = await self.cloud_query(1242)
@@ -932,231 +690,11 @@ class Engine:
 
     def slots(self, data):
         """Convertit les numéros de bobines en indices ; renvoie None sans sélection, ValueError si invalide."""
-        values = data.get("slots")
-        if not values:
-            return None
-        if not isinstance(values, list) or len(values) > 8:
-            raise ValueError("Liste de bobines invalide")
-        return self.printer.print_slot_numbers_to_indices([integer(v, 1, 8) for v in values])
+        return slot_indices(self, data)
 
     async def action(self, name, d):
         """Renvoie le résultat textuel d’une commande validée ; lève ValueError si interdite ou non acceptée."""
-        p = self.printer
-        a = self.api
-        if not p or not a:
-            raise ValueError("Imprimante non connectée")
-        if name in [
-            "cloud-rename",
-            "cloud-delete-many",
-            "task-delete-many",
-            "task-reprint",
-            "calibrate",
-            "hardware",
-            "assist",
-            "screen",
-            "factory-reset",
-            "task-rate",
-            "timelapse",
-        ]:
-            return await self.extras.action(name, d)
-        box = integer(d.get("box", 0), 0, max(0, p.connected_ace_units - 1))
-        slot = integer(d.get("slot", 1), 1, 4) - 1
-        if name in ["axis", "axis-off", "ai-settings"]:
-            if not p.is_available or p.latest_project_print_in_progress:
-                raise ValueError("Commande indisponible pendant une impression ou une opération")
-            from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest
-
-            if name == "axis":
-                if 67 not in (self.raw_info.get("type_function_ids") or []):
-                    raise ValueError("Contrôle des axes non annoncé par l’imprimante")
-                payload = axis_payload(d.get("axis"), d.get("direction"), d.get("distance"))
-                order = 201
-            elif name == "axis-off":
-                payload = {}
-                order = 1213
-            else:
-                previous = await self.ai_settings()
-                payload = ai_payload(d, previous)
-                order = 1243
-                self.ai_cache = None
-            await a._send_anycubic_order(
-                AnycubicProjectOrderRequest(
-                    order_id=order, printer_id=p.id, project_id=0, order_data=payload
-                )
-            )
-            return "Commande transmise à Anycubic ; vérifiez son application sur la machine"
-        if name in ["pause", "resume", "cancel"]:
-            project = await self.verify_active_project(name, d.get("project_key"))
-            result = await getattr(p, name + "_print")(project=project)
-        elif name == "light":
-            enabled = bool(d["enabled"])
-            channel = 2 if p.machine_name == "Anycubic Kobra S1" else p.camera_light_type
-            started = time.monotonic()
-            result = await a._send_order_set_light_status(p, enabled, light_type=channel)
-            if result is None:
-                raise ValueError("La commande d’éclairage n’a pas été acceptée")
-            await p.query_camera_light_status()
-            deadline = time.monotonic() + 6
-            while time.monotonic() < deadline:
-                if self.light_report and self.light_report[0] >= started:
-                    response = self.light_report[1]
-                    data = response.get("data") or {}
-                    value = (
-                        data.get("status", data.get("light")) if isinstance(data, dict) else None
-                    )
-                    if (
-                        response.get("state") == "done"
-                        and value is not None
-                        and bool(int(value)) == enabled
-                    ):
-                        return (
-                            "Éclairage "
-                            + ("allumé" if enabled else "éteint")
-                            + " : état confirmé par l’imprimante"
-                        )
-                await asyncio.sleep(0.1)
-            return "Demande d’éclairage envoyée. Vérifiez son état dans la vidéo."
-        elif name == "dry-start":
-            result = await p.multi_color_box_drying_start(
-                duration=integer(d["hours"], 1, 24) * 60,
-                target_temp=integer(d["temperature"], 35, 70),
-                box_id=box,
-            )
-        elif name == "dry-stop":
-            result = await p.multi_color_box_drying_stop(box_id=box)
-        elif name == "auto-feed":
-            result = await p.multi_color_box_set_auto_feed(bool(d["enabled"]), box_id=box)
-        elif name == "feed":
-            result = await p.multi_color_box_feed_filament(
-                slot_index=slot, box_id=box, finish=bool(d.get("finish", False))
-            )
-        elif name == "retract":
-            result = await p.multi_color_box_retract_filament(box_id=box)
-        elif name == "slot":
-            color = str(d["color"])
-            if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-                raise ValueError("Couleur invalide")
-            material = str(d["material"])
-            if material not in ["PLA", "PETG", "ABS", "PACF", "PC", "ASA", "HIPS", "PA", "PLA SE"]:
-                raise ValueError("Matériau non pris en charge par la commande du dépôt")
-            c = AnycubicMaterialColor(*[int(color[i : i + 2], 16) for i in (1, 3, 5)])
-            result = await p.multi_color_box_set_slot(
-                slot, slot_color=c, slot_material_type=material, box_id=box
-            )
-        elif name == "settings":
-            ranges = {
-                "print_speed_mode": (0, 10),
-                "target_nozzle_temp": (0, 320),
-                "target_hotbed_temp": (0, 120),
-                "fan_speed_pct": (0, 100),
-                "aux_fan_speed_pct": (0, 100),
-                "box_fan_level": (0, 3),
-                "bottom_layers": (0, 1000),
-                "bottom_time": (0, 1000),
-                "off_time": (0, 1000),
-                "on_time": (0, 1000),
-            }
-            values = {
-                k: integer(v, *ranges[k])
-                for k, v in d.items()
-                if k in ranges and v not in ["", None]
-            }
-            if not values:
-                raise ValueError("Aucun réglage fourni")
-            if not p.latest_project:
-                raise ValueError(
-                    "Ces réglages nécessitent une impression active, comme dans le dépôt"
-                )
-            result = await a._send_order_change_print_settings(
-                p, AnycubicPrintingSettings(**values)
-            )
-        elif name in ["files-local", "files-usb"]:
-            await self.read_files("local" if name == "files-local" else "usb", d.get("path"))
-            return "Liste reçue de l’imprimante"
-        elif name in ["delete-local", "delete-usb", "print-local", "print-usb"]:
-            source = "local" if name.endswith("local") else "udisk"
-            filename = str(d["name"])
-            if not filename or "/" in filename or "\x00" in filename or len(filename) > 255:
-                raise ValueError("Nom de fichier invalide")
-            kw = {"file_name": filename, "file_path": filepath(d.get("path")).strip("/") or "/"}
-            if name.startswith("print"):
-                if not p.is_available:
-                    raise ValueError("Imprimante non disponible")
-                kw["slot_index_list"] = self.slots(d)
-            result = await getattr(
-                p, ("delete_" if name.startswith("delete") else "print_") + source + "_file"
-            )(**kw)
-        elif name in ["delete-cloud", "print-cloud"]:
-            f = self.cloudfiles.get(str(d.get("handle")))
-            if f is None:
-                raise ValueError("Actualisez la liste des fichiers cloud")
-            if name == "delete-cloud":
-                result = await a.delete_file_from_cloud(f.id)
-            else:
-                if not p.is_available:
-                    raise ValueError("Imprimante non disponible")
-                if f.gcode_id is None:
-                    raise ValueError("Ce fichier ne dispose pas de G-code cloud")
-                result = await p.print_with_cloud_gcode_id(f.gcode_id, self.slots(d))
-        elif name == "rename":
-            value = str(d.get("name", "")).strip()
-            if not 1 <= len(value) <= 64:
-                raise ValueError("Nom entre 1 et 64 caractères")
-            result = await a.set_printer_name(p, value)
-        elif name == "firmware":
-            if not p.is_available:
-                raise ValueError("Imprimante non disponible")
-            if safeget(p, "fw_version.update_available") is not True:
-                raise ValueError("Aucune mise à jour de l’imprimante n’est proposée par Anycubic")
-            result = await p.update_printer_firmware()
-        elif name == "ace-firmware":
-            if not p.is_available:
-                raise ValueError("Imprimante non disponible")
-            versions = safeget(p, "multi_color_box_fw_version") or []
-            if box >= len(versions):
-                raise ValueError("Version de l’ACE non reçue. Actualisez les informations.")
-            fw = versions[box]
-            if safeget(fw, "update_available") is not True:
-                raise ValueError("Aucune mise à jour de cet ACE n’est proposée par Anycubic")
-            result = await p.update_printer_multi_color_box_firmware(box_id=box)
-        elif name == "query":
-            await p.update_info_from_api()
-            self.raw_info = (await a.printer_info_for_id(p.id, raw_data=True)).get("data") or {}
-            self.updated = now()
-            self.ok = True
-            self.error = None
-            result = True
-        elif name == "mqtt-on":
-            owner = self.fleet_registry.default if getattr(self, "fleet_registry", None) else self
-            owner.mqtt_enabled = True
-            owner.mqtt_start()
-            return "Connexion MQTT du compte demandée"
-        elif name == "mqtt-off":
-            owner = self.fleet_registry.default if getattr(self, "fleet_registry", None) else self
-            owner.mqtt_enabled = False
-            a.disconnect_mqtt()
-            return "Déconnexion MQTT du compte demandée"
-        elif name == "presets":
-            presets = d.get("presets", [])
-            if len(presets) != 4:
-                raise ValueError("Quatre préréglages attendus")
-            self.presets = [
-                {
-                    "name": str(x["name"])[:25],
-                    "temperature": integer(x["temperature"], 35, 70),
-                    "hours": integer(x["hours"], 1, 24),
-                }
-                for x in presets
-            ]
-            self.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-            path = self.state_dir / "presets.json"
-            path.write_text(json.dumps(self.presets))
-            return "Préréglages enregistrés"
-        else:
-            raise ValueError("Commande inconnue")
-        if result is None or result is False:
-            raise ValueError("Aucune commande acceptée par le moteur Anycubic")
-        return "Commande acceptée par Anycubic ; confirmation machine en attente"
+        return await execute_command(self, name, d)
 
 
 engine = Engine()

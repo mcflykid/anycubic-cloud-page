@@ -1,5 +1,6 @@
 """Tests isolés : adapter, sans commande physique ni connexion au cloud."""
 
+from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
 import asyncio, importlib.util, pathlib, unittest
 from types import SimpleNamespace
@@ -80,37 +81,37 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import Mock
 
         self.e.api = SimpleNamespace(disconnect_mqtt=Mock())
-        self.e.mqtt_thread = Mock()
-        self.e.mqtt_thread.is_alive.side_effect = [True, False]
-        self.e.mqtt_auth_pending = True
+        self.e.transport.mqtt_thread = Mock()
+        self.e.transport.mqtt_thread.is_alive.side_effect = [True, False]
+        self.e.transport.mqtt_auth_pending = True
         self.e.mqtt_start = Mock()
         await self.e.restart_mqtt_auth(self.e.api)
         self.e.api.disconnect_mqtt.assert_called_once()
         self.e.mqtt_start.assert_called_once()
-        self.assertFalse(self.e.mqtt_auth_pending)
+        self.assertFalse(self.e.transport.mqtt_auth_pending)
 
     async def test_session_recovery_does_not_overlap_live_tracking_thread(self):
         """Vérifie que le renouvellement ne crée pas deux fils MQTT simultanés."""
         from unittest.mock import Mock
 
         self.e.api = SimpleNamespace(disconnect_mqtt=Mock())
-        self.e.mqtt_thread = Mock()
-        self.e.mqtt_thread.is_alive.return_value = True
-        self.e.mqtt_auth_pending = True
+        self.e.transport.mqtt_thread = Mock()
+        self.e.transport.mqtt_thread.is_alive.return_value = True
+        self.e.transport.mqtt_auth_pending = True
         self.e.mqtt_start = Mock()
         await self.e.restart_mqtt_auth(self.e.api)
         self.e.mqtt_start.assert_not_called()
-        self.assertTrue(self.e.mqtt_auth_pending)
+        self.assertTrue(self.e.transport.mqtt_auth_pending)
 
     async def test_disabled_tracking_stays_disabled_after_session_recovery(self):
         """Vérifie que le renouvellement respecte la désactivation du suivi MQTT."""
         from unittest.mock import Mock
 
         self.e.api = SimpleNamespace(disconnect_mqtt=Mock())
-        self.e.mqtt_enabled = False
-        self.e.mqtt_auth_pending = True
+        self.e.transport.mqtt_enabled = False
+        self.e.transport.mqtt_auth_pending = True
         await self.e.restart_mqtt_auth(self.e.api)
-        self.assertIsNone(self.e.mqtt_thread)
+        self.assertIsNone(self.e.transport.mqtt_thread)
 
     async def test_rfid_identity_and_zero_remaining_are_preserved(self):
         """Vérifie que l’identité RFID et une quantité restante nulle restent distinctes des données absentes."""
@@ -377,19 +378,19 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_axis_payload_rejects_unbounded_motion(self):
         """Vérifie que le contrôle des axes refuse les mouvements non bornés."""
-        self.assertEqual(adapter.axis_payload(3, 2, 0), {"axis": 3, "move_type": 2, "distance": 0})
+        self.assertEqual(axis_payload(3, 2, 0), {"axis": 3, "move_type": 2, "distance": 0})
         with self.assertRaises(ValueError):
-            adapter.axis_payload(1, 1, 1000)
+            axis_payload(1, 1, 1000)
         with self.assertRaises(ValueError):
-            adapter.axis_payload(5, 1, 50)
+            axis_payload(5, 1, 50)
 
     async def test_missing_ai_status_has_no_previous_flags(self):
         """Une réponse partielle autorise le réglage sans erreur de conversion."""
         data = {"spaghetti": True, "foreign": False}
         for previous in ({}, {"status": None}):
-            self.assertEqual(adapter.ai_payload(data, previous)["ai_settings"]["status"], 1)
+            self.assertEqual(ai_payload(data, previous)["ai_settings"]["status"], 1)
         with self.assertRaisesRegex(ValueError, "État IA précédent invalide"):
-            adapter.ai_payload(data, {"status": "fixture-malformed"})
+            ai_payload(data, {"status": "fixture-malformed"})
 
     async def test_history_delete_without_cloud_rejects_before_mutation(self):
         """Une suppression hors connexion ne doit pas être présentée comme un résultat incertain."""
@@ -405,7 +406,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ai_payload_preserves_unrelated_flags(self):
         """Vérifie que les réglages IA conservent les bits non concernés."""
-        result = adapter.ai_payload(
+        result = ai_payload(
             {
                 "spaghetti": True,
                 "foreign": False,

@@ -1,7 +1,6 @@
 """Cibles par requête et collectes indépendantes pour les imprimantes d’un même compte."""
 
 import asyncio, contextlib, hashlib, json
-from dataclasses import dataclass
 from aiohttp import web
 from cloud_extras import CloudExtras
 from temperature_history import TemperatureHistory
@@ -11,16 +10,6 @@ from web_host import UI_PREFIX
 def printer_key(identifier):
     """Renvoie une référence opaque ; aucun identifiant cloud brut n’est envoyé au navigateur."""
     return hashlib.sha256(str(identifier).encode()).hexdigest()[:20]
-
-
-@dataclass
-class AccountTransport:
-    """Session HTTP et client MQTT possédés par le moteur principal, partagés par référence."""
-
-    api: object | None = None
-    session: object | None = None
-    token: str | None = None
-    reconnect_required: bool = False
 
 
 class PrinterRegistry:

@@ -22,7 +22,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         thread.is_alive.side_effect = lambda: not stopped.is_set()
         old = SimpleNamespace(disconnect_mqtt=Mock(side_effect=stopped.set))
         e.api = old
-        e.mqtt_thread = thread
+        e.transport.mqtt_thread = thread
         e.printer = SimpleNamespace(
             update_info_from_api=AsyncMock(side_effect=AnycubicAuthError("fixture-only"))
         )
@@ -45,7 +45,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         self.assertIs(e.api, new)
         self.assertIs(e.printer, printer)
         self.assertFalse(e.reconnect_required)
-        self.assertIsNone(e.mqtt_thread)
+        self.assertIsNone(e.transport.mqtt_thread)
         e.mqtt_start.assert_called_once()
 
     async def test_thread_slow_to_stop_preserves_client_and_prevents_second_connection(self):
@@ -55,15 +55,15 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         e.session = SimpleNamespace(cookie_jar=object())
         old = SimpleNamespace(disconnect_mqtt=Mock())
         e.api = old
-        e.mqtt_thread = Mock()
-        e.mqtt_thread.is_alive.return_value = True
+        e.transport.mqtt_thread = Mock()
+        e.transport.mqtt_thread.is_alive.return_value = True
         with patch.object(server, "CloudPageAPI") as factory:
             with self.assertRaisesRegex(RuntimeError, "en attente"):
                 await e.connect()
             factory.assert_not_called()
         self.assertIs(e.api, old)
         old.disconnect_mqtt.assert_called_once()
-        e.mqtt_thread.join.assert_called_once_with(3)
+        e.transport.mqtt_thread.join.assert_called_once_with(3)
 
     async def test_failed_catalogue_does_not_prevent_required_reconnect(self):
         """Un catalogue servi par l’ancien client ne doit pas précéder la reconnexion exigée."""
