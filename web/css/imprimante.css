@@ -198,3 +198,7 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .file-thumbnail img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
 
 #history-state.empty-message::before{background-image:url("/imprimante-api/ui/icons/cloud-page.svg")}
+
+.controls-dialog{width:min(720px,calc(100% - 2rem))}
+.controls-dialog #control-metrics{margin:1rem 0}
+.controls-dialog .print-settings{margin-top:1rem}

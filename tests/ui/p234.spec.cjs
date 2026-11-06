@@ -99,7 +99,7 @@ test('les axes conservent leurs directions et les pictogrammes restent sur les l
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
  await expect(page.locator('#tab-settings')).not.toContainText('Commandes courantes');
  await expect(page.locator('#tab-settings #light-on,#tab-settings #light-off')).toHaveCount(0);
- await expect(page.locator('#settings-form')).toBeVisible();
+ await expect(page.locator('#tab-settings #settings-form')).toHaveCount(0);
 });
 
 test('les pauses regroupées gardent leurs événements individuels',async({page})=>{
@@ -219,4 +219,30 @@ test('les visuels suivent le modèle constructeur et la présence réelle de l�
  model='Modèle inconnu';
  await page.evaluate(()=>refresh());
  await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'printer.svg');
+});
+
+test('les commandes courantes gardent la mesure, la confirmation et la cible sur mobile',async({page})=>{
+ await page.setViewportSize({width:360,height:800});
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch(),data=await response.json();
+  Object.assign(data.printer,{job_in_progress:true,curr_nozzle_temp:20,target_nozzle_temp:0,camera_light:false,box_fan_level:0});
+  await route.fulfill({response,json:data});
+ });
+ const commands=[];
+ await page.route('**/imprimante-api/command',route=>{
+  commands.push({data:route.request().postDataJSON(),target:route.request().headers()['x-printer-key']});
+  return route.fulfill({json:{ok:false,message:'Refus fictif'}});
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Commandes courantes',exact:true}).click();
+ const panel=page.getByRole('dialog',{name:'Commandes courantes'});
+ await expect(panel).toContainText('20 °C / 0 °C');
+ await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
+ await panel.getByLabel('Enceinte (0–3)',{exact:true}).fill('3');
+ await panel.getByRole('button',{name:'Appliquer les réglages'}).click();
+ await page.locator('#confirm-yes').click();
+ await expect(panel.locator('#control-feedback')).toHaveText('Refus fictif');
+ expect(commands).toHaveLength(1);
+ expect(commands[0]).toMatchObject({data:{action:'settings',box_fan_level:'3'},target:'demo-printer'});
+ await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
 });
