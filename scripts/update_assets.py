@@ -8,7 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1] / "web"
 UI = "/imprimante-api/ui"
-MODULES = ("workshop-ui.mjs", "workshop-api.mjs")
+MODULES = ("workshop-ui.mjs", "workshop-api.mjs", "workshop-temperatures.mjs")
 
 
 def signature(content):
@@ -20,16 +20,8 @@ def signature(content):
 def update(check=False):
     """Actualise les ressources ou vérifie leurs empreintes sans écrire en mode CI."""
     entry = ROOT / "js/imprimante.js"
-    script = entry.read_text()
     preload = []
-    for name in MODULES:
-        version, integrity = signature((ROOT / "js" / name).read_bytes())
-        path = f"./{name}"
-        script = re.sub(re.escape(path) + r"(?:\?v=[^'\"]*)?", f"{path}?v={version}", script)
-        preload.append(
-            f'<link rel="modulepreload" href="{UI}/js/{name}?v={version}" integrity="{integrity}" crossorigin="anonymous">'
-        )
-    version, integrity = signature(script.encode())
+    versions = {}
     changed = []
 
     def apply(file, content):
@@ -39,6 +31,24 @@ def update(check=False):
         if not check:
             file.write_text(content)
 
+    def version_imports(content):
+        for module, version in versions.items():
+            path = f"./{module}"
+            content = re.sub(re.escape(path) + r"(?:\?v=[^'\"]*)?", f"{path}?v={version}", content)
+        return content
+
+    # Le module d’utilitaires est calculé avant les modules qui l’importent.
+    for name in MODULES:
+        module = ROOT / "js" / name
+        content = version_imports(module.read_text())
+        apply(module, content)
+        version, integrity = signature(content.encode())
+        versions[name] = version
+        preload.append(
+            f'<link rel="modulepreload" href="{UI}/js/{name}?v={version}" integrity="{integrity}" crossorigin="anonymous">'
+        )
+    script = version_imports(entry.read_text())
+    version, integrity = signature(script.encode())
     apply(entry, script)
     for name in ("imprimante.html", "login.html"):
         page = ROOT / name
