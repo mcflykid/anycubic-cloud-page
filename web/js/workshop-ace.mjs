@@ -1,6 +1,6 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=6061611bf118';
-import { workshopState } from './workshop-state.mjs?v=199ca9bd8451';
-import { definition, statusBadge } from './workshop-overview.mjs?v=f7cd1574f9c2';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=9c50a4daf36a';
+import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
+import { definition, statusBadge } from './workshop-overview.mjs?v=4d2a3c830400';
 
 /** Illustre la bobine avec la couleur annoncée par l’ACE et des dégradés propres à chaque emplacement. */
 function spoolIllustration(color, index) {
@@ -8,11 +8,23 @@ function spoolIllustration(color, index) {
   svg.setAttribute('viewBox', '0 0 80 84');
   svg.setAttribute('class', 'spool-illustration');
   svg.setAttribute('aria-hidden', 'true');
-  const channels = Array.isArray(color) && color.length >= 3 ? color.slice(0, 3) : [150, 150, 150];
-  const rgb = channels.map((value) => Math.max(0, Math.min(255, Number(value) || 0))).join(',');
+  const colors = [];
+  if (Array.isArray(color)) {
+    for (let offset = 0; offset + 2 < color.length; offset += 3) {
+      const rgb = color.slice(offset, offset + 3);
+      if (!rgb.every((value) => Number.isInteger(value) && value >= 0 && value <= 255)) break;
+      colors.push(`rgb(${rgb.join(',')})`);
+    }
+  }
+  const palette = [...new Set(colors)];
+  const banded = palette.length > 1;
+  const winding = banded ? `url(#spool-colors-${index})` : palette[0] || 'rgb(150,150,150)';
   const filament = 'M25 10h26c6 0 10 13 10 29S57 68 51 68H25z';
   svg.innerHTML = `
     <defs>
+      ${banded ? `<linearGradient id="spool-colors-${index}">
+        ${palette.map((rgb, i) => `<stop offset="${i / palette.length}" stop-color="${rgb}"/><stop offset="${(i + 1) / palette.length}" stop-color="${rgb}"/>`).join('')}
+      </linearGradient>` : ''}
       <linearGradient id="spool-wind-${index}" x2="0" y2="1">
         <stop stop-color="#fff" stop-opacity=".36"/><stop offset=".40" stop-color="#fff" stop-opacity=".04"/>
         <stop offset=".72" stop-color="#1a1d22" stop-opacity=".10"/><stop offset="1" stop-color="#151719" stop-opacity=".33"/>
@@ -26,7 +38,7 @@ function spoolIllustration(color, index) {
     </defs>
     <g transform="rotate(12 39 41)">
       <ellipse cx="53" cy="39" rx="11" ry="35" fill="url(#spool-rim-${index})" stroke="#bec5c2" stroke-width=".7"/>
-      <path d="${filament}" fill="rgb(${rgb})"/>
+      <path d="${filament}" fill="${winding}"/>
       <path d="${filament}" fill="url(#spool-wind-${index})"/>
       <path d="${filament}" fill="url(#spool-wire-${index})"/>
       <ellipse cx="26" cy="39" rx="13" ry="36" fill="#bfc6c3" stroke="#b0b9b5" stroke-width=".6"/>

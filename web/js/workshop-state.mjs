@@ -1,4 +1,4 @@
-import { $ } from './workshop-ui.mjs?v=6061611bf118';
+import { $ } from './workshop-ui.mjs?v=9c50a4daf36a';
 
 /** État commun à la page et à ses commandes. Les sélections et caches propres aux panneaux restent dans leurs modules. */
 export const workshopState = {

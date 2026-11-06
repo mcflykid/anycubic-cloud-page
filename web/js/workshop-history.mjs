@@ -13,15 +13,16 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=6061611bf118';
-import { workshopState } from './workshop-state.mjs?v=199ca9bd8451';
-import { slots } from './workshop-commands.mjs?v=7f546052d60c';
-import { definition } from './workshop-overview.mjs?v=f7cd1574f9c2';
+} from './workshop-ui.mjs?v=9c50a4daf36a';
+import { workshopState } from './workshop-state.mjs?v=6ff13ce4bb7f';
+import { slots } from './workshop-commands.mjs?v=20b98ddbe833';
+import { definition } from './workshop-overview.mjs?v=4d2a3c830400';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
   let pastTaskKey = null,
     tasksPage = 1,
+    tasksGeneration = 0,
     taskRows = [];
   let historyPage = 1,
     historyPending = false,
@@ -445,17 +446,102 @@ export function createHistory(request, command, selectedBox) {
           day: '2-digit',
         }).format(d);
   }
-  $('tasks-to').value = taskDay(Date.now() / 1000);
+  const initialEnd = taskDay(Date.now() / 1000);
   // Soustrait des jours calendaires à la date affichée, indépendamment des changements d’heure.
-  const historyStart = new Date($('tasks-to').value);
+  const historyStart = new Date(initialEnd);
   historyStart.setUTCDate(historyStart.getUTCDate() - 89);
-  $('tasks-from').value = historyStart.toISOString().slice(0, 10);
+  const initialStart = historyStart.toISOString().slice(0, 10);
+  let from = initialStart,
+    to = initialEnd,
+    calendarMonth,
+    chooseEnd = false;
+  const rangeDialog = $('history-period-dialog'),
+    rangeButton = $('history-period-open'),
+    dateFrom = $('tasks-from'),
+    dateTo = $('tasks-to'),
+    calendar = $('history-months');
+  const dateLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }),
+    monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    weekLabel = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+  const calendarDate = (date) => date.toISOString().slice(0, 10);
+  const monthAt = (month, delta = 0) =>
+    new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + delta, 1));
+  /** Un clic fixe le début, le suivant termine la plage, même en ordre inverse. */
+  function pickDay(day) {
+    if (!chooseEnd || !dateFrom.value) {
+      dateFrom.value = day;
+      dateTo.value = '';
+      chooseEnd = true;
+    } else {
+      [dateFrom.value, dateTo.value] = [dateFrom.value, day].sort();
+      chooseEnd = false;
+    }
+    renderCalendar(day);
+  }
+  /** Les jours sont des boutons natifs et les champs date offrent un accès direct à toute date. */
+  function renderCalendar(focusDay) {
+    const months = [calendarMonth, monthAt(calendarMonth, 1)];
+    calendar.replaceChildren(...months.map((month) => {
+      const section = node('section', null, 'history-month'),
+        grid = node('div', null, 'history-days');
+      section.append(node('h3', monthLabel.format(month)), grid);
+      for (let weekday = 0; weekday < 7; weekday++)
+        grid.append(node('span', weekLabel.format(new Date(Date.UTC(2024, 0, weekday + 1)))));
+      const offset = (month.getUTCDay() + 6) % 7;
+      for (let empty = 0; empty < offset; empty++) grid.append(node('span'));
+      const next = monthAt(month, 1);
+      for (const date = new Date(month); date < next; date.setUTCDate(date.getUTCDate() + 1)) {
+        const day = calendarDate(date),
+          button = extraButton(String(date.getUTCDate()), () => pickDay(day));
+        button.dataset.day = day;
+        button.setAttribute('aria-label', dateLabel.format(date));
+        button.setAttribute('aria-pressed', String(day === dateFrom.value || day === dateTo.value));
+        button.classList.toggle('in-range', day >= dateFrom.value && day <= dateTo.value);
+        grid.append(button);
+      }
+      return section;
+    }));
+    $('history-period-apply').disabled = !dateFrom.value || !dateTo.value || dateFrom.value > dateTo.value;
+    if (focusDay) calendar.querySelector(`[data-day="${focusDay}"]`)?.focus();
+  }
+  /** Le bouton résume la plage appliquée, indépendamment des valeurs en cours de saisie. */
+  function setRangeButton() {
+    rangeButton.textContent = `${dateLabel.format(new Date(from))} – ${dateLabel.format(new Date(to))}`;
+  }
+  /** Ouvre les mois autour de la fin de période et réinitialise la sélection en cours. */
+  function showRange(start, end) {
+    dateFrom.value = start;
+    dateTo.value = end;
+    chooseEnd = false;
+    calendarMonth = monthAt(new Date(end), matchMedia('(max-width: 640px)').matches ? 0 : -1);
+    renderCalendar();
+  }
+  setRangeButton();
+  rangeButton.onclick = () => {
+    showRange(from, to);
+    rangeDialog.showModal();
+  };
+  $('history-month-prev').onclick = () => {
+    calendarMonth = monthAt(calendarMonth, -1);
+    renderCalendar();
+  };
+  $('history-month-next').onclick = () => {
+    calendarMonth = monthAt(calendarMonth, 1);
+    renderCalendar();
+  };
+  dateFrom.oninput = dateTo.oninput = () => renderCalendar();
+  $('history-period-reset').onclick = () => showRange(initialStart, initialEnd);
+  $('history-period-apply').onclick = () => {
+    from = dateFrom.value;
+    to = dateTo.value;
+    setRangeButton();
+    rangeDialog.close();
+    void loadTasks();
+  };
   /** Les filtres combinés portent sur les pages déjà chargées ; une page suivante ne remplace pas la sélection. */
   function visibleTasks() {
     const query = $('tasks-search').value.trim().toLocaleLowerCase(locale),
-      device = $('tasks-printer').value,
-      from = $('tasks-from').value,
-      to = $('tasks-to').value;
+      device = $('tasks-printer').value;
     return taskRows.filter((t) => {
       const day = taskDay(t.start);
       return (
@@ -506,11 +592,14 @@ export function createHistory(request, command, selectedBox) {
         label.append(select, node('span', tr('Sélectionner'), 'sr-only'));
         name.title = t.name;
         body.append(
-          name,
           state,
+          name,
+          node(
+            'p',
+            t.end ? `${date(t.start)} – ${date(t.end)}` : tr('Début : ') + date(t.start),
+            'muted history-card-period',
+          ),
           node('p', t.printer || tr('Imprimante'), 'muted'),
-          node('p', tr('Début : ') + date(t.start), 'muted'),
-          node('p', tr('Fin : ') + (t.end ? date(t.end) : tr('Non renseignée')), 'muted'),
           node(
             'p',
             tr('Durée : ') +
@@ -544,6 +633,7 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Relit le cloud après mutation ; le cache d’affichage ne constitue pas une preuve de suppression. */
   async function loadTasks(append = false) {
+    const generation = ++tasksGeneration;
     if (!append) {
       tasksPage = 1;
       taskRows = [];
@@ -552,24 +642,28 @@ export function createHistory(request, command, selectedBox) {
     $('tasks-state').hidden = false;
     try {
       const d = await request(`/extras/tasks?page=${tasksPage}&device=all`);
+      if (generation !== tasksGeneration) return;
       taskRows = append
         ? [...new Map([...taskRows, ...d.items].map((t) => [t.key, t])).values()]
         : d.items;
       taskMore = d.has_more;
-      const previous = $('tasks-printer').value,
+      const previous = $('tasks-printer').selectedOptions[0],
         devices = new Map(taskRows.map((t) => [t.printer_key, t.printer]));
+      if (previous && previous.value !== 'all' && !devices.has(previous.value))
+        devices.set(previous.value, previous.text);
       $('tasks-printer').replaceChildren(
         new Option(tr('Tous les appareils'), 'all'),
         ...[...devices]
           .filter(([k]) => k)
           .map(([k, name]) => new Option(name || tr('Imprimante'), k)),
       );
-      $('tasks-printer').value = devices.has(previous) ? previous : 'all';
+      $('tasks-printer').value = previous?.value || 'all';
       if (!append)
         for (const key of taskSelected)
           if (!taskRows.some((t) => t.key === key)) taskSelected.delete(key);
       renderTasks();
     } catch (e) {
+      if (generation !== tasksGeneration) return;
       set('tasks-state', e.message);
       $('tasks-state').hidden = false;
     }
@@ -582,7 +676,7 @@ export function createHistory(request, command, selectedBox) {
         b.setAttribute('aria-pressed', String(b === button));
       renderTasks();
     };
-  for (const id of ['tasks-printer', 'tasks-from', 'tasks-to', 'tasks-search'])
+  for (const id of ['tasks-printer', 'tasks-search'])
     $(id).oninput = renderTasks;
   $('tasks-select-page').onchange = (e) => {
     for (const t of visibleTasks())

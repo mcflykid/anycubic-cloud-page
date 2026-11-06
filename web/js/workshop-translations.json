@@ -1,4 +1,11 @@
 {
+  "Rechercher sur cette page": ["Search this page", "Buscar en esta página"],
+  "Ordre d’origine": ["Original order", "Orden original"],
+  "Filtrer par date": ["Filter by date", "Filtrar por fecha"],
+  "Choisir une période": ["Choose a date range", "Elegir un intervalo de fechas"],
+  "Période de l’historique": ["History date range", "Intervalo del historial"],
+  "Mois précédent": ["Previous month", "Mes anterior"],
+  "Mois suivant": ["Next month", "Mes siguiente"],
   " (détecté)": [
     " (detected)",
     " (detectado)"

@@ -8,10 +8,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=6061611bf118';
-import { workshopState, setBusy } from './workshop-state.mjs?v=199ca9bd8451';
-import { slots } from './workshop-commands.mjs?v=7f546052d60c';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=1d7c99b8e0bf';
+} from './workshop-ui.mjs?v=9c50a4daf36a';
+import { workshopState, setBusy } from './workshop-state.mjs?v=6ff13ce4bb7f';
+import { slots } from './workshop-commands.mjs?v=20b98ddbe833';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=009bee0e06b8';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -46,8 +46,17 @@ export function createFiles(request, command) {
       context.printer === workshopState.selectedPrinter
     );
   }
+  /** La recherche et le tri ne portent que sur la liste déjà reçue, sans appel au stockage. */
+  function visibleFiles(list) {
+    const query = $('files-search').value.trim().toLocaleLowerCase();
+    const sort = $('files-sort').value;
+    const rows = list.filter((file) => file.name.toLocaleLowerCase().includes(query));
+    if (sort === 'name') rows.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'size') rows.sort((a, b) => (b.size_mb ?? -1) - (a.size_mb ?? -1));
+    return rows;
+  }
   /** Les actions gardent la source et le chemin de la liste reçue, même après un changement de vue. */
-  function renderFiles() {
+  function renderFiles(refreshQuota = true) {
     fileThumbnails.reset();
     const context = fileContext,
       listedSource = context?.source,
@@ -57,7 +66,7 @@ export function createFiles(request, command) {
         ? cloudRows
         : fileRows
       : null;
-    const rows = Array.isArray(list) ? list : [];
+    const rows = Array.isArray(list) ? visibleFiles(list) : [];
     const folderView = source === 'cloud' && !!cloudFolder;
     for (const id of ['file-path-label', 'parent-folder'])
       $(id).hidden = source === 'cloud';
@@ -187,7 +196,7 @@ export function createFiles(request, command) {
     $('cloud-tools').hidden = source !== 'cloud';
     if (source === 'cloud') {
       cloudSelectionState();
-      loadCloudStorage();
+      if (refreshQuota) loadCloudStorage();
     }
     $('prev-page').hidden = $('next-page').hidden = source !== 'cloud';
     set('cloud-page', source === 'cloud' ? formatText('Page {0}', cloudPage) : '');
@@ -287,6 +296,11 @@ export function createFiles(request, command) {
     e.preventDefault();
     loadFiles();
   };
+  $('files-search').oninput = () => {
+    cloudSelected.clear();
+    renderFiles(false);
+  };
+  $('files-sort').onchange = () => renderFiles(false);
   $('parent-folder').onclick = () => {
     const parts = $('file-path').value.split('/').filter(Boolean);
     parts.pop();
@@ -426,10 +440,11 @@ export function createFiles(request, command) {
     const canMove = !!cloudFolder && currentFileContext(fileContext);
     $('cloud-destination-label').hidden = $('cloud-move-selected').hidden = !canMove;
     $('cloud-move-selected').disabled = !canMove || !n || !$('cloud-destination').value;
+    const visible = currentFileContext(fileContext) ? visibleFiles(cloudRows) : [];
     $('cloud-select-page').checked =
-      cloudRows.length > 0 && cloudRows.every((f) => cloudSelected.has(f.handle));
+      visible.length > 0 && visible.every((f) => cloudSelected.has(f.handle));
     $('cloud-select-page').indeterminate =
-      cloudRows.some((f) => cloudSelected.has(f.handle)) && !$('cloud-select-page').checked;
+      visible.some((f) => cloudSelected.has(f.handle)) && !$('cloud-select-page').checked;
   }
   /** Affiche le quota connu du cloud, sans déduire une capacité d’envoi d’une valeur absente. */
   async function loadCloudStorage() {
@@ -493,7 +508,8 @@ export function createFiles(request, command) {
     }
   };
   $('cloud-select-page').onchange = (e) => {
-    for (const f of cloudRows)
+    if (!currentFileContext(fileContext)) return;
+    for (const f of visibleFiles(cloudRows))
       e.target.checked ? cloudSelected.add(f.handle) : cloudSelected.delete(f.handle);
     renderFiles();
   };

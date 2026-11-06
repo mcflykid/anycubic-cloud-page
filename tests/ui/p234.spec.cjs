@@ -326,7 +326,21 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
   expect(right).toBeGreaterThan(left);
 });
 
-test('les réglages affichent la connexion avant l’imprimante, sur une colonne', async ({page}) => {
+test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    data.printer.boxes[0].spools[0].color = [243, 241, 230, 0, 167, 235];
+    await route.fulfill({response, json:data});
+  });
+  await login(page);
+  await page.getByRole('button', {name:'ACE et filaments',exact:true}).click();
+  const colors = page.locator('#spool-colors-0 stop');
+  await expect(colors).toHaveCount(4);
+  await expect(colors.first()).toHaveAttribute('stop-color', 'rgb(243,241,230)');
+  await expect(colors.last()).toHaveAttribute('stop-color', 'rgb(0,167,235)');
+});
+
+test('les réglages équilibrent les cartes sur ordinateur et les empilent sur mobile', async ({page}) => {
   await page.setViewportSize({width: 1280, height: 900});
   await login(page);
   await page.getByRole('button', {name: 'Réglages', exact: true}).click();
@@ -334,10 +348,15 @@ test('les réglages affichent la connexion avant l’imprimante, sur une colonne
   const printer = page.locator('.settings-device');
   const before = await connection.boundingBox();
   const after = await printer.boundingBox();
-  expect(after.y).toBeGreaterThanOrEqual(before.y + before.height);
-  expect(Math.abs(after.x - before.x)).toBeLessThan(1);
-  expect(after.width).toBe(before.width);
+  const appearance = await page.locator('.settings-appearance').boundingBox();
+  expect(after.x).toBeGreaterThanOrEqual(before.x + before.width);
+  expect(after.y).toBe(before.y);
+  expect(appearance.x).toBe(before.x);
+  expect(appearance.y).toBeGreaterThanOrEqual(before.y + before.height);
   await page.setViewportSize({width: 390, height: 800});
+  const [mobileConnection, mobilePrinter] = await Promise.all([connection.boundingBox(), printer.boundingBox()]);
+  expect(mobilePrinter.x).toBe(mobileConnection.x);
+  expect(mobilePrinter.y).toBeGreaterThan(mobileConnection.y + mobileConnection.height);
   expect(await connection.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 

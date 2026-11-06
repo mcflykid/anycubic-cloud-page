@@ -42,6 +42,30 @@ test('les fichiers non imprimables et la dernière page désactivent les actions
  await expect(page.locator('#next-page')).toBeDisabled();
 });
 
+test('la sélection Cloud ne comprend que les fichiers visibles après une recherche',async({page})=>{
+ let reads=0;
+ await page.route('**/imprimante-api/files/cloud?**',route=>{
+  reads++;
+  return route.fulfill({json:{files:[
+   {name:'Alpha.3mf',handle:'alpha',size_mb:1},
+   {name:'Beta.3mf',handle:'beta',size_mb:2}
+  ],has_more:false}});
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Fichiers',exact:true}).click();
+ await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();
+ await expect(page.locator('#file-rows tr')).toHaveCount(2);
+ await page.locator('#files-sort').selectOption('size');
+ await expect(page.locator('#file-rows tr').first()).toContainText('Beta.3mf');
+ await page.getByLabel('Sélectionner Beta.3mf',{exact:true}).check();
+ await page.locator('#files-search').fill('Alpha');
+ await expect(page.locator('#cloud-selected-count')).toHaveText('0 sélection');
+ await page.locator('#cloud-select-page').check();
+ await expect(page.locator('#cloud-selected-count')).toHaveText('1 sélection');
+ await expect(page.locator('#file-rows')).not.toContainText('Beta.3mf');
+ expect(reads).toBe(1);
+});
+
 test('un aperçu indisponible est redemandé après le délai',async({page})=>{
  let reads=0;
  await page.route('**/imprimante-api/preview',async route=>{
