@@ -38,6 +38,8 @@ The image follows `latest`; pin a published image tag in compose.yaml if you nee
 
 ## Screens
 
+The language selector next to the notification bell remembers French, English or Spanish in the browser. If the translation catalogue cannot load, the workshop and sign-in page use French.
+
 | Tab | Features | Screenshot |
 | --- | --- | --- |
 | Printer | State, preview, progress, temperatures and local charts | [View](screenshots/10-session.jpg) |

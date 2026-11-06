@@ -209,3 +209,5 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .controls-dialog{width:min(720px,calc(100% - 2rem))}
 .controls-dialog #control-metrics{margin:1rem 0}
 .controls-dialog .print-settings{margin-top:1rem}
+
+#interface-language{width:auto;max-width:8rem;padding-inline:9px 24px;font-size:.82rem}

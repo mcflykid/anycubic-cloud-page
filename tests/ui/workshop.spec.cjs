@@ -4,19 +4,18 @@ test('déconnexion au clavier et révocation effective',async({page})=>{await lo
 module.exports={login};
 
 
-test('la page française démarre avec une barre compacte sans ressource de traduction',async({page})=>{
+test('un catalogue inaccessible laisse l’atelier fonctionner en français',async({page})=>{
  await page.setViewportSize({width:360,height:800});
  const {login}=require('./helpers.cjs');
  await page.addInitScript(()=>localStorage.setItem('cloud-page-language','es'));
- await page.route('**/js/ui-language.js*',route=>route.fulfill({status:404}));
- const languageRequests=[];
- page.on('request',request=>{if(request.url().includes('/js/ui-language.js'))languageRequests.push(request);});
+ const failed=[];
+ await page.route('**/js/workshop-translations.json*',route=>{failed.push(route.request().url());return route.fulfill({status:404});});
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('lang','fr');
  await expect(page.locator('#connection')).toHaveText('En ligne');
  await expect(page.locator('#printer-model')).toHaveText('Anycubic Kobra S1');
- await expect(page.locator('#interface-language')).toHaveCount(0);
- expect(languageRequests).toHaveLength(0);
+ await expect(page.getByRole('combobox',{name:'Langue de l’interface'})).toHaveValue('fr');
+ expect(failed.length).toBeGreaterThanOrEqual(1);
  const bell=await page.locator('#notifications-toggle').boundingBox();
  expect(bell.width).toBe(44);
  expect(bell.height).toBeGreaterThanOrEqual(44);
@@ -72,4 +71,57 @@ test('le journal en lecture seule applique les filtres à l’export',async({pag
  await expect(page.locator('#journal-entries')).toContainText('light · confirmée');
  await page.locator('#journal-filters select[name=printer]').selectOption('fixture');
  await expect(page.getByRole('link',{name:'Exporter le journal expurgé'})).toHaveAttribute('href','/imprimante-api/journal?printer=fixture&action=&export=1');
+});
+
+test('le choix mémorisé traduit l’atelier, ses confirmations et la connexion',async({page})=>{
+ await page.setViewportSize({width:360,height:800});
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch(),data=await response.json();
+  Object.assign(data.printer,{firmware_update_available:true,firmware_available:'fixture-version',curr_nozzle_temp:20.5});
+  await route.fulfill({response,json:data});
+ });
+ const physical=[];
+ await page.route('**/imprimante-api/command',route=>{
+  physical.push(route.request().postDataJSON());
+  return route.fulfill({json:{ok:true,message:'Commande fictive'}});
+ });
+ await login(page);
+ const choice=page.locator('#interface-language');
+ await expect(choice).toHaveValue('fr');
+ for(const language of [
+  {code:'en',label:'Interface language',online:'Online',settings:'Settings',temperature:'20.5',confirm:'Install version fixture-version on the printer? Keep it powered during the update.',cancel:'Cancel',incorrect:'Incorrect web password.'},
+  {code:'es',label:'Idioma de la interfaz',online:'En línea',settings:'Ajustes',temperature:'20,5',confirm:'¿Instalar la versión fixture-version en la impresora? No la apagues durante la actualización.',cancel:'Cancelar',incorrect:'Contraseña web incorrecta.'},
+ ]){
+  await choice.selectOption(language.code);
+  await expect(page.locator('html')).toHaveAttribute('lang',language.code);
+  await expect(page.getByRole('combobox',{name:language.label})).toHaveValue(language.code);
+  await expect(page.locator('#connection')).toHaveText(language.online);
+  await expect(page.locator('#temperatures')).toContainText(language.temperature);
+  expect(await page.locator('.portal-nav').evaluate(nav=>nav.scrollWidth<=nav.clientWidth)).toBe(true);
+  await page.getByRole('button',{name:language.settings,exact:true}).click();
+  await page.locator('[data-command=firmware]').click();
+  await expect(page.locator('#confirm-text')).toHaveText(language.confirm);
+  await page.locator('#confirm-yes').click();
+  const password=page.locator('#reauth-dialog');
+  await password.locator('input[type=password]').fill('fixture-incorrect');
+  await password.locator('#reauth-submit').click();
+  await expect(password.getByRole('status')).toHaveText(language.incorrect);
+  await password.getByRole('button',{name:language.cancel,exact:true}).click();
+ }
+ expect(physical).toHaveLength(0);
+ await page.reload();
+ await expect(choice).toHaveValue('es');
+ await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Iniciar sesión',exact:true})).toBeVisible();
+ await expect(page.locator('html')).toHaveAttribute('lang','es');
+});
+
+test('une ancienne préférence inconnue ne déclenche aucun chargement de traduction',async({page})=>{
+ const catalogues=[];
+ page.on('request',request=>{if(request.url().includes('workshop-translations.json'))catalogues.push(request);});
+ await page.addInitScript(()=>localStorage.setItem('cloud-page-language','zz'));
+ await login(page);
+ await expect(page.locator('#connection')).toHaveText('En ligne');
+ await expect(page.getByRole('combobox',{name:'Langue de l’interface'})).toHaveValue('fr');
+ expect(catalogues).toHaveLength(0);
 });

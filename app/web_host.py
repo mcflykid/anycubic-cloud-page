@@ -10,7 +10,13 @@ from native_controls import TIMELAPSE_GALLERY_ENABLED
 ROOT = pathlib.Path(__file__).resolve().parents[1] / "web"
 APP_VERSION = json.loads((ROOT.parent / "package.json").read_text())["version"]
 UI_PREFIX = "/imprimante-api/ui"
-PUBLIC_ASSETS = {"/css/landing.css", "/css/imprimante.css", "/icons/cloud-page.svg"}
+PUBLIC_ASSETS = {
+    "/css/landing.css",
+    "/css/imprimante.css",
+    "/icons/cloud-page.svg",
+    "/js/workshop-ui.mjs",
+    "/js/workshop-translations.json",
+}
 INFORMATION_PAGES = {
     "/about": "privacy.html",
     "/conditions": "terms.html",

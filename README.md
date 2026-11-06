@@ -50,6 +50,8 @@ La fiche d’historique peut proposer une réimpression après confirmation de l
 
 ## Les sept onglets
 
+Le sélecteur de langue, placé avant la cloche, mémorise le français, l’anglais ou l’espagnol dans le navigateur. Si le catalogue de traduction ne se charge pas, l’atelier et la connexion utilisent le français.
+
 Les captures ci-dessous proviennent du **mode démonstration**, avec des données fictives. Elles ne montrent aucun compte réel, aucun identifiant d’imprimante, ni aucun flux vidéo privé. Les captures originales sont dans [`screenshots/`](screenshots/README.md).
 
 | Onglet | Ce qu’il permet |

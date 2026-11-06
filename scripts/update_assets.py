@@ -22,6 +22,8 @@ def update(check=False):
     entry = ROOT / "js/imprimante.js"
     preload = []
     versions = {}
+    catalogue = "workshop-translations.json"
+    versions[catalogue], catalogue_integrity = signature((ROOT / "js" / catalogue).read_bytes())
     changed = []
 
     def apply(file, content):
@@ -41,6 +43,12 @@ def update(check=False):
     for name in MODULES:
         module = ROOT / "js" / name
         content = version_imports(module.read_text())
+        if name == "workshop-ui.mjs":
+            content = re.sub(
+                r"const catalogueIntegrity='[^']*';",
+                f"const catalogueIntegrity='{catalogue_integrity}';",
+                content,
+            )
         apply(module, content)
         version, integrity = signature(content.encode())
         versions[name] = version
@@ -50,7 +58,14 @@ def update(check=False):
     script = version_imports(entry.read_text())
     version, integrity = signature(script.encode())
     apply(entry, script)
-    for name in ("imprimante.html", "login.html"):
+    for name in (
+        "imprimante.html",
+        "login.html",
+        "cookies.html",
+        "credits.html",
+        "privacy.html",
+        "terms.html",
+    ):
         page = ROOT / name
         html = page.read_text()
         for style in ("imprimante.css", "landing.css"):
@@ -63,6 +78,15 @@ def update(check=False):
                 r'<script id="workshop-script"[^>]+>',
                 "".join(preload)
                 + f'<script id="workshop-script" type="module" src="{UI}/js/imprimante.js?v={version}" integrity="{integrity}" crossorigin="anonymous">',
+                html,
+            )
+        if name != "imprimante.html":
+            html = re.sub(
+                r'<script id="workshop-language"[^>]+>',
+                preload[0].replace(
+                    '<link rel="modulepreload" href=',
+                    '<script id="workshop-language" type="module" src=',
+                ),
                 html,
             )
         apply(page, html)

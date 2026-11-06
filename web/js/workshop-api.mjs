@@ -1,3 +1,4 @@
+import {formatText,serverText,tr} from './workshop-ui.mjs?v=60097cdec556';
 export const api='/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */
@@ -18,9 +19,9 @@ export function createRequest(getPrinter){
    }catch(error){
     if(read&&attempt===0)continue;
     throw new Error(path==='/upload'
-     ?'Résultat de l’envoi incertain. Vérifiez les fichiers du cloud et l’état de l’imprimante avant tout nouvel essai.'
-     :read?'Connexion au serveur interrompue. Nouvelle tentative automatique.'
-     :'Connexion interrompue. Vérifiez l’état de la machine avant de renvoyer cette commande.');
+     ?tr('Résultat de l’envoi incertain. Vérifiez les fichiers du cloud et l’état de l’imprimante avant tout nouvel essai.')
+     :read?tr('Connexion au serveur interrompue. Nouvelle tentative automatique.')
+     :tr('Connexion interrompue. Vérifiez l’état de la machine avant de renvoyer cette commande.'));
    }
    if(read&&[502,503,504].includes(response.status)&&attempt===0){
     await new Promise(resolve=>setTimeout(resolve,1200));
@@ -30,21 +31,25 @@ export function createRequest(getPrinter){
   }
   if(response.status===401){
    window.location.assign('/login');
-   throw new Error('Session expirée. Reconnectez-vous avant toute nouvelle action.');
+   throw new Error(tr('Session expirée. Reconnectez-vous avant toute nouvelle action.'));
   }
   const raw=await response.text();
   let data;
   try{data=JSON.parse(raw);}
   catch{
    throw new Error(read
-    ?`Le service redémarre ou ne répond pas (HTTP ${response.status}). Nouvelle tentative automatique.`
-    :`Le service n’a pas confirmé la commande (HTTP ${response.status}). Vérifiez l’état de la machine avant un nouvel essai.`);
+    ?formatText("Le service redémarre ou ne répond pas (HTTP {0}). Nouvelle tentative automatique.",response.status)
+    :formatText("Le service n’a pas confirmé la commande (HTTP {0}). Vérifiez l’état de la machine avant un nouvel essai.",response.status));
   }
   if(!response.ok||data.ok===false&&path!='/status'){
-   const error=new Error(data.message||`Erreur ${response.status}`);
+   const fallback=read?'Échec de la lecture auprès d’Anycubic.':'Le service a refusé la demande ou n’a pas confirmé son résultat. Vérifiez l’état avant de réessayer.';
+   const error=new Error(data.message?serverText(data.message,fallback):formatText("Erreur {0}",response.status));
    error.cameraReason=data.camera_error;
    throw error;
   }
+  if(data.message)data.message=serverText(data.message,data.ok===false
+   ?'Échec de la lecture auprès d’Anycubic.'
+   :read?'Le cloud ne fournit pas de détail traduit.':'La commande a été traitée. Vérifiez l’état de l’imprimante.');
   return data;
  };
 }

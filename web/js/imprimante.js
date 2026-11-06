@@ -1,17 +1,22 @@
-import {$,confirmAction,date,fmt,formatText,locale,message,mins,node,set,timeZone} from './workshop-ui.mjs?v=86ab829dd566';
-import {createTemperatureLoader} from './workshop-temperatures.mjs?v=c6536d3b85be';
-import {api,createRequest} from './workshop-api.mjs?v=b5884c562eef';
+import {$,confirmAction,date,fmt,formatText,locale,message,mins,node,serverText,set,timeZone,tr} from './workshop-ui.mjs?v=60097cdec556';
+import {createTemperatureLoader} from './workshop-temperatures.mjs?v=2414b95f0ddd';
+import {api,createRequest} from './workshop-api.mjs?v=f28638a19076';
 
 let snapshot=null, source='local', cloudPage=1, cloudRows=[], filePending=false, fileRows=null, currentTab='overview', busy=false, client=null, cameraTrack=null, zoom=1, sdkPromise=null, cameraGeneration=0, presetsReady=false, mqttSeen='', connectionFailure=false;
 export let previewJob=null;
 let cloudHasMore=false;
+/** Un changement de langue recharge la page, donc le sélecteur attend la fin de l’action en cours. */
+function setBusy(value){
+ busy=value;
+ $('interface-language').disabled=value;
+}
 let fileContext=null,fileGeneration=0,fileReload=false,uploadAttempt=null;
 let cameraWanted=false,cameraViewer=null;
 let selectedPrinter='',printerCatalogueReady=false,printerCataloguePending=false;
 /** Le choix reste propre au navigateur ; les valeurs périmées se replient sur le défaut fourni par le serveur. */
 async function loadPrinters(){if(printerCataloguePending)return;printerCataloguePending=true;try{const d=await request('/printers'),items=d.items||[];if(!items.length)return;let saved='';try{saved=localStorage.getItem('cloud-page-printer')||'';}catch{}selectedPrinter=items.some(x=>x.key===saved)?saved:items.some(x=>x.key===d.default)?d.default:items[0].key;const selector=$('printer-selector');selector.replaceChildren(...items.map(p=>new Option(p.name,p.key)));selector.value=selectedPrinter;$('printer-selector-wrap').hidden=items.length<2;printerCatalogueReady=true;}finally{printerCataloguePending=false;}}
 /** Une nouvelle page empêche de réutiliser un dialogue, un aperçu ou un cache de la machine précédente. */
-async function choosePrinter(){const selector=$('printer-selector');if(busy){selector.value=selectedPrinter;message('Attendez la fin de l’opération avant de changer d’imprimante.',true);return;}await closeCamera();try{localStorage.setItem('cloud-page-printer',selector.value);}catch{message('Le navigateur ne peut pas mémoriser ce choix.',true);selector.value=selectedPrinter;return;}location.reload();}
+async function choosePrinter(){const selector=$('printer-selector');if(busy){selector.value=selectedPrinter;message(tr('Attendez la fin de l’opération avant de changer d’imprimante.'),true);return;}await closeCamera();try{localStorage.setItem('cloud-page-printer',selector.value);}catch{message(tr('Le navigateur ne peut pas mémoriser ce choix.'),true);selector.value=selectedPrinter;return;}location.reload();}
 $('printer-selector').onchange=choosePrinter;
 const request=createRequest(()=>selectedPrinter);
 const loadTemperatures=createTemperatureLoader(request);
@@ -28,7 +33,7 @@ function confirmPassword(action,target){
   form.onsubmit=async event=>{
    event.preventDefault();
    if(submit.disabled)return;
-   submit.disabled=true;set('reauth-state','Vérification…');
+   submit.disabled=true;set('reauth-state',tr('Vérification…'));
    const body=JSON.stringify({action,password:form.elements.password.value});
    form.reset();
    try{
@@ -45,16 +50,16 @@ function confirmPassword(action,target){
  });
 }
 /** Renvoie le résultat ou null ; question demande confirmation et request_id empêche une répétition côté serveur. */
-async function command(action,data={},question,feedback){const notify=(text,error)=>{message(text,error);feedback?.(text);};if(busy){notify('Une opération est déjà en cours.',true);return null;}const target=selectedPrinter,projectKey=['pause','resume','cancel'].includes(action)?snapshot?.printer?.command_project:null;if(['pause','resume','cancel'].includes(action))data={...data,project_key:projectKey};if(!target){notify('Attendez la découverte des imprimantes avant une commande.',true);return null;}if(question&&!await confirmAction(question))return null;if(target!==selectedPrinter){notify('La cible a changé : commande annulée.',true);return null;}busy=true;try{
+async function command(action,data={},question,feedback){const notify=(text,error)=>{message(text,error);feedback?.(text);};if(busy){notify(tr('Une opération est déjà en cours.'),true);return null;}const target=selectedPrinter,projectKey=['pause','resume','cancel'].includes(action)?snapshot?.printer?.command_project:null;if(['pause','resume','cancel'].includes(action))data={...data,project_key:projectKey};if(!target){notify(tr('Attendez la découverte des imprimantes avant une commande.'),true);return null;}if(question&&!await confirmAction(question))return null;if(target!==selectedPrinter){notify(tr('La cible a changé : commande annulée.'),true);return null;}setBusy(true);try{
  if(sensitiveActions.has(action)){
   const confirmation=await confirmPassword(action,target);
   if(!confirmation)return null;
   data={...data,confirmation};
  }
- notify('Demande en cours…');
- const d=await request('/command',{printerKey:target,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data,request_id:crypto.randomUUID()})});notify(d.message);await refresh();return d;}catch(e){notify(e.message,true);return null;}finally{busy=false;}}
+ notify(tr('Demande en cours…'));
+ const d=await request('/command',{printerKey:target,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data,request_id:crypto.randomUUID()})});notify(d.message);await refresh();return d;}catch(e){notify(e.message,true);return null;}finally{setBusy(false);}}
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
-function definition(target,values){const dl=$(target);dl.replaceChildren(...values.map(([label,value])=>{const div=node('div');const title=node('dt',label);if(['temperatures','details','ace-stats'].includes(target))decorateMetric(title,metricIcons[label]);div.append(title,node('dd',value));return div;}));}
+function definition(target,values){const dl=$(target);dl.replaceChildren(...values.map(([label,value])=>{const div=node('div');const title=node('dt',tr(label));if(['temperatures','details','ace-stats'].includes(target))decorateMetric(title,metricIcons[label]);div.append(title,node('dd',value));return div;}));}
 $('message-close').onclick=()=>message('');
 const metricPaths={
  nozzle:'M6 3h12v6l-6 5-6-5zM12 14v4m-6 3h12',
@@ -84,7 +89,7 @@ function decorateMetric(label,icon){
  path.setAttribute('d',metricPaths[icon]);svg.append(path);label.prepend(svg);
 }
 for(const title of document.querySelectorAll('[data-metric-icon]'))decorateMetric(title,title.dataset.metricIcon);
-const detailNames={job_eta:'Fin estimée',job_z_thick:'Épaisseur de couche',job_model_height:'Hauteur du modèle',job_speed_mode:'Mode de vitesse',print_speed_pct:'Vitesse (%)',job_anti_alias_count:'Anticrénelage',job_on_time:'Exposition',job_off_time:'Pause exposition',job_bottom_time:'Exposition de base',job_bottom_layers:'Couches de base',job_z_up_height:'Levée Z',job_z_up_speed:'Vitesse de levée Z',job_z_down_speed:'Vitesse de descente Z'};
+const detailNames={job_eta:tr('Fin estimée'),job_z_thick:tr('Épaisseur de couche'),job_model_height:tr('Hauteur du modèle'),job_speed_mode:tr('Mode de vitesse'),print_speed_pct:'Vitesse (%)',job_anti_alias_count:tr('Anticrénelage'),job_on_time:'Exposition',job_off_time:tr('Pause exposition'),job_bottom_time:tr('Exposition de base'),job_bottom_layers:tr('Couches de base'),job_z_up_height:tr('Levée Z'),job_z_up_speed:tr('Vitesse de levée Z'),job_z_down_speed:tr('Vitesse de descente Z')};
 /** Réessaie un aperçu indisponible avec un délai borné et ignore les réponses d’un ancien projet. */
 function renderJobPreview(printer){
  const key=printer.job_name&&(printer.command_project||printer.job_name);
@@ -117,10 +122,10 @@ const printerIllustrations=new Map([
 ]);
 /** Les illustrations suivent le modèle constructeur et la génération explicitement rapportée. */
 function renderHardware(printer){
- const model=printer.machine_name||printer.name||'Imprimante';
+ const model=printer.machine_name||printer.name||tr('Imprimante');
  const box=printer.boxes?.[0];
  const generation=box?.model;
- const aceName=box?(generation||'Module ACE'):'Aucun module ACE';
+ const aceName=box?(generation||tr('Module ACE')):tr('Aucun module ACE');
  const setImage=(id,source)=>{
   const image=$(id);
   if(image.getAttribute('src')!==source)image.src=source;
@@ -135,38 +140,38 @@ function renderHardware(printer){
  set('ace-model',aceName);
  set('firmware-printer-model',model);
  set('firmware-ace-model',aceName);
- set('chart-ace-name',box?(generation||'Module ACE'):'Module ACE');
+ set('chart-ace-name',box?(generation||tr('Module ACE')):tr('Module ACE'));
  setImage('settings-printer-illustration',$('printer-illustration').getAttribute('src'));
  $('ace-illustration').hidden=!box;
  setImage('ace-illustration',hardwareIcons+(generation==='ACE 2 Pro'?'ace2pro.png':generation==='ACE Pro'?'ace-pro.svg':'ace.svg'));
 }
 /** Affiche l’état courant et autorise les commandes selon le projet, sans assimiler l’absence de données à un succès. */
-function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?'Hors ligne':p.job_is_paused?'En pause':p.is_busy?'Impression en cours':'Disponible';statusBadge('printer-status',state,p.printer_online?p.job_is_paused?null:true:false);$('job-name').dataset.tooltip=p.job_name||'Imprimante prête';set('job-name',p.job_name||(!p.printer_online?'L’imprimante est hors ligne.':p.is_busy?'Impression en cours':'Prête pour la prochaine création.'));set('job-state',p.job_name?({printing:'Impression en cours',paused:'Impression en pause',finished:'Impression terminée',completed:'Impression terminée'}[p.job_state]||fmt(p.job_state)):p.is_busy?'Le cloud n’a pas encore fourni le projet.':'Aucune impression en cours.');$('job-state').hidden=$('job-state').textContent===state;$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}
+function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?tr('Hors ligne'):p.job_is_paused?tr('En pause'):p.is_busy?tr('Impression en cours'):tr('Disponible');statusBadge('printer-status',state,p.printer_online?p.job_is_paused?null:true:false);$('job-name').dataset.tooltip=p.job_name||tr('Imprimante prête');set('job-name',p.job_name||(!p.printer_online?tr('L’imprimante est hors ligne.'):p.is_busy?tr('Impression en cours'):tr('Prête pour la prochaine création.')));set('job-state',p.job_name?({printing:tr('Impression en cours'),paused:tr('Impression en pause'),finished:tr('Impression terminée'),completed:tr('Impression terminée')}[p.job_state]||fmt(p.job_state)):p.is_busy?tr('Le cloud n’a pas encore fourni le projet.'):tr('Aucune impression en cours.'));$('job-state').hidden=$('job-state').textContent===state;$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}
  definition('job-stats',[['Temps écoulé',mins(p.job_time_elapsed)],['Temps restant',mins(p.job_time_remaining)],['Couches',p.job_current_layer==null?'—':`${p.job_current_layer} / ${p.job_total_layers??'—'}`]]);
  const measurements=[['Buse actuelle / cible',`${fmt(p.curr_nozzle_temp,' °C')} / ${fmt(p.target_nozzle_temp,' °C')}`],['Plateau actuel / cible',`${fmt(p.curr_hotbed_temp,' °C')} / ${fmt(p.target_hotbed_temp,' °C')}`],['Ventilation pièce',fmt(p.fan_speed_pct,' %')],['Ventilation auxiliaire',fmt(p.aux_fan_speed_pct,' %')],['Ventilation enceinte',fmt(p.box_fan_level)]];
  definition('temperatures',measurements);definition('control-metrics',measurements);
- set('control-light-state',p.camera_light===true?'Allumé':p.camera_light===false?'Éteint':'État inconnu');
+ set('control-light-state',p.camera_light===true?tr('Allumé'):p.camera_light===false?tr('Éteint'):tr('État inconnu'));
  for(const id of ['control-light-on','control-light-off'])$(id).disabled=!snapshot.ok||!p.printer_online;
  definition('details',[['Modèle',p.machine_name||'—'],['Micrologiciel',fmt(p.firmware)],['Temps total',fmt(p.statistics?.hours,' h')],['Nombre d’impressions',fmt(p.statistics?.print_count)],['Filament utilisé',String(p.statistics?.material??'—').replace(/([0-9.]+)\s*(kg|g)$/,(_,n,u)=>Number(n).toLocaleString(locale,{maximumFractionDigits:2})+' '+u)],...Object.entries(detailNames).filter(([key])=>p[key]!=null).map(([key,label])=>[label,key==='job_eta'?date(p[key]):fmt(p[key])])]);
  for(const action of ['pause','resume','cancel'])document.querySelector(`[data-command="${action}"]`).disabled=!p.job_in_progress||!p.command_project||(action==='pause'&&p.job_is_paused)||(action==='resume'&&!p.job_is_paused);
- renderFirmware(p);set('settings-availability',snapshot.ok&&p.job_in_progress?'Réglages disponibles':'Disponibles pendant une impression');$('settings-form').querySelectorAll('input,select,button').forEach(e=>e.disabled=!snapshot.ok||!p.job_in_progress);if(!$('rename-form').dataset.loaded){$('rename-form').elements.name.value=p.name||'';$('rename-form').dataset.loaded='yes';}
+ renderFirmware(p);set('settings-availability',snapshot.ok&&p.job_in_progress?tr('Réglages disponibles'):tr('Disponibles pendant une impression'));$('settings-form').querySelectorAll('input,select,button').forEach(e=>e.disabled=!snapshot.ok||!p.job_in_progress);if(!$('rename-form').dataset.loaded){$('rename-form').elements.name.value=p.name||'';$('rename-form').dataset.loaded='yes';}
 
- const modes=p.speed_modes||[];if(JSON.stringify(modes)!==$('speed-mode').dataset.values){const previous=$('speed-mode').value;$('speed-mode').replaceChildren(new Option('Ne pas modifier',''),...modes.map(m=>new Option(({Quiet:'Silencieux',Standard:'Standard',Sport:'Sport'}[m.description??m.name??m.label]||m.description||m.name||m.label||String(m.mode??m.value??m.code)),m.mode??m.value??m.code??m.id)));$('speed-mode').value=previous;$('speed-mode').dataset.values=JSON.stringify(modes);}
+ const modes=p.speed_modes||[];if(JSON.stringify(modes)!==$('speed-mode').dataset.values){const previous=$('speed-mode').value;$('speed-mode').replaceChildren(new Option(tr('Ne pas modifier'),''),...modes.map(m=>new Option(({Quiet:tr('Silencieux'),Standard:'Standard',Sport:'Sport'}[m.description??m.name??m.label]||m.description||m.name||m.label||String(m.mode??m.value??m.code)),m.mode??m.value??m.code??m.id)));$('speed-mode').value=previous;$('speed-mode').dataset.values=JSON.stringify(modes);}
 }
 /** N’autorise une mise à jour que si la machine est libre et la disponibilité explicitement annoncée. */
 function renderFirmware(p){
  const printerButton=document.querySelector('[data-command=firmware]'),aceButton=document.querySelector('[data-command=ace-firmware]'),ace=p.ace_updates?.[0];
  const idle=!!p.printer_online&&!!p.is_available&&!p.job_in_progress,printerUpdate=p.firmware_update_available===true,aceUpdate=ace?.available===true;
  printerButton.disabled=!idle||!printerUpdate;aceButton.disabled=!idle||!aceUpdate;
- printerButton.title=!idle?'Imprimante occupée ou hors ligne.':printerUpdate?'Installer la version '+p.firmware_available:'Aucune mise à jour proposée par Anycubic.';
- aceButton.title=!idle?'Imprimante occupée ou hors ligne.':aceUpdate?'Installer la version '+(ace.target||'proposée')+' sur le module ACE.':ace?'Aucune mise à jour proposée par Anycubic.':'Version de l’ACE non reçue. Actualisez les informations.';
+ printerButton.title=!idle?tr('Imprimante occupée ou hors ligne.'):printerUpdate?tr('Installer la version ')+p.firmware_available:tr('Aucune mise à jour proposée par Anycubic.');
+ aceButton.title=!idle?tr('Imprimante occupée ou hors ligne.'):aceUpdate?tr('Installer la version ')+(ace.target||tr('proposée'))+' sur le module ACE.':ace?tr('Aucune mise à jour proposée par Anycubic.'):tr('Version de l’ACE non reçue. Actualisez les informations.');
  for(const [id,current,target,available] of [['printer',p.firmware,p.firmware_available,p.firmware_update_available],['ace',ace?.current??p.multi_color_box_fw_version,ace?.target,ace?.available]]){
-  set(`firmware-${id}-version`,available===true?`${fmt(current)} → ${fmt(target)}`:`Version ${fmt(current)}`);
-  set(`firmware-${id}-status`,available===true?'Mise à jour disponible':available===false?'À jour':'À vérifier');
+  set(`firmware-${id}-version`,available===true?`${fmt(current)} → ${fmt(target)}`:formatText("Version {0}",fmt(current)));
+  set(`firmware-${id}-status`,available===true?tr('Mise à jour disponible'):available===false?tr('À jour'):tr('À vérifier'));
   $(`firmware-${id}-status`).className='firmware-status '+(available===true?'available':available===false?'current':'unknown');
  }
- printerButton.dataset.confirm=formatText('Installer la version {0} sur l’imprimante ? Ne coupez pas son alimentation pendant la mise à jour.',p.firmware_available||'—');
- aceButton.dataset.confirm=formatText('Installer la version {0} sur le module ACE ? Ne coupez pas son alimentation pendant la mise à jour.',ace?.target||'—');
+ printerButton.dataset.confirm=formatText(tr('Installer la version {0} sur l’imprimante ? Ne coupez pas son alimentation pendant la mise à jour.'),p.firmware_available||'—');
+ aceButton.dataset.confirm=formatText(tr('Installer la version {0} sur le module ACE ? Ne coupez pas son alimentation pendant la mise à jour.'),ace?.target||'—');
 }
 /** Renvoie le premier ACE connu, ou null ; cette interface ne propose pas de sélection de second boîtier. */
 function selectedBox(){return snapshot?.printer?.boxes?.[0]||null;}
@@ -174,45 +179,45 @@ function selectedBox(){return snapshot?.printer?.boxes?.[0]||null;}
 function boxData(){return {box:selectedBox()?.box_id??0};}
 /** Affiche les bobines et le séchage ; préserve une quantité nulle et distingue RFID d’une configuration manuelle. */
 function renderAce(p){
- const box=selectedBox();if(!box){statusBadge('ace-status','Aucun module ACE détecté.',false);$('spools').replaceChildren();return;}
- statusBadge('ace-status',!p.printer_online?'Hors ligne':box.drying?.is_drying?'Séchage en cours':'Disponible',!!p.printer_online);definition('ace-stats',[['Température',fmt(box.temperature,' °C')],['Humidité',fmt(box.humidity,' %')],['Relais automatique',box.auto_feed?'Activé':'Désactivé']]);
- $('spools').replaceChildren(...(box.spools||[]).map(s=>{const art=node('article',null,'slot'),sw=node('div',null,'swatch');if(Array.isArray(s.color))sw.style.backgroundColor=`rgb(${s.color.slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0))).join(',')})`;art.append(sw,node('h3',s.material_type||'Non renseigné'),node('p',`Emplacement ${s.display_slot??s.slot}`),node('p',Number.isInteger(box.loaded_slot)&&box.loaded_slot>=0&&box.loaded_slot===(s.local_slot??s.slot)-1?'● Bobine engagée':s.spool_loaded?'Filament présent':'Filament absent ou non détecté',Number.isInteger(box.loaded_slot)&&box.loaded_slot>=0&&box.loaded_slot===(s.local_slot??s.slot)-1?'engaged-spool':''),node('p',s.remaining_percent==null?'Quantité non renseignée':`${s.remaining_percent} % restants`));if(s.rfid===true)art.append(node('p','Anycubic · RFID reconnu','rfid-badge'));else if(s.rfid===false)art.append(node('p','Configuration manuelle','muted'));const edit=node('button',s.rfid===true?'Voir':'Modifier');edit.type='button';edit.title=s.rfid===true?'Consulter les informations RFID et gérer le chargement de cette bobine.':'Modifier le matériau, la couleur et le chargement de cet emplacement.';edit.onclick=()=>openSpool(s.local_slot||s.slot);art.append(edit);return art;}));
+ const box=selectedBox();if(!box){statusBadge('ace-status',tr('Aucun module ACE détecté.'),false);$('spools').replaceChildren();return;}
+ statusBadge('ace-status',!p.printer_online?tr('Hors ligne'):box.drying?.is_drying?tr('Séchage en cours'):tr('Disponible'),!!p.printer_online);definition('ace-stats',[['Température',fmt(box.temperature,' °C')],['Humidité',fmt(box.humidity,' %')],['Relais automatique',box.auto_feed?tr('Activé'):tr('Désactivé')]]);
+ $('spools').replaceChildren(...(box.spools||[]).map(s=>{const art=node('article',null,'slot'),sw=node('div',null,'swatch');if(Array.isArray(s.color))sw.style.backgroundColor=`rgb(${s.color.slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0))).join(',')})`;art.append(sw,node('h3',s.material_type||tr('Non renseigné')),node('p',formatText("Emplacement {0}",s.display_slot??s.slot)),node('p',Number.isInteger(box.loaded_slot)&&box.loaded_slot>=0&&box.loaded_slot===(s.local_slot??s.slot)-1?tr('● Bobine engagée'):s.spool_loaded?tr('Filament présent'):tr('Filament absent ou non détecté'),Number.isInteger(box.loaded_slot)&&box.loaded_slot>=0&&box.loaded_slot===(s.local_slot??s.slot)-1?'engaged-spool':''),node('p',s.remaining_percent==null?tr('Quantité non renseignée'):formatText("{0} % restants",s.remaining_percent)));if(s.rfid===true)art.append(node('p','Anycubic · RFID reconnu','rfid-badge'));else if(s.rfid===false)art.append(node('p',tr('Configuration manuelle'),'muted'));const edit=node('button',s.rfid===true?'Voir':'Modifier');edit.type='button';edit.title=s.rfid===true?tr('Consulter les informations RFID et gérer le chargement de cette bobine.'):tr('Modifier le matériau, la couleur et le chargement de cet emplacement.');edit.onclick=()=>openSpool(s.local_slot||s.slot);art.append(edit);return art;}));
  const dry=box.drying||{};
  const drying=typeof dry.is_drying==='boolean'?dry.is_drying:null;
- statusBadge('drying-state',drying===true?'Séchage actif':drying===false?'Séchage inactif':'État du séchage inconnu',drying);
+ statusBadge('drying-state',drying===true?tr('Séchage actif'):drying===false?tr('Séchage inactif'):tr('État du séchage inconnu'),drying);
  $('drying-detail').hidden=drying!==true;
- if(drying)set('drying-detail',`${fmt(dry.target_temperature,' °C')} · Durée restante ${mins(dry.remaining_time)}`);
+ if(drying)set('drying-detail',formatText("{0} · Durée restante {1}",fmt(dry.target_temperature,' °C'),mins(dry.remaining_time)));
  if(document.activeElement!==$('auto-feed'))$('auto-feed').checked=!!box.auto_feed;
 
- if(!presetsReady){presetsReady=true;$('preset-fields').replaceChildren(...snapshot.presets.map((pr,i)=>{const fs=node('fieldset');fs.append(node('legend',`Préréglage ${i+1}`));for(const [key,label]of[['name','Nom'],['temperature','Température (°C)'],['hours','Durée (heures)']]){const l=node('label',label),input=node('input');input.name=`${i}-${key}`;input.value=pr[key];input.type=key==='name'?'text':'number';input.required=true;fs.append(l);l.append(input);}return fs;}));}
- $('dry-presets').replaceChildren(...snapshot.presets.map(pr=>{const b=node('button',`${pr.name} ${pr.temperature} °C · ${pr.hours} h`);b.type='button';b.onclick=()=>command('dry-start',{...boxData(),temperature:pr.temperature,hours:pr.hours},`Démarrer le séchage ${pr.name} à ${pr.temperature} °C pendant ${pr.hours} h ?`);return b;}));
+ if(!presetsReady){presetsReady=true;$('preset-fields').replaceChildren(...snapshot.presets.map((pr,i)=>{const fs=node('fieldset');fs.append(node('legend',formatText("Préréglage {0}",i+1)));for(const [key,label]of[['name',tr('Nom')],['temperature',tr('Température (°C)')],['hours',tr('Durée (heures)')]]){const l=node('label',label),input=node('input');input.name=`${i}-${key}`;input.value=pr[key];input.type=key==='name'?'text':'number';input.required=true;fs.append(l);l.append(input);}return fs;}));}
+ $('dry-presets').replaceChildren(...snapshot.presets.map(pr=>{const b=node('button',`${pr.name} ${pr.temperature} °C · ${pr.hours} h`);b.type='button';b.onclick=()=>command('dry-start',{...boxData(),temperature:pr.temperature,hours:pr.hours},formatText("Démarrer le séchage {0} à {1} °C pendant {2} h ?",pr.name,pr.temperature,pr.hours));return b;}));
 }
 /** Actualise l’interface depuis l’état serveur et signale les erreurs de connexion sans répéter de commande. */
-export async function refresh(){try{if(!printerCatalogueReady)await loadPrinters();const d=await request('/status');if(connectionFailure&&d.ok){message('');connectionFailure=false;}snapshot=d;if(currentTab==='camera'&&cameraWanted&&!cameraTrack&&d.camera_diagnostic)set('camera-state',d.camera_diagnostic.message);if(d.notifications){updateNoticeCount(d.notifications.unread);const signature=JSON.stringify(d.notifications);if(signature!==noticeSignature){noticeSignature=signature;if(historyPage===1)noticeRows=d.notifications.items;else{const merged=new Map([...noticeRows,...d.notifications.items].map(x=>[x.key,x]));noticeRows=[...merged.values()].sort((a,b)=>b.time-a.time);}if(!$('notifications-panel').hidden)renderNotifications();}}const p=d.printer;set('connection',!d.ok?'Cloud indisponible':p?.printer_online?'En ligne':'Hors ligne');$('connection').classList.toggle('offline',!d.ok||!p?.printer_online);set('updated',`${'Dernière actualisation'} : ${date([d.updated_at,d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`);if(!d.ok&&d.message){connectionFailure=true;message(d.message,true);}if(d.account_message)message(d.account_message,true);if(!p){disableQuickControls();return;}updateNativeControls(p);updateUploadButton();renderOverview(p);renderAce(p);$('events').replaceChildren(...d.events.map(e=>node('li',`${date(e.time)} — ${e.action} : ${e.state}`)));if(source!=='cloud'&&currentTab==='files')renderFiles();mqttSeen=d.mqtt_updated_at;}catch(e){disableQuickControls();connectionFailure=true;set('connection','Connexion indisponible');message('Connexion au serveur momentanément indisponible.',true);}}
+export async function refresh(){try{if(!printerCatalogueReady)await loadPrinters();const d=await request('/status');if(connectionFailure&&d.ok){message('');connectionFailure=false;}snapshot=d;if(currentTab==='camera'&&cameraWanted&&!cameraTrack&&d.camera_diagnostic)set('camera-state',serverText(d.camera_diagnostic.message,'Pas de diagnostic traduit pour cet événement.'));if(d.notifications){updateNoticeCount(d.notifications.unread);const signature=JSON.stringify(d.notifications);if(signature!==noticeSignature){noticeSignature=signature;if(historyPage===1)noticeRows=d.notifications.items;else{const merged=new Map([...noticeRows,...d.notifications.items].map(x=>[x.key,x]));noticeRows=[...merged.values()].sort((a,b)=>b.time-a.time);}if(!$('notifications-panel').hidden)renderNotifications();}}const p=d.printer;set('connection',!d.ok?tr('Cloud indisponible'):p?.printer_online?tr('En ligne'):tr('Hors ligne'));$('connection').classList.toggle('offline',!d.ok||!p?.printer_online);set('updated',`${tr('Dernière actualisation')} : ${date([d.updated_at,d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`);if(!d.ok&&d.message){connectionFailure=true;message(d.message,true);}if(d.account_message)message(serverText(d.account_message,'Échec de la lecture auprès d’Anycubic.'),true);if(!p){disableQuickControls();return;}updateNativeControls(p);updateUploadButton();renderOverview(p);renderAce(p);$('events').replaceChildren(...d.events.map(e=>node('li',`${date(e.time)} — ${e.action} : ${serverText(e.state,'Pas de diagnostic traduit pour cet événement.')}`)));if(source!=='cloud'&&currentTab==='files')renderFiles();mqttSeen=d.mqtt_updated_at;}catch(e){disableQuickControls();connectionFailure=true;set('connection',tr('Connexion indisponible'));message(tr('Connexion au serveur momentanément indisponible.'),true);}}
 /** Change le panneau actif, charge ses données et ferme la session vidéo lorsque l’utilisateur quitte la caméra. */
-function showTab(name){currentTab=name;for(const panel of document.querySelectorAll('.tab-panel'))panel.hidden=panel.id!==`tab-${name}`;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}if(name==='files'){renderFiles();loadFiles();}if(name==='history')historyViewSet(historyView);if(name==='overview')loadTemperatures();if(name==='settings'&&!deviceOptions)loadDeviceOptions();if(name==='camera'){loadTimelapse();if(snapshot?.demo){const image=node('img');image.src='/imprimante-api/ui/icons/kobra-s1-ace2pro.png';image.alt='Illustration de la Kobra S1';$('camera-video').classList.add('demo-camera');$('camera-video').replaceChildren(image,node('p','Zone vidéo · Démonstration sans flux caméra'));}}if(name!=='camera')void closeCamera();}
+function showTab(name){currentTab=name;for(const panel of document.querySelectorAll('.tab-panel'))panel.hidden=panel.id!==`tab-${name}`;for(const b of document.querySelectorAll('[data-tab]')){if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}if(name==='files'){renderFiles();loadFiles();}if(name==='history')historyViewSet(historyView);if(name==='overview')loadTemperatures();if(name==='settings'&&!deviceOptions)loadDeviceOptions();if(name==='camera'){loadTimelapse();if(snapshot?.demo){const image=node('img');image.src='/imprimante-api/ui/icons/kobra-s1-ace2pro.png';image.alt=tr('Illustration de la Kobra S1');$('camera-video').classList.add('demo-camera');$('camera-video').replaceChildren(image,node('p',tr('Zone vidéo · Démonstration sans flux caméra')));}}if(name!=='camera')void closeCamera();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 document.querySelectorAll('[data-command]').forEach(b=>b.onclick=()=>command(b.dataset.command,boxData(),b.dataset.confirm));
 $('go-spool').onclick=()=>openSpool($('spool-form').elements.slot.value);$('go-drying').onclick=()=>{const dry=selectedBox()?.drying;if(dry?.is_drying){$('dry-form').elements.temperature.value=dry.target_temperature;if(Number.isFinite(dry.total_duration)&&dry.total_duration>0)$('dry-form').elements.hours.value=Math.max(1,Math.ceil(dry.total_duration/60));}if(!$('dry-dialog').open)$('dry-dialog').showModal();$('dry-form').elements.temperature.focus({preventScroll:true});};
 $('spool-color').oninput=()=>set('spool-color-value',$('spool-color').value.toUpperCase());
 document.querySelectorAll('.dialog-close').forEach(b=>b.onclick=()=>b.closest('dialog').close());
-$('spool-form').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));if(!d.material){message('Choisissez un matériau compatible avant d’enregistrer cette bobine.',true);return;}command('slot',{...d,...boxData()},'Enregistrer ce matériau et cette couleur dans l’ACE ?');};
-for(const [id,action,extra,question]of[['feed','feed',{},'Charger le filament sélectionné ?'],['feed-finish','feed',{finish:true},'Terminer le chargement ?'],['retract','retract',{},'Rétracter le filament ?']])$(id).onclick=()=>command(action,{...boxData(),slot:$('spool-form').elements.slot.value,...extra},question);
-$('dry-form').onsubmit=e=>{e.preventDefault();command('dry-start',{...Object.fromEntries(new FormData(e.target)),...boxData()},'Démarrer le séchage avec ces paramètres ?');};$('dry-stop').onclick=()=>command('dry-stop',boxData(),'Arrêter le séchage du module sélectionné ?');$('auto-feed-save').onclick=()=>command('auto-feed',{...boxData(),enabled:$('auto-feed').checked},'Modifier le relais automatique des bobines ?');
+$('spool-form').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));if(!d.material){message(tr('Choisissez un matériau compatible avant d’enregistrer cette bobine.'),true);return;}command('slot',{...d,...boxData()},tr('Enregistrer ce matériau et cette couleur dans l’ACE ?'));};
+for(const [id,action,extra,question]of[['feed','feed',{},tr('Charger le filament sélectionné ?')],['feed-finish','feed',{finish:true},tr('Terminer le chargement ?')],['retract','retract',{},tr('Rétracter le filament ?')]])$(id).onclick=()=>command(action,{...boxData(),slot:$('spool-form').elements.slot.value,...extra},question);
+$('dry-form').onsubmit=e=>{e.preventDefault();command('dry-start',{...Object.fromEntries(new FormData(e.target)),...boxData()},tr('Démarrer le séchage avec ces paramètres ?'));};$('dry-stop').onclick=()=>command('dry-stop',boxData(),tr('Arrêter le séchage du module sélectionné ?'));$('auto-feed-save').onclick=()=>command('auto-feed',{...boxData(),enabled:$('auto-feed').checked},tr('Modifier le relais automatique des bobines ?'));
 $('presets-form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),presets=Array.from({length:4},(_,i)=>Object.fromEntries(['name','temperature','hours'].map(k=>[k,f.get(`${i}-${k}`)])));const d=await command('presets',{presets});if(d){presetsReady=false;await refresh();}};
 const controlFeedback=text=>set('control-feedback',text);
 /** Refuse les nouvelles commandes lorsque le serveur n’a plus d’état utilisable. */
 function disableQuickControls(){
  for(const button of $('controls-dialog').querySelectorAll('form input,form select,form button,#control-light-on,#control-light-off'))button.disabled=true;
- set('control-light-state','État inconnu');
+ set('control-light-state',tr('État inconnu'));
 }
 $('controls-open').onclick=()=>{controlFeedback('');$('controls-dialog').showModal();};
 $('settings-form').onsubmit=e=>{
  e.preventDefault();controlFeedback('');
- void command('settings',Object.fromEntries(new FormData(e.target)),'Appliquer ces réglages à l’impression active ?',controlFeedback);
-};$('rename-form').onsubmit=e=>{e.preventDefault();command('rename',Object.fromEntries(new FormData(e.target)),'Renommer l’imprimante dans le compte Anycubic ?');};
+ void command('settings',Object.fromEntries(new FormData(e.target)),tr('Appliquer ces réglages à l’impression active ?'),controlFeedback);
+};$('rename-form').onsubmit=e=>{e.preventDefault();command('rename',Object.fromEntries(new FormData(e.target)),tr('Renommer l’imprimante dans le compte Anycubic ?'));};
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
-function slots(value){if(!value.trim())return [];const result=value.split(/[ ,;]+/).filter(Boolean).map(Number);if(result.some(v=>!Number.isInteger(v)||v<1||v>8))throw new Error('Indiquez des emplacements de 1 à 8.');return result;}
+function slots(value){if(!value.trim())return [];const result=value.split(/[ ,;]+/).filter(Boolean).map(Number);if(result.some(v=>!Number.isInteger(v)||v<1||v>8))throw new Error(tr('Indiquez des emplacements de 1 à 8.'));return result;}
 /** Empêche une ancienne liste de fournir des actions pour une autre source ou un autre dossier. */
 function currentFileContext(context){return !!context&&context.source===source&&context.path===$('file-path').value&&context.page===cloudPage&&context.printer===selectedPrinter;}
 const fileThumbnailCache=new Map(),fileThumbnailQueue=new Map();
@@ -260,14 +265,14 @@ async function loadFileThumbnails(){
 function showFileThumbnail(host,file,src){
  const unavailable=()=>{
   host.removeAttribute('aria-busy');
-  host.title='Aperçu indisponible';
+  host.title=tr('Aperçu indisponible');
   host.textContent='—';
  };
  if(!src){unavailable();return;}
  const image=node('img'),button=node('button',null,'file-thumbnail-open');
  image.alt='';
  button.type='button';
- button.setAttribute('aria-label','Agrandir l’aperçu de '+file.name);
+ button.setAttribute('aria-label',tr('Agrandir l’aperçu de ')+file.name);
  button.onclick=()=>openFilePreview(file.name,src);
  button.append(image);
  image.onload=()=>{
@@ -285,48 +290,48 @@ function fileThumbnail(file,context){
  host.setAttribute('aria-busy','true');
  const key=JSON.stringify([context.printer,context.source,context.path,file.handle,file.name,file.size_mb]);
  host.previewJob={file,context,key};
- host.title='Chargement de l’aperçu';
+ host.title=tr('Chargement de l’aperçu');
  const cached=fileThumbnailCache.get(key);
  if(cached&&cached.expires>Date.now())showFileThumbnail(host,file,cached.image);
  else fileThumbnailObserver.observe(host);
  return host;
 }
 /** Les actions gardent la source et le chemin de la liste reçue, même après un changement de vue. */
-function renderFiles(){fileThumbnailObserver.disconnect();fileThumbnailQueue.clear();const context=fileContext,listedSource=context?.source,listedPath=context?.path;const list=currentFileContext(context)?(listedSource==='cloud'?cloudRows:fileRows):null;const rows=Array.isArray(list)?list:[];$('file-rows').replaceChildren(...rows.map(f=>{const row=node('tr'),name=node('td'),size=node('td',fmt(f.size_mb,' Mo')),actions=node('td'),wrap=node('div',null,'actions');const identity=node('span',null,'file-row-identity');if(!f.is_dir)identity.append(fileThumbnail(f,context));identity.append(node('span',f.name));name.append(identity);const add=(label,fn,cls)=>{const b=node('button',null,cls);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',({'Télécharger':'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4','Renommer':'M4 20l4-1L20 7l-3-3L5 16z','Ouvrir':'M3 7V5h7l2 3h9v12H3z','Imprimer':'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z','Supprimer':'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15'})[label]||'');svg.append(path);b.append(svg,node('span',label));b.title=({'Imprimer':'Préparer l’impression de ce fichier avec les bobines choisies.','Supprimer':'Supprimer ce fichier après confirmation.','Ouvrir':'Afficher le contenu de ce dossier.'})[label]||label;if(label==='Imprimer'){if(listedSource==='cloud'&&f.printable===false){b.disabled=true;b.title='Ce fichier ne contient pas de G-code imprimable.';}else if(snapshot?.printer?.is_available===false){b.disabled=true;b.title='L’imprimante est occupée.';}}b.type='button';b.onclick=fn;wrap.append(b);};if(source==='cloud'){const check=node('input');check.type='checkbox';check.checked=cloudSelected.has(f.handle);check.setAttribute('aria-label','Sélectionner '+f.name);check.onchange=()=>{check.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);cloudSelectionState();};name.prepend(check);name.classList.add('cloud-file-name');add('Télécharger',()=>downloadCloud([f.handle]));add('Renommer',()=>renameCloud(f));}if(f.is_dir)add('Ouvrir',()=>{$('file-path').value=listedPath.replace(/\/$/,'')+'/'+f.name;loadFiles();});else{add('Imprimer',async()=>{try{await command(`print-${listedSource}`,{...f,path:listedPath,slots:slots($('file-slots').value)},`Imprimer « ${f.name} » avec la sélection de bobines indiquée ?`);}catch(e){message(e.message,true);}});add('Supprimer',async()=>{const ok=await command(`delete-${listedSource}`,{...f,path:listedPath},`Supprimer définitivement « ${f.name} » de ${listedSource==='cloud'?'votre espace cloud':listedSource==='usb'?'la clé USB':'la mémoire de l’imprimante'} ?`);if(ok)loadFiles();},'danger');}actions.append(wrap);row.append(name,size,actions);return row;}));
- if(source!=='cloud')set('files-state',list==null?'Liste non reçue. Actualisez ; les résultats arrivent par MQTT.':rows.length?`${rows.length} élément(s).`:'Ce dossier est vide.');
- $('cloud-tools').hidden=source!=='cloud';if(source==='cloud'){cloudSelectionState();loadCloudStorage();} $('prev-page').hidden=$('next-page').hidden=source!=='cloud';set('cloud-page',source==='cloud'?`Page ${cloudPage}`:'');$('prev-page').disabled=cloudPage<=1;$('next-page').disabled=!cloudHasMore||!currentFileContext(context);
+function renderFiles(){fileThumbnailObserver.disconnect();fileThumbnailQueue.clear();const context=fileContext,listedSource=context?.source,listedPath=context?.path;const list=currentFileContext(context)?(listedSource==='cloud'?cloudRows:fileRows):null;const rows=Array.isArray(list)?list:[];$('file-rows').replaceChildren(...rows.map(f=>{const row=node('tr'),name=node('td'),size=node('td',fmt(f.size_mb,tr(' Mo'))),actions=node('td'),wrap=node('div',null,'actions');const identity=node('span',null,'file-row-identity');if(!f.is_dir)identity.append(fileThumbnail(f,context));identity.append(node('span',f.name));name.append(identity);const add=(label,fn,cls)=>{const b=node('button',null,cls);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',({'Télécharger':'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4','Renommer':'M4 20l4-1L20 7l-3-3L5 16z','Ouvrir':'M3 7V5h7l2 3h9v12H3z','Imprimer':'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z','Supprimer':'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15'})[label]||'');svg.append(path);b.append(svg,node('span',tr(label)));b.title=({'Imprimer':tr('Préparer l’impression de ce fichier avec les bobines choisies.'),'Supprimer':tr('Supprimer ce fichier après confirmation.'),'Ouvrir':tr('Afficher le contenu de ce dossier.')})[label]||label;if(label==='Imprimer'){if(listedSource==='cloud'&&f.printable===false){b.disabled=true;b.title=tr('Ce fichier ne contient pas de G-code imprimable.');}else if(snapshot?.printer?.is_available===false){b.disabled=true;b.title=tr('L’imprimante est occupée.');}}b.type='button';b.onclick=fn;wrap.append(b);};if(source==='cloud'){const check=node('input');check.type='checkbox';check.checked=cloudSelected.has(f.handle);check.setAttribute('aria-label',tr('Sélectionner ')+f.name);check.onchange=()=>{check.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);cloudSelectionState();};name.prepend(check);name.classList.add('cloud-file-name');add('Télécharger',()=>downloadCloud([f.handle]));add('Renommer',()=>renameCloud(f));}if(f.is_dir)add('Ouvrir',()=>{$('file-path').value=listedPath.replace(/\/$/,'')+'/'+f.name;loadFiles();});else{add('Imprimer',async()=>{try{await command(`print-${listedSource}`,{...f,path:listedPath,slots:slots($('file-slots').value)},formatText("Imprimer « {0} » avec la sélection de bobines indiquée ?",f.name));}catch(e){message(e.message,true);}});add('Supprimer',async()=>{const ok=await command(`delete-${listedSource}`,{...f,path:listedPath},formatText("Supprimer définitivement « {0} » de {1} ?",f.name,listedSource==='cloud'?tr('votre espace cloud'):listedSource==='usb'?tr('la clé USB'):tr('la mémoire de l’imprimante')));if(ok)loadFiles();},'danger');}actions.append(wrap);row.append(name,size,actions);return row;}));
+ if(source!=='cloud')set('files-state',list==null?tr('Liste non reçue. Actualisez ; les résultats arrivent par MQTT.'):rows.length?formatText("{0} élément(s).",rows.length):tr('Ce dossier est vide.'));
+ $('cloud-tools').hidden=source!=='cloud';if(source==='cloud'){cloudSelectionState();loadCloudStorage();} $('prev-page').hidden=$('next-page').hidden=source!=='cloud';set('cloud-page',source==='cloud'?formatText("Page {0}",cloudPage):'');$('prev-page').disabled=cloudPage<=1;$('next-page').disabled=!cloudHasMore||!currentFileContext(context);
 }
 /** Sérialise les lectures MQTT et relance le dernier choix en ignorant toute réponse périmée. */
 async function loadFiles(){
  const generation=++fileGeneration;if(filePending){fileReload=true;renderFiles();return;}
  const context={source,path:$('file-path').value,page:cloudPage,printer:selectedPrinter};filePending=true;renderFiles();
  try{
-  set('files-state',context.source==='cloud'?'Chargement du cloud…':'Lecture du dossier sur l’imprimante…');
+  set('files-state',context.source==='cloud'?tr('Chargement du cloud…'):tr('Lecture du dossier sur l’imprimante…'));
   const result=await request(context.source==='cloud'?`/files/cloud?page=${context.page}`:`/files/${context.source}?path=${encodeURIComponent(context.path)}`,{printerKey:context.printer});
   if(generation!==fileGeneration||!currentFileContext(context))return;
   fileContext=context;
   if(context.source==='cloud'){cloudRows=result.files;cloudHasMore=result.has_more===true;}else fileRows=result.files;
-  renderFiles();set('files-state',context.source==='cloud'?`${cloudRows.length} fichier(s). Espace utilisé : ${fmt(result.store.used_bytes/1e6,' Mo')} sur ${fmt(result.store.total_bytes/1e6,' Mo')}.`:`${fileRows.length} élément(s) dans ${result.path}.`);
- }catch(e){if(generation===fileGeneration&&currentFileContext(context)){fileContext=null;renderFiles();message(e.message,true);set('files-state','Liste indisponible.');}}
+  renderFiles();set('files-state',context.source==='cloud'?formatText("{0} fichier(s). Espace utilisé : {1} sur {2}.",cloudRows.length,fmt(result.store.used_bytes/1e6,tr(' Mo')),fmt(result.store.total_bytes/1e6,tr(' Mo'))):formatText("{0} élément(s) dans {1}.",fileRows.length,result.path));
+ }catch(e){if(generation===fileGeneration&&currentFileContext(context)){fileContext=null;renderFiles();message(e.message,true);set('files-state',tr('Liste indisponible.'));}}
  finally{filePending=false;if(fileReload){fileReload=false;void loadFiles();}}
 }
 document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{source=b.dataset.source;cloudPage=1;fileRows=null;document.querySelectorAll('[data-source]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('file-path').disabled=source==='cloud';$('parent-folder').disabled=source==='cloud';renderFiles();loadFiles();});$('files-form').onsubmit=e=>{e.preventDefault();loadFiles();};$('parent-folder').onclick=()=>{const parts=$('file-path').value.split('/').filter(Boolean);parts.pop();$('file-path').value='/'+parts.join('/');loadFiles();};$('prev-page').onclick=()=>{cloudPage=Math.max(1,cloudPage-1);loadFiles();};$('next-page').onclick=()=>{cloudPage++;loadFiles();};
-$('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const data=new FormData(e.target),file=data.get('file');if(file.size>100*1024*1024){message('Le fichier dépasse 100 Mo.',true);return;}try{data.set('slots',JSON.stringify(slots(data.get('slots'))));}catch(err){message(err.message,true);return;}if(!await confirmAction(formatText(data.get('mode')==='upload'?'Envoyer « {0} » dans votre espace cloud ?':'Envoyer « {0} » et lancer son impression ?',file.name)))return;const chosen=e.target.elements.file.files[0],intent=JSON.stringify([data.get('mode'),data.get('slots'),selectedPrinter]);if(!uploadAttempt||uploadAttempt.file!==chosen||uploadAttempt.intent!==intent)uploadAttempt={file:chosen,intent,id:crypto.randomUUID()};data.set('request_id',uploadAttempt.id);busy=true;set('upload-state','Envoi en cours. Ne fermez pas cette page.');try{const result=await request('/upload',{method:'POST',body:data,timeoutMs:Math.min(7200000,300000+file.size/32768*2000)});uploadAttempt=null;set('upload-state',result.message);message(result.message);}catch(err){set('upload-state',err.message);message(err.message,true);}finally{busy=false;}};
+$('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const data=new FormData(e.target),file=data.get('file');if(file.size>100*1024*1024){message(tr('Le fichier dépasse 100 Mo.'),true);return;}try{data.set('slots',JSON.stringify(slots(data.get('slots'))));}catch(err){message(err.message,true);return;}if(!await confirmAction(formatText(data.get('mode')==='upload'?tr('Envoyer « {0} » dans votre espace cloud ?'):tr('Envoyer « {0} » et lancer son impression ?'),file.name)))return;const chosen=e.target.elements.file.files[0],intent=JSON.stringify([data.get('mode'),data.get('slots'),selectedPrinter]);if(!uploadAttempt||uploadAttempt.file!==chosen||uploadAttempt.intent!==intent)uploadAttempt={file:chosen,intent,id:crypto.randomUUID()};data.set('request_id',uploadAttempt.id);setBusy(true);set('upload-state',tr('Envoi en cours. Ne fermez pas cette page.'));try{const result=await request('/upload',{method:'POST',body:data,timeoutMs:Math.min(7200000,300000+file.size/32768*2000)});uploadAttempt=null;set('upload-state',result.message);message(result.message);}catch(err){set('upload-state',err.message);message(err.message,true);}finally{setBusy(false);}};
 /** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
 function openFilePreview(name,src){
- const dialog=node('dialog',null,'file-preview-dialog'),title=node('h2',name),img=node('img'),close=node('button','Fermer');
- img.src=src;img.alt='Aperçu de '+name;img.style.width='100%';
+ const dialog=node('dialog',null,'file-preview-dialog'),title=node('h2',name),img=node('img'),close=node('button',tr('Fermer'));
+ img.src=src;img.alt=tr('Aperçu de ')+name;img.style.width='100%';
  close.type='button';close.onclick=()=>dialog.close();
  dialog.onclose=()=>dialog.remove();
  const header=node('div',null,'dialog-top');header.append(title,close);
  dialog.append(header,img);document.body.append(dialog);dialog.showModal();
 }
 /** Renvoie une promesse partagée de chargement du lecteur Agora local ; rejette si le script est indisponible. */
-function loadSdk(){if(!sdkPromise)sdkPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/imprimante-api/ui/js/agora-rtc.js';s.onload=()=>resolve(window.AgoraRTC);s.onerror=()=>reject(new Error('Le lecteur vidéo n’a pas pu être chargé.'));document.head.append(s);});return sdkPromise;}
+function loadSdk(){if(!sdkPromise)sdkPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/imprimante-api/ui/js/agora-rtc.js';s.onload=()=>resolve(window.AgoraRTC);s.onerror=()=>reject(new Error(tr('Le lecteur vidéo n’a pas pu être chargé.')));document.head.append(s);});return sdkPromise;}
 /** Ferme la session vidéo et invalide les ouvertures en cours par changement de génération. */
-async function closeCamera(){const viewer=cameraViewer;cameraViewer=null;if(viewer){void request('/camera-close',{method:'POST',printerKey:viewer.printer,keepalive:true,headers:{'X-Camera-Viewer':viewer.id}}).catch(()=>{});}cameraWanted=false;cameraGeneration++;$('camera-start').disabled=false;$('camera-stop').disabled=true;cameraTrack?.stop();cameraTrack=null;if(client){const old=client;client=null;try{await old.leave();}catch{}}$('camera-video').replaceChildren();set('camera-state','Caméra éteinte');}
+async function closeCamera(){const viewer=cameraViewer;cameraViewer=null;if(viewer){void request('/camera-close',{method:'POST',printerKey:viewer.printer,keepalive:true,headers:{'X-Camera-Viewer':viewer.id}}).catch(()=>{});}cameraWanted=false;cameraGeneration++;$('camera-start').disabled=false;$('camera-stop').disabled=true;cameraTrack?.stop();cameraTrack=null;if(client){const old=client;client=null;try{await old.leave();}catch{}}$('camera-video').replaceChildren();set('camera-state',tr('Caméra éteinte'));}
 /** Ouvre la vidéo Agora avec les paramètres constructeur ; abandonne une réponse devenue obsolète après fermeture. */
-async function openCamera(){let generation;try{await closeCamera();/* Une fermeture pendant la connexion rend sa réponse tardive inutilisable. */generation=++cameraGeneration;cameraWanted=true;$('camera-start').disabled=true;$('camera-stop').disabled=false;set('camera-state','Connexion en cours…');delete $('camera-state').dataset.tooltip;const sdk=await loadSdk();if(generation!==cameraGeneration)return;sdk.setLogLevel(3);const viewer={id:crypto.randomUUID(),printer:selectedPrinter};cameraViewer=viewer;const cameraOptions={method:'POST',printerKey:viewer.printer,headers:{'X-Camera-Viewer':viewer.id}};const session=await request('/camera-session',cameraOptions);if(generation!==cameraGeneration){void request('/camera-close',{...cameraOptions,keepalive:true}).catch(()=>{});return;}client=sdk.createClient({mode:'live',codec:'h264',role:'host'});const mine=client;const subscribe=async user=>{await mine.subscribe(user,'video');cameraTrack=user.videoTrack;cameraTrack.play('camera-video');set('camera-state','Caméra connectée');};mine.on('user-published',(u,type)=>{if(type==='video')subscribe(u).catch(()=>set('camera-state','Flux vidéo indisponible'));});mine.on('user-unpublished',()=>set('camera-state','Flux vidéo interrompu'));mine.on('user-left',()=>set('camera-state','Caméra déconnectée'));mine.on('token-privilege-will-expire',async()=>{try{if(generation!==cameraGeneration)return;const s=await request('/camera-session',cameraOptions);await mine.renewToken(s.rtc_token);}catch{set('camera-state','Session caméra expirée');}});const salt=Uint8Array.from(atob(session.encryption_kdf_salt),c=>c.charCodeAt(0));const modes={'aes-128-gcm2':'aes-128-gcm2','aes-256-gcm2':'aes-256-gcm2'};mine.setEncryptionConfig(String(session.encryption_mode).toLowerCase().replaceAll('_','-'),session.encryption_key,salt);await mine.setClientRole('host');await mine.join(session.appid,session.channel,session.rtc_token||null,session.client_uid||null);if(generation!==cameraGeneration){await mine.leave();return;}await Promise.all(mine.remoteUsers.filter(u=>u.hasVideo).map(subscribe));set('camera-state',cameraTrack?'Caméra connectée':'En attente de la vidéo');}catch(e){if(generation!==cameraGeneration)return;await closeCamera();const known=['missing_credentials','invalid_format','unsupported_transport'].includes(e.cameraReason);set('camera-state',known?e.message:'Caméra indisponible');$('camera-state').dataset.tooltip=known?e.message:'La session vidéo ne peut pas être ouverte pour le moment.';}}
+async function openCamera(){let generation;try{await closeCamera();/* Une fermeture pendant la connexion rend sa réponse tardive inutilisable. */generation=++cameraGeneration;cameraWanted=true;$('camera-start').disabled=true;$('camera-stop').disabled=false;set('camera-state',tr('Connexion en cours…'));delete $('camera-state').dataset.tooltip;const sdk=await loadSdk();if(generation!==cameraGeneration)return;sdk.setLogLevel(3);const viewer={id:crypto.randomUUID(),printer:selectedPrinter};cameraViewer=viewer;const cameraOptions={method:'POST',printerKey:viewer.printer,headers:{'X-Camera-Viewer':viewer.id}};const session=await request('/camera-session',cameraOptions);if(generation!==cameraGeneration){void request('/camera-close',{...cameraOptions,keepalive:true}).catch(()=>{});return;}client=sdk.createClient({mode:'live',codec:'h264',role:'host'});const mine=client;const subscribe=async user=>{await mine.subscribe(user,'video');cameraTrack=user.videoTrack;cameraTrack.play('camera-video');set('camera-state',tr('Caméra connectée'));};mine.on('user-published',(u,type)=>{if(type==='video')subscribe(u).catch(()=>set('camera-state',tr('Flux vidéo indisponible')));});mine.on('user-unpublished',()=>set('camera-state',tr('Flux vidéo interrompu')));mine.on('user-left',()=>set('camera-state',tr('Caméra déconnectée')));mine.on('token-privilege-will-expire',async()=>{try{if(generation!==cameraGeneration)return;const s=await request('/camera-session',cameraOptions);await mine.renewToken(s.rtc_token);}catch{set('camera-state',tr('Session caméra expirée'));}});const salt=Uint8Array.from(atob(session.encryption_kdf_salt),c=>c.charCodeAt(0));const modes={'aes-128-gcm2':'aes-128-gcm2','aes-256-gcm2':'aes-256-gcm2'};mine.setEncryptionConfig(String(session.encryption_mode).toLowerCase().replaceAll('_','-'),session.encryption_key,salt);await mine.setClientRole('host');await mine.join(session.appid,session.channel,session.rtc_token||null,session.client_uid||null);if(generation!==cameraGeneration){await mine.leave();return;}await Promise.all(mine.remoteUsers.filter(u=>u.hasVideo).map(subscribe));set('camera-state',cameraTrack?tr('Caméra connectée'):tr('En attente de la vidéo'));}catch(e){if(generation!==cameraGeneration)return;await closeCamera();const known=['missing_credentials','invalid_format','unsupported_transport'].includes(e.cameraReason);set('camera-state',known?e.message:tr('Caméra indisponible'));$('camera-state').dataset.tooltip=known?e.message:tr('La session vidéo ne peut pas être ouverte pour le moment.');}}
 $('camera-start').onclick=openCamera;$('camera-stop').onclick=closeCamera;
 /** Applique un zoom d’affichage à la vidéo ; ne modifie aucun réglage de la caméra physique. */
 function renderZoom(){$('camera-video').style.transform=`scale(${zoom})`;set('zoom-label',`${Math.round(zoom*100)} %`);}for(const [id,change]of[['zoom-in',.25],['zoom-out',-.25]])$(id).onclick=()=>{zoom=Math.min(4,Math.max(1,zoom+change));renderZoom();};$('zoom-reset').onclick=()=>{zoom=1;renderZoom();};$('fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else $('camera-wrapper').requestFullscreen();};
@@ -334,7 +339,7 @@ for(const [id,enabled] of [['light-on',true],['light-off',false],['control-light
  const feedback=id.startsWith('control-')?controlFeedback:undefined;
  $(id).onclick=()=>{
   feedback?.('');
-  void command('light',{enabled,light_type:3},`${enabled?'Allumer':'Éteindre'} l’éclairage de l’imprimante ?`,feedback);
+  void command('light',{enabled,light_type:3},tr(enabled?'Allumer l’éclairage de l’imprimante ?':'Éteindre l’éclairage de l’imprimante ?'),feedback);
  };
 }
 
@@ -342,7 +347,7 @@ let historyPage=1,historyPending=false,noticeRows=[],noticeFilter='all',noticeMo
 /** Charge une page de notifications du compte, en empêchant deux lectures simultanées. */
 async function loadHistory(force=false){if(historyPending)return;historyPending=true;try{const d=!force&&historyPage===1&&snapshot?.notifications?snapshot.notifications:await request(`/history?page=${historyPage}`);noticeRows=historyPage===1?d.items:[...new Map([...noticeRows,...d.items].map(x=>[x.key,x])).values()];noticeMore=d.has_more;updateNoticeCount(d.unread);renderNotifications();}catch(e){set('history-state',e.message);}finally{historyPending=false;}}
 /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
-function updateNoticeCount(count){const unread=Number(count)||0;$('notifications-dot').hidden=!unread;$('notifications-filter-dot').hidden=!unread;set('notifications-title',`Messages (${unread})`);$('notifications-toggle').setAttribute('aria-label',`Notifications : ${unread} message${unread>1?'s':''} non lu${unread>1?'s':''}`);$('history-read-all').disabled=!unread;}
+function updateNoticeCount(count){const unread=Number(count)||0;$('notifications-dot').hidden=!unread;$('notifications-filter-dot').hidden=!unread;set('notifications-title',formatText("Messages ({0})",unread));$('notifications-toggle').setAttribute('aria-label',formatText("Notifications : {0} message{1} non lu{2}",unread,unread>1?'s':'',unread>1?'s':''));$('history-read-all').disabled=!unread;}
 /** Filtre les messages chargés ; les noms du cloud restent du texte et les aperçus sont différés. */
 function renderNotifications(){
  notificationPreviewObserver.disconnect();
@@ -361,11 +366,11 @@ function renderNotifications(){
   const wrapper=node('li'),details=node('details',null,'notification-group'),events=node('ul');
   details.dataset.group=key;
   details.open=expanded.has(key);
-  details.append(node('summary',`${items[0].name} · ${items[0].reason||items[0].result} · ${items.length} événements`),events);
+  details.append(node('summary',formatText("{0} · {1} · {2} événements",items[0].name,serverText(items[0].reason||items[0].result,'Notification d’impression'),fmt(items.length))),events);
   events.append(...items.map(notificationRow));
   wrapper.append(details);list.append(wrapper);
  }
- set('history-state',rows.length?'':'Aucun message');
+ set('history-state',rows.length?'':tr('Aucun message'));
  $('history-state').className=rows.length?'':'empty-message';
  $('history-state').hidden=!!rows.length;
  $('notifications-more').hidden=!noticeMore;
@@ -377,15 +382,15 @@ function notificationRow(item){
  open.type='button';
  const thumb=taskThumbnail({...item,key:'notification:'+item.key,notification:true},()=>openNotice(item));
  thumb.tabIndex=-1;row.append(thumb);
- body.append(node('strong',item.name,'notification-name'),node('span',item.printer,'muted'),node('span',`${item.kind==='success'?'✓':item.kind==='interrupted'?'■':'◷'} ${item.result}`,'notification-result '+item.kind));
- if(item.reason||item.reason_code)body.append(node('span',[item.reason,item.reason_code&&'Code '+item.reason_code].filter(Boolean).join(' · '),'muted'));
+ body.append(node('strong',item.name,'notification-name'),node('span',item.printer,'muted'),node('span',`${item.kind==='success'?'✓':item.kind==='interrupted'?'■':'◷'} ${tr(item.result)}`,'notification-result '+item.kind));
+ if(item.reason||item.reason_code)body.append(node('span',[item.reason&&serverText(item.reason,'Pas de diagnostic traduit pour cet événement.'),item.reason_code&&tr('Code')+' '+item.reason_code].filter(Boolean).join(' · '),'muted'));
  body.append(node('time',date(item.time),'muted'));
  open.append(body);
- if(item.unread){const dot=node('span',null,'unread-dot');dot.setAttribute('aria-label','Non lu');open.append(dot);}
+ if(item.unread){const dot=node('span',null,'unread-dot');dot.setAttribute('aria-label',tr('Non lu'));open.append(dot);}
  open.onclick=()=>openNotice(item);row.append(open);
  const remove=node('button','×','notification-delete');
- remove.type='button';remove.setAttribute('aria-label','Supprimer la notification : '+item.name);
- remove.title='Supprimer cette notification';remove.onclick=()=>deleteHistory(item.key,false,remove);
+ remove.type='button';remove.setAttribute('aria-label',tr('Supprimer la notification : ')+item.name);
+ remove.title=tr('Supprimer cette notification');remove.onclick=()=>deleteHistory(item.key,false,remove);
  row.append(remove);return row;
 }
 /** Le marquage est confirmé avant le détail ; aucune impression n’est déclenchée. */
@@ -406,17 +411,17 @@ async function markHistoryRead(key,allItems,button){button.disabled=true;try{con
 $('history-read-all').onclick=()=>markHistoryRead(null,true,$('history-read-all'));
 $('history-delete-all').onclick=()=>deleteHistory(null,true,$('history-delete-all'));
 
-const helpById={'camera-start':'Démarrer la vidéo en direct de l’imprimante.','camera-stop':'Fermer la vidéo sans interrompre l’impression.','light-on':'Allumer l’éclairage intérieur de l’imprimante.','light-off':'Éteindre l’éclairage intérieur de l’imprimante.','zoom-reset':'Revenir au zoom initial de la vidéo.','fullscreen':'Afficher la vidéo en plein écran.','go-spool':'Choisir un emplacement, son matériau et sa couleur.','go-drying':'Configurer la température et la durée de séchage de l’ACE.','feed':'Charger le filament de l’emplacement sélectionné.','feed-finish':'Valider la fin du chargement après la sortie du filament.','retract':'Retirer le filament de l’emplacement sélectionné.','parent-folder':'Remonter d’un niveau dans les fichiers de l’imprimante.','history-read-all':'Synchroniser toutes les notifications comme lues dans Anycubic.','temperature-hours':'Choisir la période affichée, parmi les relevés des dernières 24 heures.','file-slots':'Un numéro d’emplacement de l’ACE par couleur du G-code, dans l’ordre. Laissez vide pour utiliser la bobine externe.'};for(const [id,help]of Object.entries(helpById))if($(id))$(id).title=help;
-const commandHelp={pause:'Mettre l’impression en cours en pause.',resume:'Reprendre une impression qui est en pause.',cancel:'Arrêter l’impression en cours après confirmation.',firmware:'Installer une nouvelle version lorsque l’imprimante est libre.','ace-firmware':'Mettre à jour l’ACE lorsque l’imprimante est libre.'};for(const b of document.querySelectorAll('[data-command]'))if(commandHelp[b.dataset.command])b.title=commandHelp[b.dataset.command];
-const fieldHelp={target_nozzle_temp:'Température cible de la buse, entre 0 et 320 °C.',target_hotbed_temp:'Température cible du plateau, entre 0 et 120 °C.',fan_speed_pct:'Ventilation de la pièce, entre 0 et 100 %. ',aux_fan_speed_pct:'Ventilateur auxiliaire, entre 0 et 100 %. ',box_fan_level:'Niveau de ventilation de l’enceinte accepté par Anycubic, de 0 à 3.',print_speed_mode:'Mode de vitesse appliqué à l’impression en cours.',slots:'Numéros des bobines de l’ACE, dans l’ordre des couleurs du G-code.',mode:'Choisir entre conserver le fichier dans le cloud et lancer son impression.'};for(const e of document.querySelectorAll('input[name],select[name]'))if(fieldHelp[e.name])e.title=fieldHelp[e.name];
+const helpById={'camera-start':tr('Démarrer la vidéo en direct de l’imprimante.'),'camera-stop':tr('Fermer la vidéo sans interrompre l’impression.'),'light-on':tr('Allumer l’éclairage intérieur de l’imprimante.'),'light-off':tr('Éteindre l’éclairage intérieur de l’imprimante.'),'zoom-reset':tr('Revenir au zoom initial de la vidéo.'),'fullscreen':tr('Afficher la vidéo en plein écran.'),'go-spool':tr('Choisir un emplacement, son matériau et sa couleur.'),'go-drying':tr('Configurer la température et la durée de séchage de l’ACE.'),'feed':tr('Charger le filament de l’emplacement sélectionné.'),'feed-finish':tr('Valider la fin du chargement après la sortie du filament.'),'retract':tr('Retirer le filament de l’emplacement sélectionné.'),'parent-folder':tr('Remonter d’un niveau dans les fichiers de l’imprimante.'),'history-read-all':tr('Synchroniser toutes les notifications comme lues dans Anycubic.'),'temperature-hours':tr('Choisir la période affichée, parmi les relevés des dernières 24 heures.'),'file-slots':tr('Un numéro d’emplacement de l’ACE par couleur du G-code, dans l’ordre. Laissez vide pour utiliser la bobine externe.')};for(const [id,help]of Object.entries(helpById))if($(id))$(id).title=help;
+const commandHelp={pause:tr('Mettre l’impression en cours en pause.'),resume:tr('Reprendre une impression qui est en pause.'),cancel:tr('Arrêter l’impression en cours après confirmation.'),firmware:tr('Installer une nouvelle version lorsque l’imprimante est libre.'),'ace-firmware':tr('Mettre à jour l’ACE lorsque l’imprimante est libre.')};for(const b of document.querySelectorAll('[data-command]'))if(commandHelp[b.dataset.command])b.title=commandHelp[b.dataset.command];
+const fieldHelp={target_nozzle_temp:tr('Température cible de la buse, entre 0 et 320 °C.'),target_hotbed_temp:tr('Température cible du plateau, entre 0 et 120 °C.'),fan_speed_pct:tr('Ventilation de la pièce, entre 0 et 100 %. '),aux_fan_speed_pct:tr('Ventilateur auxiliaire, entre 0 et 100 %. '),box_fan_level:tr('Niveau de ventilation de l’enceinte accepté par Anycubic, de 0 à 3.'),print_speed_mode:tr('Mode de vitesse appliqué à l’impression en cours.'),slots:tr('Numéros des bobines de l’ACE, dans l’ordre des couleurs du G-code.'),mode:tr('Choisir entre conserver le fichier dans le cloud et lancer son impression.')};for(const e of document.querySelectorAll('input[name],select[name]'))if(fieldHelp[e.name])e.title=fieldHelp[e.name];
 
 /** Préremplit la bobine sélectionnée ; les valeurs RFID restent consultables sans modification manuelle. */
-function fillSpool(slot){const form=$('spool-form'),data=selectedBox()?.spools?.find(s=>Number(s.local_slot||s.slot)===Number(slot));if(!data)return;form.elements.slot.value=String(slot);const material=form.elements.material;for(const option of [...material.options])if(option.dataset.detected)option.remove();if(data.material_type&&![...material.options].some(o=>o.value===data.material_type)){const option=new Option(data.material_type+' (détecté)',data.material_type);option.dataset.detected='true';option.disabled=true;material.add(option);}material.value=data.material_type||'PLA';form.elements.color.value='#'+(data.color||[150,150,150]).slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0)).toString(16).padStart(2,'0')).join('');set('spool-color-value',form.elements.color.value.toUpperCase());/* Les données RFID sont la référence de l’ACE et ne doivent pas être remplacées par le formulaire. */const automatic=data.rfid===true;form.elements.material.disabled=automatic;form.elements.color.disabled=automatic;form.querySelector('[type=submit]').hidden=automatic;set('spool-rfid-note',automatic?'Bobine RFID · matière et couleur détectées.':'');$('spool-rfid-note').hidden=!automatic;}
+function fillSpool(slot){const form=$('spool-form'),data=selectedBox()?.spools?.find(s=>Number(s.local_slot||s.slot)===Number(slot));if(!data)return;form.elements.slot.value=String(slot);const material=form.elements.material;for(const option of [...material.options])if(option.dataset.detected)option.remove();if(data.material_type&&![...material.options].some(o=>o.value===data.material_type)){const option=new Option(data.material_type+tr(' (détecté)'),data.material_type);option.dataset.detected='true';option.disabled=true;material.add(option);}material.value=data.material_type||'PLA';form.elements.color.value='#'+(data.color||[150,150,150]).slice(0,3).map(v=>Math.max(0,Math.min(255,Number(v)||0)).toString(16).padStart(2,'0')).join('');set('spool-color-value',form.elements.color.value.toUpperCase());/* Les données RFID sont la référence de l’ACE et ne doivent pas être remplacées par le formulaire. */const automatic=data.rfid===true;form.elements.material.disabled=automatic;form.elements.color.disabled=automatic;form.querySelector('[type=submit]').hidden=automatic;set('spool-rfid-note',automatic?tr('Bobine RFID · matière et couleur détectées.'):'');$('spool-rfid-note').hidden=!automatic;}
 /** Ouvre les données du numéro local de bobine et place le focus sur sa sélection. */
 function openSpool(slot){fillSpool(slot);if(!$('spool-dialog').open)$('spool-dialog').showModal();$('spool-form').elements.slot.focus({preventScroll:true});}
 $('spool-form').elements.slot.onchange=e=>fillSpool(e.target.value);
 /** Distingue un simple stockage cloud d’un lancement d’impression, bloqué si la machine est occupée. */
-function updateUploadButton(){const form=$('upload-form'),printing=form.elements.mode.value!=='upload',button=form.querySelector('[type=submit]');button.textContent=printing?'Envoyer et imprimer':'Envoyer';button.disabled=printing&&snapshot?.printer?.is_available===false;button.title=button.disabled?'Une impression est déjà en cours.':printing?'Envoyer le G-code et demander son impression après confirmation.':'Conserver le G-code dans votre espace cloud sans lancer d’impression.';}
+function updateUploadButton(){const form=$('upload-form'),printing=form.elements.mode.value!=='upload',button=form.querySelector('[type=submit]');button.textContent=printing?tr('Envoyer et imprimer'):tr('Envoyer');button.disabled=printing&&snapshot?.printer?.is_available===false;button.title=button.disabled?tr('Une impression est déjà en cours.'):printing?tr('Envoyer le G-code et demander son impression après confirmation.'):tr('Conserver le G-code dans votre espace cloud sans lancer d’impression.');}
 $('upload-form').elements.mode.onchange=()=>updateUploadButton();
 
 const helpBubble=node('div',null,'help-bubble');helpBubble.id='ui-help-bubble';helpBubble.setAttribute('role','tooltip');helpBubble.hidden=true;document.body.append(helpBubble);let helpTarget=null,helpPinned=false;
@@ -427,28 +432,28 @@ function showHelp(target,pinned=false){const text=target.dataset.tooltip||target
 document.addEventListener('pointerover',e=>{const target=e.target.closest('[title],[data-tooltip]');if(target&&!helpPinned)showHelp(target);});document.addEventListener('pointerout',e=>{if(!helpPinned&&helpTarget&&!helpTarget.contains(e.relatedTarget))hideHelp();});document.addEventListener('focusin',e=>{if(e.target.matches('[title],[data-tooltip]'))showHelp(e.target);});document.addEventListener('focusout',()=>{if(!helpPinned)hideHelp();});document.addEventListener('click',e=>{const help=e.target.closest('[data-tooltip-trigger]');if(help){e.preventDefault();showHelp(help,true);}else if(helpPinned&&!helpBubble.contains(e.target))hideHelp();});document.addEventListener('keydown',e=>{if(e.key==='Escape')hideHelp();});document.addEventListener('scroll',()=>{if(helpTarget)hideHelp();},true);
 
 /** Conditionne axes et IA aux capacités annoncées et à une imprimante disponible. */
-function updateNativeControls(p){const canMove=!!p.axes_supported&&p.is_available&&!p.job_in_progress;for(const button of document.querySelectorAll('[data-axis],#axis-release,#axis-step'))button.disabled=!canMove;set('axis-state',!p.axes_supported?'Contrôle non annoncé par cette imprimante':p.job_in_progress?'Indisponible pendant une impression':canMove?'Commandes disponibles':'Imprimante occupée ou hors ligne');$('task-details-open').disabled=!p.task_details;$('ai-open').disabled=!p.printer_online||!p.is_available||p.job_in_progress;$('ai-open').dataset.tooltip=$('ai-open').disabled?'Réglages disponibles lorsque l’imprimante est libre.':'Régler la détection du filament enchevêtré et des objets étrangers.';if($('task-dialog').open)renderTaskDetails();if($('ai-dialog').open&&aiLoaded){$('ai-form').querySelector('fieldset').disabled=!p.is_available||p.job_in_progress;}}
+function updateNativeControls(p){const canMove=!!p.axes_supported&&p.is_available&&!p.job_in_progress;for(const button of document.querySelectorAll('[data-axis],#axis-release,#axis-step'))button.disabled=!canMove;set('axis-state',!p.axes_supported?tr('Contrôle non annoncé par cette imprimante'):p.job_in_progress?tr('Indisponible pendant une impression'):canMove?tr('Commandes disponibles'):tr('Imprimante occupée ou hors ligne'));$('task-details-open').disabled=!p.task_details;$('ai-open').disabled=!p.printer_online||!p.is_available||p.job_in_progress;$('ai-open').dataset.tooltip=$('ai-open').disabled?tr('Réglages disponibles lorsque l’imprimante est libre.'):tr('Régler la détection du filament enchevêtré et des objets étrangers.');if($('task-dialog').open)renderTaskDetails();if($('ai-dialog').open&&aiLoaded){$('ai-form').querySelector('fieldset').disabled=!p.is_available||p.job_in_progress;}}
 /** Renvoie le premier élément d’une liste ou la valeur scalaire, pour les paramètres de tranche multimatériaux. */
 function single(v){return Array.isArray(v)?v[0]:v;}
 /** Formate un paramètre scalaire ou son premier matériau, sans doubler une unité déjà présente. */
 function valueUnit(v,unit=''){v=single(v);return v==null?'—':typeof v==='number'?v.toLocaleString(locale,{maximumFractionDigits:3})+unit:String(v)+(unit&&!String(v).includes(unit.trim())?unit:'');}
 /** Affiche uniquement les paramètres de tranche transmis par le serveur et les données connues du projet courant. */
-function renderTaskDetails(){const p=snapshot?.printer,d=p?.task_details;if(!d)return;set('task-name',p.job_name||'Tâche en cours');set('task-progress',`${fmt(p.job_progress,' %')} · ${p.job_current_layer??'—'} / ${p.job_total_layers??'—'} couches · ${mins(p.job_time_remaining)} restantes`);if(!$('job-preview').hidden){$('task-preview').src=$('job-preview').src;$('task-preview').hidden=false;}else $('task-preview').hidden=true;const params=d.parameters||{},time=d.estimated_time?String(d.estimated_time).replace(/(\d+)h/g,'$1 h ').replace(/(\d+)m/g,'$1 min ').replace(/(\d+)s/g,'$1 s').replace(/\s+/g,' ').trim():'—';definition('task-file',[['Dimensions',d.dimensions?.every(v=>v!=null)?d.dimensions.map(v=>fmt(v)).join(' × ')+' mm':'—'],['Couches',fmt(d.layers)],['Temps estimé',time],['Filament estimé',fmt(d.material_grams,' g')]]);const yes=v=>v==null?'—':[true,1,'1','true'].includes(single(v))?'Activé':'Désactivé';definition('task-parameters',[['Hauteur de couche',valueUnit(params.layer_height,' mm')],['Remplissage',valueUnit(params.fill_density,' %')],['Supports',yes(params.enable_support)],['Adhérence au plateau',params.brim_type==null?'—':({no_brim:'Sans bordure',auto_brim:'Automatique',outer_only:'Bordure externe',inner_only:'Bordure interne',outer_and_inner:'Bordures interne et externe'}[params.brim_type]||'Activée')],['Buse',valueUnit(params.temperature,' °C')],['Plateau',valueUnit(params.bed_temperature,' °C')],['Ventilation maximale',valueUnit(params.fan_max_speed,' %')],['Rétraction',valueUnit(params.filament_retract_length,' mm')],['Parois',valueUnit(params.perimeters)],['Largeur de paroi',valueUnit(params.perimeter_extrusion_width,' mm')],['Vitesse de paroi externe',valueUnit(params.outer_wall_speed,' mm/s')],['Déplacements',valueUnit(params.travel_speed,' mm/s')]]);}
+function renderTaskDetails(){const p=snapshot?.printer,d=p?.task_details;if(!d)return;set('task-name',p.job_name||tr('Tâche en cours'));set('task-progress',formatText("{0} · {1} / {2} couches · {3} restantes",fmt(p.job_progress,' %'),p.job_current_layer??'—',p.job_total_layers??'—',mins(p.job_time_remaining)));if(!$('job-preview').hidden){$('task-preview').src=$('job-preview').src;$('task-preview').hidden=false;}else $('task-preview').hidden=true;const params=d.parameters||{},time=d.estimated_time?String(d.estimated_time).replace(/(\d+)h/g,'$1 h ').replace(/(\d+)m/g,'$1 min ').replace(/(\d+)s/g,'$1 s').replace(/\s+/g,' ').trim():'—';definition('task-file',[[tr('Dimensions'),d.dimensions?.every(v=>v!=null)?d.dimensions.map(v=>fmt(v)).join(' × ')+' mm':'—'],[tr('Couches'),fmt(d.layers)],[tr('Temps estimé'),time],[tr('Filament estimé'),fmt(d.material_grams,' g')]]);const yes=v=>v==null?'—':[true,1,'1','true'].includes(single(v))?tr('Activé'):tr('Désactivé');definition('task-parameters',[[tr('Hauteur de couche'),valueUnit(params.layer_height,' mm')],['Remplissage',valueUnit(params.fill_density,' %')],['Supports',yes(params.enable_support)],[tr('Adhérence au plateau'),params.brim_type==null?'—':({no_brim:tr('Sans bordure'),auto_brim:'Automatique',outer_only:tr('Bordure externe'),inner_only:tr('Bordure interne'),outer_and_inner:tr('Bordures interne et externe')}[params.brim_type]||tr('Activée'))],[tr('Buse'),valueUnit(params.temperature,' °C')],[tr('Plateau'),valueUnit(params.bed_temperature,' °C')],[tr('Ventilation maximale'),valueUnit(params.fan_max_speed,' %')],[tr('Rétraction'),valueUnit(params.filament_retract_length,' mm')],['Parois',valueUnit(params.perimeters)],[tr('Largeur de paroi'),valueUnit(params.perimeter_extrusion_width,' mm')],[tr('Vitesse de paroi externe'),valueUnit(params.outer_wall_speed,' mm/s')],[tr('Déplacements'),valueUnit(params.travel_speed,' mm/s')]]);}
 $('task-details-open').onclick=()=>{renderTaskDetails();$('task-dialog').showModal();};
 let aiLoaded=false;
 let aiLoading=false;
 /** Masque les anciennes valeurs pendant la consultation IA pour éviter d’appliquer des réglages périmés. */
 async function loadAiSettings(){
- if(aiLoading)return;aiLoading=true;aiLoaded=false;const f=$('ai-form');f.hidden=true;f.querySelector('fieldset').disabled=true;$('ai-retry').hidden=true;set('ai-state','Lecture des réglages de l’imprimante…');
- try{const d=await request('/ai-settings'),a=d.settings,status=Number(a.status);f.elements.spaghetti.checked=!!(status&1);f.elements.foreign.checked=!!(status&2);f.elements.spaghetti_level.value=String(a.sensitivity_level?.[1]??1);f.elements.foreign_level.value=String(a.sensitivity_level?.[0]??1);f.elements.pause.value=String(a.notice_type?.[1]===1);$('ai-foreign-option').hidden=!snapshot?.printer?.foreign_detection_supported;aiLoaded=true;const busy=snapshot?.printer?.job_in_progress||!snapshot?.printer?.is_available;f.hidden=false;f.querySelector('fieldset').disabled=busy;set('ai-state',busy?'Imprimante occupée. Les modifications seront disponibles lorsqu’elle sera libre.':'Réglages actuels de la Kobra S1');}catch(e){set('ai-state','Réglages indisponibles : '+e.message+'. Réessayez lorsque l’imprimante est en ligne et libre.');$('ai-retry').hidden=false;}finally{aiLoading=false;}
+ if(aiLoading)return;aiLoading=true;aiLoaded=false;const f=$('ai-form');f.hidden=true;f.querySelector('fieldset').disabled=true;$('ai-retry').hidden=true;set('ai-state',tr('Lecture des réglages de l’imprimante…'));
+ try{const d=await request('/ai-settings'),a=d.settings,status=Number(a.status);f.elements.spaghetti.checked=!!(status&1);f.elements.foreign.checked=!!(status&2);f.elements.spaghetti_level.value=String(a.sensitivity_level?.[1]??1);f.elements.foreign_level.value=String(a.sensitivity_level?.[0]??1);f.elements.pause.value=String(a.notice_type?.[1]===1);$('ai-foreign-option').hidden=!snapshot?.printer?.foreign_detection_supported;aiLoaded=true;const busy=snapshot?.printer?.job_in_progress||!snapshot?.printer?.is_available;f.hidden=false;f.querySelector('fieldset').disabled=busy;set('ai-state',busy?tr('Imprimante occupée. Les modifications seront disponibles lorsqu’elle sera libre.'):tr('Réglages actuels de la Kobra S1'));}catch(e){set('ai-state',tr('Réglages indisponibles : ')+e.message+tr('. Réessayez lorsque l’imprimante est en ligne et libre.'));$('ai-retry').hidden=false;}finally{aiLoading=false;}
 }
 $('ai-open').onclick=()=>{$('ai-dialog').showModal();loadAiSettings();};
 $('ai-retry').onclick=loadAiSettings;
-$('ai-form').onsubmit=async e=>{e.preventDefault();if(!aiLoaded)return;const f=e.target,result=await command('ai-settings',{spaghetti:f.elements.spaghetti.checked,foreign:f.elements.foreign.checked,spaghetti_level:Number(f.elements.spaghetti_level.value),foreign_level:Number(f.elements.foreign_level.value),pause:f.elements.pause.value==='true'},'Appliquer ces réglages de détection IA à la Kobra S1 ?');if(result)$('ai-dialog').close();};
-for(const b of document.querySelectorAll('[data-axis]'))b.onclick=async()=>{if(b.disabled)return;if(!cameraTrack){await openCamera();if(!cameraTrack){message('Ouvrez la caméra avant de déplacer les axes.',true);return;}}await command('axis',{axis:Number(b.dataset.axis),direction:Number(b.dataset.direction),distance:Number($('axis-step').value)},'Déplacer les axes de l’imprimante avec ces paramètres ?');};
-$('axis-release').onclick=()=>command('axis-off',{},'Libérer les moteurs de l’imprimante pour un déplacement manuel ?');
+$('ai-form').onsubmit=async e=>{e.preventDefault();if(!aiLoaded)return;const f=e.target,result=await command('ai-settings',{spaghetti:f.elements.spaghetti.checked,foreign:f.elements.foreign.checked,spaghetti_level:Number(f.elements.spaghetti_level.value),foreign_level:Number(f.elements.foreign_level.value),pause:f.elements.pause.value==='true'},tr('Appliquer ces réglages de détection IA à la Kobra S1 ?'));if(result)$('ai-dialog').close();};
+for(const b of document.querySelectorAll('[data-axis]'))b.onclick=async()=>{if(b.disabled)return;if(!cameraTrack){await openCamera();if(!cameraTrack){message(tr('Ouvrez la caméra avant de déplacer les axes.'),true);return;}}await command('axis',{axis:Number(b.dataset.axis),direction:Number(b.dataset.direction),distance:Number($('axis-step').value)},tr('Déplacer les axes de l’imprimante avec ces paramètres ?'));};
+$('axis-release').onclick=()=>command('axis-off',{},tr('Libérer les moteurs de l’imprimante pour un déplacement manuel ?'));
 /** La suppression vise uniquement les notifications ; elle ne remplace pas celle des fiches d’impression. */
-async function deleteHistory(key,allItems,button){if(!await confirmAction(allItems?'Effacer définitivement les notifications d’impression du compte Anycubic ?':'Effacer définitivement cette notification Anycubic ?'))return;button.disabled=true;try{const result=await request('/history/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(allItems?{all:true}:{key})});message(result.message);historyPage=1;await loadHistory(true);}catch(e){message(e.message,true);button.disabled=false;}finally{if(button.id!=='history-delete-all')button.disabled=false;}}
+async function deleteHistory(key,allItems,button){if(!await confirmAction(allItems?tr('Effacer définitivement les notifications d’impression du compte Anycubic ?'):tr('Effacer définitivement cette notification Anycubic ?')))return;button.disabled=true;try{const result=await request('/history/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(allItems?{all:true}:{key})});message(result.message);historyPage=1;await loadHistory(true);}catch(e){message(e.message,true);button.disabled=false;}finally{if(button.id!=='history-delete-all')button.disabled=false;}}
 
 const taskPreviewCache=new Map();
 /** Renvoie une promesse d’image mise en cache ; sépare les références de notifications de celles des tâches. */
@@ -472,19 +477,19 @@ async function openNotificationPreview(item){
  open.onclick=task?()=>{dialog.close();void openPastTask(task);}:null;
  dialog.dataset.notification=item.key;
  set('notification-preview-name',item.name);
- set('notification-preview-state','Chargement de l’aperçu…');
+ set('notification-preview-state',tr('Chargement de l’aperçu…'));
  image.hidden=true;
  dialog.showModal();
  const src=await taskPreview({...item,key:'notification:'+item.key,notification:true});
  if(!dialog.open||dialog.dataset.notification!==item.key)return;
- const unavailable=()=>set('notification-preview-state','Aperçu indisponible pour cette notification.');
+ const unavailable=()=>set('notification-preview-state',tr('Aperçu indisponible pour cette notification.'));
  if(!src){unavailable();return;}
  image.src=src;
  try{await image.decode();}catch{
   if(dialog.open&&dialog.dataset.notification===item.key)unavailable();
   return;
  }
- if(dialog.open&&dialog.dataset.notification===item.key){image.hidden=false;set('notification-preview-state',item.result);}
+ if(dialog.open&&dialog.dataset.notification===item.key){image.hidden=false;set('notification-preview-state',tr(item.result));}
 }
 /** Chaque liste possède son observateur pour que le rafraîchissement de l’historique préserve les notifications. */
 function previewObserver(){
@@ -499,20 +504,20 @@ function previewObserver(){
 const taskPreviewObserver=previewObserver(),notificationPreviewObserver=previewObserver();
 /** Renvoie un bouton dont l’image est chargée près de la zone visible ; onOpen remplace l’ouverture des détails. */
 function taskThumbnail(t,onOpen=()=>openPastTask(t)){
- const button=node('button',null,'task-thumbnail'),image=node('img'),fallback=node('span','Aperçu indisponible');
- button.type='button';button.title='Voir les détails de '+t.name;button.setAttribute('aria-label',button.title);button.onclick=onOpen;image.alt='Aperçu de '+t.name;image.hidden=true;fallback.textContent='Chargement…';button.append(image,fallback);
- button.loadPreview=()=>taskPreview(t).then(src=>{/* La page de résultats peut avoir changé avant la fin du téléchargement. */if(!button.isConnected)return;if(src){image.onload=()=>{image.hidden=false;fallback.hidden=true;};image.onerror=()=>{image.hidden=true;fallback.hidden=false;fallback.textContent='Aperçu indisponible';};image.src=src;}else fallback.textContent='Aperçu indisponible';});
+ const button=node('button',null,'task-thumbnail'),image=node('img'),fallback=node('span',tr('Aperçu indisponible'));
+ button.type='button';button.title=tr('Voir les détails de ')+t.name;button.setAttribute('aria-label',button.title);button.onclick=onOpen;image.alt=tr('Aperçu de ')+t.name;image.hidden=true;fallback.textContent=tr('Chargement…');button.append(image,fallback);
+ button.loadPreview=()=>taskPreview(t).then(src=>{/* La page de résultats peut avoir changé avant la fin du téléchargement. */if(!button.isConnected)return;if(src){image.onload=()=>{image.hidden=false;fallback.hidden=true;};image.onerror=()=>{image.hidden=true;fallback.hidden=false;fallback.textContent=tr('Aperçu indisponible');};image.src=src;}else fallback.textContent=tr('Aperçu indisponible');});
  (t.notification?notificationPreviewObserver:taskPreviewObserver).observe(button);return button;
 }
 const cloudSelected=new Set();let renameHandle=null,pastTaskKey=null,tasksPage=1,taskRows=[],deviceOptions=null,resetTicket=null,resetDeadline=0,historyView='tasks';
 /** Formate le quota en unités binaires, en préservant la distinction entre zéro et une donnée absente. */
-const bytes=v=>v==null?'—':Number(v)>=1073741824?(Number(v)/1073741824).toLocaleString(locale,{maximumFractionDigits:2})+' Go':Number(v)>=1048576?(Number(v)/1048576).toLocaleString(locale,{maximumFractionDigits:1})+' Mo':Number(v).toLocaleString(locale)+' octets';
+const bytes=v=>v==null?'—':Number(v)>=1073741824?(Number(v)/1073741824).toLocaleString(locale,{maximumFractionDigits:2})+tr(' Go'):Number(v)>=1048576?(Number(v)/1048576).toLocaleString(locale,{maximumFractionDigits:1})+tr(' Mo'):Number(v).toLocaleString(locale)+tr(' octets');
 /** Renvoie un bouton non soumis à un formulaire, associé au rappel fn. */
 function extraButton(label,fn,cls){const b=node('button',label,cls);b.type='button';b.onclick=fn;return b;}
 /** Synchronise la sélection cloud et l’état indéterminé de la case de page. */
-function cloudSelectionState(){const n=cloudSelected.size;set('cloud-selected-count',`${n} sélection${n>1?'s':''}`);for(const id of ['cloud-download-selected','cloud-delete-selected','cloud-clear-selection'])$(id).disabled=!n;$('cloud-select-page').checked=cloudRows.length>0&&cloudRows.every(f=>cloudSelected.has(f.handle));$('cloud-select-page').indeterminate=cloudRows.some(f=>cloudSelected.has(f.handle))&&!$('cloud-select-page').checked;}
+function cloudSelectionState(){const n=cloudSelected.size;set('cloud-selected-count',formatText("{0} sélection{1}",n,n>1?'s':''));for(const id of ['cloud-download-selected','cloud-delete-selected','cloud-clear-selection'])$(id).disabled=!n;$('cloud-select-page').checked=cloudRows.length>0&&cloudRows.every(f=>cloudSelected.has(f.handle));$('cloud-select-page').indeterminate=cloudRows.some(f=>cloudSelected.has(f.handle))&&!$('cloud-select-page').checked;}
 /** Affiche le quota connu du cloud, sans déduire une capacité d’envoi d’une valeur absente. */
-async function loadCloudStorage(){try{const d=await request('/extras/storage');set('cloud-quota',`${bytes(d.used)} utilisés sur ${bytes(d.total)} · ${bytes(d.free)} disponibles`);$('cloud-quota-bar').value=d.total?Math.min(100,d.used/d.total*100):0;}catch(e){set('cloud-quota',e.message);}}
+async function loadCloudStorage(){try{const d=await request('/extras/storage');set('cloud-quota',formatText("{0} utilisés sur {1} · {2} disponibles",bytes(d.used),bytes(d.total),bytes(d.free)));$('cloud-quota-bar').value=d.total?Math.min(100,d.used/d.total*100):0;}catch(e){set('cloud-quota',e.message);}}
 /** Demande des tickets de téléchargement serveur afin de garder les URL cloud privées côté navigateur. */
 async function downloadCloud(handles){try{const result=await request('/cloud/downloads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({handles})});$('cloud-download-links').replaceChildren(...result.downloads.map(f=>{const li=node('li'),a=node('a',f.name);a.href=f.url;a.target='_blank';a.rel='noopener noreferrer';li.append(a);return li;}));$('cloud-download-dialog').showModal();}catch(e){message(e.message,true);}}
 /** Prépare le renommage de la référence opaque du fichier, sans envoyer de requête avant validation. */
@@ -521,7 +526,7 @@ $('cloud-rename-form').onsubmit=async e=>{e.preventDefault();const result=await 
 $('cloud-select-page').onchange=e=>{for(const f of cloudRows)e.target.checked?cloudSelected.add(f.handle):cloudSelected.delete(f.handle);renderFiles();};
 $('cloud-clear-selection').onclick=()=>{cloudSelected.clear();renderFiles();};
 $('cloud-download-selected').onclick=()=>downloadCloud([...cloudSelected]);
-$('cloud-delete-selected').onclick=async()=>{const ok=await command('cloud-delete-many',{handles:[...cloudSelected]},`Supprimer définitivement les ${cloudSelected.size} fichiers sélectionnés du Cloud Anycubic ?`);if(ok){cloudSelected.clear();await loadFiles();await loadCloudStorage();}};
+$('cloud-delete-selected').onclick=async()=>{const ok=await command('cloud-delete-many',{handles:[...cloudSelected]},formatText("Supprimer définitivement les {0} fichiers sélectionnés du Cloud Anycubic ?",cloudSelected.size));if(ok){cloudSelected.clear();await loadFiles();await loadCloudStorage();}};
 let taskStatus='all',taskMore=false;const taskSelected=new Set();
 /** Les bornes de date suivent le fuseau de l’atelier, y compris pour les dates cloud en secondes. */
 function taskDay(value){if(value==null||value==='')return '';const n=Number(value),d=Number.isFinite(n)?new Date(n*1000):new Date(value);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
@@ -533,24 +538,24 @@ $('tasks-from').value=historyStart.toISOString().slice(0,10);
 /** Les filtres combinés portent sur les pages déjà chargées ; une page suivante ne remplace pas la sélection. */
 function visibleTasks(){const query=$('tasks-search').value.trim().toLocaleLowerCase(locale),device=$('tasks-printer').value,from=$('tasks-from').value,to=$('tasks-to').value;return taskRows.filter(t=>{const day=taskDay(t.start);return(taskStatus==='all'||String(t.status_code)===taskStatus)&&(device==='all'||t.printer_key===device)&&(!from||day>=from)&&(!to||day<=to)&&t.name.toLocaleLowerCase(locale).includes(query);});}
 /** La case globale ne sélectionne que les cartes visibles, jamais des fiches non chargées. */
-function taskSelectionState(){const rows=visibleTasks(),n=taskSelected.size;set('tasks-selected-count',`${n} sélection${n>1?'s':''}`);$('tasks-delete').disabled=!n;$('tasks-select-page').checked=!!rows.length&&rows.every(t=>taskSelected.has(t.key));$('tasks-select-page').indeterminate=rows.some(t=>taskSelected.has(t.key))&&!$('tasks-select-page').checked;}
+function taskSelectionState(){const rows=visibleTasks(),n=taskSelected.size;set('tasks-selected-count',formatText("{0} sélection{1}",n,n>1?'s':''));$('tasks-delete').disabled=!n;$('tasks-select-page').checked=!!rows.length&&rows.every(t=>taskSelected.has(t.key));$('tasks-select-page').indeterminate=rows.some(t=>taskSelected.has(t.key))&&!$('tasks-select-page').checked;}
 /** Les cartes affichent les dates connues sans fabriquer une fin ni une durée manquante. */
-export function renderTasks(){taskPreviewObserver.disconnect();const rows=visibleTasks();$('tasks-list').replaceChildren(...rows.map(t=>{const li=node('li',null,'task-history-item'),select=node('input'),label=node('label',null,'history-card-select'),body=node('div',null,'history-card-body'),name=node('strong',t.name,'history-card-name'),state=node('span',({2:'Terminé',3:'Arrêté',1:'En cours',0:'En préparation'}[t.status_code]||t.status),'history-badge status-'+t.status_code),open=extraButton('Voir le détail',()=>openPastTask(t),'history-detail');select.type='checkbox';select.checked=taskSelected.has(t.key);select.setAttribute('aria-label','Sélectionner '+t.name);select.onchange=()=>{select.checked?taskSelected.add(t.key):taskSelected.delete(t.key);taskSelectionState();};label.append(select,node('span','Sélectionner','sr-only'));name.title=t.name;body.append(name,state,node('p',t.printer||'Imprimante','muted'),node('p','Début : '+date(t.start),'muted'),node('p','Fin : '+(t.end?date(t.end):'Non renseignée'),'muted'),node('p','Durée : '+(t.elapsed_minutes==null?'Non renseignée':Number(t.elapsed_minutes).toLocaleString(locale,{maximumFractionDigits:1})+' min'),'muted'),open);li.append(label,taskThumbnail(t),body);return li;}));set('tasks-state',rows.length?'':taskMore?'Aucune fiche correspondante dans les pages chargées. Chargez la suite pour poursuivre la recherche.':"Aucun historique d'impression");$('tasks-state').hidden=!!rows.length;$('tasks-state').className=rows.length?'muted':'empty-message';set('tasks-page',`${taskRows.length} fiche(s) chargée(s)`);$('tasks-next').hidden=!taskMore;taskSelectionState();}
+export function renderTasks(){taskPreviewObserver.disconnect();const rows=visibleTasks();$('tasks-list').replaceChildren(...rows.map(t=>{const li=node('li',null,'task-history-item'),select=node('input'),label=node('label',null,'history-card-select'),body=node('div',null,'history-card-body'),name=node('strong',t.name,'history-card-name'),state=node('span',({2:tr('Terminé'),3:tr('Arrêté'),1:tr('En cours'),0:tr('En préparation')}[t.status_code]||t.status),'history-badge status-'+t.status_code),open=extraButton(tr('Voir le détail'),()=>openPastTask(t),'history-detail');select.type='checkbox';select.checked=taskSelected.has(t.key);select.setAttribute('aria-label',tr('Sélectionner ')+t.name);select.onchange=()=>{select.checked?taskSelected.add(t.key):taskSelected.delete(t.key);taskSelectionState();};label.append(select,node('span',tr('Sélectionner'),'sr-only'));name.title=t.name;body.append(name,state,node('p',t.printer||tr('Imprimante'),'muted'),node('p',tr('Début : ')+date(t.start),'muted'),node('p',tr('Fin : ')+(t.end?date(t.end):tr('Non renseignée')),'muted'),node('p',tr('Durée : ')+(t.elapsed_minutes==null?tr('Non renseignée'):Number(t.elapsed_minutes).toLocaleString(locale,{maximumFractionDigits:1})+' min'),'muted'),open);li.append(label,taskThumbnail(t),body);return li;}));set('tasks-state',rows.length?'':taskMore?tr('Aucune fiche correspondante dans les pages chargées. Chargez la suite pour poursuivre la recherche.'):tr("Aucun historique d'impression"));$('tasks-state').hidden=!!rows.length;$('tasks-state').className=rows.length?'muted':'empty-message';set('tasks-page',formatText("{0} fiche(s) chargée(s)",taskRows.length));$('tasks-next').hidden=!taskMore;taskSelectionState();}
 /** Relit le cloud après mutation ; le cache d’affichage ne constitue pas une preuve de suppression. */
-async function loadTasks(append=false){if(!append){tasksPage=1;taskRows=[];}set('tasks-state','Chargement des impressions…');$('tasks-state').hidden=false;try{const d=await request(`/extras/tasks?page=${tasksPage}&device=all`);taskRows=append?[...new Map([...taskRows,...d.items].map(t=>[t.key,t])).values()]:d.items;taskMore=d.has_more;const previous=$('tasks-printer').value,devices=new Map(taskRows.map(t=>[t.printer_key,t.printer]));$('tasks-printer').replaceChildren(new Option('Tous les appareils','all'),...[...devices].filter(([k])=>k).map(([k,name])=>new Option(name||'Imprimante',k)));$('tasks-printer').value=devices.has(previous)?previous:'all';if(!append)for(const key of taskSelected)if(!taskRows.some(t=>t.key===key))taskSelected.delete(key);renderTasks();}catch(e){set('tasks-state',e.message);$('tasks-state').hidden=false;}}
+async function loadTasks(append=false){if(!append){tasksPage=1;taskRows=[];}set('tasks-state',tr('Chargement des impressions…'));$('tasks-state').hidden=false;try{const d=await request(`/extras/tasks?page=${tasksPage}&device=all`);taskRows=append?[...new Map([...taskRows,...d.items].map(t=>[t.key,t])).values()]:d.items;taskMore=d.has_more;const previous=$('tasks-printer').value,devices=new Map(taskRows.map(t=>[t.printer_key,t.printer]));$('tasks-printer').replaceChildren(new Option(tr('Tous les appareils'),'all'),...[...devices].filter(([k])=>k).map(([k,name])=>new Option(name||tr('Imprimante'),k)));$('tasks-printer').value=devices.has(previous)?previous:'all';if(!append)for(const key of taskSelected)if(!taskRows.some(t=>t.key===key))taskSelected.delete(key);renderTasks();}catch(e){set('tasks-state',e.message);$('tasks-state').hidden=false;}}
 /** L’onglet d’historique est distinct du centre de messages de la cloche. */
 function historyViewSet(){historyView='tasks';loadTasks();}
 for(const button of document.querySelectorAll('[data-task-status]'))button.onclick=()=>{taskStatus=button.dataset.taskStatus;for(const b of document.querySelectorAll('[data-task-status]'))b.setAttribute('aria-pressed',String(b===button));renderTasks();};
 for(const id of ['tasks-printer','tasks-from','tasks-to','tasks-search'])$(id).oninput=renderTasks;
 $('tasks-select-page').onchange=e=>{for(const t of visibleTasks())e.target.checked?taskSelected.add(t.key):taskSelected.delete(t.key);taskSelectionState();};
 $('tasks-next').onclick=()=>{tasksPage++;loadTasks(true);};
-$('tasks-delete').onclick=async()=>{const keys=[...taskSelected],names=taskRows.filter(t=>taskSelected.has(t.key)).map(t=>'• '+t.name).join('\n');const result=await command('task-delete-many',{keys},`Retirer ${keys.length} fiche(s) de l’historique ?\n${names}\nCes fiches seront aussi retirées de l’historique dans l’application Anycubic et le slicer.`);if(result){taskSelected.clear();await loadTasks();}};
+$('tasks-delete').onclick=async()=>{const keys=[...taskSelected],names=taskRows.filter(t=>taskSelected.has(t.key)).map(t=>'• '+t.name).join('\n');const result=await command('task-delete-many',{keys},formatText("Retirer {0} fiche(s) de l’historique ?\n{1}\nCes fiches seront aussi retirées de l’historique dans l’application Anycubic et le slicer.",keys.length,names));if(result){taskSelected.clear();await loadTasks();}};
 /** Affiche détails, diagnostic et aperçu d’une tâche, sans interpréter une donnée absente comme une valeur nulle. */
 async function openPastTask(t){
  const dialog=$('past-task-dialog');
  pastTaskKey=t.key;
  set('past-task-name',t.name);
- set('past-task-state','Chargement des détails…');
+ set('past-task-state',tr('Chargement des détails…'));
  set('past-task-reason','');
  $('past-task-preview').hidden=true;
  $('past-task-diagnostic').hidden=true;
@@ -563,7 +568,7 @@ async function openPastTask(t){
  rate.disabled=t.evaluated===true;
  reprint.hidden=!selected||!t.can_reprint;
  reprint.disabled=!snapshot?.printer?.printer_online||!snapshot.printer.is_available;
- set('past-task-actions-state',!selected?'Sélectionnez l’imprimante de cette fiche pour agir.':!t.can_reprint?'G-code non disponible pour la réimpression.':reprint.disabled?'Imprimante hors ligne ou occupée.':'');
+ set('past-task-actions-state',!selected?tr('Sélectionnez l’imprimante de cette fiche pour agir.'):!t.can_reprint?tr('G-code non disponible pour la réimpression.'):reprint.disabled?tr('Imprimante hors ligne ou occupée.'):'');
  rate.onclick=()=>{dialog.close();void openRating(t);};
  reprint.onclick=()=>{
   dialog.close();
@@ -581,21 +586,21 @@ async function openPastTask(t){
  try{
   const d=await request('/extras/task?key='+encodeURIComponent(t.key));
   if(!current())return;
-  set('past-task-state',t.status);
+  set('past-task-state',tr(t.status));
   $('past-task-diagnostic').hidden=!(d.reason||d.reason_code||d.help_url);
-  set('past-task-reason',d.reason_code?`${d.reason||'Diagnostic Anycubic'} · Code ${d.reason_code}`:d.reason||'');
+  set('past-task-reason',[d.reason&&serverText(d.reason,'Pas de diagnostic traduit pour cet événement.'),d.reason_code&&tr('Code')+' '+d.reason_code].filter(Boolean).join(' · '));
   if(d.help_url){$('past-task-help').href=d.help_url;$('past-task-help').hidden=false;}
   const dims=d.dimensions,params=d.parameters||{};
   definition('past-task-data',[
-   ['Dimensions',dims?['length','width','height'].map(k=>fmt(dims[k])).join(' × ')+' mm':'—'],
-   ['Couches',fmt(d.layers)],
-   ['Durée rapportée',mins(d.reported_minutes)],
-   ['Temps estimé',d.estimated_seconds==null?'—':mins(d.estimated_seconds/60)],
-   ['Filament estimé',fmt(d.material_grams,' g')],
+   [tr('Dimensions'),dims?['length','width','height'].map(k=>fmt(dims[k])).join(' × ')+' mm':'—'],
+   [tr('Couches'),fmt(d.layers)],
+   [tr('Durée rapportée'),mins(d.reported_minutes)],
+   [tr('Temps estimé'),d.estimated_seconds==null?'—':mins(d.estimated_seconds/60)],
+   [tr('Filament estimé'),fmt(d.material_grams,' g')],
   ]);
   if(d.materials?.length){
    const details=node('details'),list=node('ul');
-   details.append(node('summary','Filaments estimés par matière'),list);
+   details.append(node('summary',tr('Filaments estimés par matière')),list);
    for(const {material,grams,color} of d.materials){
     const row=node('li');
     if(color){
@@ -604,16 +609,16 @@ async function openPastTask(t){
      swatch.setAttribute('aria-hidden','true');
      row.append(swatch);
     }
-    row.append(document.createTextNode([material||'Matière non renseignée',color,fmt(grams,' g')].filter(Boolean).join(' · ')));
+    row.append(document.createTextNode([material||tr('Matière non renseignée'),color,fmt(grams,' g')].filter(Boolean).join(' · ')));
     list.append(row);
    }
    $('past-task-parameters').append(details);
   }
   const groups=[
-   ['Général',[['Hauteur de couche','layer_height',' mm'],['Remplissage','fill_density',' %'],['Supports','enable_support'],['Adhérence','brim_type']]],
-   ['Températures et ventilation',[['Buse','temperature',' °C'],['Plateau','bed_temperature',' °C'],['Ventilation maximale','fan_max_speed',' %']]],
-   ['Extrusion et parois',[['Rétraction','filament_retract_length',' mm'],['Nombre de parois','perimeters'],['Largeur des parois','perimeter_extrusion_width',' mm']]],
-   ['Vitesses',[['Paroi externe','outer_wall_speed',' mm/s'],['Déplacement','travel_speed',' mm/s']]],
+   [tr('Général'),[[tr('Hauteur de couche'),'layer_height',' mm'],['Remplissage','fill_density',' %'],['Supports','enable_support'],[tr('Adhérence'),'brim_type']]],
+   [tr('Températures et ventilation'),[[tr('Buse'),'temperature',' °C'],[tr('Plateau'),'bed_temperature',' °C'],[tr('Ventilation maximale'),'fan_max_speed',' %']]],
+   [tr('Extrusion et parois'),[[tr('Rétraction'),'filament_retract_length',' mm'],[tr('Nombre de parois'),'perimeters'],[tr('Largeur des parois'),'perimeter_extrusion_width',' mm']]],
+   ['Vitesses',[[tr('Paroi externe'),'outer_wall_speed',' mm/s'],[tr('Déplacement'),'travel_speed',' mm/s']]],
   ];
   for(const [title,fields] of groups){
    const available=fields.filter(([,key])=>params[key]!=null);
@@ -623,7 +628,7 @@ async function openPastTask(t){
    for(const [label,key,unit] of available){
     const value=params[key];
     const row=node('div');
-    row.append(node('dt',label),node('dd',typeof value==='boolean'?value?'Oui':'Non':valueUnit(value,unit)));
+    row.append(node('dt',label),node('dd',typeof value==='boolean'?value?tr('Oui'):tr('Non'):valueUnit(value,unit)));
     list.append(row);
    }
    $('past-task-parameters').append(details);
@@ -631,8 +636,8 @@ async function openPastTask(t){
  }catch(e){if(current())set('past-task-state',e.message);}
 }
 /** Vérifie l’éligibilité cloud avant d’autoriser l’envoi d’une note sur la tâche sélectionnée. */
-async function openRating(t){pastTaskKey=t.key;set('rating-task-name',t.name);set('rating-state','Vérification auprès d’Anycubic…');$('rating-form').reset();$('rating-form').querySelector('fieldset').disabled=true;$('task-rating-dialog').showModal();try{const d=await request('/extras/rating?key='+encodeURIComponent(t.key));$('rating-form').querySelector('fieldset').disabled=!d.available||d.already_rated;set('rating-state',d.already_rated?'Cette impression est déjà évaluée':d.available?'La note sera envoyée au compte Anycubic':'Anycubic ne propose pas d’évaluation pour cette impression');}catch(e){set('rating-state',e.message);}}
-$('rating-form').onsubmit=async e=>{e.preventDefault();const ok=await command('task-rate',{key:pastTaskKey,stars:Number(new FormData(e.target).get('stars'))},'Envoyer cette note à Anycubic ?');if(ok){$('task-rating-dialog').close();loadTasks();}};
+async function openRating(t){pastTaskKey=t.key;set('rating-task-name',t.name);set('rating-state',tr('Vérification auprès d’Anycubic…'));$('rating-form').reset();$('rating-form').querySelector('fieldset').disabled=true;$('task-rating-dialog').showModal();try{const d=await request('/extras/rating?key='+encodeURIComponent(t.key));$('rating-form').querySelector('fieldset').disabled=!d.available||d.already_rated;set('rating-state',d.already_rated?tr('Cette impression est déjà évaluée'):d.available?tr('La note sera envoyée au compte Anycubic'):tr('Anycubic ne propose pas d’évaluation pour cette impression'));}catch(e){set('rating-state',e.message);}}
+$('rating-form').onsubmit=async e=>{e.preventDefault();const ok=await command('task-rate',{key:pastTaskKey,stars:Number(new FormData(e.target).get('stars'))},tr('Envoyer cette note à Anycubic ?'));if(ok){$('task-rating-dialog').close();loadTasks();}};
 $('task-reprint-form').onsubmit=async e=>{
  e.preventDefault();
  const form=e.currentTarget,submit=form.querySelector('[type=submit]');
@@ -640,8 +645,8 @@ $('task-reprint-form').onsubmit=async e=>{
  let mapping;
  try{mapping=slots(form.elements.slots.value);}catch(err){message(err.message,true);return;}
  const wording=mapping.length
-  ?'Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent aux emplacements {2}.'
-  :'Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent au fichier.';
+  ?tr('Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent aux emplacements {2}.')
+  :tr('Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent au fichier.');
  submit.disabled=true;
  try{
   const ok=await command('task-reprint',{key:pastTaskKey,slots:mapping},formatText(wording,$('reprint-task-name').textContent,$('reprint-target').textContent,mapping.join(', ')));
@@ -653,21 +658,21 @@ let journalLoad=0;
 async function loadCommandJournal(){
  const generation=++journalLoad,form=$('journal-filters'),filters=new URLSearchParams(new FormData(form));
  const exportLink=$('journal-export');
- exportLink.hidden=true;set('journal-state','Chargement du journal…');
+ exportLink.hidden=true;set('journal-state',tr('Chargement du journal…'));
  try{
   const {items,printers,actions}=await request('/journal?'+filters);
   if(generation!==journalLoad)return;
   const {printer,action}=form.elements;
-  printer.replaceChildren(new Option('Toutes les imprimantes',''),...Object.entries(printers).map(([key,name])=>new Option(name||key,key)));
-  action.replaceChildren(new Option('Toutes les actions',''),...actions.map(value=>new Option(value,value)));
+  printer.replaceChildren(new Option(tr('Toutes les imprimantes'),''),...Object.entries(printers).map(([key,name])=>new Option(name||key,key)));
+  action.replaceChildren(new Option(tr('Toutes les actions'),''),...actions.map(value=>new Option(value,value)));
   printer.value=filters.get('printer');action.value=filters.get('action');
   $('journal-entries').replaceChildren(...items.map(row=>{
    const item=node('li');
    const details=Object.entries(row.parameters||{}).map(([key,value])=>key+' '+value).join(' · ');
-   item.append(node('strong',row.action+' · '+row.outcome),node('p',[date(row.time),row.printer_name,details].filter(Boolean).join(' · ')));
+   item.append(node('strong',row.action+' · '+tr(row.outcome)),node('p',[date(row.time),row.printer_name,details].filter(Boolean).join(' · ')));
    return item;
   }));
-  set('journal-state',items.length?items.length+' entrée(s) récente(s)':'Aucune commande pour ces filtres.');
+  set('journal-state',items.length?items.length+tr(' entrée(s) récente(s)'):tr('Aucune commande pour ces filtres.'));
   filters.set('export','1');exportLink.href=api+'/journal?'+filters;exportLink.hidden=!items.length;
  }catch(error){
   if(generation!==journalLoad)return;
@@ -677,17 +682,17 @@ async function loadCommandJournal(){
 $('journal-panel').ontoggle=()=>{if($('journal-panel').open)void loadCommandJournal();};
 $('journal-filters').onsubmit=event=>{event.preventDefault();void loadCommandJournal();};
 $('journal-filters').onchange=()=>void loadCommandJournal();
-const assistLabels={0:'Contrôle de la courroie',1:'Détection de perte de pas',2:'Relais automatique',3:'Alerte de fin de filament',4:'Alerte de blocage du filament',5:'Suivi du filament restant'};
+const assistLabels={0:tr('Contrôle de la courroie'),1:tr('Détection de perte de pas'),2:tr('Relais automatique'),3:tr('Alerte de fin de filament'),4:tr('Alerte de blocage du filament'),5:tr('Suivi du filament restant')};
 /** N’expose les réglages avancés que si les capacités et options constructeur les autorisent. */
-async function loadDeviceOptions(){const button=$('device-options-load');button.disabled=true;set('device-options-state','Lecture des options du constructeur…');try{const d=await request('/extras/device');deviceOptions=d;set('device-options-state',d.message||'Options reçues de l’imprimante');$('calibration-choices').replaceChildren(...d.calibrations.map(c=>{const label=node('label',null,'check'),input=node('input');input.type='checkbox';input.name='items';input.value=c.key;label.append(input,document.createTextNode(c.label));return label;}));$('calibration-fields').disabled=!d.calibrations.length;set('calibration-help',d.calibrations.length?'Choisissez les calibrations à lancer, plateau libre.':d.calibration_advertised?'Le nivellement et la compensation sont annoncés, mais leur commande à distance n’est pas confirmée pour ce firmware.':'Aucune calibration à distance fournie pour ce firmware.');$('hardware-form').hidden=!d.hardware_editable;$('hardware-form').querySelector('fieldset').disabled=!d.hardware_editable;set('hardware-help',d.hardware_editable?'Réglages déclarés par le constructeur.':'Le Cloud ne permet pas de modifier le matériel sur ce firmware.');if(d.hardware_editable){for(const k of ['diameter','material'])if(d.hardware[k]!=null)$('hardware-form').elements[k].value=d.hardware[k];if(d.bed.material!=null)$('hardware-form').elements.bed.value=d.bed.material;}$('assist-options').replaceChildren(...d.assistance.filter(r=>[0,3,4,5].includes(r.option)).map(r=>{const label=node('label',null,'check'),input=node('input');input.type='checkbox';input.name=String(r.option);input.checked=!!Number(r.value);label.append(input,document.createTextNode(assistLabels[r.option]||r.label||'Option constructeur'));return label;}));$('assist-form').querySelector('fieldset').disabled=!d.assistance.length;set('assist-help',d.assistance.length?'Options actuelles communiquées par la machine.':'Options d’assistance non fournies par ce firmware.');$('screen-option').replaceChildren(...d.screen.filter(r=>[0,1].includes(r.option)).map(r=>new Option(r.option===0?'Extinction de l’écran':'Mise en veille',r.option)));$('screen-form').querySelector('fieldset').disabled=!$('screen-option').options.length;set('screen-help',d.screen.length?'Délai avant la mise en veille.':'Réglage de veille non fourni par ce firmware.');const visible=[d.calibrations.length>0,d.hardware_editable,d.assistance.some(r=>[0,3,4,5].includes(r.option)),d.screen.some(r=>[0,1].includes(r.option)),d.factory_reset];document.querySelectorAll('.extras-settings-grid>section').forEach((card,i)=>card.hidden=!visible[i]);document.querySelector('.extras-settings-grid').hidden=!visible.some(Boolean);document.querySelector('.extras-settings-heading').hidden=!visible.some(Boolean);$('reset-open').disabled=!d.factory_reset||!snapshot?.printer?.is_available;set('reset-help',d.factory_reset?'Rétablit les réglages d’usine après saisie du code et du mot de passe web.':'La réinitialisation Cloud n’est pas annoncée pour ce firmware.');}catch(e){set('device-options-state',e.message);}finally{button.disabled=false;}}
+async function loadDeviceOptions(){const button=$('device-options-load');button.disabled=true;set('device-options-state',tr('Lecture des options du constructeur…'));try{const d=await request('/extras/device');deviceOptions=d;set('device-options-state',d.message||tr('Options reçues de l’imprimante'));$('calibration-choices').replaceChildren(...d.calibrations.map(c=>{const label=node('label',null,'check'),input=node('input');input.type='checkbox';input.name='items';input.value=c.key;label.append(input,document.createTextNode(tr(c.label)));return label;}));$('calibration-fields').disabled=!d.calibrations.length;set('calibration-help',d.calibrations.length?tr('Choisissez les calibrations à lancer, plateau libre.'):d.calibration_advertised?tr('Le nivellement et la compensation sont annoncés, mais leur commande à distance n’est pas confirmée pour ce firmware.'):tr('Aucune calibration à distance fournie pour ce firmware.'));$('hardware-form').hidden=!d.hardware_editable;$('hardware-form').querySelector('fieldset').disabled=!d.hardware_editable;set('hardware-help',d.hardware_editable?tr('Réglages déclarés par le constructeur.'):tr('Le Cloud ne permet pas de modifier le matériel sur ce firmware.'));if(d.hardware_editable){for(const k of ['diameter','material'])if(d.hardware[k]!=null)$('hardware-form').elements[k].value=d.hardware[k];if(d.bed.material!=null)$('hardware-form').elements.bed.value=d.bed.material;}$('assist-options').replaceChildren(...d.assistance.filter(r=>[0,3,4,5].includes(r.option)).map(r=>{const label=node('label',null,'check'),input=node('input');input.type='checkbox';input.name=String(r.option);input.checked=!!Number(r.value);label.append(input,document.createTextNode(assistLabels[r.option]||r.label||tr('Option constructeur')));return label;}));$('assist-form').querySelector('fieldset').disabled=!d.assistance.length;set('assist-help',d.assistance.length?tr('Options actuelles communiquées par la machine.'):tr('Options d’assistance non fournies par ce firmware.'));$('screen-option').replaceChildren(...d.screen.filter(r=>[0,1].includes(r.option)).map(r=>new Option(r.option===0?tr('Extinction de l’écran'):tr('Mise en veille'),r.option)));$('screen-form').querySelector('fieldset').disabled=!$('screen-option').options.length;set('screen-help',d.screen.length?tr('Délai avant la mise en veille.'):tr('Réglage de veille non fourni par ce firmware.'));const visible=[d.calibrations.length>0,d.hardware_editable,d.assistance.some(r=>[0,3,4,5].includes(r.option)),d.screen.some(r=>[0,1].includes(r.option)),d.factory_reset];document.querySelectorAll('.extras-settings-grid>section').forEach((card,i)=>card.hidden=!visible[i]);document.querySelector('.extras-settings-grid').hidden=!visible.some(Boolean);document.querySelector('.extras-settings-heading').hidden=!visible.some(Boolean);$('reset-open').disabled=!d.factory_reset||!snapshot?.printer?.is_available;set('reset-help',d.factory_reset?tr('Rétablit les réglages d’usine après saisie du code et du mot de passe web.'):tr('La réinitialisation Cloud n’est pas annoncée pour ce firmware.'));}catch(e){set('device-options-state',e.message);}finally{button.disabled=false;}}
 $('device-options-load').onclick=loadDeviceOptions;
-$('calibration-form').onsubmit=e=>{e.preventDefault();command('calibrate',{items:new FormData(e.target).getAll('items')},'Lancer les calibrations choisies ? Le plateau doit être libre.');};
-$('hardware-form').onsubmit=e=>{e.preventDefault();const f=e.target;command('hardware',{diameter:Number(f.elements.diameter.value),material:Number(f.elements.material.value),bed:Number(f.elements.bed.value)},'Mettre à jour la configuration du matériel ?');};
-$('assist-form').onsubmit=e=>{e.preventDefault();command('assist',{items:[...e.target.querySelectorAll('input[type=checkbox]')].map(i=>({option:Number(i.name),value:i.checked}))},'Appliquer ces options d’assistance ?');};
-$('screen-form').onsubmit=e=>{e.preventDefault();command('screen',{option:Number(e.target.elements.option.value),minutes:Number(e.target.elements.minutes.value)},'Modifier le délai de veille ?');};
+$('calibration-form').onsubmit=e=>{e.preventDefault();command('calibrate',{items:new FormData(e.target).getAll('items')},tr('Lancer les calibrations choisies ? Le plateau doit être libre.'));};
+$('hardware-form').onsubmit=e=>{e.preventDefault();const f=e.target;command('hardware',{diameter:Number(f.elements.diameter.value),material:Number(f.elements.material.value),bed:Number(f.elements.bed.value)},tr('Mettre à jour la configuration du matériel ?'));};
+$('assist-form').onsubmit=e=>{e.preventDefault();command('assist',{items:[...e.target.querySelectorAll('input[type=checkbox]')].map(i=>({option:Number(i.name),value:i.checked}))},tr('Appliquer ces options d’assistance ?'));};
+$('screen-form').onsubmit=e=>{e.preventDefault();command('screen',{option:Number(e.target.elements.option.value),minutes:Number(e.target.elements.minutes.value)},tr('Modifier le délai de veille ?'));};
 $('reset-open').onclick=()=>{resetTicket=null;$('reset-understood').checked=false;$('reset-get-code').disabled=true;$('reset-form').hidden=true;$('reset-form').reset();$('reset-dialog').showModal();};$('reset-understood').onchange=e=>$('reset-get-code').disabled=!e.target.checked;
-$('reset-get-code').onclick=async()=>{if(!$('reset-understood').checked)return;try{const d=await request('/reset/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});resetTicket=d.ticket;resetDeadline=Date.now()+d.expires_in*1000;set('reset-code',d.code);$('reset-form').hidden=false;set('reset-state','Ce code est à usage unique');$('reset-form').elements.code.focus();}catch(e){set('reset-help',e.message);message(e.message,true);}};
-$('reset-form').onsubmit=async e=>{e.preventDefault();if(!resetTicket||Date.now()>resetDeadline){set('reset-state','Code expiré. Demandez un nouveau code.');return;}const ok=await command('factory-reset',{ticket:resetTicket,code:e.target.elements.code.value});resetTicket=null;if(ok)$('reset-dialog').close();else set('reset-state','Demandez un nouveau code avant de réessayer');};
+$('reset-get-code').onclick=async()=>{if(!$('reset-understood').checked)return;try{const d=await request('/reset/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});resetTicket=d.ticket;resetDeadline=Date.now()+d.expires_in*1000;set('reset-code',d.code);$('reset-form').hidden=false;set('reset-state',tr('Ce code est à usage unique'));$('reset-form').elements.code.focus();}catch(e){set('reset-help',e.message);message(e.message,true);}};
+$('reset-form').onsubmit=async e=>{e.preventDefault();if(!resetTicket||Date.now()>resetDeadline){set('reset-state',tr('Code expiré. Demandez un nouveau code.'));return;}const ok=await command('factory-reset',{ticket:resetTicket,code:e.target.elements.code.value});resetTicket=null;if(ok)$('reset-dialog').close();else set('reset-state',tr('Demandez un nouveau code avant de réessayer'));};
 let timelapsePage=1,timelapseKeyword='',timelapseGeneration=0;
 /** L’imprimante sélectionnée est la seule interrogée et la dernière recherche prévaut. */
 async function loadTimelapse(page=1){
@@ -696,12 +701,12 @@ async function loadTimelapse(page=1){
  const previous=$('timelapse-previous'),next=$('timelapse-next');
  previous.disabled=true;next.disabled=true;
  $('timelapse-list').replaceChildren();
- set('timelapse-state','Lecture des vidéos…');
+ set('timelapse-state',tr('Lecture des vidéos…'));
  try{
   const d=await request('/extras/videos?'+new URLSearchParams({page,keyword:timelapseKeyword}));
   if(generation!==timelapseGeneration)return;
   timelapsePage=page;
-  set('timelapse-state',d.message||(!d.items?.length?'Aucune vidéo signalée':''));
+  set('timelapse-state',d.message||(!d.items?.length?tr('Aucune vidéo signalée'):''));
   previous.disabled=!d.available||page<=1;
   next.disabled=!d.available||!d.has_more;
   $('timelapse-list').replaceChildren(...(d.items||[]).map(v=>{
