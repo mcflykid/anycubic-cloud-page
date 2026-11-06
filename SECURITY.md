@@ -8,7 +8,7 @@ Sur une origine HTTPS, la session utilise le cookie `__Host-anycubic_session`, l
 
 Une mise à jour de micrologiciel ou une réinitialisation d’usine demande le mot de passe web. La confirmation expire après deux minutes, vaut une seule fois pour l’action et l’imprimante choisies, et s’ajoute au code de réinitialisation. Cinq échecs en cinq minutes limitent la session concernée. La connexion principale garde son propre compteur.
 
-Le journal des commandes conserve jusqu’à 512 Kio de traces récentes sur 30 jours dans le volume privé, avec des paramètres filtrés. L’export depuis Réglages retire les adresses clientes et les empreintes de session. Un résultat inconnu indique que l’application ne peut pas déterminer si la machine a appliqué la demande.
+Le journal des commandes conserve jusqu’à 512 Kio de traces récentes sur 30 jours dans le volume privé, avec des paramètres filtrés. L’export depuis Réglages retire les adresses clientes et les empreintes de session. Les retours MQTT connus confirment une commande dans les cinq minutes si l’imprimante, la référence constructeur et l’état final concordent. La référence n’est gardée que sous forme d’empreinte privée, hors export. Les autres résultats gardent leur état HTTP ou restent inconnus.
 
 Les certificats historiques du fournisseur demandent une compatibilité TLS particulière, documentée dans `docs/PROTOCOL.md`. Ce dépôt ne fournit pas de clé privée ni de secret de signature embarqué. Le préparateur place le matériel amont dans des fichiers locaux ignorés par Git.
 

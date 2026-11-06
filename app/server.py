@@ -12,7 +12,7 @@ from temperature_history import TemperatureHistory
 from printer_registry import PrinterRegistry,SharedCloudAPI,select_printer,printer_key
 from account_auth import AccountAuth
 from web_host import SESSION_DIGEST_KEY,SENSITIVE_ACTIONS,access_control,client_address,consume_action_ticket
-from command_journal import ACTIONS,CommandJournal,filtered_parameters,make_entry,request_key
+from command_journal import ACTIONS,MQTT_CONFIRMATIONS,CommandJournal,JournalMQTT,command_mqtt_context,filtered_parameters,make_entry,mqtt_digest,request_key
 from session_api import SessionRecovery
 from native_controls import task_details,axis_payload,ai_payload,ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
@@ -85,6 +85,20 @@ def history_entry(row):
 
 class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):
  """Relie les réponses MQTT et le renouvellement de session au moteur web."""
+ async def _send_anycubic_order(self,order_request,raw_data=False):
+  """Rattache le msgid retourné à la requête web qui a réellement émis l’ordre."""
+  context=command_mqtt_context.get()
+  sent_at=time.time()
+  result=await super()._send_anycubic_order(order_request,raw_data=raw_data)
+  if context is None:return result
+  tracker,entry,task=context
+  if asyncio.current_task() is not task:return result
+  data=order_request.order_request_data
+  order_id=data['order_id']
+  if order_id in MQTT_CONFIRMATIONS and printer_key(data['printer_id'])==entry['printer'] and not raw_data:
+   if (digest:=mqtt_digest(result)) is not None:tracker.watch(entry,order_id,digest,sent_at)
+  return result
+
  def cloud_printer_updated(self):
   """Le rappel sans argument de la bibliothèque hérite du propriétaire du message actuellement routé."""
   owner=getattr(self,'message_engine',None)
@@ -99,6 +113,9 @@ class CloudPageAPI(SessionRecovery,AnycubicMQTTAPI):
    with contextlib.suppress(Exception):
     payload=json.loads(message.payload)
     if owner and owner.printer and get_part_from_mqtt_topic(str(message.topic),6)==str(owner.printer.key):
+     tracker=getattr(primary,'command_mqtt',None)
+     if tracker and str(message.topic).startswith('anycubic/anycubicCloud/v1/printer/app/') and not getattr(message,'retain',False):
+      tracker.receive(printer_key(owner.printer.id),payload)
      owner.receive_ai_reply(str(message.topic),payload)
      owner.receive_video_reply(str(message.topic),payload)
      if (payload.get('type')=='file' and payload.get('action') in ['listLocal','listUdisk','fileDetails','listVideo','videoThumbnailList']) or payload.get('type') in ['light','aiSettings']:
@@ -661,6 +678,7 @@ async def local_files(req):
  async with engine.lock:return web.json_response(await engine.read_files(source,req.query.get('path','/')),headers={'Cache-Control':'no-store'})
 
 COMMAND_JOURNAL_KEY=web.AppKey('command_journal',CommandJournal)
+COMMAND_MQTT_KEY=web.AppKey('command_mqtt',JournalMQTT)
 
 class CommandWaitExpired(ValueError):
  """Signale une attente expirée avant l’envoi d’une commande."""
@@ -693,11 +711,15 @@ def audit_command(request,engine,action,request_id,parameters):
   entry=make_entry(action,request_id,request.get('printer_key'),getattr(engine.printer,'name',None),
    request.get(SESSION_DIGEST_KEY),client_address(request),parameters)
  else:entry={}
+ tracker=request.app.get(COMMAND_MQTT_KEY) if entry else None
+ context=command_mqtt_context.set((tracker,entry,asyncio.current_task()) if tracker else None)
  try:yield entry
  except CommandWaitExpired:
   if entry:entry['outcome']='expirée'
   raise
- finally:save_command_event(request,entry)
+ finally:
+  command_mqtt_context.reset(context)
+  save_command_event(request,entry)
 
 async def command_journal(request):
  """Liste les entrées privées filtrées ou télécharge une copie sans adresse ni empreinte de session."""
@@ -707,6 +729,7 @@ async def command_journal(request):
  actions=sorted({row['action'] for row in rows})
  printer=request.query.get('printer');action=request.query.get('action')
  rows=[row for row in reversed(rows) if (not printer or row.get('printer')==printer) and (not action or row['action']==action)]
+ rows=[{key:value for key,value in row.items() if key!='mqtt'} for row in rows]
  if request.query.get('export')=='1':
   public=[{key:value for key,value in row.items() if key not in ('client','session')} for row in rows]
   return web.json_response(public,headers={'Content-Disposition':'attachment; filename="journal-commandes.json"'})
@@ -746,9 +769,8 @@ async def command(req):
    try:message=await engine.action(name,d)
    except Exception:
     engine.event(str(name),'Échec ou résultat inconnu');raise
-   if audit:
-    if name=='light' and message.endswith('état confirmé par l’imprimante'):audit['outcome']='confirmée'
-    elif name in ('axis','axis-off','ai-settings','task-reprint','light'):audit['outcome']='envoyée'
+   if audit and audit['outcome']!='confirmée':
+    if name in ('axis','axis-off','ai-settings','task-reprint','light'):audit['outcome']='envoyée'
     elif name!='task-delete-many' or 'non confirmé' not in message:audit['outcome']='acceptée'
    engine.event(str(name),'Acceptée')
    result={'ok':True,'message':message};engine.commands[requestid]=result
@@ -894,7 +916,7 @@ async def upload_operation(req,engine,audit):
      func=engine.printer.print_and_upload_save_in_cloud if mode=='save-print' else engine.printer.print_and_upload_no_cloud_save
      await func(full_file_path=str(path),file_name=filename,slot_index_list=slots)
     engine.event('G-code','Envoi accepté')
-    if audit:audit['outcome']='acceptée'
+    if audit and audit['outcome']!='confirmée':audit['outcome']='acceptée'
     result={'ok':True,'message':'Envoi accepté par Anycubic'};engine.commands[rid]=result
     return web.json_response(result)
 
@@ -927,6 +949,7 @@ async def startup(app):
  app['poll_task']=asyncio.create_task(engine.poll())
  app['temperature_history']=TemperatureHistory()
  app[COMMAND_JOURNAL_KEY]=CommandJournal(engine.state_dir/'command-journal.jsonl')
+ engine.command_mqtt=app[COMMAND_MQTT_KEY]=JournalMQTT(app[COMMAND_JOURNAL_KEY],asyncio.get_running_loop())
  app['temperature_task']=asyncio.create_task(sample_temperatures(app))
 async def cleanup(app):
  """Arrête la collecte, sauvegarde les températures et ferme les connexions."""

@@ -33,3 +33,55 @@ class CommandJournalTests(unittest.TestCase):
   self.assertIsNone(row['printer_name'])
   self.assertIsNone(row['client'])
   self.assertNotEqual(row['request_id'],'opaque-reference-test')
+
+class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
+ """Rejoue les retours du protocole sans transport cloud ni imprimante."""
+ async def test_early_report_does_not_need_another_mqtt_delivery(self):
+  """Un retour reçu avant HTTP est conservé et exige la bonne imprimante et le bon état."""
+  import asyncio
+  from command_journal import JournalMQTT, mqtt_digest
+  with tempfile.TemporaryDirectory() as directory:
+   journal=CommandJournal(Path(directory)/'journal.jsonl')
+   tracker=JournalMQTT(journal,asyncio.get_running_loop())
+   entry=make_entry('pause','fixture-request-pause','fixture-printer','Imprimante',None,'unknown',{})
+   entry['outcome']='envoyée'
+   sent_at=time.time()
+   payload={'type':'print','action':'pause','state':'paused','msgid':'fixture-cloud-reference'}
+   tracker.receive('other-printer',payload)
+   tracker.receive('fixture-printer',{**payload,'state':'pausing'})
+   await asyncio.sleep(0)
+   digest=mqtt_digest(payload['msgid'])
+   tracker.watch(entry,2,digest,sent_at)
+   self.assertEqual(journal.rows()[0]['outcome'],'envoyée')
+   tracker.receive('fixture-printer',{**payload,'action':'resume','state':'resumed'})
+   await asyncio.sleep(0)
+   self.assertEqual(journal.rows()[0]['outcome'],'envoyée')
+   tracker.receive('fixture-printer',payload)
+   await asyncio.sleep(0)
+   self.assertEqual(entry['outcome'],'confirmée')
+   self.assertNotIn('mqtt',journal.rows()[0])
+   self.assertNotIn(payload['msgid'],journal.path.read_text())
+   early=make_entry('pause','fixture-request-early','fixture-printer','Imprimante',None,'unknown',{})
+   payload['msgid']='fixture-early';sent_at=time.time()
+   tracker.receive('fixture-printer',payload)
+   await asyncio.sleep(0)
+   tracker.watch(early,2,mqtt_digest(payload['msgid']),sent_at)
+   self.assertEqual(early['outcome'],'confirmée')
+ async def test_restarts_and_expired_reports(self):
+  """La référence est rechargée depuis le disque et un ancien retour reste sans effet."""
+  import asyncio
+  from command_journal import JournalMQTT, MQTT_WINDOW, mqtt_digest
+  with tempfile.TemporaryDirectory() as directory:
+   journal=CommandJournal(Path(directory)/'journal.jsonl')
+   tracker=JournalMQTT(journal,asyncio.get_running_loop())
+   entry=make_entry('delete-local','fixture-delete-local','fixture-printer','Imprimante',None,'unknown',{})
+   entry['outcome']='acceptée';sent_at=time.time()
+   payload={'type':'file','action':'deleteLocal','state':'success','msgid':12345}
+   digest=mqtt_digest(payload['msgid'])
+   tracker.watch(entry,104,digest,sent_at)
+   restart=JournalMQTT(journal,asyncio.get_running_loop())
+   restart.apply_report(('fixture-printer',digest),('file','deleteLocal','success'),sent_at+MQTT_WINDOW+1)
+   self.assertEqual(journal.rows()[0]['outcome'],'acceptée')
+   restart.receive('fixture-printer',payload)
+   await asyncio.sleep(0)
+   self.assertEqual(journal.rows()[0]['outcome'],'confirmée')
