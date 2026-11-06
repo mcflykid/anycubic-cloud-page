@@ -1,6 +1,7 @@
 """Cibles par requête et collectes indépendantes pour les imprimantes d’un même compte."""
 
 import asyncio, contextlib, hashlib, json
+from dataclasses import dataclass
 from aiohttp import web
 from cloud_extras import CloudExtras
 from temperature_history import TemperatureHistory
@@ -12,29 +13,14 @@ def printer_key(identifier):
     return hashlib.sha256(str(identifier).encode()).hexdigest()[:20]
 
 
-class SharedCloudAPI:
-    """Délègue au client courant du compte sans créer un second identifiant MQTT concurrent."""
+@dataclass
+class AccountTransport:
+    """Session HTTP et client MQTT possédés par le moteur principal, partagés par référence."""
 
-    def __init__(self, registry):
-        """Conserve le registre plutôt qu’un ancien client, pour survivre à son renouvellement."""
-        self.registry = registry
-
-    @property
-    def transport(self):
-        """Renvoie le transport prêt, ou None tant que le compte se reconnecte."""
-        owner = self.registry.default
-        return None if getattr(owner, "reconnect_required", False) else owner.api
-
-    def __bool__(self):
-        """Les gardes de connexion des points d’accès s’appliquent aussi aux moteurs secondaires."""
-        return self.transport is not None
-
-    def __getattr__(self, name):
-        """Résout chaque appel sur la session actuelle ; une reconnexion incomplète bloque la demande."""
-        api = self.transport
-        if api is None:
-            raise ValueError("Connexion commune Anycubic en cours")
-        return getattr(api, name)
+    api: object | None = None
+    session: object | None = None
+    token: str | None = None
+    reconnect_required: bool = False
 
 
 class PrinterRegistry:
@@ -114,6 +100,7 @@ class PrinterRegistry:
                 selected = self.factory()
                 selected.selected_id = str(rows[key].id)
                 selected.account = self.default.account
+                selected.transport = self.default.transport
                 selected.fleet_registry = self
                 selected.notifications = self.default.notifications
                 selected.state_dir = self.default.state_dir / "printers" / key
@@ -160,6 +147,7 @@ class PrinterRegistry:
         if not api or not selected.printer:
             return
         printer = selected.printer
+        printer._api_parent = api
         previous = api._mqtt_subscribed_printers.get(printer.key)
         api._mqtt_subscribed_printers[printer.key] = printer
         if previous is None and api._mqtt_client and api._mqtt_client.is_connected():
@@ -179,7 +167,8 @@ class PrinterRegistry:
 
     async def connect_secondary(self, selected):
         """Réutilise la session et un modèle de la cible exacte ; ne crée ni connexion de compte ni fil MQTT."""
-        if not SharedCloudAPI(self) or self.default.session is None:
+        api = selected.api
+        if api is None or selected.session is None:
             raise RuntimeError("Connexion commune Anycubic en cours")
         rows = self.catalogue()
         key = printer_key(selected.selected_id)
@@ -189,12 +178,9 @@ class PrinterRegistry:
             selected.printer = rows[key]
         if str(selected.printer.id) != str(selected.selected_id):
             raise RuntimeError("La cible du moteur ne peut pas changer")
-        selected.api = SharedCloudAPI(self)
-        selected.session = self.default.session
-        selected.account_token = self.default.account_token
         selected.known_printers = list(rows.values())
         selected.pinned_id = str(selected.printer.id)
-        selected.printer._api_parent = selected.api
+        selected.printer._api_parent = api
         await selected.printer.update_info_from_api()
         self.subscribe(selected)
 

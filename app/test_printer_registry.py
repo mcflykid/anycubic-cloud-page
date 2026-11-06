@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 import server as adapter
-from printer_registry import PrinterRegistry, SharedCloudAPI, printer_key, select_printer
+from printer_registry import PrinterRegistry, printer_key, select_printer
 from web_host import install_ui_resources
 
 
@@ -123,7 +123,6 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
     async def test_account_notifications_are_loaded_once_for_two_printers(self):
         """Deux cibles partagent la lecture et les références de notification du compte."""
         secondary = await self.secondary()
-        secondary.api = SharedCloudAPI(self.registry)
         self.root.api = SimpleNamespace(
             _fetch_api_resp=AsyncMock(side_effect=[{"code": 1, "data": [{"id": 11}]}, {"data": []}])
         )
@@ -136,7 +135,6 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
     async def test_sampling_survives_unavailable_shared_transport(self):
         """Une coupure suspend les relevés et le même échantillonneur reprend après reconnexion."""
         secondary = await self.secondary()
-        secondary.api = SharedCloudAPI(self.registry)
         secondary.printer.multi_color_box = []
         secondary.printer.printer_online = True
         secondary.ok = True
@@ -247,9 +245,17 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
         self.assertIs(api._mqtt_subscribed_printers["fixture-b"], second.printer)
         api._mqtt_subscribe_printer_status.assert_called_once_with(second.printer)
         newer = SimpleNamespace(
-            _fetch_api_resp=AsyncMock(return_value={"code": 1, "data": "renewed"})
+            _fetch_api_resp=AsyncMock(return_value={"code": 1, "data": "renewed"}),
+            _mqtt_client=None,
+            _mqtt_subscribed_printers={},
         )
+        self.root.reconnect_required = True
         self.root.api = newer
+        self.assertIsNone(second.api)
+        self.root.reconnect_required = False
+        self.registry.restore_subscriptions()
+        self.assertIs(second.printer._api_parent, newer)
+        self.assertIs(second.transport, self.root.transport)
         self.assertEqual(
             await second.api._fetch_api_resp("fixture"), {"code": 1, "data": "renewed"}
         )

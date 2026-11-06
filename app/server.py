@@ -14,7 +14,7 @@ load_vendor_config()
 from file_preview import find_project_preview_url
 from temperature_history import TemperatureHistory
 from notification_service import AccountNotifications
-from printer_registry import PrinterRegistry, SharedCloudAPI, select_printer, printer_key
+from printer_registry import AccountTransport, PrinterRegistry, select_printer, printer_key
 from account_auth import AccountAuth
 from web_host import (
     SESSION_DIGEST_KEY,
@@ -204,7 +204,7 @@ class Engine:
         self.camera_message_id = None
         self.camera_diagnostic = None
         self.camera_stage = -1
-        self.reconnect_required = False
+        self.transport = AccountTransport()
         self.camera_viewers = set()
         self.camera_departures = collections.OrderedDict()
         self.camera_owner = None
@@ -218,10 +218,7 @@ class Engine:
         self.mqtt_auth_lock = asyncio.Lock()
         self.mqtt_auth_pending = False
         self.account = AccountAuth()
-        self.account_token = None
-        self.api = None
         self.printer = None
-        self.session = None
         self.ok = False
         self.updated = None
         self.mqtt_update = None
@@ -246,6 +243,48 @@ class Engine:
             {"name": "ABS / ASA", "temperature": 60, "hours": 4},
             {"name": "PA", "temperature": 65, "hours": 8},
         ]
+
+    @property
+    def api(self):
+        """Retourne le client courant, masqué aux cibles pendant une reconnexion du compte."""
+        if (
+            self.transport.reconnect_required
+            and self.fleet_registry
+            and self.fleet_registry.default is not self
+        ):
+            return None
+        return self.transport.api
+
+    @api.setter
+    def api(self, value):
+        self.transport.api = value
+
+    @property
+    def session(self):
+        """Utilise la même session HTTP sur toutes les cibles du compte."""
+        return self.transport.session
+
+    @session.setter
+    def session(self, value):
+        self.transport.session = value
+
+    @property
+    def account_token(self):
+        """Donne au moteur principal le jeton associé au client actif."""
+        return self.transport.token
+
+    @account_token.setter
+    def account_token(self, value):
+        self.transport.token = value
+
+    @property
+    def reconnect_required(self):
+        """Partage l’état de reconnexion avec les cibles secondaires."""
+        return self.transport.reconnect_required
+
+    @reconnect_required.setter
+    def reconnect_required(self, value):
+        self.transport.reconnect_required = value
 
     def event(self, action, state):
         """Ajoute un événement horodaté au journal local borné."""
@@ -312,7 +351,7 @@ class Engine:
     def session_renewed(self, api):
         """Programme la reconnexion MQTT pour employer la nouvelle session HTTP."""
         self.event("Cloud", "Session renouvelée automatiquement")
-        if self.api is api and self.printer:
+        if self.api is api and self.printer and not self.reconnect_required:
             self.mqtt_auth_pending = True
             asyncio.create_task(self.restart_mqtt_auth(api))
 
@@ -336,6 +375,7 @@ class Engine:
         if getattr(self, "fleet_registry", None) and self is not self.fleet_registry.default:
             await self.fleet_registry.connect_secondary(self)
             return
+        self.reconnect_required = True
         if not self.session:
             self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45))
         token = await self.account.token(self.session)
@@ -385,12 +425,15 @@ class Engine:
             if self.catalogue_source and getattr(self, "fleet_registry", None):
                 self.transport_only = True
                 self.reconnect_required = False
+                self.fleet_registry.restore_subscriptions()
                 self.mqtt_start()
                 return
             raise RuntimeError("Imprimante absente")
         await self.printer.update_info_from_api()
         self.reconnect_required = False
         self.api.mqtt_add_subscribed_printer(self.printer)
+        if self.fleet_registry:
+            self.fleet_registry.restore_subscriptions()
         self.mqtt_start()
 
     async def refresh_catalogue(self):
@@ -513,8 +556,8 @@ class Engine:
     def snapshot(self):
         """Renvoie l’état sérialisé et filtré pour le navigateur, sans identifiants de compte."""
         p = self.printer
-        shared = isinstance(self.api, SharedCloudAPI)
-        api = self.api.transport if shared else self.api
+        shared = self.fleet_registry is not None and self.fleet_registry.default is not self
+        api = self.api
         disconnected = shared and api is None
         mqtt = getattr(api, "_mqtt_client", None)
         base = {
