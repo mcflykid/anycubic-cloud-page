@@ -1,4 +1,4 @@
-import {createCamera} from './workshop-camera.mjs?v=e13d27115d0b';
+import {createCamera} from './workshop-camera.mjs?v=b7dfa19d20cd';
 import {$,confirmAction,date,fmt,formatText,locale,message,mins,node,serverText,set,timeZone,tr} from './workshop-ui.mjs?v=60097cdec556';
 import {createTemperatureLoader} from './workshop-temperatures.mjs?v=2414b95f0ddd';
 import {api,createRequest} from './workshop-api.mjs?v=f28638a19076';

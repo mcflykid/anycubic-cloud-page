@@ -25,24 +25,26 @@ export function createCamera(request,getPrinter){
   viewer=null;
   if(previous)releaseViewer({method:'POST',printerKey:previous.printer,headers:{'X-Camera-Viewer':previous.id}});
   wanted=false;
-  generation++;
+  const closing=++generation;
   $('camera-start').disabled=false;
   $('camera-stop').disabled=true;
   track?.stop();
   track=null;
+  $('camera-video').replaceChildren();
+  set('camera-state',tr('Caméra éteinte'));
   if(client){
    const old=client;
    client=null;
    try{await old.leave();}catch{}
   }
-  $('camera-video').replaceChildren();
-  set('camera-state',tr('Caméra éteinte'));
+  return closing;
  }
 
  async function open(){
   let opening;
   try{
-   await close();
+   const closing=await close();
+   if(closing!==generation)return;
    opening=++generation;
    wanted=true;
    $('camera-start').disabled=true;
@@ -58,23 +60,27 @@ export function createCamera(request,getPrinter){
    if(opening!==generation){releaseViewer(options);return;}
    const mine=sdk.createClient({mode:'live',codec:'h264',role:'host'});
    client=mine;
+   const current=()=>opening===generation&&client===mine;
    const subscribe=async user=>{
+    if(!current())return;
     await mine.subscribe(user,'video');
+    if(!current())return;
     track=user.videoTrack;
     track.play('camera-video');
     set('camera-state',tr('Caméra connectée'));
    };
    mine.on('user-published',(user,type)=>{
-    if(type==='video')subscribe(user).catch(()=>set('camera-state',tr('Flux vidéo indisponible')));
+    if(type==='video')subscribe(user).catch(()=>{if(current())set('camera-state',tr('Flux vidéo indisponible'));});
    });
-   mine.on('user-unpublished',()=>set('camera-state',tr('Flux vidéo interrompu')));
-   mine.on('user-left',()=>set('camera-state',tr('Caméra déconnectée')));
+   mine.on('user-unpublished',()=>{if(current())set('camera-state',tr('Flux vidéo interrompu'));});
+   mine.on('user-left',()=>{if(current())set('camera-state',tr('Caméra déconnectée'));});
    mine.on('token-privilege-will-expire',async()=>{
     try{
-     if(opening!==generation)return;
+     if(!current())return;
      const updated=await request('/camera-session',options);
+     if(!current()){releaseViewer(options);return;}
      await mine.renewToken(updated.rtc_token);
-    }catch{set('camera-state',tr('Session caméra expirée'));}
+    }catch{if(current())set('camera-state',tr('Session caméra expirée'));}
    });
    const salt=Uint8Array.from(atob(session.encryption_kdf_salt),character=>character.charCodeAt(0));
    mine.setEncryptionConfig(String(session.encryption_mode).toLowerCase().replaceAll('_','-'),session.encryption_key,salt);
@@ -82,10 +88,11 @@ export function createCamera(request,getPrinter){
    await mine.join(session.appid,session.channel,session.rtc_token||null,session.client_uid||null);
    if(opening!==generation){await mine.leave();return;}
    await Promise.all(mine.remoteUsers.filter(user=>user.hasVideo).map(subscribe));
-   set('camera-state',track?tr('Caméra connectée'):tr('En attente de la vidéo'));
+   if(current())set('camera-state',track?tr('Caméra connectée'):tr('En attente de la vidéo'));
   }catch(error){
    if(opening!==generation)return;
-   await close();
+   const closing=await close();
+   if(closing!==generation)return;
    const known=['missing_credentials','invalid_format','unsupported_transport'].includes(error.cameraReason);
    set('camera-state',known?error.message:tr('Caméra indisponible'));
    $('camera-state').dataset.tooltip=known?error.message:tr('La session vidéo ne peut pas être ouverte pour le moment.');
