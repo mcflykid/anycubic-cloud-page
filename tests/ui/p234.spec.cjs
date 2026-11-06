@@ -65,7 +65,7 @@ test('les pastilles Terminé et Arrêté sont centrées dans leurs cartes',async
  }
 });
 
-test('la Kobra S1 retrouve ses illustrations d’origine quand la génération ACE manque',async({page})=>{
+test('la Kobra S1 garde un visuel dédié et un ACE générique si la génération manque',async({page})=>{
  await page.route('**/imprimante-api/status',async route=>{
   const response=await route.fetch();
   const data=await response.json();
@@ -73,13 +73,13 @@ test('la Kobra S1 retrouve ses illustrations d’origine quand la génération A
   await route.fulfill({response,json:data});
  });
  await login(page);
- await expect(page.locator('#printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1-ace2pro.png');
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1.svg');
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
- await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/ace2pro.png');
+ await expect(page.locator('#ace-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/ace.svg');
  await expect(page.locator('#ace-model')).toHaveText('Module ACE');
  await expect(page.locator('#ace-display-model')).toHaveCount(0);
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
- await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1-ace2pro.png');
+ await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1.svg');
 });
 
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{
@@ -197,4 +197,26 @@ test('un proxy qui conserve ses anciens chemins sert toute l’interface',async(
   await page.getByRole('link',{name:'Retour à l’atelier'}).click();
  }
  expect(blocked).toEqual([]);
+});
+
+test('les visuels suivent le modèle constructeur et la présence réelle de l’ACE',async({page})=>{
+ let model='Anycubic Kobra 3',box='ACE Pro';
+ await page.route('**/imprimante-api/status',async route=>{
+  const response=await route.fetch(),data=await response.json();
+  data.printer.machine_name=model;data.printer.name='Anycubic Kobra S1';
+  if(box)data.printer.boxes[0].model=box;else data.printer.boxes=[];
+  await route.fulfill({response,json:data});
+ });
+ await login(page);
+ const icons='/imprimante-api/ui/icons/';
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-3.svg');
+ await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await expect(page.locator('#ace-illustration')).toHaveAttribute('src',icons+'ace-pro.svg');
+ model='Anycubic Kobra X';box=null;
+ await page.evaluate(()=>refresh());
+ await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-x.svg');
+ await expect(page.locator('#ace-illustration')).toBeHidden();
+ model='Modèle inconnu';
+ await page.evaluate(()=>refresh());
+ await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'printer.svg');
 });

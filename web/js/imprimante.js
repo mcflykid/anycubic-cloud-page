@@ -125,7 +125,13 @@ function statusBadge(id,text,active){
  badge.classList.toggle('inactive',active===false);
  badge.classList.toggle('offline',active==null);
 }
-/** La Kobra S1 Combo conserve ses illustrations même si le rapport omet la génération d’ACE. */
+const hardwareIcons='/imprimante-api/ui/icons/';
+const printerIllustrations=new Map([
+ ['kobra s1','kobra-s1.svg'],['kobra s1 combo','kobra-s1.svg'],
+ ['kobra 3','kobra-3.svg'],['kobra 3 combo','kobra-3.svg'],
+ ['kobra x','kobra-x.svg'],['kobra x combo','kobra-x.svg'],
+]);
+/** Les illustrations suivent le modèle constructeur et la génération explicitement rapportée. */
 function renderHardware(printer){
  const model=printer.machine_name||printer.name||'Imprimante';
  const box=printer.boxes?.[0];
@@ -138,16 +144,17 @@ function renderHardware(printer){
  set('printer-model',model);
  set('printer-accessory',aceName);
  $('printer-accessory').hidden=!box;
- const s1=/^(Anycubic )?Kobra S1$/i.test(model);
- const s1Combo=s1&&!!box&&(!generation||generation==='ACE 2 Pro');
- setImage('printer-illustration',s1Combo?'/imprimante-api/ui/icons/kobra-s1-ace2pro.png':'/imprimante-api/ui/icons/printer.svg');
+ const modelKey=String(printer.machine_name||'').trim().toLowerCase().replace(/^anycubic\s+/,'').replace(/\s+/g,' ');
+ const illustration=printerIllustrations.get(modelKey);
+ const s1Combo=illustration==='kobra-s1.svg'&&generation==='ACE 2 Pro';
+ setImage('printer-illustration',hardwareIcons+(s1Combo?'kobra-s1-ace2pro.png':illustration||'printer.svg'));
  set('ace-model',aceName);
  set('firmware-printer-model',model);
  set('firmware-ace-model',aceName);
  set('chart-ace-name',box?(generation||'Module ACE'):'Module ACE');
  setImage('settings-printer-illustration',$('printer-illustration').getAttribute('src'));
  $('ace-illustration').hidden=!box;
- setImage('ace-illustration',s1Combo||generation==='ACE 2 Pro'?'/imprimante-api/ui/icons/ace2pro.png':generation==='ACE Pro'?'/imprimante-api/ui/icons/ace-pro.svg':'/imprimante-api/ui/icons/ace.svg');
+ setImage('ace-illustration',hardwareIcons+(generation==='ACE 2 Pro'?'ace2pro.png':generation==='ACE Pro'?'ace-pro.svg':'ace.svg'));
 }
 /** Affiche l’état courant et autorise les commandes selon le projet, sans assimiler l’absence de données à un succès. */
 function renderOverview(p){renderHardware(p);renderJobPreview(p);const state=!p.printer_online?'Hors ligne':p.job_is_paused?'En pause':p.is_busy?'Impression en cours':'Disponible';statusBadge('printer-status',state,p.printer_online?p.job_is_paused?null:true:false);$('job-name').dataset.tooltip=p.job_name||'Imprimante prête';set('job-name',p.job_name||(!p.printer_online?'L’imprimante est hors ligne.':p.is_busy?'Impression en cours':'Prête pour la prochaine création.'));set('job-state',p.job_name?({printing:'Impression en cours',paused:'Impression en pause',finished:'Impression terminée',completed:'Impression terminée'}[p.job_state]||fmt(p.job_state)):p.is_busy?'Le cloud n’a pas encore fourni le projet.':'Aucune impression en cours.');$('job-state').hidden=$('job-state').textContent===state;$('job-progress-wrap').hidden=p.job_progress==null;if(p.job_progress!=null){$('job-progress').value=p.job_progress;set('job-progress-text',fmt(p.job_progress,' %'));}

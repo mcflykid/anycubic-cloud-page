@@ -26,3 +26,11 @@ Référence initiale : observations du 2–3 novembre 2026 sur **Kobra S1 Combo 
 | Interface autonome exportée | Tests Python, contrôle JS, démonstration locale et captures des sept onglets. La CI vérifie les installations vides en mode hôte et réseau externe partagé, l’identité non root, les droits appdata et l’interface de démonstration. Aucun proxy intégré. Le cloud réel n’est pas contacté dans cette fixture. |
 
 Une nouvelle contribution doit préciser le modèle, le firmware, la fonction testée, le type de preuve et les limites. Aucun numéro de série, token, identifiant de compte ou journal brut dans les issues.
+
+## Illustrations du matériel
+
+Le nom constructeur renvoyé par le Cloud sélectionne les silhouettes originales du projet pour Kobra S1, Kobra 3 et Kobra X, y compris leurs libellés Combo. La Kobra S1 conserve le visuel Combo quand un ACE 2 Pro est identifié. Un nom d’imprimante personnalisé ou une référence non reconnue utilise le visuel générique.
+
+Le nom constructeur du boîtier sélectionne ACE Pro ou ACE 2 Pro. Un boîtier présent sans génération explicite utilise le visuel générique. Une machine sans boîtier ne montre pas d’illustration ACE.
+
+Les guides d’association [Kobra S1](https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1/printer-binding-guide), [Kobra 3](https://wiki.anycubic.com/k3/anycubic_kobra_3_user_manual-en-v1.3.pdf) et [Kobra X](https://wiki.anycubic.com/kobra-x/M02010203-Kobra%20X%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C-EN.pdf) documentent la liaison au compte Anycubic. Les variantes et leurs commandes restent soumises aux capacités effectivement rapportées par la machine.
