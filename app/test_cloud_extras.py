@@ -125,6 +125,18 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(list(self.e.cloudfiles), ["file"])
         self.assertFalse(self.x.tasks)
 
+    async def test_history_page_cache_reuses_cloud_reads_and_is_instance_scoped(self):
+        """La page fusionnée déjà lue est réutilisée uniquement par cette instance de client."""
+        response = [{"printer_id": "7", "task_id": 1, "start_time": 10}]
+        self.e.api._fetch_api_resp = AsyncMock(return_value={"code": 1, "data": response})
+        first = await self.x.task_rows("7", 1)
+        again = await self.x.task_rows("7", 1)
+        self.assertEqual(first, again)
+        self.e.api._fetch_api_resp.assert_awaited_once()
+        other = CloudExtras(self.e)
+        await other.task_rows("7", 1)
+        self.assertEqual(self.e.api._fetch_api_resp.await_count, 2)
+
     async def test_history_deletion_stops_after_uncertain_result_without_retry(self):
         """Un timeout de mutation n’autorise ni répétition ni effacement local de la fiche incertaine."""
         self.task()
@@ -636,3 +648,26 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PreviewAvailabilityTests(unittest.IsolatedAsyncioTestCase):
+    """Une miniature encore indisponible ne masque pas celle créée peu après le départ manuel."""
+
+    async def test_missing_image_does_not_remain_cached_for_five_minutes(self):
+        """Un résultat vide est réessayé après une courte durée, à l’identique de la tâche ciblée."""
+        target = SimpleNamespace(session=object(), api=object())
+        extras = CloudExtras(target)
+        row = {"id": 42, "img": "https://anycubic.com/fixture.png"}
+        with patch(
+            "cloud_extras.download_preview", AsyncMock(side_effect=[None, "image-ready"])
+        ) as download:
+            with patch("cloud_extras.time.monotonic", return_value=100):
+                self.assertEqual(
+                    await extras.preview_row("fixture", row, lookup_detail=False), {"image": None}
+                )
+            with patch("cloud_extras.time.monotonic", return_value=106):
+                self.assertEqual(
+                    await extras.preview_row("fixture", row, lookup_detail=False),
+                    {"image": "image-ready"},
+                )
+            self.assertEqual(download.await_count, 2)

@@ -21,11 +21,14 @@ class Entrypoint(unittest.TestCase):
                 },
                 clear=True,
             ),
+            patch("container_entrypoint.configure_logging") as configure,
+            patch("container_entrypoint.log_event"),
             patch("container_entrypoint.initialize") as initialize,
             patch("container_entrypoint.os.geteuid", return_value=0),
             patch("container_entrypoint.os.execvp") as execute,
         ):
             launch(["python", "/app/app/server.py"])
+            configure.assert_called_once_with()
             initialize.assert_called_once_with(appdata_dir="/appdata")
             execute.assert_called_once_with(
                 "setpriv",
@@ -46,6 +49,8 @@ class Entrypoint(unittest.TestCase):
         """Un conteneur déjà non-root ne tente ni setpriv ni changement de son identité imposée."""
         with (
             patch.dict(os.environ, {}, clear=True),
+            patch("container_entrypoint.configure_logging"),
+            patch("container_entrypoint.log_event"),
             patch("container_entrypoint.initialize"),
             patch("container_entrypoint.os.geteuid", return_value=1201),
             patch("container_entrypoint.os.execvp") as execute,
@@ -57,6 +62,8 @@ class Entrypoint(unittest.TestCase):
         """PUID zéro est refusé avant toute écriture et avant l’exécution du serveur."""
         with (
             patch.dict(os.environ, {"PUID": "0"}, clear=True),
+            patch("container_entrypoint.configure_logging"),
+            patch("container_entrypoint.log_event"),
             patch("container_entrypoint.initialize") as initialize,
             patch("container_entrypoint.os.execvp") as execute,
         ):
@@ -64,3 +71,17 @@ class Entrypoint(unittest.TestCase):
                 launch(["python", "/app/app/server.py"])
             initialize.assert_not_called()
             execute.assert_not_called()
+
+    def test_startup_error_uses_static_message_and_exception_type(self):
+        """Une erreur de préparation garde son type de diagnostic mais n’affiche jamais son message privé."""
+        with (
+            patch("container_entrypoint.launch", side_effect=RuntimeError("fixture-secret")),
+            patch("container_entrypoint.log_event") as log,
+        ):
+            with self.assertRaises(SystemExit) as caught:
+                from container_entrypoint import main
+
+                main()
+        self.assertNotIn("fixture-secret", str(caught.exception))
+        self.assertIn("container_start_failed", str(log.call_args))
+        self.assertIn("RuntimeError", str(log.call_args))

@@ -1,8 +1,10 @@
 """Historique local borné des températures et des relevés ACE."""
 
-import collections, hashlib, json, math, os, pathlib, re, time
+import asyncio, collections, hashlib, json, math, os, pathlib, re, threading, time
 
 KEYS = ("nozzle", "bed", "ace", "nozzle_target", "bed_target", "ace_target")
+_write_locks = {}
+_write_locks_guard = threading.Lock()
 
 
 def bounded_number(value, minimum, maximum):
@@ -64,6 +66,7 @@ class TemperatureHistory:
         self.path = pathlib.Path(path)
         self.rows = collections.deque(maxlen=8640)
         self.saved_at = 0
+        self._async_save_lock = asyncio.Lock()
         try:
             for row in json.loads(self.path.read_text()):
                 self.add(row["time"], row)
@@ -96,9 +99,22 @@ class TemperatureHistory:
 
     def save(self):
         """Persiste les relevés par remplacement atomique ; propage OSError si le stockage n’est pas accessible."""
-        tmp = self.path.with_suffix(".tmp")
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as out:
-            json.dump(list(self.rows), out, separators=(",", ":"))
-        tmp.replace(self.path)
+        self._save_snapshot(list(self.rows))
+
+    def _save_snapshot(self, snapshot):
+        """Remplace le fichier depuis un instantané déjà cohérent, sous verrou du chemin."""
+        with _write_locks_guard:
+            lock = _write_locks.setdefault(str(self.path.resolve()), threading.Lock())
+        with lock:
+            tmp = self.path.with_suffix(".tmp")
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as out:
+                json.dump(snapshot, out, separators=(",", ":"))
+            tmp.replace(self.path)
         self.saved_at = time.monotonic()
+
+    async def save_async(self):
+        """Écrit un instantané hors boucle asyncio pour ne pas bloquer les autres requêtes."""
+        async with self._async_save_lock:
+            snapshot = list(self.rows)
+            await asyncio.to_thread(self._save_snapshot, snapshot)

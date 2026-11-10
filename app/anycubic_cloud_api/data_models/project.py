@@ -86,6 +86,7 @@ class AnycubicProject:
         "_device_status",
         "_slice_result",
         "_gcode_name",
+        "_preview_filename",
         "_post_title",
         "_file_size",
         "_machine_class",
@@ -460,7 +461,8 @@ class AnycubicProject:
         self._image_url = str(image_url) if image_url is not None else None
 
     def set_filename(self, filename: str) -> None:
-        """Mémorise le nom du fichier associé au projet."""
+        """Conserve le chemin natif pour l’aperçu et le nom d’affichage sans extension."""
+        self._preview_filename = str(filename) if filename is not None else None
         self._gcode_name = REX_GCODE_EXT.sub('', str(filename))
 
     def _set_reason_id(self, reason_id: int | str | None) -> None:
@@ -592,7 +594,7 @@ class AnycubicProject:
         self._set_machine_name(update_project._machine_name)
         self._set_device_status(update_project._device_status)
         self.set_slice_result(update_project._slice_result)
-        self.set_filename(update_project._gcode_name)
+        self.set_filename(update_project.preview_filename or update_project._gcode_name)
         self._post_title = update_project._post_title
         self._set_file_size(update_project._file_size)
         self._set_machine_class(update_project._machine_class)
@@ -635,6 +637,10 @@ class AnycubicProject:
 
         if not mqtt_data:
             return
+
+        # Ces métadonnées cloud décrivent le fichier, sans être nécessaires à l’état du projet.
+        mqtt_data.get('file_root_path')
+        mqtt_data.get('filetype')
 
         if 'curr_layer' in mqtt_data:
             self._settings['curr_layer'] = int(mqtt_data['curr_layer'])
@@ -829,6 +835,11 @@ class AnycubicProject:
     def gcode_id(self) -> int | None:
         """Identifiant cloud du G-code associé."""
         return self._gcode_id
+
+    @property
+    def preview_filename(self) -> str | None:
+        """Chemin constructeur exact du fichier ; réservé aux consultations d’aperçu côté serveur."""
+        return self._preview_filename
 
     @property
     def name(self) -> str:

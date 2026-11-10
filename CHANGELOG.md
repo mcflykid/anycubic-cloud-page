@@ -1,5 +1,23 @@
 # Changements
 
+## 1.7.0 — 2026-11-10
+
+- Catalogue exploratoire de vingt styles, avec galerie et descriptions traduites, palettes et compositions différentes. Anchor Pop, Turn Over, Card Deal, Drum Roll, Outline Trace et Tile Build proposent six effets CSS ; Tile Build adopte une grille bento adaptative. Les animations réduites et le mode clair/sombre sont respectés (#143).
+- Journaux de conteneur uniformes dès le démarrage : format texte ou JSON, niveaux INFO/DEBUG, références de requête, étapes et durées. Les échanges privés, secrets et identifiants bruts restent exclus (#139).
+- Notifications avec code d’erreur, explication au survol ou au clavier et lien officiel Anycubic. Le code 10115 est expliqué ; le code 200 de fin normale n’est pas une erreur. Une fiche fournie par le Cloud est conservée, sinon le lien indique explicitement le catalogue général (#140).
+- L’aperçu courant privilégie l’image et la référence exactes du projet, conserve le nom natif du fichier et ignore les réponses d’un ancien projet. Les notifications conservent côté serveur leurs références d’images ; une absence temporaire est réessayable après cinq secondes (#141).
+- Étude documentée des idées de Kobra Mesh Lab et HomeLab Monitor, sans reprise de code ni activation de protocole. Le refus d’un fichier en mémoire signalé par le propriétaire reste non reproduit ; sa sérialisation est couverte et ses prochains cas disposent de diagnostics de format et source (#142). L’étude est suivie dans #144 et ses pistes dans #145 à #152.
+
+- Réorganisation des grilles Détaillé et Apple Design, navigation sur une seule ligne avec défilement mobile, avertissement des axes ancré en bas et statistiques regroupées par imprimante, ACE et filament (#122, #123, #125, #126, #127).
+- Retrait du style Minimaliste et retour au style par défaut sans perdre le mode clair/sombre enregistré (#124). Fond Apple Design, surfaces translucides et parallaxe légère respectant la réduction des animations (#129).
+- Treize illustrations SVG originales supplémentaires suivent les modèles reconnus, avec repli générique pour les appareils inconnus (#128).
+- Catalogue de lecture des matériaux élargi, distinct des neuf valeurs de commande ACE établies. Le formulaire reçoit la liste acceptée par le serveur (#130). Sélecteur du second ACE, cibles de bobines et séchage conservées et dialogues annulés lors d’un changement de module (#131).
+- Glossaire ACE et séchage original en français, anglais et espagnol, avec correction des boutons et du vocabulaire de retrait (#138).
+- Pages Cloud de l’historique mises en cache avec limites de durée, de taille et de session (#132). Sauvegarde des mesures hors de la boucle asynchrone, sous verrou et par remplacement atomique (#133).
+- Champs MQTT informatifs consommés sans modifier les températures et état Kobra X cohérent avec sa phase (#134). HTTP 401 qualifiés avec une seule reprise sérialisée ; aucun rejeu si des données contredisent le refus (#135).
+- Avancées #136 : avertissements de matière/couleur et métadonnées manquantes avant envoi ou réimpression ; un firmware en cours confirmé empêche le lancement et le quota connu insuffisant est signalé avant transfert. L’identification des refus constructeur et d’une mise à jour obligatoire reste à établir.
+- Avancée #103 : validation du stockage 3MF Zip64 avec bornes et cas malformés. Le lancement des `.gcode.3mf` attend toujours des preuves de protocole. Les autres investigations non conclues sont détaillées dans les notes de protocole (#30, #93, #95, #96, #105, #137).
+
 ## 1.6.0 — 2026-11-06
 
 - L’onglet Statistiques rassemble les courbes de température, d’humidité de l’ACE et de filament restant sur 24 h. Les relevés sont séparés par imprimante et par boîtier, et les courbes de filament indiquent les lacunes et les changements de matière ou de couleur détectés (#120).

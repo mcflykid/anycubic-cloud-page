@@ -36,6 +36,15 @@ from ..models.auth import AnycubicAuthentication, AnycubicAuthMode
 from ..models.http import HTTP_METHODS, AnycubicAPIEndpoint
 
 
+class AnycubicHTTPUnauthorized(AnycubicAPIParsingError):
+    """Réponse HTTP 401, sans conserver ni exposer son éventuel corps d’authentification."""
+
+    def __init__(self, has_data=False):
+        """Marque une réponse 401 contenant un résultat exploitable, sans conserver le corps."""
+        self.has_data = bool(has_data)
+        super().__init__("Refus HTTP 401 Anycubic")
+
+
 class AnycubicAPIBase:
     """Client HTTP chargé du transport et de la session Anycubic."""
     __slots__ = (
@@ -226,12 +235,23 @@ class AnycubicAPIBase:
                     resp_data = await resp.text()
 
                 response_url = resp.url
+                if status == 401:
+                    has_data = (
+                        isinstance(resp_data, dict)
+                        and "data" in resp_data
+                        and resp_data.get("data") is not None
+                    )
+                    raise AnycubicHTTPUnauthorized(has_data=has_data)
         except asyncio.TimeoutError as error:
             raise AnycubicAPIParsingError('Délai de réponse Anycubic dépassé') from error
         except (aiohttp.ContentTypeError, ValueError, UnicodeError) as error:
+            if status == 401:
+                raise AnycubicHTTPUnauthorized() from None
             suffix = f' (HTTP {status})' if status is not None else ''
             raise AnycubicAPIParsingError(f'Réponse Anycubic illisible{suffix}') from error
         except aiohttp.ClientResponseError as error:
+            if error.status == 401:
+                raise AnycubicHTTPUnauthorized() from None
             raise AnycubicAPIParsingError(f'Requête Anycubic refusée (HTTP {error.status})') from error
         except (aiohttp.ClientError, OSError) as error:
             raise AnycubicAPIParsingError('Connexion Anycubic interrompue') from error

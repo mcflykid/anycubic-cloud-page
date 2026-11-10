@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.6.0**. [Changements](CHANGELOG.md).
+Version **1.7.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -167,3 +167,11 @@ Code sous **GPL-3.0-or-later**, avec conservation du moteur amont et de sa licen
 La page `/login` remplace la fenêtre du navigateur. La session est limitée à huit heures, avec cookie HttpOnly, SameSite=Strict et Secure lorsque `PUBLIC_ORIGIN` utilise HTTPS. Le bouton « Se déconnecter » révoque la session. Cinq échecs dans une fenêtre de cinq minutes limitent les tentatives par adresse de connexion ; derrière un proxy, configurez `TRUSTED_PROXIES` selon le [guide reverse proxy](docs/REVERSE-PROXY.md#compteurs-de-connexion-et-proxys-de-confiance) pour séparer les compteurs des utilisateurs. Si plusieurs utilisateurs reçoivent une erreur 429 après les échecs d’une seule personne, vérifiez que le proxy transmet bien une adresse distincte par client et que seule son adresse est déclarée de confiance. Les sessions sont aussi invalidées au redémarrage ou après changement du mot de passe web.
 
 ![Page de connexion — démonstration](screenshots/00-connexion.jpg)
+
+Le [glossaire ACE](docs/ACE-GLOSSARY.md) précise les termes français, anglais et espagnols. Lorsqu’une machine annonce plusieurs modules ACE, le sélecteur de l’onglet **ACE et filaments** choisit le boîtier pour les commandes de bobines et de séchage. Changer de module ferme les dialogues ouverts.
+
+Avant un envoi avec impression ou une réimpression, l’atelier signale les différences connues entre matières, couleurs et emplacements. Ces avis permettent une confirmation volontaire ; des métadonnées manquantes sont indiquées explicitement. Une mise à jour en cours confirmée empêche tout lancement. Les [notes de protocole](docs/PROTOCOL.md#investigations-du-10-novembre-2026) indiquent les fonctions encore en attente de preuve.
+
+Les [vingt styles exploratoires](docs/THEMES.md) se comparent dans Réglages → Apparence. Les [journaux du conteneur](docs/TROUBLESHOOTING.md#journaux-du-conteneur) proposent un format lisible ou JSON et un niveau DEBUG, avec références de diagnostic et filtrage des données privées.
+
+L’[étude de Kobra Mesh Lab et HomeLab Monitor](docs/RESEARCH-IDEAS.md) distingue les idées réutilisables des fonctions qui demandent des données ou des protocoles supplémentaires.

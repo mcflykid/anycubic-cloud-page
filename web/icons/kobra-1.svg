@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 170" role="img"><title>Kobra 1 — illustration non officielle</title>
+ <ellipse cx="100" cy="157" rx="77" ry="6" fill="#345a7f" opacity=".1"/>
+ <path d="M53.0 139V40h94v100" fill="none" stroke="#344552" stroke-width="9" stroke-linejoin="round"/>
+ <path d="M53.0 52h94" stroke="#263747" stroke-width="3"/>
+ 
+ <path d="M48.0 79h104" stroke="#344552" stroke-width="8"/>
+ <rect x="83" y="66" width="29" height="29" rx="4" fill="#263747"/>
+ <circle cx="97" cy="80" r="8" fill="#516b7c"/><path d="M97 95v7" stroke="#d97b32" stroke-width="4"/>
+ <path d="M63.0 123h74l12 9H51.0z" fill="#8ca9ba"/>
+ <rect x="41.0" y="136" width="118" height="15" rx="4" fill="#263747"/>
+ <path d="m141.0 123 21 3v16l-21-3z" fill="#9ec4df" stroke="#345a7f" stroke-width="2"/>
+ <path d="M53.0 151v5m94 -5v5" stroke="#263747" stroke-width="5"/>
+ <text x="100" y="165" font-family="system-ui,sans-serif" font-size="8" text-anchor="middle" fill="#496476">Kobra 1</text></svg>

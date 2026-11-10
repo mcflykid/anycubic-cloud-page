@@ -27,3 +27,9 @@ Anycubic, Kobra, ACE et Agora sont des marques de leurs titulaires. Le projet n�
 Le client cloud intégré libère la réservation de quota après un échec ou une annulation du transfert (#58). Les fichiers locaux sont lus progressivement pour limiter la mémoire pendant les envois (#24).
 
 L’ordre de fermeture vidéo 1002 s’appuie sur le [changement RespawnDespair 53c406b](https://github.com/RespawnDespair/hass-anycubic_cloud_v3/commit/53c406b0244526c4244c42f75bce4d9ad933ca78), issu du client Anycubic sous GPL-3.0 (#64).
+
+## Repères de vocabulaire et de matériaux
+
+Les catalogues de traduction, `info/filament_info.json` et les noms des profils Anycubic Slicer Next 2.0.0.3 ont été consultés pour identifier les fonctions et les familles de matériaux (#130, #136, #138). Le glossaire et le petit catalogue de lecture de cet atelier sont rédigés pour le projet ; aucun catalogue `.mo`, profil, paramètre de tranche ou code du slicer n’est repris. Les désignations de matériaux sont des noms techniques. La licence de ces ressources empaquetées n’étant pas établie séparément, elles ne sont pas redistribuées. Les groupes thermiques servent uniquement à produire un avertissement ; ils ne fixent aucune température et n’autorisent aucune chauffe.
+
+Les treize illustrations SVG supplémentaires du catalogue Kobra (#128) sont des dessins originaux simplifiés, créés pour l’atelier à partir des caractéristiques visuelles des modèles. Aucun pixel des images de couverture du slicer, logo ou texture de plateau n’est repris. Un dessin disponible ne constitue pas une déclaration de compatibilité Cloud.

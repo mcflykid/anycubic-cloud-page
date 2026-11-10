@@ -3,6 +3,8 @@
 import argparse, base64, math, os, re, time
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
+from filament_catalog import editable_materials
+from print_preflight import evaluate_preflight
 from temperature_history import ace_readings
 from web_host import (
     install_ui_resources,
@@ -100,6 +102,8 @@ PRINTER = {
     "firmware": "2.7.2.7",
     "firmware_available": "2.7.2.7",
     "firmware_update_available": False,
+    "firmware_updating": False,
+    "editable_materials": editable_materials(),
     "multi_color_box_fw_version": "1.1.36",
     "ace_updates": [{"current": "1.1.36", "target": "1.1.36", "available": False}],
     "ace_available": ["1.1.36", None],
@@ -190,6 +194,8 @@ async def api(request):
         notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         tasks[:] = [dict(x) for x in TASKS]
         return web.json_response({"ok": True})
+    if path == "preflight" and request.method == "POST":
+        return web.json_response({"warnings": evaluate_preflight(PRINTER, await request.json())})
     if path == "history/read" and request.method == "POST":
         data = await request.json()
         for item in notices:

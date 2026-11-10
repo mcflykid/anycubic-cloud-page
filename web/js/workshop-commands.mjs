@@ -1,5 +1,5 @@
-import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=2e1dc6d92ed1';
-import { workshopState, setBusy } from './workshop-state.mjs?v=18a90760f2bd';
+import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=cda4532cd72a';
+import { workshopState, setBusy } from './workshop-state.mjs?v=f7c4c4153f8f';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {
@@ -115,4 +115,32 @@ export function createCommands(request, refresh) {
   }
 
   return { command };
+}
+
+/** Présente les divergences de bobines avant confirmation ; les données manquantes restent explicites. */
+export async function filamentAdvice(request, data, printerKey = workshopState.selectedPrinter) {
+  const result = await request('/preflight', {
+    method: 'POST', printerKey,
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data),
+  });
+  const labels = {
+    'metadata-missing': 'Métadonnées de filament incomplètes : vérifiez les bobines et les emplacements.',
+    'material-mismatch': 'Le matériau du fichier diffère de celui des bobines sélectionnées.',
+    'color-mismatch': 'La couleur du fichier diffère de celle des bobines sélectionnées.',
+    'mixed-temperatures': 'La sélection mélange des filaments de groupes de température différents.',
+  };
+  return (result.warnings || []).filter(code => Object.hasOwn(labels, code)).map(code => tr(labels[code])).join('\n');
+}
+
+/** Lit seulement l’en-tête de commentaires G-code ; aucune commande du fichier n’est exécutée. */
+export async function filamentMetadata(file) {
+  const header = await file.slice(0, 65536).text();
+  const field = key => header.match(new RegExp(`^;\\s*${key}\\s*=\\s*([^\\r\\n]*)`, 'mi'))?.[1]
+    ?.split(';').slice(0, 16).map(value => value.trim()) || [];
+  const rawColors = field('filament_(?:colour|color)');
+  return {
+    materials: field('filament_type').filter(value => value.length <= 48),
+    colors: rawColors.every(value => /^#[0-9a-f]{6}$/i.test(value))
+      ? rawColors.map(value => [1, 3, 5].map(offset => parseInt(value.slice(offset, offset + 2), 16))) : [],
+  };
 }

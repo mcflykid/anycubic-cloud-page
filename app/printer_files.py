@@ -10,7 +10,7 @@ import time
 import uuid
 
 from printer_values import filepath, safeget, serial
-from cloud_extras import key, number
+from cloud_extras import key, number, download_preview
 from anycubic_cloud_api.data_models.files import AnycubicCloudFile
 from command_journal import dispatch_command
 
@@ -146,6 +146,38 @@ async def local_preview(target, source, name, path):
     return None
 
 
+async def current_preview(target, project_key):
+    """Renvoie l’image du projet courant, liée à sa référence ; aucune recherche approchée par nom."""
+    printer = target.printer
+    project = safeget(printer, "latest_project")
+    if not project_key or project is None or target.command_project_key() != project_key:
+        return {"image": None}
+    image = await download_preview(target.session, safeget(printer, "latest_project_image_url"))
+    if printer is not target.printer or target.command_project_key() != project_key:
+        return {"image": None}
+    if image is None:
+        task_id = safeget(project, "_taskid")
+        if task_id not in (None, "", 0, "0"):
+            result = await target.extras.preview_row(
+                "active:" + project_key,
+                {"taskid": task_id, "id": safeget(project, "id"), "printer_id": printer.id},
+            )
+            image = result.get("image")
+            if printer is not target.printer or target.command_project_key() != project_key:
+                return {"image": None}
+    if image is None:
+        source = safeget(project, "_source")
+        filename = safeget(project, "preview_filename")
+        if source in ("local", "udisk", "usb") and isinstance(filename, str) and filename:
+            with contextlib.suppress(ValueError):
+                image = await target.local_preview(
+                    "local" if source == "local" else "usb", filename, "/"
+                )
+    if printer is not target.printer or target.command_project_key() != project_key:
+        return {"image": None}
+    return {"image": image}
+
+
 async def read_files(target, source, path):
     """Renvoie fichiers et chemin de local ou usb ; lève ValueError si la consultation n’est pas confirmée."""
     p = target.printer
@@ -231,11 +263,10 @@ async def cloud_files(target, page, folder=None):
             if value is not None and 0 < value <= upper:
                 details[name] = value
         material = safeget(f, "_material_name")
-        if isinstance(material, str) and re.fullmatch(
-            r"(?:PLA|PETG|ABS|ASA|TPU|PA|PC|PVA|HIPS|PPS)(?:[ -](?:Silk|Matte|High Speed|Pro|HS|CF|GF|Plus|Glow|Basic|SE)){0,2}",
-            material,
-            re.I,
-        ):
+        from filament_catalog import recognized_material
+
+        material = recognized_material(material, safeget(target, "printer.machine_name"))
+        if material is not None:
             details["material"] = material
         rows.append(
             {

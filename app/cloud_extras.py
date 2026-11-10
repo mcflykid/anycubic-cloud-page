@@ -157,6 +157,16 @@ class CloudExtras:
         self.notification_projects_lock = asyncio.Lock()
         self.file_projects = None
         self.folder_selection = None
+        self.task_page_cache = {}
+
+    def invalidate_task_pages(self, printer_id=None):
+        """Invalide les pages du cache d’historique après une actualisation ou mutation cloud."""
+        if printer_id is None:
+            self.task_page_cache.clear()
+            return
+        identifier = str(printer_id)
+        for cache_key in [key for key in self.task_page_cache if key[0] == identifier]:
+            self.task_page_cache.pop(cache_key, None)
 
     async def file_preview_projects(self):
         """Partage un inventaire court par cible et par client, sous le verrou de lecture appelant."""
@@ -193,6 +203,10 @@ class CloudExtras:
             or p.latest_project_print_in_progress
         ):
             raise ValueError("Cette action nécessite une imprimante en ligne et libre")
+        if p:
+            from print_preflight import ensure_firmware_ready
+
+            ensure_firmware_ready(p)
 
     async def lifetime_print_count(self, printer_id):
         """Lit le compteur cumulé de Slicer Next pour la cible demandée, ou renvoie None."""
@@ -232,6 +246,8 @@ class CloudExtras:
 
     async def task_list(self, page, all_printers=False):
         """Renvoie les pages des machines autorisées ; all_printers agrège seulement des consultations, jamais une cible physique."""
+        if page == 1:
+            self.invalidate_task_pages()
         printers = self.account_printers() if all_printers else [self.e.printer]
         if not printers:
             printers = [self.e.printer]
@@ -304,7 +320,12 @@ class CloudExtras:
         return {"items": items, "page": page, "has_more": more}
 
     async def task_rows(self, identifier, page):
-        """Renvoie les lignes de la cible et l’indice de continuation du Cloud."""
+        """Renvoie les lignes du flux ; un cache court évite de relire les mêmes pages fusionnées."""
+        now = time.monotonic()
+        cache_key = (str(identifier), int(page))
+        cached = self.task_page_cache.get(cache_key)
+        if cached and cached[3] is self.e.api and now - cached[0] < 15:
+            return cached[1], cached[2]
         rows = await self.api(
             "/v2/project/printHistory",
             query={"printer_id": int(identifier), "page": page, "limit": 20},
@@ -312,11 +333,16 @@ class CloudExtras:
         )
         if not isinstance(rows, list):
             raise ValueError("Historique des impressions indisponible")
-        return [
+        result = [
             row
             for row in rows
             if isinstance(row, dict) and str(row.get("printer_id")) == identifier
-        ], len(rows) >= 20
+        ]
+        more = len(rows) >= 20
+        self.task_page_cache[cache_key] = (now, result, more, self.e.api)
+        while len(self.task_page_cache) > 400:
+            self.task_page_cache.pop(next(iter(self.task_page_cache)))
+        return result, more
 
     async def merged_task_page(self, allowed, page):
         """Fusionne les flux chronologiques avant de découper la page globale."""
@@ -383,7 +409,7 @@ class CloudExtras:
     async def preview_row(self, k, r, lookup_detail=True):
         """Renvoie une image en ligne ou None ; lookup_detail autorise la recherche dans le détail cloud."""
         cached = self.previews.get(k)
-        if cached and time.monotonic() - cached[0] < 300:
+        if cached and time.monotonic() - cached[0] < (300 if cached[1] else 5):
             return {"image": cached[1]}
 
         def image_url(row):
@@ -440,7 +466,7 @@ class CloudExtras:
             return {"image": None}
         cachekey = "notification:" + str(k)
         cached = self.previews.get(cachekey)
-        if cached and time.monotonic() - cached[0] < 300:
+        if cached and time.monotonic() - cached[0] < (300 if cached[1] else 5):
             return {"image": cached[1]}
         direct = await self.preview_row(cachekey, row, lookup_detail=False)
         if direct["image"]:
@@ -841,6 +867,7 @@ class CloudExtras:
             removed += 1
             self.tasks.pop(k, None)
             self.previews.pop(k, None)
+            self.invalidate_task_pages()
         return f"{removed} fiche(s) retirée(s) de l’historique Anycubic. La liste est relue depuis le cloud."
 
     async def action(self, name, d):

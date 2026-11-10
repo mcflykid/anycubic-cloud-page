@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=2e1dc6d92ed1';
-import { workshopState } from './workshop-state.mjs?v=18a90760f2bd';
+} from './workshop-ui.mjs?v=cda4532cd72a';
+import { workshopState } from './workshop-state.mjs?v=f7c4c4153f8f';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -120,6 +120,19 @@ export function statusBadge(id, text, active) {
 }
 const hardwareIcons = '/imprimante-api/ui/icons/';
 const printerIllustrations = new Map([
+  ['kobra 1', 'kobra-1.svg'],
+  ['kobra 1 plus', 'kobra-1-plus.svg'],
+  ['kobra 1 max', 'kobra-1-max.svg'],
+  ['kobra 2', 'kobra-2.svg'],
+  ['kobra 2 neo', 'kobra-2-neo.svg'],
+  ['kobra 2 pro', 'kobra-2-pro.svg'],
+  ['kobra 2 plus', 'kobra-2-plus.svg'],
+  ['kobra 2 max', 'kobra-2-max.svg'],
+  ['kobra 3 v2', 'kobra-3-v2.svg'],
+  ['kobra 3 max', 'kobra-3-max.svg'],
+  ['kobra 3 max v2', 'kobra-3-max-v2.svg'],
+  ['kobra 4', 'kobra-4.svg'],
+  ['kobra s1 max', 'kobra-s1-max.svg'],
   ['kobra s1', 'kobra-s1.svg'],
   ['kobra s1 combo', 'kobra-s1.svg'],
   ['kobra 3', 'kobra-3.svg'],
@@ -177,7 +190,7 @@ function renderHardware(printer) {
 export function createOverview(request) {
   /** Réessaie un aperçu indisponible avec un délai borné et ignore les réponses d’un ancien projet. */
   function renderJobPreview(printer) {
-    const key = printer.job_name && (printer.command_project || printer.job_name);
+    const key = printer.job_name && JSON.stringify([workshopState.selectedPrinter, printer.command_project, printer.job_name]);
     const image = $('job-preview');
     if (!key || previewJob?.key !== key) {
       image.hidden = true;
@@ -188,7 +201,7 @@ export function createOverview(request) {
       !current ||
       current.done ||
       current.pending ||
-      current.attempts >= 3 ||
+      current.attempts >= 6 ||
       Date.now() < current.next
     )
       return;
@@ -197,7 +210,7 @@ export function createOverview(request) {
     request('/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source: 'local', name: printer.job_name }),
+      body: JSON.stringify({ source: 'active', project_key: printer.command_project }),
     })
       .then((result) => {
         if (previewJob === current && result.image) {
@@ -209,7 +222,7 @@ export function createOverview(request) {
       .catch(() => {})
       .finally(() => {
         current.pending = false;
-        current.next = Date.now() + 10000;
+        current.next = Date.now() + Math.min(30000, current.attempts * 5000);
       });
   }
   /** Affiche l’état courant et autorise les commandes selon le projet, sans assimiler l’absence de données à un succès. */
@@ -355,7 +368,8 @@ export function createOverview(request) {
     const printerButton = document.querySelector('[data-command=firmware]'),
       aceButton = document.querySelector('[data-command=ace-firmware]'),
       ace = p.ace_updates?.[0];
-    const idle = !!p.printer_online && !!p.is_available && !p.job_in_progress,
+    const idle = !!p.printer_online && !!p.is_available && !p.job_in_progress &&
+      p.firmware_updating !== true && !p.ace_updates?.some(entry => entry.updating === true),
       printerUpdate = p.firmware_update_available === true,
       aceUpdate = ace?.available === true;
     printerButton.disabled = !idle || !printerUpdate;
@@ -372,9 +386,9 @@ export function createOverview(request) {
         : ace
           ? tr('Aucune mise à jour proposée par Anycubic.')
           : tr('Version de l’ACE non reçue. Actualisez les informations.');
-    for (const [id, current, target, available] of [
-      ['printer', p.firmware, p.firmware_available, p.firmware_update_available],
-      ['ace', ace?.current ?? p.multi_color_box_fw_version, ace?.target, ace?.available],
+    for (const [id, current, target, available, updating] of [
+      ['printer', p.firmware, p.firmware_available, p.firmware_update_available, p.firmware_updating],
+      ['ace', ace?.current ?? p.multi_color_box_fw_version, ace?.target, ace?.available, ace?.updating],
     ]) {
       set(
         `firmware-${id}-version`,
@@ -384,7 +398,9 @@ export function createOverview(request) {
       );
       set(
         `firmware-${id}-status`,
-        available === true
+        updating === true
+          ? tr('Mise à jour en cours')
+          : available === true
           ? tr('Mise à jour disponible')
           : available === false
             ? tr('À jour')

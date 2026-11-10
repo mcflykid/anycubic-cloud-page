@@ -2,6 +2,7 @@
 """Validation et exécution des commandes d’une imprimante sélectionnée."""
 
 import json
+import logging
 import os
 import re
 import tempfile
@@ -11,7 +12,10 @@ from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSet
 
 from command_journal import dispatch_command
 from native_controls import ai_payload, axis_payload
+from filament_catalog import editable_materials
+from print_preflight import ensure_firmware_ready
 from printer_values import filepath, integer, now, safeget
+from operational_logging import log_event
 
 
 def slot_indices(target, data):
@@ -71,6 +75,8 @@ async def execute_command(target, name, d):
         "timelapse",
     ]:
         return await target.extras.action(name, d)
+    if name in {"print-local", "print-usb", "print-cloud"}:
+        ensure_firmware_ready(p)
     box = integer(d.get("box", 0), 0, max(0, p.connected_ace_units - 1))
     slot = integer(d.get("slot", 1), 1, 4) - 1
     if name in ["axis", "axis-off", "ai-settings"]:
@@ -162,7 +168,7 @@ async def execute_command(target, name, d):
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
             raise ValueError("Couleur invalide")
         material = str(d["material"])
-        if material not in ["PLA", "PETG", "ABS", "PACF", "PC", "ASA", "HIPS", "PA", "PLA SE"]:
+        if material not in editable_materials():
             raise ValueError("Matériau non pris en charge par la commande du dépôt")
         c = AnycubicMaterialColor(*[int(color[i : i + 2], 16) for i in (1, 3, 5)])
         result = await dispatch_command(
@@ -201,6 +207,25 @@ async def execute_command(target, name, d):
             raise ValueError("Nom de fichier invalide")
         kw = {"file_name": filename, "file_path": filepath(d.get("path")).strip("/") or "/"}
         if name.startswith("print"):
+            file_format = (
+                "gcode_3mf"
+                if filename.casefold().endswith(".gcode.3mf")
+                else "gcode"
+                if filename.casefold().endswith(".gcode")
+                else "3mf"
+                if filename.casefold().endswith(".3mf")
+                else "other"
+            )
+            log_event(
+                logging.getLogger("cloud_page.commands"),
+                logging.INFO,
+                "stored_print_prepared",
+                message="Préparation d’une impression depuis le stockage de la machine ; le nom du fichier reste privé",
+                action=name,
+                storage="local" if source == "local" else "usb",
+                file_format=file_format,
+                nested=kw["file_path"] != "/",
+            )
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             kw["slot_index_list"] = target.slots(d)

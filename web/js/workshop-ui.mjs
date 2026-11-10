@@ -1,7 +1,7 @@
 const preference = 'cloud-page-language';
 const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
-const catalogueURL = new URL('./workshop-translations.json?v=045bf9e29f32', import.meta.url);
-const catalogueIntegrity = 'sha256-BFv54p8ySp5BbzV4+AkzriZdYZWxtWK07LNG3ZFnrgU=';
+const catalogueURL = new URL('./workshop-translations.json?v=b45730865b89', import.meta.url);
+const catalogueIntegrity = 'sha256-tFcwhluJ6WrowgwdfkMhy2uBdMZDqLuQDh9T7CL7nDs=';
 let language = 'fr',
   catalogue = {};
 const serverFormats = [
@@ -129,17 +129,176 @@ function initializeTheme() {
 }
 initializeTheme();
 
+const styleCatalogue = [
+  [
+    "standard",
+    "Par défaut",
+    "Une présentation sobre et équilibrée pour le suivi quotidien."
+  ],
+  [
+    "apple",
+    "Apple Design",
+    "Verre translucide, halos de couleur et commandes en pilule."
+  ],
+  [
+    "detailed",
+    "Détaillé",
+    "Des mesures denses, des séparations nettes et des informations groupées."
+  ],
+  [
+    "halloween",
+    "Halloween",
+    "Une ambiance prune et citrouille avec des cartes chaleureuses."
+  ],
+  [
+    "christmas",
+    "Noël",
+    "Vert sapin, accents dorés et surfaces douces."
+  ],
+  [
+    "anchor",
+    "Anchor Pop",
+    "Corail et crème, cartes ancrées et apparition avec rebond."
+  ],
+  [
+    "turnover",
+    "Turn Over",
+    "Un carnet éditorial et des panneaux qui se retournent légèrement."
+  ],
+  [
+    "cards",
+    "Card Deal",
+    "Vert profond, liserés dorés et cartes distribuées en cascade."
+  ],
+  [
+    "drum",
+    "Drum Roll",
+    "Indigo et violet, chiffres nets et panneaux qui déroulent."
+  ],
+  [
+    "outline",
+    "Outline Trace",
+    "Des contours dessinés, un fond clair et des accents bleu électrique."
+  ],
+  [
+    "tiles",
+    "Tile Build",
+    "Une grille bento modulable et des blocs qui se construisent par étapes."
+  ],
+  [
+    "brutalist",
+    "Brutaliste",
+    "Des cadres francs, des ombres décalées et des contrastes affirmés."
+  ],
+  [
+    "neon",
+    "Néon",
+    "Des accents cyan et magenta, des halos et une navigation lumineuse."
+  ],
+  [
+    "blueprint",
+    "Blueprint",
+    "Une trame de plan technique et des repères précis."
+  ],
+  [
+    "paper",
+    "Papier",
+    "Des cartes de carnet, des tons ivoire et une navigation éditoriale."
+  ],
+  [
+    "terminal",
+    "Terminal",
+    "Un poste de contrôle à typographie fixe et repères phosphorescents."
+  ],
+  [
+    "aurora",
+    "Aurore",
+    "Des voiles colorés, des cartes givrées et une navigation flottante."
+  ],
+  [
+    "ocean",
+    "Océan",
+    "Des surfaces turquoise, des lignes fluides et une profondeur légère."
+  ],
+  [
+    "solar",
+    "Solaire",
+    "Des teintes miel et terracotta avec un éclairage radial."
+  ],
+  [
+    "mono",
+    "Monochrome",
+    "Des nuances de gris, une hiérarchie typographique et des détails précis."
+  ]
+];
+
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */
 function initializeStyle() {
   const choice = document.getElementById('interface-style');
-  if (!choice) return;
   const storageKey = 'cloud-page-style';
+  if (!choice) {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const known = saved === 'minimal' ? 'standard' : saved;
+      if (styleCatalogue.some(([id]) => id === known)) document.documentElement.dataset.style = known;
+      if (saved === 'minimal') localStorage.setItem(storageKey, 'standard');
+    } catch {}
+    return;
+  }
+  const gallery = document.getElementById('theme-gallery');
+  const description = document.getElementById('theme-description');
+  const buttons = [];
+  if (gallery) {
+    for (const [id, label, detail] of styleCatalogue) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.themeChoice = id;
+      const preview = document.createElement('span');
+      preview.className = 'theme-preview';
+      preview.setAttribute('aria-hidden', 'true');
+      for (let index = 0; index < 3; index++) {
+        const swatch = document.createElement('span');
+        swatch.className = 'theme-swatch';
+        preview.append(swatch);
+      }
+      const title = document.createElement('strong');
+      title.textContent = label;
+      const caption = document.createElement('small');
+      caption.textContent = detail;
+      button.append(preview, title, caption);
+      button.onclick = () => {choice.value = id; choice.dispatchEvent(new Event('change', {bubbles: true}));};
+      buttons.push(button);
+      gallery.append(button);
+    }
+    gallery.addEventListener('keydown', event => {
+      const index = buttons.indexOf(event.target);
+      if (index < 0) return;
+      let next;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % buttons.length;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index + buttons.length - 1) % buttons.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = buttons.length - 1;
+      if (next !== undefined) {event.preventDefault(); buttons[next].focus();}
+    });
+  }
   try {
     const saved = localStorage.getItem(storageKey);
-    if (Array.from(choice.options).some((option) => option.value === saved)) choice.value = saved;
+    if (saved === 'minimal') {
+      choice.value = 'standard';
+      localStorage.setItem(storageKey, 'standard');
+    } else if (Array.from(choice.options).some((option) => option.value === saved)) {
+      choice.value = saved;
+    }
   } catch {}
   const apply = () => {
     document.documentElement.dataset.style = choice.value;
+    const selected = styleCatalogue.find(([id]) => id === choice.value);
+    if (description) description.textContent = tr(selected?.[2] || '');
+    for (const button of buttons) {
+      const active = button.dataset.themeChoice === choice.value;
+      button.setAttribute('aria-pressed', String(active));
+      button.tabIndex = active ? 0 : -1;
+    }
   };
   apply();
   choice.addEventListener('change', () => {
@@ -208,13 +367,20 @@ export function confirmAction(text) {
     const d = $('confirm-dialog');
     set('confirm-text', text);
     d.showModal();
-    const finish = (value) => {
-      d.close();
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
       resolve(value);
+    };
+    const finish = (value) => {
+      settle(value);
+      d.close();
     };
     $('confirm-no').onclick = () => finish(false);
     $('confirm-yes').onclick = () => finish(true);
-    d.oncancel = () => resolve(false);
+    d.oncancel = () => settle(false);
+    d.onclose = () => settle(false);
   });
 }
 
