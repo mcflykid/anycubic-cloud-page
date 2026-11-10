@@ -3466,5 +3466,173 @@
   "Consulter l’aide officielle Anycubic (code {0})": [
     "Read official Anycubic help (code {0})",
     "Consultar la ayuda oficial de Anycubic (código {0})"
+  ],
+  "Parc et santé": [
+    "Fleet and health",
+    "Parque y estado"
+  ],
+  "Résumé des machines déjà suivies, sans collecte supplémentaire.": [
+    "Summary of already monitored printers, with no additional collection.",
+    "Resumen de las impresoras ya supervisadas, sin recopilación adicional."
+  ],
+  "Alertes après trois minutes de problème observé. Historique limité à cette session serveur.": [
+    "Alerts after three minutes of observed connection trouble. History is limited to this server session.",
+    "Alertas tras tres minutos de problemas observados. Historial limitado a esta sesión del servidor."
+  ],
+  "Données périmées": [
+    "Stale data",
+    "Datos desactualizados"
+  ],
+  "Pas encore suivie": [
+    "Not yet monitored",
+    "Aún sin supervisar"
+  ],
+  "Dernière mesure il y a {0} s.": [
+    "Last reading {0} s ago.",
+    "Última lectura hace {0} s."
+  ],
+  "Aucune mesure fraîche disponible.": [
+    "No fresh reading available.",
+    "No hay lecturas recientes."
+  ],
+  "Problème de connexion observé depuis au moins trois minutes.": [
+    "Connection trouble observed for at least three minutes.",
+    "Problema de conexión observado durante al menos tres minutos."
+  ],
+  "Connexion rétablie": [
+    "Connection restored",
+    "Conexión restablecida"
+  ],
+  "État de connexion modifié": [
+    "Connection state changed",
+    "Estado de conexión modificado"
+  ],
+  "Alerte de connexion": [
+    "Connection alert",
+    "Alerta de conexión"
+  ],
+  "Le résumé du parc est temporairement indisponible.": [
+    "The fleet summary is temporarily unavailable.",
+    "El resumen del parque no está disponible temporalmente."
+  ],
+  "Période : 2 jours": [
+    "Period: 2 days",
+    "Período: 2 días"
+  ],
+  "Période : 7 jours": [
+    "Period: 7 days",
+    "Período: 7 días"
+  ],
+  "Période : 30 jours": [
+    "Period: 30 days",
+    "Período: 30 días"
+  ],
+  "Télécharger CSV": [
+    "Download CSV",
+    "Descargar CSV"
+  ],
+  "Export CSV téléchargé pour la période affichée.": [
+    "CSV exported for the displayed time range.",
+    "CSV descargado para el período mostrado."
+  ],
+  "Relevés reçus depuis l’activation, points sur 24 heures et moyennes horaires sur 30 jours. Survolez une courbe pour lire une mesure.": [
+    "Readings start when collection is enabled; raw points cover 24 hours and hourly averages cover 30 days. Hover over a chart to inspect a reading.",
+    "Las lecturas comienzan al activar la recopilación; los puntos detallados cubren 24 horas y los promedios por hora, 30 días. Pasa el cursor sobre una gráfica para consultar una lectura."
+  ],
+  "Source : Cloud": [
+    "Source: Cloud",
+    "Fuente: Cloud"
+  ],
+  "Source : MQTT": [
+    "Source: MQTT",
+    "Fuente: MQTT"
+  ],
+  "Sources : Cloud et MQTT": [
+    "Sources: Cloud and MQTT",
+    "Fuentes: Cloud y MQTT"
+  ],
+  "Lire les coordonnées": [
+    "Read coordinates",
+    "Leer coordenadas"
+  ],
+  "Coordonnées non consultées": [
+    "Coordinates not queried",
+    "Coordenadas sin consultar"
+  ],
+  "Lecture des coordonnées…": [
+    "Reading coordinates…",
+    "Leyendo coordenadas…"
+  ],
+  "X : {0} mm · Y : {1} mm · Z : {2} mm": [
+    "X: {0} mm · Y: {1} mm · Z: {2} mm",
+    "X: {0} mm · Y: {1} mm · Z: {2} mm"
+  ],
+  "L’imprimante ne fournit pas de position complète.": [
+    "The printer did not provide a complete position.",
+    "La impresora no proporcionó una posición completa."
+  ],
+  "Réglages au repos": [
+    "Idle controls",
+    "Ajustes en reposo"
+  ],
+  "Saisie manuelle dans les limites annoncées par l’imprimante. Zéro coupe la chauffe. Aucun profil de matériau n’est appliqué automatiquement.": [
+    "Enter values within the limits reported by the printer. Zero turns heating off. No material profile is applied automatically.",
+    "Introduce valores dentro de los límites indicados por la impresora. Cero apaga el calentamiento. No se aplica automáticamente ningún perfil de material."
+  ],
+  "Buse au repos (°C)": [
+    "Idle nozzle (°C)",
+    "Boquilla en reposo (°C)"
+  ],
+  "Plateau au repos (°C)": [
+    "Idle bed (°C)",
+    "Cama en reposo (°C)"
+  ],
+  "Ventilateur au repos": [
+    "Idle fan",
+    "Ventilador en reposo"
+  ],
+  "Vitesse au repos (%)": [
+    "Idle speed (%)",
+    "Velocidad en reposo (%)"
+  ],
+  "Appliquer les températures": [
+    "Apply temperatures",
+    "Aplicar temperaturas"
+  ],
+  "Appliquer la ventilation": [
+    "Apply fan speed",
+    "Aplicar ventilación"
+  ],
+  "Appliquer ces températures à l’imprimante au repos ? Vérifiez le plateau et les matériaux présents.": [
+    "Apply these temperatures to the idle printer? Check the bed and loaded materials.",
+    "¿Aplicar estas temperaturas a la impresora en reposo? Comprueba la cama y los materiales presentes."
+  ],
+  "Régler ce ventilateur au repos ?": [
+    "Set this fan while idle?",
+    "¿Ajustar este ventilador en reposo?"
+  ],
+  "Pièce": [
+    "Part",
+    "Pieza"
+  ],
+  "Auxiliaire": [
+    "Auxiliary",
+    "Auxiliar"
+  ],
+  "Source du compteur": [
+    "Counter source",
+    "Origen del contador"
+  ],
+  "Compteur cumulé Cloud": [
+    "Cumulative Cloud counter",
+    "Contador acumulado de Cloud"
+  ],
+  "Détail constructeur (repli)": [
+    "Device detail (fallback)",
+    "Detalle del dispositivo (alternativa)"
+  ],
+  "Le lancement direct de ce format attend une validation de compatibilité.": [
+    "Direct printing of this format awaits compatibility validation.",
+    "La impresión directa de este formato requiere validar la compatibilidad."
   ]
 }

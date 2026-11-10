@@ -25,6 +25,10 @@ Le [registre de machines](../app/printer_registry.py) conserve un moteur, ses ca
 
 Le protocole Slicer construit un identifiant MQTT fixe pour un compte. Les moteurs partagent donc une seule connexion et routent les rapports selon leur machine ; ils ne créent pas des clients concurrents de même nom. Le renouvellement de session conserve ce transport commun, les abonnements sont rétablis et les callbacks de fraîcheur restent associés au destinataire du rapport. Les courbes initiales gardent leur emplacement ; les machines supplémentaires utilisent des sous-dossiers privés sous `appdata/state/printers/`.
 
+## Tendances thermiques
+
+Chaque fichier d’imprimante contient jusqu’à 24 heures de points bruts (8 640 relevés à dix secondes) et des moyennes horaires pour 30 jours (720 créneaux). Les requêtes de 1 à 24 heures lisent les points bruts ; celles de 25 à 720 heures lisent les agrégats. Les compteurs propres à chaque mesure permettent d’ignorer les valeurs absentes sans transformer une température nulle en absence. Les boîtiers et emplacements ACE sont agrégés séparément. Les anciennes listes JSON sont migrées à la prochaine sauvegarde ; aucune donnée n’est reconstituée avant l’activation de la collecte. Le stockage par fichier est limité à 16 Mo. Le CSV reprend la même période et résolution que le graphe, avec date UTC, source si elle est connue, et cellules vides pour les mesures manquantes. L’effacement explicite vide les points, agrégats et fichier local de la cible concernée.
+
 ## Parcours utiles
 
 | Besoin | Mécanisme |
@@ -90,9 +94,9 @@ La lecture statique du SDK empaqueté de Slicer Next **2.0.0.3** complète les s
 | Issue | Éléments établis | Preuve encore nécessaire |
 |---|---|---|
 | #30 | Liste MQTT `file/listVideo` paginée sur fixtures ; SDK `POST /v3/printer/getVideoThumbnailList`, champs `device_id`, `video_file_keys` ; résultat `filename`, `file_key`, `thumbnail_url`. | Relation vérifiée liste → clé → vidéo et droit de téléchargement. Une miniature n’est pas un fichier vidéo. La galerie reste désactivée. |
-| #93 | Les rapports 0/1/2, quantités positives et inconnues restent séparés. L’identification RFID ne renseigne aucune marque. Le propriétaire a confirmé la concordance de ses bobines RFID testées. | Signification d’un zéro selon modèle et comportement avec puce réécrite ou sans puce. Le zéro non qualifié reste inconnu. |
-| #95 | Le client décrit `1216` pour les températures et `1221` pour un ventilateur. | Marqueur de capacité autorisant ces commandes au repos pour chaque modèle ; profil du plateau et matériau qualifiés. Les réglages pendant l’impression restent séparés. |
-| #96 | Ordre de consultation `1214`, réponse `axis/query`, coordonnées à corréler avec fraîcheur et cible. | Marqueur de capacité explicitement annoncé pour cette consultation. Le support des déplacements n’est pas une preuve du support de lecture. |
+| #93 | Les rapports 0/1/2, quantités positives et inconnues restent séparés. L’identification RFID ne renseigne aucune marque. Le propriétaire a confirmé la concordance de ses bobines RFID testées. | Signification d’un zéro selon modèle et comportement avec puce réécrite ou sans puce. Le zéro non qualifié reste inconnu. Pour un ACE 2 Pro identifié, le champ est qualifié seulement avec `status=5` et `edit_status=0`, et accepte alors 0..100 comme valeurs déclarées, sans preuve de masse physique. |
+| #95 | Parcours manuel S1 implémenté : `1216`/`1221`, limites de préchauffage strictes, confirmation et relecture avant envoi. Voir [garanties et limites](IDLE-AXES.md). | Validation matérielle après installation séparée; unité du ventilateur d’enceinte encore à qualifier. Aucun profil de matériau automatique. |
+| #96 | Consultation manuelle S1 implémentée à partir du contrat capturé : `1214`, réponse `axis/query`, corrélation de cible/msgid et date de réception. | Les autres modèles restent désactivés; la capacité de mouvement seule ne prouve pas la lecture. Aucun mouvement ou référencement n’est déclenché. |
 | #103 | Stockage STL/3MF confirmé par le propriétaire. Validation locale ZIP classique et Zip64 bornée, sans extraction. | Parcours d’un `.gcode.3mf` tranché et de ses métadonnées multicolores, stockage et lancement vérifiés séparément. L’impression reste réservée au `.gcode`. |
 | #105 | Compteur de la route `GET /v5/printer/home`, repli de base de la même cible, zéro distinct d’une valeur absente ; aucun recalcul depuis l’historique. | Comparaison simultanée, même compte/région/machine/source/fraîcheur, des deux clients. Le code seul ne détermine pas l’origine de l’écart observé. |
 | #137 | SDK : chaînes `dry_mode`, `drying_settings`, `duration`, `target_temp`, `use_ams`, `ams_box_mapping`, `ams_index`, `ams_color`. Le séchage séparé a un parcours existant. | Enveloppe, unité, séquence d’états, capacités par modèle, délai et annulation du séchage associé au lancement. Aucune option combinée n’est activée. |
@@ -102,3 +106,11 @@ Les contrôles de lancement (#136) séparent une mise à jour proposée de l’�
 L’historique multi-imprimantes (#132) réutilise les pages lues pendant quinze secondes, avec un plafond de 400 pages par moteur. Le cache est séparé par cible et session API et invalidé lors d’une actualisation explicite, d’une suppression ou d’un envoi accepté. Les nouveaux objets API ne réutilisent jamais les pages d’une session précédente.
 
 Les relevés sont pris en instantané dans la boucle puis écrits hors de celle-ci, avec sérialisation des sauvegardes et remplacement atomique (#133). Un HTTP 401 sur un appel authentifié ne déclenche la reprise que si aucune donnée utile ne contredit le refus ; le corps n’est pas conservé. Les réponses ambiguës ne sont pas rejouées (#135).
+
+## Recherches complémentaires du 11 novembre 2026
+
+Le contrôle en lecture seule d’une même S1 dans une même fenêtre confirme que `base.print_count` du détail et `printer.statistics.print_count` de la synthèse Cloud peuvent différer. Le compteur affiché privilégie la synthèse dont l’identité correspond, garde zéro et affiche maintenant sa provenance; aucun total n’est calculé depuis l’historique. La comparaison avec l’affichage simultané de Slicer Next reste un contrôle distinct suivi dans l’issue des états S1/ACE.
+
+Le support `gcode_3mf_support` est annoncé par la S1 examinée. Cette annonce ne documente pas le choix de plateau ni l’enveloppe de lancement d’un paquet. Le lancement direct mémoire/USB applique donc la même restriction au `.gcode` qualifié que le téléversement; les autres fichiers restent listables sans envoi d’un ordre d’impression non établi.
+
+Les éléments nouveaux et limites sont détaillés dans [l’étude des lancements et du séchage](PRINT-PROTOCOL-RESEARCH.md), [celle des timelapses](TIMELAPSE-RESEARCH.md) et [celle des exports Mesh](MESH.md). Les fonctions non établies restent suivies dans les issues, sans les présenter comme corrigées.

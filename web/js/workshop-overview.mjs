@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=cda4532cd72a';
-import { workshopState } from './workshop-state.mjs?v=f7c4c4153f8f';
+} from './workshop-ui.mjs?v=4fb911698e53';
+import { workshopState } from './workshop-state.mjs?v=f086eb175834';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -308,6 +308,9 @@ export function createOverview(request) {
       ['Micrologiciel', fmt(p.firmware)],
       ['Temps total', fmt(p.statistics?.hours, ' h')],
       ['Nombre d’impressions', fmt(p.statistics?.print_count)],
+      ['Source du compteur', p.statistics?.print_count_source === 'cloud_summary'
+        ? tr('Compteur cumulé Cloud') : p.statistics?.print_count_source === 'device_detail'
+          ? tr('Détail constructeur (repli)') : '—'],
       [
         'Filament utilisé',
         String(p.statistics?.material ?? '—').replace(

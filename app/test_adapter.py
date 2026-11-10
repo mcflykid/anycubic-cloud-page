@@ -7,7 +7,7 @@ from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
 from printer_values import filepath, integer
 from printer_files import MQTTReplies
-import asyncio, importlib.util, pathlib, unittest
+import asyncio, importlib.util, pathlib, time, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -128,6 +128,12 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
             }
             await self.e.refresh_lifetime_count()
             self.assertEqual(self.e.snapshot()["printer"]["statistics"]["print_count"], expected)
+            self.assertEqual(
+                self.e.snapshot()["printer"]["statistics"]["print_count_source"],
+                "cloud_summary"
+                if source_id == 42 and type(stats.get("print_count")) is int
+                else "device_detail",
+            )
         self.assertEqual(fetch.call_args.args[0].endpoint, "/v5/printer/home")
         self.assertEqual(fetch.call_args.kwargs["query"], {"printer_id": "42"})
         fetch.side_effect = AnycubicAPIError("Relevé indisponible")
@@ -207,6 +213,28 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(data["spools"][0]["remaining_percent"])
         self.assertFalse(data["spools"][1]["rfid"])
         self.assertNotIn("sku", str(data))
+
+    async def test_ace2_manual_values_are_unknown_and_qualified_zero_is_preserved(self):
+        """La génération identifiée qualifie les valeurs firmware sans inventer marque ni masse."""
+        self.e.printer = SimpleNamespace(
+            multi_color_box=[SimpleNamespace(box_id=0)],
+            primary_multi_color_box_spool_info_object=[{"local_slot": i + 1} for i in range(3)],
+        )
+        self.e.raw_info = {
+            "multi_color_box_version": [{"box_id": 0, "box_name": "ACE 2 Pro"}],
+            "multi_color_box": [
+                {
+                    "id": 0,
+                    "slots": [
+                        {"status": 5, "edit_status": 1, "consumables_percent": 100},
+                        {"status": 5, "edit_status": 0, "consumables_percent": 0},
+                        {"status": 5, "edit_status": 0, "consumables_percent": 45},
+                    ],
+                }
+            ],
+        }
+        slots = self.e.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertEqual([s["remaining_percent"] for s in slots], [None, 0, 45])
 
     async def test_kobra_x_rack_never_supplies_ace_readings(self):
         """L’ACE ne reçoit ni le support interne ni les mesures d’un autre boîtier."""
@@ -451,9 +479,10 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             h = adapter.TemperatureHistory(pathlib.Path(tmp) / "temperatures.json")
-            self.assertTrue(h.add(1000, {"nozzle": 215, "bed": 55, "ace": None}))
-            self.assertFalse(h.add(1000, {"nozzle": 216}))
-            self.assertFalse(h.add(1001, {"nozzle": float("nan"), "bed": 999}))
+            now = int(time.time())
+            self.assertTrue(h.add(now, {"nozzle": 215, "bed": 55, "ace": None}))
+            self.assertFalse(h.add(now, {"nozzle": 216}))
+            self.assertFalse(h.add(now + 1, {"nozzle": float("nan"), "bed": 999}))
             self.assertIsNone(h.rows[0]["ace"])
             self.assertEqual(len(h.rows), 1)
             h.save()
@@ -466,6 +495,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             history = adapter.TemperatureHistory(pathlib.Path(tmp) / "temperatures.json")
+            now = int(time.time())
             boxes = [
                 {
                     "box_id": 0,
@@ -474,9 +504,9 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
                 },
                 {"box_id": 1, "humidity": 101},
             ]
-            self.assertTrue(history.add(1000, {"ace_boxes": adapter.ace_readings(boxes)}))
+            self.assertTrue(history.add(now, {"ace_boxes": adapter.ace_readings(boxes)}))
             history.save()
-            row = adapter.TemperatureHistory(history.path).recent(at=1000)[0]["ace_boxes"]
+            row = adapter.TemperatureHistory(history.path).recent(at=now)[0]["ace_boxes"]
             self.assertEqual(row["0"]["humidity"], 0)
             self.assertEqual(row["0"]["slots"]["1"]["remaining"], 0)
             self.assertIsNone(row["1"]["humidity"])

@@ -1,4 +1,4 @@
-import { $, serverText, set, tr } from './workshop-ui.mjs?v=cda4532cd72a';
+import { $, serverText, set, tr } from './workshop-ui.mjs?v=4fb911698e53';
 
 /** Possède le lecteur et ses générations sans partager ses identifiants avec les autres panneaux. */
 export function createCamera(request, getPrinter) {

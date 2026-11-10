@@ -1,6 +1,6 @@
 # Changements
 
-## 1.7.0 — 2026-11-10
+## 1.7.0 — 2026-11-11
 
 - Catalogue exploratoire de vingt styles, avec galerie et descriptions traduites, palettes et compositions différentes. Anchor Pop, Turn Over, Card Deal, Drum Roll, Outline Trace et Tile Build proposent six effets CSS ; Tile Build adopte une grille bento adaptative. Les animations réduites et le mode clair/sombre sont respectés (#143).
 - Journaux de conteneur uniformes dès le démarrage : format texte ou JSON, niveaux INFO/DEBUG, références de requête, étapes et durées. Les échanges privés, secrets et identifiants bruts restent exclus (#139).
@@ -17,6 +17,18 @@
 - Champs MQTT informatifs consommés sans modifier les températures et état Kobra X cohérent avec sa phase (#134). HTTP 401 qualifiés avec une seule reprise sérialisée ; aucun rejeu si des données contredisent le refus (#135).
 - Avancées #136 : avertissements de matière/couleur et métadonnées manquantes avant envoi ou réimpression ; un firmware en cours confirmé empêche le lancement et le quota connu insuffisant est signalé avant transfert. L’identification des refus constructeur et d’une mise à jour obligatoire reste à établir.
 - Avancée #103 : validation du stockage 3MF Zip64 avec bornes et cas malformés. Le lancement des `.gcode.3mf` attend toujours des preuves de protocole. Les autres investigations non conclues sont détaillées dans les notes de protocole (#30, #93, #95, #96, #105, #137).
+
+- Courbes thermiques : export CSV UTC de la période affichée, provenance connue, points sur 24 h et moyennes horaires sur 30 jours, migration et stockage bornés par imprimante (#148, #149).
+- Vue Parc et santé sans nouveau collecteur ni commande : disponibilité, fraîcheur et transitions de connexion dédoublonnées; contrat des alarmes connues et des métriques facultatives documenté (#150, #151, #152).
+- Étude Mesh : aucune compatibilité Kobra S1 n’est déduite des exports Kobra X; aucune interface ajoutée sans preuve de récupération des mesures (#145, #146, #147).
+
+- Commandes au repos pour la Kobra S1 : températures manuelles bornées par les limites Cloud (y compris JSON encodé), un ventilateur par requête, identité et disponibilité relues avant envoi; aucune présélection de matériau (#95).
+- Consultation manuelle des coordonnées S1, sans mouvement ni suivi supplémentaire : réponse MQTT corrélée, positions absentes ou invalides explicites, date visible (#96).
+- Provenance du compteur d’impressions affichée pour distinguer le cumul Cloud du détail constructeur de repli (#105). Les lancements mémoire/USB de formats non qualifiés sont refusés avant envoi comme dans le parcours Cloud (#103, #142).
+- Recherches de protocole approfondies : exports mesh S1, structure du séchage en création de tâches en lot et distinction entre miniature et média timelapse. Les parcours non établis restent suivis dans les issues regroupées (#30, #93, #103, #136, #142, #145).
+
+- Le transport Cloud n’ajoute plus les versions Python/aiohttp dans son User-Agent; les en-têtes explicitement requis restent préservés. Profil Slicer audité et limites d’identification documentées, sans promesse d’indétectabilité (#155).
+- Revue des versions amont 0.4.5–0.4.8, de la bêta et des cinq forks directs, avec références de branches et décisions. Qualification ACE 2 Pro des pourcentages selon les états constructeur : les valeurs manuelles ou non chargées restent inconnues, zéro reconnu conservé, sans déduction de marque ou de masse (#93, #156).
 
 ## 1.6.0 — 2026-11-06
 

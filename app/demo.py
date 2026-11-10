@@ -1,6 +1,6 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 
-import argparse, base64, math, os, re, time
+import argparse, base64, csv, io, math, os, re, time
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 from filament_catalog import editable_materials
@@ -118,6 +118,8 @@ PRINTER = {
         "parameters": PARAMS,
     },
     "axes_supported": True,
+    "axis_query_supported": True,
+    "idle_limits": {"target_nozzle_temp": [0, 320], "target_hotbed_temp": [0, 120]},
     "foreign_detection_supported": True,
     "speed_modes": [
         {"mode": 0, "description": "Quiet"},
@@ -230,6 +232,33 @@ async def api(request):
             "default": "demo-printer",
             "pending": False,
         }
+    elif path == "axis-position":
+        d = {"position": {"x": 47.0, "y": 250.0, "z": 3.815}, "updated_at": time.time()}
+    elif path == "fleet":
+        d = {
+            "items": [
+                {
+                    "key": "demo-printer",
+                    "name": "Kobra S1 · Démonstration",
+                    "state": "online",
+                    "age_seconds": 2,
+                    "job_in_progress": False,
+                    "alerts": [],
+                },
+                {
+                    "key": "demo-secondary",
+                    "name": "Machine non suivie · Démonstration",
+                    "state": "unmonitored",
+                    "age_seconds": None,
+                    "job_in_progress": None,
+                    "alerts": [],
+                },
+            ],
+            "events": [],
+            "observation": "on_request",
+            "stale_seconds": 120,
+            "alert_seconds": 180,
+        }
     elif path == "status":
         d = {
             "ok": True,
@@ -261,13 +290,17 @@ async def api(request):
     elif path == "preview" or path in ["extras/task-preview", "extras/notification-preview"]:
         d = {"image": IMAGE}
     elif path == "temperatures":
-        hours = {"1": 1, "6": 6, "24": 24}.get(request.query.get("hours"), 1)
+        hours = {"1": 1, "6": 6, "24": 24, "48": 48, "168": 168, "720": 720}.get(
+            request.query.get("hours"), 1
+        )
+        interval = 3600 if hours > 24 else 30
         stamp = int(time.time())
         boxes = ace_readings([BOX])
         d = {
             "readings": [
                 {
-                    "time": stamp - i * 30,
+                    "time": stamp - i * interval,
+                    "source": "cloud",
                     "nozzle": round(28 + 182 * (1 - math.exp(-i / 30)), 1),
                     "bed": round(26 + 34 * (1 - math.exp(-i / 45)), 1),
                     "ace": 42,
@@ -276,11 +309,34 @@ async def api(request):
                     "ace_target": 45,
                     "ace_boxes": boxes,
                 }
-                for i in range(hours * 120, -1, -1)
+                for i in range(hours * 3600 // interval, -1, -1)
             ],
             "hours": hours,
-            "retention_hours": 24,
+            "retention_hours": 720,
+            "resolution_seconds": 3600 if hours > 24 else 10,
         }
+        if request.query.get("format") == "csv":
+            output = io.StringIO(newline="")
+            writer = csv.writer(output)
+            writer.writerow(
+                ["time_utc", "resolution_seconds", "source", "nozzle_c", "bed_c", "ace_c"]
+            )
+            for row in d["readings"]:
+                writer.writerow(
+                    [
+                        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(row["time"])),
+                        d["resolution_seconds"],
+                        row["source"],
+                        row["nozzle"],
+                        row["bed"],
+                        row["ace"],
+                    ]
+                )
+            d = {
+                "csv": output.getvalue(),
+                "hours": hours,
+                "resolution_seconds": d["resolution_seconds"],
+            }
     elif path.startswith("files/"):
         d = {
             "files": FILES,

@@ -76,3 +76,28 @@ class LocalPrintPayloadTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StoredFormatSafetyTests(unittest.IsolatedAsyncioTestCase):
+    """Un modèle non qualifié ne doit jamais parvenir à l’ordre physique de lancement."""
+
+    async def test_unverified_formats_are_rejected_before_any_send(self):
+        """Les paquets tranchés restent distincts des G-code simples tant que leur contrat est inconnu."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+        from printer_commands import execute_command
+
+        for filename in ("piece.3mf", "piece.gcode.3mf", "piece.stl", "piece.bin"):
+            printer = SimpleNamespace(
+                id=7,
+                connected_ace_units=0,
+                is_available=True,
+                print_local_file=AsyncMock(),
+                fw_version=None,
+            )
+            target = SimpleNamespace(
+                printer=printer, api=SimpleNamespace(), slots=lambda data: None
+            )
+            with self.subTest(filename=filename), self.assertRaises(ValueError):
+                await execute_command(target, "print-local", {"name": filename, "path": "/"})
+            printer.print_local_file.assert_not_awaited()

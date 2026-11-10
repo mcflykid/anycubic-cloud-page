@@ -17,6 +17,10 @@ from filament_catalog import editable_materials
 from print_preflight import ensure_firmware_ready, ensure_storage_ready, evaluate_preflight
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
+from fleet_health import FleetHealth
+from idle_controls import idle_limits
+from ace_telemetry import ace2_pro_telemetry
+from printer_axes import is_allowed as axis_query_allowed, query_axis_position
 from account_transport import AccountTransport
 from printer_values import integer, now, safeget, serial
 from printer_commands import execute_command, slot_indices
@@ -210,8 +214,12 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     if not getattr(message, "retain", False) and payload.get("type") in (
                         "file",
                         "light",
+                        "axis",
                     ):
                         owner.mqtt_replies.receive(payload)
+                    if payload.get("type") == "axis" and payload.get("action") == "query":
+                        # Les coordonnées relèvent de la consultation corrélée, pas de la fraîcheur globale.
+                        return
             return super()._mqtt_message_router(message)
         finally:
             self.message_engine = None
@@ -754,6 +762,12 @@ class Engine:
                                 edit == 0 if type(edit) is int and edit in (0, 1) else None
                             )
                         percent = rawslot.get("consumables_percent")
+                        if b.get("model") == "ACE 2 Pro":
+                            quality = ace2_pro_telemetry(rawslot)
+                            spool["remaining_percent"] = quality["percent"]
+                            spool["remaining_percent_qualified"] = quality["valid"]
+                            spool["remaining_percent_source"] = quality["source"]
+                            continue
                         # Le zéro est aussi utilisé par les boîtiers qui ne mesurent pas la quantité.
                         spool["remaining_percent"] = (
                             percent
@@ -762,6 +776,8 @@ class Engine:
                         )
         fields["task_details"] = task_details(safeget(p, "latest_project"))
         fields["axes_supported"] = 67 in (self.raw_info.get("type_function_ids") or [])
+        fields["axis_query_supported"] = axis_query_allowed(self)
+        fields["idle_limits"] = idle_limits(self)
         features = {
             r.get("name"): r.get("value")
             for r in self.raw_info.get("features") or []
@@ -779,12 +795,15 @@ class Engine:
             else None
         )
         count = safeget(p, "print_count")
+        count_source = "device_detail" if count is not None else None
         if self.lifetime_count is not None and self.lifetime_count[0] == p.id:
             count = self.lifetime_count[1]
+            count_source = "cloud_summary"
         fields["statistics"] = {
             "material": safeget(p, "material_used"),
             "hours": duration.total_seconds() / 3600 if duration is not None else None,
             "print_count": count,
+            "print_count_source": count_source,
         }
         return serial({**base, "printer": fields})
 
@@ -1017,10 +1036,28 @@ async def status(req):
     return web.json_response(request_engine(req).snapshot(), headers={"Cache-Control": "no-store"})
 
 
+async def axis_position(req):
+    """Consulte explicitement la position de la cible sans mouvement ni collecte périodique."""
+    selected = request_engine(req)
+    async with selected.lock:
+        verify_printer_target(req, selected)
+        result = await query_axis_position(selected)
+        verify_printer_target(req, selected)
+    return web.json_response(result, headers={"Cache-Control": "no-store"})
+
+
 async def printers(req):
     """Renvoie les noms et références opaques du compte ; aucun identifiant cloud brut."""
     return web.json_response(
         req.app["printer_registry"].choices(), headers={"Cache-Control": "no-store"}
+    )
+
+
+async def fleet(req):
+    """Résume les seuls moteurs déjà suivis sans démarrer de collecte pour une autre machine."""
+    return web.json_response(
+        req.app["fleet_health"].snapshot(req.app["printer_registry"]),
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -1396,7 +1433,14 @@ async def command(req):
                 engine.commands[requestid] = uncertain
                 return web.json_response(uncertain, status=409)
             if audit and audit["outcome"] != "confirmée":
-                if name in ("axis", "axis-off", "ai-settings", "task-reprint", "light"):
+                if name in (
+                    "axis",
+                    "axis-off",
+                    "ai-settings",
+                    "task-reprint",
+                    "light",
+                    "idle-settings",
+                ):
                     audit["outcome"] = "envoyée"
                 else:
                     audit["outcome"] = "acceptée"
@@ -1743,6 +1787,9 @@ async def sample_temperatures(app, selected=None, store=None):
                         if p.get("dry_status_is_drying")
                         else None,
                     }
+                    cloud_stamp, mqtt_stamp = state.get("updated_at"), state.get("mqtt_updated_at")
+                    if cloud_stamp != mqtt_stamp:
+                        values["source"] = "mqtt" if source == mqtt_stamp else "cloud"
                     details = getattr(engine, "details_updated", None)
                     if details and details != last_details:
                         if abs(time.time() - datetime.fromisoformat(details).timestamp()) < 120:
@@ -1760,16 +1807,29 @@ async def sample_temperatures(app, selected=None, store=None):
 
 
 async def temperatures(req):
-    """Renvoie les relevés sur une à vingt-quatre heures ; lève ValueError hors de cet intervalle."""
-    hours = integer(req.query.get("hours", 1), 1, 24)
+    """Renvoie les points ou leur CSV sur la même fenêtre ; les jours anciens sont agrégés."""
+    hours = integer(req.query.get("hours", 1), 1, 720)
+    store = (
+        req.app["printer_registry"].history(request_engine(req))
+        if "printer_registry" in req.app
+        else req.app["temperature_history"]
+    )
+    if req.query.get("format") == "csv":
+        return web.json_response(
+            {
+                "csv": store.export_csv(hours),
+                "hours": hours,
+                "resolution_seconds": store.resolution_seconds(hours),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
     return web.json_response(
         {
-            "readings": req.app["printer_registry"].history(request_engine(req)).recent(hours)
-            if "printer_registry" in req.app
-            else req.app["temperature_history"].recent(hours),
+            "readings": store.recent(hours),
             "hours": hours,
-            "retention_hours": 24,
+            "retention_hours": 720,
             "interval_seconds": 10,
+            "resolution_seconds": store.resolution_seconds(hours),
         },
         headers={"Cache-Control": "no-store"},
     )
@@ -1794,6 +1854,7 @@ async def startup(app):
         engine.presets = json.loads(pathlib.Path("/appdata/state/presets.json").read_text())
     engine.catalogue_source = True
     app["printer_registry"] = PrinterRegistry(engine, Engine, sample_temperatures, app)
+    app["fleet_health"] = FleetHealth()
     app["poll_task"] = asyncio.create_task(engine.poll())
     app["temperature_history"] = TemperatureHistory()
     app[COMMAND_JOURNAL_KEY] = CommandJournal(engine.state_dir / "command-journal.jsonl")
@@ -1917,9 +1978,11 @@ app = web.Application(
 app.add_routes(
     [
         web.get("/imprimante-api/printers", printers),
+        web.get("/imprimante-api/fleet", fleet),
         web.get("/imprimante-api/health", health),
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
+        web.get("/imprimante-api/axis-position", axis_position),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),

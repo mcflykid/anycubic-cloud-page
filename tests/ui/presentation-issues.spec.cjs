@@ -14,10 +14,10 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 
-test('Apple Design conserve les huit onglets sur une rangée défilable au clavier',async({page})=>{
+test('Apple Design conserve les neuf onglets sur une rangée défilable au clavier',async({page})=>{
  await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page);
  const tabs=page.locator('.atelier-tabs');
- await expect(tabs.locator('button')).toHaveCount(8);
+ await expect(tabs.locator('button')).toHaveCount(9);
  expect(await tabs.locator('button').evaluateAll(buttons=>new Set(buttons.map(button=>Math.round(button.getBoundingClientRect().top))).size)).toBe(1);
  expect(await tabs.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
  await page.getByRole('button',{name:'Réglages',exact:true}).focus();

@@ -10,10 +10,10 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=cda4532cd72a';
-import { workshopState } from './workshop-state.mjs?v=f7c4c4153f8f';
-import { definition } from './workshop-overview.mjs?v=eab6a8551e05';
-import { api } from './workshop-api.mjs?v=56e4bef24031';
+} from './workshop-ui.mjs?v=4fb911698e53';
+import { workshopState } from './workshop-state.mjs?v=f086eb175834';
+import { definition } from './workshop-overview.mjs?v=a0dd7fe11950';
+import { api } from './workshop-api.mjs?v=404f26d269c6';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
@@ -32,6 +32,7 @@ export function createSettings(request, command, camera) {
   function showControlView(settings) {
     $('controls-monitor').hidden = settings;
     $('settings-form').hidden = !settings;
+    $('idle-controls').classList.toggle('control-hidden', settings);
     $('control-view-monitor').setAttribute('aria-pressed', String(!settings));
     $('control-view-settings').setAttribute('aria-pressed', String(settings));
   }
@@ -51,6 +52,38 @@ export function createSettings(request, command, camera) {
       tr('Appliquer ces réglages à l’impression active ?'),
       controlFeedback,
     );
+  };
+  $('idle-temperature-form').onsubmit = (event) => {
+    event.preventDefault();
+    void command('idle-settings', Object.fromEntries(new FormData(event.target)),
+      tr('Appliquer ces températures à l’imprimante au repos ? Vérifiez le plateau et les matériaux présents.'), controlFeedback);
+  };
+  $('idle-fan-form').onsubmit = (event) => {
+    event.preventDefault();
+    const data = new FormData(event.target);
+    void command('idle-settings', { [data.get('fan')]: data.get('value') },
+      tr('Régler ce ventilateur au repos ?'), controlFeedback);
+  };
+  let axisQueryPending = false;
+  $('axis-query').onclick = async () => {
+    if (axisQueryPending) return;
+    axisQueryPending = true;
+    $('axis-query').disabled = true;
+    const target = workshopState.selectedPrinter;
+    set('axis-position', tr('Lecture des coordonnées…'));
+    try {
+      const data = await request('/axis-position');
+      if (target !== workshopState.selectedPrinter) return;
+      const p = data.position;
+      set('axis-position', p
+        ? `${formatText('X : {0} mm · Y : {1} mm · Z : {2} mm', fmt(p.x), fmt(p.y), fmt(p.z))} · ${date(data.updated_at)}`
+        : tr('L’imprimante ne fournit pas de position complète.'));
+    } catch (error) {
+      set('axis-position', error.message);
+    } finally {
+      axisQueryPending = false;
+      if (workshopState.snapshot?.printer) updateNativeControls(workshopState.snapshot.printer);
+    }
   };
   $('rename-form').onsubmit = (e) => {
     e.preventDefault();
@@ -83,6 +116,17 @@ export function createSettings(request, command, camera) {
   }
   /** Conditionne axes et IA aux capacités annoncées et à une imprimante disponible. */
   function updateNativeControls(p) {
+    $('axis-query').disabled = axisQueryPending || !workshopState.snapshot?.ok || !p.printer_online || p.is_busy || p.job_in_progress || !p.axis_query_supported;
+    const limits = p.idle_limits || {};
+    const idle = workshopState.snapshot?.ok && p.printer_online && p.is_available && !p.is_busy && !p.job_in_progress && Object.keys(limits).length;
+    $('idle-controls').hidden = !idle;
+    for (const form of [$('idle-temperature-form'), $('idle-fan-form')])
+      for (const field of form.querySelectorAll('input,select,button')) field.disabled = !idle;
+    for (const name of ['target_nozzle_temp', 'target_hotbed_temp']) {
+      const input = $('idle-temperature-form').elements[name], pair = limits[name];
+      input.disabled = !idle || !pair;
+      if (pair) { input.min = pair[0]; input.max = pair[1]; }
+    }
     const canMove = !!p.axes_supported && p.is_available && !p.job_in_progress;
     for (const button of document.querySelectorAll('[data-axis],#axis-release,#axis-step input'))
       button.disabled = !canMove;

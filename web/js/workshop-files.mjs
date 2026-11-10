@@ -8,10 +8,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=cda4532cd72a';
-import { workshopState, setBusy } from './workshop-state.mjs?v=f7c4c4153f8f';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=df951fd5daf7';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=3771e92634a0';
+} from './workshop-ui.mjs?v=4fb911698e53';
+import { workshopState, setBusy } from './workshop-state.mjs?v=f086eb175834';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=e2015bb986a1';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=696df618f651';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -115,7 +115,10 @@ export function createFiles(request, command) {
               Ouvrir: tr('Afficher le contenu de ce dossier.'),
             }[label] || tr(label);
           if (label === 'Imprimer') {
-            if (listedSource === 'cloud' && f.printable === false) {
+            if (listedSource !== 'cloud' && !String(f.name).toLowerCase().endsWith('.gcode')) {
+              b.disabled = true;
+              b.title = tr('Le lancement direct de ce format attend une validation de compatibilité.');
+            } else if (listedSource === 'cloud' && f.printable === false) {
               b.disabled = true;
               b.title = tr('Ce fichier ne contient pas de G-code imprimable.');
             } else if (workshopState.snapshot?.printer?.is_available === false) {

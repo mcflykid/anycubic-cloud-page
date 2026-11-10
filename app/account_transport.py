@@ -27,7 +27,10 @@ class AccountTransport:
         """Ouvre le client authentifié et découvre les imprimantes du compte."""
         self.reconnect_required = True
         if not self.session:
-            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45))
+            # Le profil Slicer n’exige pas d’User-Agent ; préserver les valeurs explicites des parcours web.
+            self.session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=45), skip_auto_headers={"User-Agent"}
+            )
         self.token = await account.token(self.session)
         if self.api:
             self.api.disconnect_mqtt()

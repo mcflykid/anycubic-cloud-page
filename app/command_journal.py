@@ -29,6 +29,7 @@ ACTIONS = frozenset(
         "retract",
         "slot",
         "settings",
+        "idle-settings",
         "axis",
         "axis-off",
         "ai-settings",

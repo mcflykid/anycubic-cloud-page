@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=cda4532cd72a';
+} from './workshop-ui.mjs?v=4fb911698e53';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {
@@ -92,7 +92,7 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
         previous = null;
         return;
       }
-      const connected = previous && r.time - previous.time <= 120 && previous.material === r.material;
+      const connected = previous && r.time - previous.time <= (hours > 24 ? 7200 : 120) && previous.material === r.material;
       if (!connected || i % stride === 0 || r === lastPoint)
         path += `${connected ? 'L' : 'M'}${x(r.time).toFixed(2)} ${y(r[field]).toFixed(2)} `;
       previous = r;
@@ -123,7 +123,8 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
       (best, r) => (Math.abs(r.time - stamp) < Math.abs(best.time - stamp) ? r : best),
       valid[0],
     );
-    tip.textContent = `${hour(row.time)} · ${fmt(row[key], unit)}`;
+    const source = row.source === 'mqtt' ? tr('Source : MQTT') : row.source === 'cloud' ? tr('Source : Cloud') : row.source === 'mixed' ? tr('Sources : Cloud et MQTT') : '';
+    tip.textContent = `${hour(row.time)} · ${fmt(row[key], unit)}${source ? ' · ' + source : ''}`;
     tip.hidden = false;
   };
   svg.onpointerleave = () => {
@@ -175,6 +176,24 @@ function renderAceCharts(host, rows, hours, filament) {
 /** Affiche la période demandée, même si une requête précédente arrive plus tard. */
 export function createTemperatureLoader(request) {
   let sequence = 0;
+  const exportButton = $('temperature-export');
+  if (exportButton) exportButton.onclick = async () => {
+    exportButton.disabled = true;
+    try {
+      const hours = Number($('temperature-hours').value), data = await request(`/temperatures?hours=${hours}&format=csv`);
+      const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob),
+        link = document.createElement('a');
+      link.href = url;
+      link.download = 'historique-temperatures.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+      set('temperature-note', tr('Export CSV téléchargé pour la période affichée.'));
+    } catch (e) {
+      set('temperature-note', e.message);
+    } finally {
+      exportButton.disabled = false;
+    }
+  };
   return async function loadTemperatures() {
     const current = ++sequence;
     try {
@@ -192,7 +211,9 @@ export function createTemperatureLoader(request) {
       set(
         'temperature-note',
         tr(
-          'Relevés reçus depuis l’activation, conservés 24 heures. Survolez une courbe pour lire une mesure.',
+        hours > 24
+          ? 'Relevés reçus depuis l’activation, points sur 24 heures et moyennes horaires sur 30 jours. Survolez une courbe pour lire une mesure.'
+          : 'Relevés reçus depuis l’activation, conservés 24 heures. Survolez une courbe pour lire une mesure.',
         ),
       );
     } catch (e) {
