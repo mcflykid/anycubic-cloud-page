@@ -22,7 +22,7 @@ test('le second ACE garde ses bobines et sa cible, puis se replie s’il dispara
   const ids=await page.locator('#spools svg [id]').evaluateAll(nodes=>nodes.map(n=>n.id));
   expect(new Set(ids).size).toBe(ids.length);
   expect(ids.every(id=>id.includes('ace-1'))).toBe(true);
-  
+
   await page.locator('#go-drying').click();
   await page.locator('#dry-stop').click();
   await page.locator('#confirm-yes').click();

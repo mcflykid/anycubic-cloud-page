@@ -2,7 +2,7 @@
  <ellipse cx="100" cy="157" rx="77" ry="6" fill="#345a7f" opacity=".1"/>
  <path d="M54.0 139V40h92v100" fill="none" stroke="#363f58" stroke-width="9" stroke-linejoin="round"/>
  <path d="M54.0 52h92" stroke="#263747" stroke-width="3"/>
- 
+
  <path d="M49.0 79h102" stroke="#363f58" stroke-width="8"/>
  <rect x="83" y="66" width="29" height="29" rx="4" fill="#263747"/>
  <circle cx="97" cy="80" r="8" fill="#516b7c"/><path d="M97 95v7" stroke="#d97b32" stroke-width="4"/>
