@@ -1,7 +1,7 @@
 const preference = 'cloud-page-language';
 const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
-const catalogueURL = new URL('./workshop-translations.json?v=b45730865b89', import.meta.url);
-const catalogueIntegrity = 'sha256-tFcwhluJ6WrowgwdfkMhy2uBdMZDqLuQDh9T7CL7nDs=';
+const catalogueURL = new URL('./workshop-translations.json?v=ab01e52b72cf', import.meta.url);
+const catalogueIntegrity = 'sha256-qwHlK3LPLqPPQkyVTDxshVHU3qwnnJYLj7QZrG4BscE=';
 let language = 'fr',
   catalogue = {};
 const serverFormats = [

@@ -211,7 +211,12 @@ async def select_printer(request, handler):
         and request.path.startswith("/imprimante-api/")
         and not request.path.startswith(UI_PREFIX + "/")
         and request.path
-        not in ["/imprimante-api/health", "/imprimante-api/printers", "/imprimante-api/journal"]
+        not in [
+            "/imprimante-api/health",
+            "/imprimante-api/printers",
+            "/imprimante-api/fleet",
+            "/imprimante-api/journal",
+        ]
     ):
         key = request.headers.get("X-Printer-Key") or (
             request.query.get("printer") if request.method in ["GET", "HEAD"] else None

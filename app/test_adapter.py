@@ -7,7 +7,7 @@ from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
 from printer_values import filepath, integer
 from printer_files import MQTTReplies
-import asyncio, importlib.util, pathlib, unittest
+import asyncio, importlib.util, pathlib, time, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -451,9 +451,10 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             h = adapter.TemperatureHistory(pathlib.Path(tmp) / "temperatures.json")
-            self.assertTrue(h.add(1000, {"nozzle": 215, "bed": 55, "ace": None}))
-            self.assertFalse(h.add(1000, {"nozzle": 216}))
-            self.assertFalse(h.add(1001, {"nozzle": float("nan"), "bed": 999}))
+            now = int(time.time())
+            self.assertTrue(h.add(now, {"nozzle": 215, "bed": 55, "ace": None}))
+            self.assertFalse(h.add(now, {"nozzle": 216}))
+            self.assertFalse(h.add(now + 1, {"nozzle": float("nan"), "bed": 999}))
             self.assertIsNone(h.rows[0]["ace"])
             self.assertEqual(len(h.rows), 1)
             h.save()
@@ -466,6 +467,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             history = adapter.TemperatureHistory(pathlib.Path(tmp) / "temperatures.json")
+            now = int(time.time())
             boxes = [
                 {
                     "box_id": 0,
@@ -474,9 +476,9 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
                 },
                 {"box_id": 1, "humidity": 101},
             ]
-            self.assertTrue(history.add(1000, {"ace_boxes": adapter.ace_readings(boxes)}))
+            self.assertTrue(history.add(now, {"ace_boxes": adapter.ace_readings(boxes)}))
             history.save()
-            row = adapter.TemperatureHistory(history.path).recent(at=1000)[0]["ace_boxes"]
+            row = adapter.TemperatureHistory(history.path).recent(at=now)[0]["ace_boxes"]
             self.assertEqual(row["0"]["humidity"], 0)
             self.assertEqual(row["0"]["slots"]["1"]["remaining"], 0)
             self.assertIsNone(row["1"]["humidity"])

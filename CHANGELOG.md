@@ -18,6 +18,10 @@
 - Avancées #136 : avertissements de matière/couleur et métadonnées manquantes avant envoi ou réimpression ; un firmware en cours confirmé empêche le lancement et le quota connu insuffisant est signalé avant transfert. L’identification des refus constructeur et d’une mise à jour obligatoire reste à établir.
 - Avancée #103 : validation du stockage 3MF Zip64 avec bornes et cas malformés. Le lancement des `.gcode.3mf` attend toujours des preuves de protocole. Les autres investigations non conclues sont détaillées dans les notes de protocole (#30, #93, #95, #96, #105, #137).
 
+- Courbes thermiques : export CSV UTC de la période affichée, provenance connue, points sur 24 h et moyennes horaires sur 30 jours, migration et stockage bornés par imprimante (#148, #149).
+- Vue Parc et santé sans nouveau collecteur ni commande : disponibilité, fraîcheur et transitions de connexion dédoublonnées; contrat des alarmes connues et des métriques facultatives documenté (#150, #151, #152).
+- Étude Mesh : aucune compatibilité Kobra S1 n’est déduite des exports Kobra X; aucune interface ajoutée sans preuve de récupération des mesures (#145, #146, #147).
+
 ## 1.6.0 — 2026-11-06
 
 - L’onglet Statistiques rassemble les courbes de température, d’humidité de l’ACE et de filament restant sur 24 h. Les relevés sont séparés par imprimante et par boîtier, et les courbes de filament indiquent les lacunes et les changements de matière ou de couleur détectés (#120).

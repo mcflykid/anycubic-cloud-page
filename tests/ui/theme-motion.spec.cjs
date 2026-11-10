@@ -62,7 +62,7 @@ test('Blueprint et Terminal réservent une vraie colonne de navigation de chaque
  for(const style of ['blueprint','terminal']){
   await page.locator('html').evaluate((el,value)=>el.setAttribute('data-style',value),style);
   const nav=page.locator('.atelier-tabs');
-  await expect(nav.locator('button')).toHaveCount(8);
+  await expect(nav.locator('button')).toHaveCount(9);
   expect(await nav.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
  }
 });

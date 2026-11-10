@@ -3466,5 +3466,89 @@
   "Consulter l’aide officielle Anycubic (code {0})": [
     "Read official Anycubic help (code {0})",
     "Consultar la ayuda oficial de Anycubic (código {0})"
+  ],
+  "Parc et santé": [
+    "Fleet and health",
+    "Parque y estado"
+  ],
+  "Résumé des machines déjà suivies, sans collecte supplémentaire.": [
+    "Summary of already monitored printers, with no additional collection.",
+    "Resumen de las impresoras ya supervisadas, sin recopilación adicional."
+  ],
+  "Alertes après trois minutes de problème observé. Historique limité à cette session serveur.": [
+    "Alerts after three minutes of observed connection trouble. History is limited to this server session.",
+    "Alertas tras tres minutos de problemas observados. Historial limitado a esta sesión del servidor."
+  ],
+  "Données périmées": [
+    "Stale data",
+    "Datos desactualizados"
+  ],
+  "Pas encore suivie": [
+    "Not yet monitored",
+    "Aún sin supervisar"
+  ],
+  "Dernière mesure il y a {0} s.": [
+    "Last reading {0} s ago.",
+    "Última lectura hace {0} s."
+  ],
+  "Aucune mesure fraîche disponible.": [
+    "No fresh reading available.",
+    "No hay lecturas recientes."
+  ],
+  "Problème de connexion observé depuis au moins trois minutes.": [
+    "Connection trouble observed for at least three minutes.",
+    "Problema de conexión observado durante al menos tres minutos."
+  ],
+  "Connexion rétablie": [
+    "Connection restored",
+    "Conexión restablecida"
+  ],
+  "État de connexion modifié": [
+    "Connection state changed",
+    "Estado de conexión modificado"
+  ],
+  "Alerte de connexion": [
+    "Connection alert",
+    "Alerta de conexión"
+  ],
+  "Le résumé du parc est temporairement indisponible.": [
+    "The fleet summary is temporarily unavailable.",
+    "El resumen del parque no está disponible temporalmente."
+  ],
+  "Période : 2 jours": [
+    "Period: 2 days",
+    "Período: 2 días"
+  ],
+  "Période : 7 jours": [
+    "Period: 7 days",
+    "Período: 7 días"
+  ],
+  "Période : 30 jours": [
+    "Period: 30 days",
+    "Período: 30 días"
+  ],
+  "Télécharger CSV": [
+    "Download CSV",
+    "Descargar CSV"
+  ],
+  "Export CSV téléchargé pour la période affichée.": [
+    "CSV exported for the displayed time range.",
+    "CSV descargado para el período mostrado."
+  ],
+  "Relevés reçus depuis l’activation, points sur 24 heures et moyennes horaires sur 30 jours. Survolez une courbe pour lire une mesure.": [
+    "Readings start when collection is enabled; raw points cover 24 hours and hourly averages cover 30 days. Hover over a chart to inspect a reading.",
+    "Las lecturas comienzan al activar la recopilación; los puntos detallados cubren 24 horas y los promedios por hora, 30 días. Pasa el cursor sobre una gráfica para consultar una lectura."
+  ],
+  "Source : Cloud": [
+    "Source: Cloud",
+    "Fuente: Cloud"
+  ],
+  "Source : MQTT": [
+    "Source: MQTT",
+    "Fuente: MQTT"
+  ],
+  "Sources : Cloud et MQTT": [
+    "Sources: Cloud and MQTT",
+    "Fuentes: Cloud y MQTT"
   ]
 }

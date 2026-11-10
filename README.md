@@ -62,7 +62,8 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 | **Envoyer et imprimer** | Stocker un G-code, un STL ou un 3MF dans le Cloud. Un fichier .gcode peut aussi être envoyé à l’impression avec l’ordre des bobines ACE. |
 | **Caméra** | Ouvrir le flux Agora, zoomer, passer en plein écran, piloter l’éclairage et accéder aux déplacements autorisés. |
 | **Historique** | Filtrer les impressions par statut, dates et nom ; consulter cartes et détails ; retirer les fiches sélectionnées de l’historique cloud après confirmation. Les notifications sont dans la cloche. |
-| **Statistiques** | Consulter les courbes locales sur 24 h pour les températures, l’humidité de l’ACE et les estimations de filament restant par emplacement. |
+| **Statistiques** | Consulter les points locaux sur 24 h et les moyennes horaires sur 30 jours pour les températures, l’humidité de l’ACE et le filament restant ; exporter la période affichée en CSV. |
+| **Parc et santé** | Résumer la disponibilité et la fraîcheur des machines déjà suivies, avec des alertes de connexion bornées et aucune commande depuis les cartes. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
 
 Dans **Réglages → Apparence**, choisissez le style par défaut, Apple Design, Minimaliste, Détaillé, Halloween ou Noël. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.

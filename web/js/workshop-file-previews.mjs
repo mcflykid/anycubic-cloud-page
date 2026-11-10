@@ -1,4 +1,4 @@
-import { fmt, mins, node, tr } from './workshop-ui.mjs?v=cda4532cd72a';
+import { fmt, mins, node, tr } from './workshop-ui.mjs?v=7c5fe43c83c7';
 
 /** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
 function openFilePreview(file, src) {

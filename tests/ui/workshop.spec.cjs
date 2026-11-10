@@ -204,7 +204,7 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
     const tabs = page.locator('.atelier-tabs');
     const buttons = tabs.getByRole('button');
     expect(await buttons.evaluateAll(elements => new Set(elements.map(element => element.offsetTop)).size)).toBe(1);
-    expect(await buttons.count()).toBe(8);
+    expect(await buttons.count()).toBe(9);
     if (width === 360) expect(await tabs.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
     const settingsTab = buttons.filter({hasText:'Réglages'});
     await settingsTab.evaluate(element => {element.focus();element.scrollIntoView({block:'nearest',inline:'nearest'});});

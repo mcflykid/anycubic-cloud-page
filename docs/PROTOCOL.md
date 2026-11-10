@@ -25,6 +25,10 @@ Le [registre de machines](../app/printer_registry.py) conserve un moteur, ses ca
 
 Le protocole Slicer construit un identifiant MQTT fixe pour un compte. Les moteurs partagent donc une seule connexion et routent les rapports selon leur machine ; ils ne créent pas des clients concurrents de même nom. Le renouvellement de session conserve ce transport commun, les abonnements sont rétablis et les callbacks de fraîcheur restent associés au destinataire du rapport. Les courbes initiales gardent leur emplacement ; les machines supplémentaires utilisent des sous-dossiers privés sous `appdata/state/printers/`.
 
+## Tendances thermiques
+
+Chaque fichier d’imprimante contient jusqu’à 24 heures de points bruts (8 640 relevés à dix secondes) et des moyennes horaires pour 30 jours (720 créneaux). Les requêtes de 1 à 24 heures lisent les points bruts ; celles de 25 à 720 heures lisent les agrégats. Les compteurs propres à chaque mesure permettent d’ignorer les valeurs absentes sans transformer une température nulle en absence. Les boîtiers et emplacements ACE sont agrégés séparément. Les anciennes listes JSON sont migrées à la prochaine sauvegarde ; aucune donnée n’est reconstituée avant l’activation de la collecte. Le stockage par fichier est limité à 16 Mo. Le CSV reprend la même période et résolution que le graphe, avec date UTC, source si elle est connue, et cellules vides pour les mesures manquantes. L’effacement explicite vide les points, agrégats et fichier local de la cible concernée.
+
 ## Parcours utiles
 
 | Besoin | Mécanisme |

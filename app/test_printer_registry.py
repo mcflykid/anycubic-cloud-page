@@ -7,6 +7,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 import server as adapter
 from printer_registry import PrinterRegistry, printer_key, select_printer
+from fleet_health import FleetHealth
 from web_host import install_ui_resources
 
 
@@ -37,11 +38,26 @@ class PrinterTargets(unittest.IsolatedAsyncioTestCase):
 
         self.registry = PrinterRegistry(self.root, self.make_engine, sampler, app)
         app["printer_registry"] = self.registry
+        app["fleet_health"] = FleetHealth()
         app.router.add_get("/imprimante-api/status", adapter.status)
+        app.router.add_get("/imprimante-api/fleet", adapter.fleet)
         app.router.add_post("/imprimante-api/command", adapter.command)
         install_ui_resources(app)
         self.client = TestClient(TestServer(app))
         await self.client.start_server()
+
+    async def test_fleet_never_resolves_header_target(self):
+        """Le résumé reste en lecture locale même si une autre cible est demandée en en-tête."""
+        response = await self.client.get(
+            "/imprimante-api/fleet", headers={"X-Printer-Key": printer_key(self.b.id)}
+        )
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        rows = (await response.json())["items"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1]["state"], "unmonitored")
+        self.assertEqual(self.registry.entries, {})
+        self.assertEqual(self.registry.jobs, {})
 
     async def asyncTearDown(self):
         """Annule les seules tâches fictives et supprime leur dossier temporaire."""

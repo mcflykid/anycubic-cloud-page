@@ -8,10 +8,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=cda4532cd72a';
-import { workshopState, setBusy } from './workshop-state.mjs?v=f7c4c4153f8f';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=df951fd5daf7';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=3771e92634a0';
+} from './workshop-ui.mjs?v=7c5fe43c83c7';
+import { workshopState, setBusy } from './workshop-state.mjs?v=818b33b4612b';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=4472161cf874';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=87f7c9c0ee17';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {

@@ -1,4 +1,4 @@
-import { $, node, tr } from './workshop-ui.mjs?v=cda4532cd72a';
+import { $, node, tr } from './workshop-ui.mjs?v=7c5fe43c83c7';
 
 const helpById = {
   'camera-start': tr('Démarrer la vidéo en direct de l’imprimante.'),

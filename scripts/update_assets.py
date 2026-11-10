@@ -23,6 +23,7 @@ MODULES = (
     "workshop-settings.mjs",
     "workshop-timelapses.mjs",
     "workshop-help.mjs",
+    "workshop-fleet.mjs",
 )
 
 
