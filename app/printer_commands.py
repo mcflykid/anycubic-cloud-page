@@ -12,6 +12,7 @@ from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSet
 
 from command_journal import dispatch_command
 from native_controls import ai_payload, axis_payload
+from idle_controls import set_idle
 from filament_catalog import editable_materials
 from print_preflight import ensure_firmware_ready
 from printer_values import filepath, integer, now, safeget
@@ -75,6 +76,8 @@ async def execute_command(target, name, d):
         "timelapse",
     ]:
         return await target.extras.action(name, d)
+    if name == "idle-settings":
+        return await set_idle(target, d)
     if name in {"print-local", "print-usb", "print-cloud"}:
         ensure_firmware_ready(p)
     box = integer(d.get("box", 0), 0, max(0, p.connected_ace_units - 1))
@@ -207,6 +210,10 @@ async def execute_command(target, name, d):
             raise ValueError("Nom de fichier invalide")
         kw = {"file_name": filename, "file_path": filepath(d.get("path")).strip("/") or "/"}
         if name.startswith("print"):
+            if not filename.casefold().endswith(".gcode"):
+                raise ValueError(
+                    "Le lancement direct de ce format n’est pas encore validé. Utilisez un fichier .gcode tranché pour cette imprimante."
+                )
             file_format = (
                 "gcode_3mf"
                 if filename.casefold().endswith(".gcode.3mf")

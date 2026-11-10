@@ -783,3 +783,6 @@ dialog{background:var(--surface);color:var(--text)}
 
 /* Le parc reprend les surfaces du thème et garde une lecture sans commandes. */
 .fleet-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;margin-block:20px}.fleet-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius,16px);padding:20px;overflow-wrap:anywhere}.fleet-card h4{margin-top:0}.fleet-alert{color:light-dark(#9d3024,#ffb0a6);font-weight:600}#fleet-events{line-height:1.8}
+
+/* Les réglages au repos restent distincts de ceux du projet actif. */
+#idle-controls{margin-block:20px}#idle-controls form{margin-block:16px;display:grid;gap:12px}.control-hidden{display:none!important}.axis-position-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}

@@ -128,6 +128,12 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
             }
             await self.e.refresh_lifetime_count()
             self.assertEqual(self.e.snapshot()["printer"]["statistics"]["print_count"], expected)
+            self.assertEqual(
+                self.e.snapshot()["printer"]["statistics"]["print_count_source"],
+                "cloud_summary"
+                if source_id == 42 and type(stats.get("print_count")) is int
+                else "device_detail",
+            )
         self.assertEqual(fetch.call_args.args[0].endpoint, "/v5/printer/home")
         self.assertEqual(fetch.call_args.kwargs["query"], {"printer_id": "42"})
         fetch.side_effect = AnycubicAPIError("Relevé indisponible")
@@ -207,6 +213,28 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(data["spools"][0]["remaining_percent"])
         self.assertFalse(data["spools"][1]["rfid"])
         self.assertNotIn("sku", str(data))
+
+    async def test_ace2_manual_values_are_unknown_and_qualified_zero_is_preserved(self):
+        """La génération identifiée qualifie les valeurs firmware sans inventer marque ni masse."""
+        self.e.printer = SimpleNamespace(
+            multi_color_box=[SimpleNamespace(box_id=0)],
+            primary_multi_color_box_spool_info_object=[{"local_slot": i + 1} for i in range(3)],
+        )
+        self.e.raw_info = {
+            "multi_color_box_version": [{"box_id": 0, "box_name": "ACE 2 Pro"}],
+            "multi_color_box": [
+                {
+                    "id": 0,
+                    "slots": [
+                        {"status": 5, "edit_status": 1, "consumables_percent": 100},
+                        {"status": 5, "edit_status": 0, "consumables_percent": 0},
+                        {"status": 5, "edit_status": 0, "consumables_percent": 45},
+                    ],
+                }
+            ],
+        }
+        slots = self.e.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertEqual([s["remaining_percent"] for s in slots], [None, 0, 45])
 
     async def test_kobra_x_rack_never_supplies_ace_readings(self):
         """L’ACE ne reçoit ni le support interne ni les mesures d’un autre boîtier."""

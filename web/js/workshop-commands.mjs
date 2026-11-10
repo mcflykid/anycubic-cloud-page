@@ -1,5 +1,5 @@
-import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=7c5fe43c83c7';
-import { workshopState, setBusy } from './workshop-state.mjs?v=818b33b4612b';
+import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=4fb911698e53';
+import { workshopState, setBusy } from './workshop-state.mjs?v=f086eb175834';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {
@@ -85,6 +85,7 @@ export function createCommands(request, refresh) {
       return null;
     }
     if (question && !(await confirmAction(question))) return null;
+    if (action === 'idle-settings') data = { ...data, confirmed: !!question };
     if (target !== workshopState.selectedPrinter) {
       notify(tr('La cible a changé : commande annulée.'), true);
       return null;

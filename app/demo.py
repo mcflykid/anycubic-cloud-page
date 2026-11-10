@@ -118,6 +118,8 @@ PRINTER = {
         "parameters": PARAMS,
     },
     "axes_supported": True,
+    "axis_query_supported": True,
+    "idle_limits": {"target_nozzle_temp": [0, 320], "target_hotbed_temp": [0, 120]},
     "foreign_detection_supported": True,
     "speed_modes": [
         {"mode": 0, "description": "Quiet"},
@@ -230,6 +232,8 @@ async def api(request):
             "default": "demo-printer",
             "pending": False,
         }
+    elif path == "axis-position":
+        d = {"position": {"x": 47.0, "y": 250.0, "z": 3.815}, "updated_at": time.time()}
     elif path == "fleet":
         d = {
             "items": [

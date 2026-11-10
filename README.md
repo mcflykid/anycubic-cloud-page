@@ -176,3 +176,5 @@ Avant un envoi avec impression ou une réimpression, l’atelier signale les dif
 Les [vingt styles exploratoires](docs/THEMES.md) se comparent dans Réglages → Apparence. Les [journaux du conteneur](docs/TROUBLESHOOTING.md#journaux-du-conteneur) proposent un format lisible ou JSON et un niveau DEBUG, avec références de diagnostic et filtrage des données privées.
 
 L’[étude de Kobra Mesh Lab et HomeLab Monitor](docs/RESEARCH-IDEAS.md) distingue les idées réutilisables des fonctions qui demandent des données ou des protocoles supplémentaires.
+
+Les commandes courantes de la Kobra S1 proposent aussi des réglages manuels au repos lorsque les limites constructeur sont disponibles. La lecture des coordonnées est une consultation explicite, sans déplacement. Voir [les garanties et limites de ces contrôles](docs/IDLE-AXES.md).

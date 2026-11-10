@@ -18,6 +18,9 @@ from print_preflight import ensure_firmware_ready, ensure_storage_ready, evaluat
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from fleet_health import FleetHealth
+from idle_controls import idle_limits
+from ace_telemetry import ace2_pro_telemetry
+from printer_axes import is_allowed as axis_query_allowed, query_axis_position
 from account_transport import AccountTransport
 from printer_values import integer, now, safeget, serial
 from printer_commands import execute_command, slot_indices
@@ -211,8 +214,12 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     if not getattr(message, "retain", False) and payload.get("type") in (
                         "file",
                         "light",
+                        "axis",
                     ):
                         owner.mqtt_replies.receive(payload)
+                    if payload.get("type") == "axis" and payload.get("action") == "query":
+                        # Les coordonnées relèvent de la consultation corrélée, pas de la fraîcheur globale.
+                        return
             return super()._mqtt_message_router(message)
         finally:
             self.message_engine = None
@@ -755,6 +762,12 @@ class Engine:
                                 edit == 0 if type(edit) is int and edit in (0, 1) else None
                             )
                         percent = rawslot.get("consumables_percent")
+                        if b.get("model") == "ACE 2 Pro":
+                            quality = ace2_pro_telemetry(rawslot)
+                            spool["remaining_percent"] = quality["percent"]
+                            spool["remaining_percent_qualified"] = quality["valid"]
+                            spool["remaining_percent_source"] = quality["source"]
+                            continue
                         # Le zéro est aussi utilisé par les boîtiers qui ne mesurent pas la quantité.
                         spool["remaining_percent"] = (
                             percent
@@ -763,6 +776,8 @@ class Engine:
                         )
         fields["task_details"] = task_details(safeget(p, "latest_project"))
         fields["axes_supported"] = 67 in (self.raw_info.get("type_function_ids") or [])
+        fields["axis_query_supported"] = axis_query_allowed(self)
+        fields["idle_limits"] = idle_limits(self)
         features = {
             r.get("name"): r.get("value")
             for r in self.raw_info.get("features") or []
@@ -780,12 +795,15 @@ class Engine:
             else None
         )
         count = safeget(p, "print_count")
+        count_source = "device_detail" if count is not None else None
         if self.lifetime_count is not None and self.lifetime_count[0] == p.id:
             count = self.lifetime_count[1]
+            count_source = "cloud_summary"
         fields["statistics"] = {
             "material": safeget(p, "material_used"),
             "hours": duration.total_seconds() / 3600 if duration is not None else None,
             "print_count": count,
+            "print_count_source": count_source,
         }
         return serial({**base, "printer": fields})
 
@@ -1016,6 +1034,16 @@ async def errors(request, handler):
 async def status(req):
     """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
     return web.json_response(request_engine(req).snapshot(), headers={"Cache-Control": "no-store"})
+
+
+async def axis_position(req):
+    """Consulte explicitement la position de la cible sans mouvement ni collecte périodique."""
+    selected = request_engine(req)
+    async with selected.lock:
+        verify_printer_target(req, selected)
+        result = await query_axis_position(selected)
+        verify_printer_target(req, selected)
+    return web.json_response(result, headers={"Cache-Control": "no-store"})
 
 
 async def printers(req):
@@ -1405,7 +1433,14 @@ async def command(req):
                 engine.commands[requestid] = uncertain
                 return web.json_response(uncertain, status=409)
             if audit and audit["outcome"] != "confirmée":
-                if name in ("axis", "axis-off", "ai-settings", "task-reprint", "light"):
+                if name in (
+                    "axis",
+                    "axis-off",
+                    "ai-settings",
+                    "task-reprint",
+                    "light",
+                    "idle-settings",
+                ):
                     audit["outcome"] = "envoyée"
                 else:
                     audit["outcome"] = "acceptée"
@@ -1947,6 +1982,7 @@ app.add_routes(
         web.get("/imprimante-api/health", health),
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
+        web.get("/imprimante-api/axis-position", axis_position),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),
