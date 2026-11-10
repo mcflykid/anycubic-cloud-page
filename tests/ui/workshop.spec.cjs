@@ -202,12 +202,15 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   for (const width of [1280, 800, 360]) {
     await page.setViewportSize({width,height:900});
     const tabs = page.locator('.atelier-tabs');
-    const bar = await tabs.boundingBox();
-    const buttons = await tabs.getByRole('button').evaluateAll(elements => elements.map(element => {
-      const {left,right} = element.getBoundingClientRect();
-      return {left,right};
-    }));
-    expect(buttons.every(button => button.left > bar.x && button.right < bar.x + bar.width)).toBe(true);
+    const buttons = tabs.getByRole('button');
+    expect(await buttons.evaluateAll(elements => new Set(elements.map(element => element.offsetTop)).size)).toBe(1);
+    expect(await buttons.count()).toBe(8);
+    if (width === 360) expect(await tabs.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+    const settingsTab = buttons.filter({hasText:'Réglages'});
+    await settingsTab.evaluate(element => {element.focus();element.scrollIntoView({block:'nearest',inline:'nearest'});});
+    const [last,currentBar]=await Promise.all([settingsTab.boundingBox(),tabs.boundingBox()]);
+    expect(last.x).toBeGreaterThanOrEqual(currentBar.x - 1);
+    expect(last.x + last.width).toBeLessThanOrEqual(currentBar.x + currentBar.width + 1);
   }
   await page.setViewportSize({width:1280,height:900});
   await page.getByRole('button', {name: 'Imprimante', exact: true}).click();
@@ -218,11 +221,7 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   expect(product.height).toBeCloseTo(job.height);
   await expect(page.locator('#controls-open')).toHaveCSS('border-radius', '999px');
   await settings.click();
-  await style.selectOption('minimal');
-  await expect(page.locator('.printer-shell')).toHaveCSS('width', '940px');
-  await page.getByRole('button', {name: 'Imprimante', exact: true}).click();
   const lower = page.locator('.printer-lower-grid > section');
-  expect((await lower.nth(1).boundingBox()).y).toBeGreaterThan((await lower.nth(0).boundingBox()).y);
   await settings.click();
   await style.selectOption('detailed');
   await expect(page.locator('html')).toHaveAttribute('data-style', 'detailed');

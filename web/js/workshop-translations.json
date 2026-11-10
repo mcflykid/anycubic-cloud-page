@@ -1,7 +1,7 @@
 {
   "Détaillé": [
-    "Detailed",
-    "Detallado"
+    "Détaillé",
+    "Détaillé"
   ],
   "Minimaliste": [
     "Minimalist",
@@ -23,31 +23,94 @@
     "Statistics",
     "Estadísticas"
   ],
-  "Conserver le fichier dans votre espace cloud sans lancer d’impression.": ["Keep the file in your cloud storage without starting a print.", "Guarda el archivo en tu espacio en la nube sin iniciar una impresión."],
-  "Choisissez un seul fichier G-code, STL ou 3MF non vide.": ["Choose one non-empty G-code, STL or 3MF file.", "Elige un único archivo G-code, STL o 3MF que no esté vacío."],
-  "G-code, STL ou 3MF, jusqu’à 100 Mo. Seul le G-code peut être imprimé.": ["G-code, STL or 3MF, up to 100 MB. Only G-code can be printed.", "G-code, STL o 3MF, hasta 100 MB. Solo se puede imprimir G-code."],
-  "Stockez un modèle dans le Cloud ou envoyez un G-code à l’imprimante.": ["Store a model in the cloud or send G-code to the printer.", "Guarda un modelo en la nube o envía G-code a la impresora."],
-  "Rouge brique": ["Brick Red", "Rojo ladrillo"],
-  "Blanc marbre": ["Marble White", "Blanco mármol"],
-  "Blanc à lueur verte": ["White (Green Glow)", "Blanco (brillo verde)"],
-  "Blanc à lueur bleue": ["White (Blue Glow)", "Blanco (brillo azul)"],
-  "Racine (/)": ["Root (/)", "Raíz (/)"],
-  "Tous les fichiers": ["All files", "Todos los archivos"],
+  "Conserver le fichier dans votre espace cloud sans lancer d’impression.": [
+    "Keep the file in your cloud storage without starting a print.",
+    "Guarda el archivo en tu espacio en la nube sin iniciar una impresión."
+  ],
+  "Choisissez un seul fichier G-code, STL ou 3MF non vide.": [
+    "Choose one non-empty G-code, STL or 3MF file.",
+    "Elige un único archivo G-code, STL o 3MF que no esté vacío."
+  ],
+  "G-code, STL ou 3MF, jusqu’à 100 Mo. Seul le G-code peut être imprimé.": [
+    "G-code, STL or 3MF, up to 100 MB. Only G-code can be printed.",
+    "G-code, STL o 3MF, hasta 100 MB. Solo se puede imprimir G-code."
+  ],
+  "Stockez un modèle dans le Cloud ou envoyez un G-code à l’imprimante.": [
+    "Store a model in the cloud or send G-code to the printer.",
+    "Guarda un modelo en la nube o envía G-code a la impresora."
+  ],
+  "Rouge brique": [
+    "Brick Red",
+    "Rojo ladrillo"
+  ],
+  "Blanc marbre": [
+    "Marble White",
+    "Blanco mármol"
+  ],
+  "Blanc à lueur verte": [
+    "White (Green Glow)",
+    "Blanco (brillo verde)"
+  ],
+  "Blanc à lueur bleue": [
+    "White (Blue Glow)",
+    "Blanco (brillo azul)"
+  ],
+  "Racine (/)": [
+    "Root (/)",
+    "Raíz (/)"
+  ],
+  "Tous les fichiers": [
+    "All files",
+    "Todos los archivos"
+  ],
   "Les matériaux identifiés par RFID ne peuvent pas être modifiés.": [
     "RFID-identified materials cannot be edited.",
     "Los materiales identificados por RFID no se pueden modificar."
   ],
-  "Trier": ["Sort", "Ordenar"],
-  "Halloween": ["Halloween", "Halloween"],
-  "Apple Design": ["Apple Design", "Diseño Apple"],
-  "Appliquer": ["Apply", "Aplicar"],
-  "Rechercher sur cette page": ["Search this page", "Buscar en esta página"],
-  "Ordre d’origine": ["Original order", "Orden original"],
-  "Filtrer par date": ["Filter by date", "Filtrar por fecha"],
-  "Choisir une période": ["Choose a date range", "Elegir un intervalo de fechas"],
-  "Période de l’historique": ["History date range", "Intervalo del historial"],
-  "Mois précédent": ["Previous month", "Mes anterior"],
-  "Mois suivant": ["Next month", "Mes siguiente"],
+  "Trier": [
+    "Sort",
+    "Ordenar"
+  ],
+  "Halloween": [
+    "Halloween",
+    "Halloween"
+  ],
+  "Apple Design": [
+    "Apple Design",
+    "Apple Design"
+  ],
+  "Appliquer": [
+    "Apply",
+    "Aplicar"
+  ],
+  "Rechercher sur cette page": [
+    "Search this page",
+    "Buscar en esta página"
+  ],
+  "Ordre d’origine": [
+    "Original order",
+    "Orden original"
+  ],
+  "Filtrer par date": [
+    "Filter by date",
+    "Filtrar por fecha"
+  ],
+  "Choisir une période": [
+    "Choose a date range",
+    "Elegir un intervalo de fechas"
+  ],
+  "Période de l’historique": [
+    "History date range",
+    "Intervalo del historial"
+  ],
+  "Mois précédent": [
+    "Previous month",
+    "Mes anterior"
+  ],
+  "Mois suivant": [
+    "Next month",
+    "Mes siguiente"
+  ],
   " (détecté)": [
     " (detected)",
     " (detectado)"
@@ -2361,7 +2424,7 @@
     "Reanuda una impresión en pausa."
   ],
   "Retirer le filament de l’emplacement sélectionné.": [
-    "Remove filament from the selected slot.",
+    "Unload filament from the selected slot.",
     "Retira el filamento de la ranura seleccionada."
   ],
   "Retirer {0} fiche(s) de l’historique ?\n{1}\nCes fiches seront aussi retirées de l’historique dans l’application Anycubic et le slicer.": [
@@ -2728,9 +2791,18 @@
     "Completed",
     "Completado"
   ],
-  "Style de l’interface": ["Interface style", "Estilo de la interfaz"],
-  "Par défaut": ["Default", "Predeterminado"],
-  "Noël": ["Christmas", "Navidad"],
+  "Style de l’interface": [
+    "Interface style",
+    "Estilo de la interfaz"
+  ],
+  "Par défaut": [
+    "Par défaut",
+    "Par défaut"
+  ],
+  "Noël": [
+    "Noël",
+    "Noël"
+  ],
   "Thème de l’interface": [
     "Interface theme",
     "Tema de la interfaz"
@@ -3154,5 +3226,245 @@
   "⚙ Matériel": [
     "⚙ Hardware",
     "⚙ Equipo"
+  ],
+  "Retirer le filament sélectionné ?": [
+    "Unload the selected filament?",
+    "¿Retirar el filamento seleccionado?"
+  ],
+  "Choisir le module ACE": [
+    "Choose the ACE unit",
+    "Elegir el módulo ACE"
+  ],
+  "Mise à jour en cours. Attendez sa fin avant de lancer une impression.": [
+    "Firmware update in progress. Wait until it finishes before starting a print.",
+    "Actualización en curso. Espere a que termine antes de iniciar una impresión."
+  ],
+  "Retirer": [
+    "Unload",
+    "Retirar"
+  ],
+  "Voir": [
+    "View",
+    "Ver"
+  ],
+  "Modifier": [
+    "Edit",
+    "Modificar"
+  ],
+  "Métadonnées de filament incomplètes : vérifiez les bobines et les emplacements.": [
+    "Incomplete filament metadata: check the spools and slots.",
+    "Metadatos de filamento incompletos: compruebe las bobinas y las ranuras."
+  ],
+  "Le matériau du fichier diffère de celui des bobines sélectionnées.": [
+    "The file material differs from the selected spools.",
+    "El material del archivo difiere del de las bobinas seleccionadas."
+  ],
+  "La couleur du fichier diffère de celle des bobines sélectionnées.": [
+    "The file color differs from the selected spools.",
+    "El color del archivo difiere del de las bobinas seleccionadas."
+  ],
+  "La sélection mélange des filaments de groupes de température différents.": [
+    "The selection mixes filaments from different temperature groups.",
+    "La selección mezcla filamentos de grupos de temperatura diferentes."
+  ],
+  "Métadonnées de filament invalides": [
+    "Invalid filament metadata",
+    "Metadatos de filamento no válidos"
+  ],
+  "Le quota Cloud disponible est insuffisant pour ce fichier.": [
+    "The available Cloud storage is insufficient for this file.",
+    "El espacio Cloud disponible es insuficiente para este archivo."
+  ],
+  "Mise à jour en cours": [
+    "Update in progress",
+    "Actualización en curso"
+  ],
+  "ACE": [
+    "ACE",
+    "ACE"
+  ],
+  "Référence de diagnostic : {0}": [
+    "Diagnostic reference: {0}",
+    "Referencia de diagnóstico: {0}"
+  ],
+  "L’imprimante ne peut pas lire ce fichier": [
+    "The printer cannot parse the file",
+    "La impresora no puede interpretar este archivo"
+  ],
+  "Le fichier peut être endommagé à la suite d’un tranchage interrompu ou être dans un format incorrect.": [
+    "The file may be damaged due to an interrupted slice or be in an incorrect format.",
+    "El archivo puede estar dañado por un laminado interrumpido o tener un formato incorrecto."
+  ],
+  "Catalogue des erreurs Anycubic": [
+    "Anycubic error catalogue",
+    "Catálogo de errores de Anycubic"
+  ],
+  "Ouvrir le catalogue des erreurs Anycubic pour le code {0}": [
+    "Open the Anycubic error catalogue for code {0}",
+    "Abrir el catálogo de errores de Anycubic para el código {0}"
+  ],
+  "Brutaliste": [
+    "Brutalist",
+    "Brutalista"
+  ],
+  "Néon": [
+    "Neon",
+    "Neón"
+  ],
+  "Papier": [
+    "Paper",
+    "Papel"
+  ],
+  "Aurore": [
+    "Aurora",
+    "Aurora"
+  ],
+  "Océan": [
+    "Ocean",
+    "Océano"
+  ],
+  "Solaire": [
+    "Solar",
+    "Solar"
+  ],
+  "Monochrome": [
+    "Monochrome",
+    "Monocromo"
+  ],
+  "Explorer les 20 styles": [
+    "Explore the 20 styles",
+    "Explorar los 20 estilos"
+  ],
+  "Comparez les palettes, les cartes et les animations. Votre mode clair ou sombre est conservé.": [
+    "Compare palettes, cards and animations. Your light or dark mode is preserved.",
+    "Compare paletas, tarjetas y animaciones. Se conserva el modo claro u oscuro."
+  ],
+  "Choisir un style visuel": [
+    "Choose a visual style",
+    "Elegir un estilo visual"
+  ],
+  "Une présentation sobre et équilibrée pour le suivi quotidien.": [
+    "A calm, balanced layout for everyday monitoring.",
+    "Una presentación sobria y equilibrada para el seguimiento diario."
+  ],
+  "Verre translucide, halos de couleur et commandes en pilule.": [
+    "Translucent glass, colored halos and pill-shaped controls.",
+    "Cristal translúcido, halos de color y controles redondeados."
+  ],
+  "Des mesures denses, des séparations nettes et des informations groupées.": [
+    "Dense measurements, clear dividers and grouped information.",
+    "Mediciones densas, separaciones claras e información agrupada."
+  ],
+  "Une ambiance prune et citrouille avec des cartes chaleureuses.": [
+    "Plum and pumpkin tones with warm cards.",
+    "Tonos ciruela y calabaza con tarjetas cálidas."
+  ],
+  "Vert sapin, accents dorés et surfaces douces.": [
+    "Forest green, gold accents and soft surfaces.",
+    "Verde abeto, acentos dorados y superficies suaves."
+  ],
+  "Corail et crème, cartes ancrées et apparition avec rebond.": [
+    "Coral and cream, anchored cards and a spring entrance.",
+    "Coral y crema, tarjetas ancladas y una entrada con rebote."
+  ],
+  "Anchor Pop": [
+    "Anchor Pop",
+    "Anchor Pop"
+  ],
+  "Un carnet éditorial et des panneaux qui se retournent légèrement.": [
+    "An editorial notebook with panels that gently turn over.",
+    "Un cuaderno editorial con paneles que giran suavemente."
+  ],
+  "Turn Over": [
+    "Turn Over",
+    "Turn Over"
+  ],
+  "Vert profond, liserés dorés et cartes distribuées en cascade.": [
+    "Deep green, gold outlines and cards dealt in sequence.",
+    "Verde profundo, bordes dorados y tarjetas repartidas en cascada."
+  ],
+  "Card Deal": [
+    "Card Deal",
+    "Card Deal"
+  ],
+  "Indigo et violet, chiffres nets et panneaux qui déroulent.": [
+    "Indigo and violet, clear numbers and rolling panels.",
+    "Índigo y violeta, cifras claras y paneles que se despliegan."
+  ],
+  "Drum Roll": [
+    "Drum Roll",
+    "Drum Roll"
+  ],
+  "Des contours dessinés, un fond clair et des accents bleu électrique.": [
+    "Drawn outlines, a light background and electric blue accents.",
+    "Contornos trazados, fondo claro y acentos azul eléctrico."
+  ],
+  "Outline Trace": [
+    "Outline Trace",
+    "Outline Trace"
+  ],
+  "Une grille bento modulable et des blocs qui se construisent par étapes.": [
+    "An adaptive bento grid with blocks built in stages.",
+    "Una cuadrícula bento adaptable con bloques construidos por etapas."
+  ],
+  "Tile Build": [
+    "Tile Build",
+    "Tile Build"
+  ],
+  "Des cadres francs, des ombres décalées et des contrastes affirmés.": [
+    "Bold frames, offset shadows and strong contrasts.",
+    "Marcos marcados, sombras desplazadas y contrastes definidos."
+  ],
+  "Des accents cyan et magenta, des halos et une navigation lumineuse.": [
+    "Cyan and magenta accents, halos and glowing navigation.",
+    "Acentos cian y magenta, halos y navegación luminosa."
+  ],
+  "Une trame de plan technique et des repères précis.": [
+    "A technical drawing grid with precise guides.",
+    "Una trama de plano técnico con guías precisas."
+  ],
+  "Blueprint": [
+    "Blueprint",
+    "Blueprint"
+  ],
+  "Des cartes de carnet, des tons ivoire et une navigation éditoriale.": [
+    "Notebook cards, ivory tones and editorial navigation.",
+    "Tarjetas de cuaderno, tonos marfil y navegación editorial."
+  ],
+  "Un poste de contrôle à typographie fixe et repères phosphorescents.": [
+    "A control station with monospaced type and luminous markers.",
+    "Un puesto de control con tipografía monoespaciada y marcas luminosas."
+  ],
+  "Terminal": [
+    "Terminal",
+    "Terminal"
+  ],
+  "Des voiles colorés, des cartes givrées et une navigation flottante.": [
+    "Colored veils, frosted cards and floating navigation.",
+    "Velos de color, tarjetas esmeriladas y navegación flotante."
+  ],
+  "Des surfaces turquoise, des lignes fluides et une profondeur légère.": [
+    "Turquoise surfaces, flowing lines and subtle depth.",
+    "Superficies turquesa, líneas fluidas y profundidad sutil."
+  ],
+  "Des teintes miel et terracotta avec un éclairage radial.": [
+    "Honey and terracotta tones with radial lighting.",
+    "Tonos miel y terracota con iluminación radial."
+  ],
+  "Des nuances de gris, une hiérarchie typographique et des détails précis.": [
+    "Shades of gray, typographic hierarchy and precise details.",
+    "Tonos de gris, jerarquía tipográfica y detalles precisos."
+  ],
+  "Ouvrir la fiche Anycubic pour le code {0}": [
+    "Open the Anycubic article for code {0}",
+    "Abrir el artículo de Anycubic para el código {0}"
+  ],
+  "Code d’erreur : {0}": [
+    "Error code: {0}",
+    "Código de error: {0}"
+  ],
+  "Consulter l’aide officielle Anycubic (code {0})": [
+    "Read official Anycubic help (code {0})",
+    "Consultar la ayuda oficial de Anycubic (código {0})"
   ]
 }

@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 from session_api import SessionRecovery, CloudSessionAuthError
 from anycubic_cloud_api.api.base import AnycubicAPIBase
+from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized
+from anycubic_cloud_api.models.http import HTTP_METHODS
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError
 
 
@@ -25,6 +27,22 @@ class Client(SessionRecovery, Transport):
     """Client de test combinant le rétablissement de session et un transport simulé."""
 
     pass
+
+
+class ResponseContext:
+    """Contexte de réponse HTTP simulée pour le transport de base."""
+
+    def __init__(self, response):
+        """Conserve uniquement la réponse fictive utilisée par async with."""
+        self.response = response
+
+    async def __aenter__(self):
+        """Renvoie la réponse préparée."""
+        return self.response
+
+    async def __aexit__(self, *_):
+        """Ferme le contexte fictif sans effet secondaire."""
+        return False
 
 
 class RecoveryTests(unittest.IsolatedAsyncioTestCase):
@@ -75,6 +93,61 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
         c.send.return_value = {"code": 500, "data": None}
         self.assertEqual((await c._fetch_api_resp("command"))["code"], 500)
         self.assertEqual(c.send.await_count, 1)
+
+    async def test_http_401_is_retried_once_after_refresh_and_second_401_stops(self):
+        """Un 401 transport sans corps peut renouveler puis rejouer une fois la requête authentifiée."""
+        c = Client()
+        c.send.side_effect = [AnycubicHTTPUnauthorized(), {"code": 1}]
+        self.assertEqual((await c._fetch_api_resp("read"))["code"], 1)
+        c._get_user_token_with_access_token.assert_awaited_once()
+        self.assertEqual(c.send.await_count, 2)
+
+        c = Client()
+        c.send.side_effect = [
+            AnycubicHTTPUnauthorized(),
+            AnycubicHTTPUnauthorized(),
+        ]
+        with self.assertRaises(CloudSessionAuthError):
+            await c._fetch_api_resp("read")
+        self.assertEqual(c.send.await_count, 2)
+
+    async def test_http_401_with_data_is_ambiguous_and_not_replayed(self):
+        """Une réponse HTTP 401 accompagnée de données utiles ne prouve pas le refus d’exécution."""
+        c = Client()
+        c.send.side_effect = AnycubicHTTPUnauthorized(has_data=True)
+        with self.assertRaises(AnycubicHTTPUnauthorized):
+            await c._fetch_api_resp("read")
+        c.send.assert_awaited_once()
+        c._get_user_token_with_access_token.assert_not_called()
+
+    async def test_base_transport_classifies_json_unreadable_and_data_401(self):
+        """Le transport distingue 401 illisible, JSON refusé et données contradictoires sans garder le corps."""
+        for payload, error_data in [
+            (None, False),
+            ({"code": 10001, "data": None}, False),
+            ({"code": 1, "data": {"result": "fixture"}}, True),
+        ]:
+            response = SimpleNamespace(status=401, url="https://fixture.invalid")
+            response.json = (
+                AsyncMock(side_effect=ValueError("unreadable"))
+                if payload is None
+                else AsyncMock(return_value=payload)
+            )
+            base = object.__new__(AnycubicAPIBase)
+            base._session = SimpleNamespace(post=Mock(return_value=ResponseContext(response)))
+            base._anycubic_auth = SimpleNamespace(requires_user_agent=False)
+            with self.assertRaises(AnycubicHTTPUnauthorized) as caught:
+                await base._fetch_ext_resp(HTTP_METHODS.POST, "https://fixture.invalid", params={})
+            self.assertEqual(caught.exception.has_data, error_data)
+            self.assertNotIn("fixture", str(caught.exception))
+
+    async def test_http_401_without_token_is_not_refreshed(self):
+        """Un appel de connexion sans jeton ne déclenche jamais la récupération de session."""
+        c = Client()
+        c.send.side_effect = AnycubicHTTPUnauthorized()
+        with self.assertRaises(AnycubicHTTPUnauthorized):
+            await c._fetch_api_resp("login", with_token=False)
+        c._get_user_token_with_access_token.assert_not_called()
 
     async def test_contradictory_session_refusal_is_not_replayed(self):
         """Une référence de résultat contredit le refus et exclut toute reprise automatique."""

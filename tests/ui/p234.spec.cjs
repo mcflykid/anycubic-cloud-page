@@ -398,13 +398,13 @@ test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
   });
   await login(page);
   await page.getByRole('button', {name:'ACE et filaments',exact:true}).click();
-  const colors = page.locator('#spool-colors-0 stop');
+  const colors = page.locator('#spool-colors-ace-0-0 stop');
   await expect(colors).toHaveCount(4);
   await expect(colors.first()).toHaveAttribute('stop-color', 'rgb(243,241,230)');
   await expect(colors.last()).toHaveAttribute('stop-color', 'rgb(0,167,235)');
-  await expect(page.locator('.spool-rfid-mark')).toHaveText(['A', 'A']);
-  await expect(page.locator('#spool-colors-1 stop').last()).toHaveAttribute('stop-color','rgb(0,174,239)');
-  await expect(page.locator('#spool-colors-2, #spool-colors-3')).toHaveCount(0);
+  await expect(page.locator('.spool-rfid-mark')).toHaveText(['RFID', 'RFID']);
+  await expect(page.locator('#spool-colors-ace-0-1 stop').last()).toHaveAttribute('stop-color','rgb(0,174,239)');
+  await expect(page.locator('#spool-colors-ace-0-2, #spool-colors-ace-0-3')).toHaveCount(0);
   const spool = page.locator('.slot').first();
   await expect(spool.locator('.spool-rfid-mark')).toHaveCount(1);
   await spool.getByRole('button', {name:'Voir',exact:true}).click();

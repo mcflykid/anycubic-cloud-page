@@ -1,6 +1,6 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=2e1dc6d92ed1';
-import { workshopState } from './workshop-state.mjs?v=18a90760f2bd';
-import { definition, statusBadge } from './workshop-overview.mjs?v=d9c6c51a5391';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=cda4532cd72a';
+import { workshopState } from './workshop-state.mjs?v=f7c4c4153f8f';
+import { definition, statusBadge } from './workshop-overview.mjs?v=eab6a8551e05';
 
 // Le même hexadécimal peut désigner deux produits, par exemple PLA blanc et PLA Marble blanc.
 const filamentVariants = new Map([
@@ -59,7 +59,7 @@ function spoolIllustration(color, index, rfid) {
       <ellipse cx="26" cy="39" rx="13" ry="36" fill="#bfc6c3" stroke="#b0b9b5" stroke-width=".6"/>
       <ellipse cx="24" cy="39" rx="11.7" ry="35.3" fill="url(#spool-rim-${index})" stroke="#fbfcfc" stroke-width=".9"/>
       <path d="M24 12c2.4 0 4.4 4.2 5 9l-3 5-4-2-1-9zm-4 40 4-1 4 5-1 7-4 4-3-6z" fill="#aab4ae" opacity=".68"/>
-      ${rfid === true ? '<text class="spool-rfid-mark" x="23.5" y="17.5" text-anchor="middle" font-size="7" font-weight="700" fill="#8b4a05">A</text>' : ''}
+      ${rfid === true ? '<text class="spool-rfid-mark" x="23.5" y="17.5" text-anchor="middle" font-size="7" font-weight="700" fill="#8b4a05">RFID</text>' : ''}
       <ellipse cx="23.3" cy="39" rx="6.3" ry="12.2" fill="#c2cac5"/>
       <ellipse cx="23.5" cy="39" rx="4" ry="8.5" fill="#69746d"/>
       <path d="M17 16c-3.3 11.6-3.4 31.9-.4 44" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.25"/>
@@ -69,11 +69,26 @@ function spoolIllustration(color, index, rfid) {
 
 /** Affiche l’ACE et relie les formulaires aux commandes de la machine. */
 export function createAce(command, refresh) {
-  let presetsReady = false, dryingPending = false;
+  let presetsReady = false, dryingPending = false, selectedBoxId = null, selectedPrinter = null;
+  const selectorLabel = node('label', tr('Module ACE'));
+  const selector = node('select');
+  selector.id = 'ace-selector';
+  selectorLabel.append(selector);
+  $('ace-model').parentElement.append(selectorLabel);
+  selector.onchange = () => {
+    selectedBoxId = selector.value;
+    for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog']) if ($(id).open) $(id).close();
+    renderAce(workshopState.snapshot.printer);
+  };
   const lastDryingSettings = new Map();
-  /** Renvoie le premier ACE connu, ou null ; cette interface ne propose pas de sélection de second boîtier. */
+  /** Conserve le boîtier choisi tant qu’il appartient à la machine sélectionnée. */
   function selectedBox() {
-    return workshopState.snapshot?.printer?.boxes?.[0] || null;
+    const boxes = workshopState.snapshot?.printer?.boxes || [];
+    if (selectedPrinter !== workshopState.selectedPrinter) {
+      selectedPrinter = workshopState.selectedPrinter;
+      selectedBoxId = null;
+    }
+    return boxes.find(box => String(box.box_id) === selectedBoxId) || boxes[0] || null;
   }
   /** Renvoie l’identifiant de l’ACE affiché pour cibler les commandes de bobines et de séchage. */
   function boxData() {
@@ -82,10 +97,23 @@ export function createAce(command, refresh) {
   /** Affiche les bobines et le séchage ; distingue la lecture RFID de la saisie manuelle. */
   function renderAce(p) {
     const box = selectedBox();
+    set('ace-model', box?.model || tr(box ? 'Module ACE' : 'Aucun module ACE'));
+    const previous = selectedBoxId;
+    selectedBoxId = box ? String(box.box_id) : null;
+    if (previous !== null && previous !== selectedBoxId) {
+      for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog']) if ($(id).open) $(id).close();
+    }
+    selector.replaceChildren(...(p.boxes || []).map((entry, index) =>
+      new Option(`${tr('Module ACE')} ${index + 1} · ${entry.model || tr('Non renseigné')}`, String(entry.box_id)),
+    ));
+    selector.value = selectedBoxId || '';
+    selectorLabel.hidden = (p.boxes || []).length < 2;
+    selector.disabled = dryingPending;
     updateDryToggle(box, p.printer_online);
     if (!box) {
       statusBadge('ace-status', tr('Aucun module ACE détecté.'), false);
       $('spools').replaceChildren();
+      $('ace-stats').replaceChildren();
       return;
     }
     statusBadge(
@@ -106,7 +134,7 @@ export function createAce(command, refresh) {
       ...(box.spools || []).map((s, index) => {
         const art = node('article', null, 'slot'), variant = filamentVariant(s);
         art.append(
-          spoolIllustration(variant?.band ? [...s.color, ...variant.band] : s.color, index, s.rfid),
+          spoolIllustration(variant?.band ? [...s.color, ...variant.band] : s.color, `ace-${box.box_id}-${index}`, s.rfid),
           node('h3', s.material_type || tr('Non renseigné')),
           node('p', formatText('Emplacement {0}', s.display_slot ?? s.slot)),
           node(
@@ -133,7 +161,7 @@ export function createAce(command, refresh) {
         );
         if (s.rfid === true) art.append(node('p', tr('RFID reconnu'), 'rfid-badge'));
         else if (s.rfid === false) art.append(node('p', tr('Configuration manuelle'), 'muted'));
-        const edit = node('button', s.rfid === true ? 'Voir' : 'Modifier');
+        const edit = node('button', tr(s.rfid === true ? 'Voir' : 'Modifier'));
         edit.type = 'button';
         edit.title =
           s.rfid === true
@@ -290,7 +318,7 @@ export function createAce(command, refresh) {
   for (const [id, action, extra, question] of [
     ['feed', 'feed', {}, tr('Charger le filament sélectionné ?')],
     ['feed-finish', 'feed', { finish: true }, tr('Terminer le chargement ?')],
-    ['retract', 'retract', {}, tr('Rétracter le filament ?')],
+    ['retract', 'retract', {}, tr('Retirer le filament sélectionné ?')],
   ])
     $(id).onclick = () =>
       command(
@@ -332,6 +360,9 @@ export function createAce(command, refresh) {
     if (!data) return;
     form.elements.slot.value = String(slot);
     const material = form.elements.material;
+    const editable = workshopState.snapshot?.printer?.editable_materials;
+    if (Array.isArray(editable) && editable.every(value => typeof value === 'string'))
+      material.replaceChildren(...editable.map(value => new Option(value, value)));
     for (const option of [...material.options]) if (option.dataset.detected) option.remove();
     if (data.material_type && ![...material.options].some((o) => o.value === data.material_type)) {
       const option = new Option(data.material_type + tr(' (détecté)'), data.material_type);

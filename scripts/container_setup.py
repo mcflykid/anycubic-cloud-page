@@ -1,8 +1,16 @@
 """Prépare les données privées avant l’abandon des privilèges du conteneur."""
 
-import json, os, pathlib
-from datetime import datetime
+import json, os, pathlib, sys
+
+APP_DIRECTORY = str(pathlib.Path(__file__).resolve().parents[1] / "app")
+if APP_DIRECTORY not in sys.path:
+    sys.path.insert(0, APP_DIRECTORY)
+
+import logging
 from prepare_vendor import prepare, private_write
+from operational_logging import log_event
+
+_log = logging.getLogger("cloud_page.bootstrap")
 
 
 def identity(environ):
@@ -27,6 +35,12 @@ def initialize(
     appdata_dir=None,
 ):
     """Valide puis prépare secrets et état ; prepare_fn isole le réseau. ValueError si incohérent, OSError si inaccessible."""
+    log_event(
+        _log,
+        logging.INFO,
+        "container_setup_started",
+        message="Vérification des répertoires privés, des droits et des ressources client",
+    )
     env = os.environ if environ is None else environ
     secret = pathlib.Path(secret_dir)
     state = pathlib.Path(state_dir)
@@ -124,8 +138,9 @@ def initialize(
             os.chmod(path, 0o700 if path.is_dir() else 0o600)
             if getattr(os, "geteuid", lambda: -1)() == 0:
                 os.chown(path, uid, gid)
-    print(
-        datetime.now().astimezone().isoformat(timespec="seconds")
-        + " Préparation terminée. Identifiants conservés sans affichage ; démarrage sans privilèges root.",
-        flush=True,
+    log_event(
+        _log,
+        logging.INFO,
+        "container_setup_complete",
+        message="Préparation terminée; les identifiants restent dans le stockage privé",
     )

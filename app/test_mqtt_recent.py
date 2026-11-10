@@ -4,6 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+from anycubic_cloud_api.data_models.project import AnycubicProject
 from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData as Data
 from anycubic_cloud_api.data_models.printer_properties import (
     AnycubicDryingStatus,
@@ -54,6 +55,48 @@ class RecentReports(unittest.TestCase):
         self.p._is_printing = 1
         self.p._process_mqtt_update_print("start", "nozzle_cooling", Data({"data": {"taskid": 1}}))
         self.assertFalse(self.p.is_busy)
+
+    def test_kobra_x_status_property_reflects_reported_task_phase(self):
+        """L’indicateur d’état affiche la phase Kobra X déjà déterminée par les rapports connus."""
+        project = SimpleNamespace(print_status="unknown")
+        printer = SimpleNamespace(latest_project=project, _kobra_x_project_phase="preheating")
+        self.assertEqual(AnycubicPrinter.latest_project_print_status.fget(printer), "preheating")
+        printer._kobra_x_project_phase = "printing"
+        self.assertEqual(AnycubicPrinter.latest_project_print_status.fget(printer), "printing")
+
+    def test_print_report_consumes_known_metadata_without_temperature_side_effects(self):
+        """Les métadonnées de fichier et de routage ne restent pas signalées comme inconnues ni comme mesures."""
+        project = AnycubicProject(
+            api_parent=Mock(),
+            id=1,
+            taskid=1,
+            gcode_id=2,
+            estimate=0,
+            progress=0,
+            status=1,
+            create_time=0,
+            gcode_name="fixture.gcode",
+        )
+        self.p._latest_project = project
+        payload = Data(
+            {
+                "type": "print",
+                "action": "update",
+                "state": "updated",
+                "data": {
+                    "taskid": 1,
+                    "channel_no": 0,
+                    "unit_no": 0,
+                    "target_temp": 210,
+                    "file_root_path": "/fixture",
+                    "filetype": "gcode",
+                },
+            }
+        )
+        self.p.process_mqtt_update("fixture_topic", payload)
+        self.assertTrue(payload.is_empty)
+        self.assertIsNone(project.target_nozzle_temp)
+        self.assertIsNone(project.target_hotbed_temp)
 
     def test_partial_drying_and_feed_reports_preserve_previous_values(self):
         """Omettre temp ou feed_status ne détruit pas les autres états reçus."""

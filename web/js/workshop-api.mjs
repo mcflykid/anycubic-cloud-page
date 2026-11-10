@@ -1,4 +1,4 @@
-import { formatText, serverText, tr } from './workshop-ui.mjs?v=2e1dc6d92ed1';
+import { formatText, serverText, tr } from './workshop-ui.mjs?v=cda4532cd72a';
 export const api = '/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */
@@ -43,6 +43,9 @@ export function createRequest(getPrinter) {
       window.location.assign('/login');
       throw new Error(tr('Session expirée. Reconnectez-vous avant toute nouvelle action.'));
     }
+    const diagnosticId = response.headers.get('X-Request-ID');
+    const diagnosticText = text => /^[a-f0-9]{32}$/.test(diagnosticId || '')
+      ? `${text} ${formatText('Référence de diagnostic : {0}', diagnosticId)}` : text;
     const raw = await response.text();
     let data;
     try {
@@ -65,11 +68,12 @@ export function createRequest(getPrinter) {
         ? 'Échec de la lecture auprès d’Anycubic.'
         : 'Le service a refusé la demande ou n’a pas confirmé son résultat. Vérifiez l’état avant de réessayer.';
       const error = new Error(
-        data.message
+        diagnosticText(data.message
           ? serverText(data.message, fallback)
-          : formatText('Erreur {0}', response.status),
+          : formatText('Erreur {0}', response.status)),
       );
       error.cameraReason = data.camera_error;
+      error.diagnosticId = /^[a-f0-9]{32}$/.test(diagnosticId || '') ? diagnosticId : null;
       throw error;
     }
     if (data.message)

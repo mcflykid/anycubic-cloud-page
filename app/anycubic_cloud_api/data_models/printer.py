@@ -1496,6 +1496,10 @@ class AnycubicPrinter:
         if remaining_data:
             remaining_data.get('taskid')
             remaining_data.get('localtask')
+            # Les rapports print ajoutent ces données de routage sans créer de mesure thermique.
+            remaining_data.get('channel_no')
+            remaining_data.get('unit_no')
+            remaining_data.get('target_temp')
 
         payload.get('data')
         payload.get('msg')
@@ -2433,6 +2437,8 @@ class AnycubicPrinter:
     def latest_project_print_status(self) -> str | None:
         """État d’impression interprété depuis les données constructeur ; valeur du dernier projet connu."""
         if self.latest_project:
+            if self._kobra_x_project_phase:
+                return self._kobra_x_project_phase
             return self.latest_project.print_status
 
         return None

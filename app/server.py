@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Adaptateur web autonome de l’API Anycubic avec suivi MQTT et commandes sérialisées."""
 
-import asyncio, collections, contextlib, json, logging, os, pathlib, re, shutil, time, tempfile
+import asyncio, collections, contextlib, json, logging, os, pathlib, re, shutil, time, tempfile, uuid
 from datetime import datetime
 import aiohttp, ssl
 from aiohttp import web
@@ -13,6 +13,8 @@ from file_preview import find_project_preview_url
 from cloud_extras import download_preview, trusted_url
 from temperature_history import TemperatureHistory, ace_readings
 from upload_formats import validate_cloud_model
+from filament_catalog import editable_materials
+from print_preflight import ensure_firmware_ready, ensure_storage_ready, evaluate_preflight
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from account_transport import AccountTransport
@@ -41,6 +43,10 @@ from command_journal import (
     request_key,
 )
 from session_api import CloudSessionAuthError, SessionRecovery
+from operational_logging import configure_logging, log_event, request_context, safe_exception_frames
+from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized
+from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
+from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
 from native_controls import task_details, ace_model
 from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
 from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
@@ -58,13 +64,98 @@ FIELDS = json.loads((ROOT / "fields.json").read_text())
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
+OPS_LOG = logging.getLogger("cloud_page.server")
+HTTP_LOG = logging.getLogger("cloud_page.http")
 
 
 class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
     """Relie les réponses MQTT et le renouvellement de session au moteur web."""
 
+    async def _fetch_api_resp(self, *args, **kwargs):
+        """Journalise le résultat du transport sans paramètres, corps ou URL de requête."""
+        started = time.monotonic()
+        endpoint = args[0] if args else kwargs.get("endpoint")
+        endpoint_path = getattr(endpoint, "endpoint", None)
+        endpoint_name = "unknown"
+        if isinstance(endpoint, AnycubicAPIEndpoint):
+            endpoint_name = next(
+                (
+                    name
+                    for name, candidate in vars(API_ENDPOINT).items()
+                    if isinstance(candidate, AnycubicAPIEndpoint)
+                    and candidate.endpoint == endpoint_path
+                ),
+                "custom",
+            )
+        method = getattr(getattr(endpoint, "method", None), "name", None)
+        try:
+            response = await super()._fetch_api_resp(*args, **kwargs)
+        except Exception as error:
+            log_event(
+                logging.getLogger("cloud_page.cloud"),
+                logging.WARNING,
+                "cloud_request",
+                message="Requête Cloud en échec; consultez le type d’erreur et les repères de pile",
+                endpoint=endpoint_name,
+                method=method,
+                status=401 if isinstance(error, AnycubicHTTPUnauthorized) else None,
+                duration_ms=round((time.monotonic() - started) * 1000, 1),
+                outcome="error",
+                error_type=type(error).__name__,
+                frames=safe_exception_frames(error),
+            )
+            raise
+        code = response.get("code") if isinstance(response, dict) else None
+        api_outcome = (
+            "json_success"
+            if type(code) is int and code == 1
+            else "json_non_success"
+            if type(code) is int
+            else "json_without_code"
+            if isinstance(response, dict)
+            else "non_json_returned"
+        )
+        log_event(
+            logging.getLogger("cloud_page.cloud"),
+            logging.DEBUG,
+            "cloud_request",
+            message="Réponse Cloud reçue; le code décrit la réponse et ne confirme pas une action physique",
+            endpoint=endpoint_name,
+            method=method,
+            duration_ms=round((time.monotonic() - started) * 1000, 1),
+            outcome=api_outcome,
+            cloud_code=code,
+        )
+        return response
+
     async def _send_anycubic_order(self, order_request, raw_data=False):
-        """Rattache le msgid retourné à la requête web qui a réellement émis l’ordre."""
+        """Recontrôle le firmware avant lancement et rattache le msgid à la demande émise."""
+        data = order_request.order_request_data
+        if data.get("order_id") in (AnycubicOrderID.START_PRINT, AnycubicOrderID.START_PRINT.value):
+            owner = getattr(self, "cloud_engine", None)
+            registry = getattr(owner, "fleet_registry", None)
+            engines = [owner, getattr(registry, "default", None)]
+            engines.extend(getattr(registry, "entries", {}).values())
+            printer = next(
+                (
+                    candidate.printer
+                    for candidate in engines
+                    if candidate is not None
+                    and getattr(candidate, "printer", None) is not None
+                    and str(candidate.printer.id) == str(data.get("printer_id"))
+                ),
+                None,
+            )
+            if printer is None:
+                printer = next(
+                    (
+                        candidate
+                        for candidate in getattr(owner, "known_printers", [])
+                        if str(candidate.id) == str(data.get("printer_id"))
+                    ),
+                    None,
+                )
+            ensure_firmware_ready(printer)
         context = command_mqtt_context.get()
         sent_at = time.time()
         result = await super()._send_anycubic_order(order_request, raw_data=raw_data)
@@ -126,6 +217,14 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             self.message_engine = None
 
     def _mqtt_on_connect(self, client, userdata, flags, rc, properties=None):
+        log_event(
+            logging.getLogger("cloud_page.mqtt"),
+            logging.WARNING if rc else logging.INFO,
+            "mqtt_connection",
+            message="Réponse du service MQTT à la connexion",
+            mqtt_code=rc if isinstance(rc, int) else getattr(rc, "value", None),
+            connected=not bool(rc),
+        )
         if rc:
             getattr(self, "cloud_engine", engine).event(
                 "MQTT", "Connexion refusée, code " + str(rc)
@@ -133,6 +232,13 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
         return super()._mqtt_on_connect(client, userdata, flags, rc, properties)
 
     def _mqtt_on_disconnect(self, client, userdata, rc, *args):
+        log_event(
+            logging.getLogger("cloud_page.mqtt"),
+            logging.WARNING,
+            "mqtt_disconnected",
+            message="Le suivi MQTT est déconnecté ; vérifiez la reconnexion avant d’interpréter une mesure comme récente",
+            connected=False,
+        )
         getattr(self, "cloud_engine", engine).event("MQTT", "Déconnecté, code " + str(rc))
         return super()._mqtt_on_disconnect(client, userdata, rc)
 
@@ -168,6 +274,7 @@ class Engine:
         self.updated = None
         self.mqtt_update = None
         self.error = "Connexion en cours"
+        self._last_poll_error = None
         self.lock = asyncio.Lock()
         self.events = collections.deque(maxlen=40)
         self.cloudfiles = {}
@@ -235,6 +342,25 @@ class Engine:
     def event(self, action, state):
         """Ajoute un événement horodaté au journal local borné."""
         self.events.appendleft({"time": now(), "action": action, "state": state})
+        known_action = (
+            action
+            if action in ACTIONS or action in {"MQTT", "Cloud", "Caméra", "Fichier", "Erreur"}
+            else "service"
+        )
+        log_event(
+            OPS_LOG,
+            logging.ERROR if action == "Erreur" else logging.INFO,
+            "engine_state",
+            message="Évolution de l’état du service",
+            action=known_action,
+            outcome={
+                "Connecté": "connected",
+                "Acceptée": "accepted",
+                "Résultat inconnu": "uncertain",
+                "Session renouvelée automatiquement": "renewed",
+            }.get(state, "changed"),
+            connected=state == "Connecté" if action == "MQTT" else None,
+        )
 
     def receive_video_reply(self, topic, payload):
         """Ne retient que l’étape connue de la session vidéo courante et de cette machine, sans payload privé."""
@@ -374,6 +500,7 @@ class Engine:
     async def poll(self):
         """Actualise chaque cible et le catalogue du compte, sans changer l’identité d’un moteur existant."""
         while True:
+            poll_started = time.monotonic()
             try:
                 async with self.lock:
                     primary = not self.fleet_registry or self is self.fleet_registry.default
@@ -391,6 +518,23 @@ class Engine:
                     else:
                         await self.refresh_printer_details()
                     await self.refresh_lifetime_count()
+                    if self._last_poll_error is not None:
+                        log_event(
+                            OPS_LOG,
+                            logging.INFO,
+                            "cloud_recovered",
+                            message="La connexion Cloud fonctionne de nouveau",
+                            connected=True,
+                        )
+                    self._last_poll_error = None
+                    log_event(
+                        OPS_LOG,
+                        logging.DEBUG,
+                        "cloud_poll",
+                        message="État Cloud actualisé",
+                        duration_ms=round((time.monotonic() - poll_started) * 1000, 1),
+                        count=len(self.known_printers or []),
+                    )
                     self.updated = now()
                     self.ok = bool(self.printer)
                     self.error = (
@@ -404,9 +548,29 @@ class Engine:
                     try:
                         await self.print_history(1)
                         self.notifications_error = None
-                    except Exception:
+                    except Exception as error:
+                        if self.notifications_error is None:
+                            log_event(
+                                OPS_LOG,
+                                logging.WARNING,
+                                "notifications_unavailable",
+                                message="Les messages Cloud sont indisponibles ; le suivi de l’imprimante continue",
+                                error_type=type(error).__name__,
+                            )
                         self.notifications_error = "Messages temporairement indisponibles"
             except Exception as e:
+                error_type = type(e).__name__
+                log_event(
+                    OPS_LOG,
+                    logging.WARNING if self._last_poll_error != error_type else logging.DEBUG,
+                    "cloud_poll_failed",
+                    message="Lecture Cloud impossible ; vérifiez le réseau et l’état de connexion, une nouvelle lecture sera tentée au prochain cycle",
+                    error_type=error_type,
+                    frames=safe_exception_frames(e),
+                    duration_ms=round((time.monotonic() - poll_started) * 1000, 1),
+                    connected=False,
+                )
+                self._last_poll_error = error_type
                 self.ok = False
                 self.error = (
                     getattr(self.account, "notice", None)
@@ -500,6 +664,9 @@ class Engine:
             safeget(p, "primary_multi_color_box_fw_available_version"),
             safeget(p, "secondary_multi_color_box_fw_available_version"),
         ]
+        fields["editable_materials"] = editable_materials()
+        fields["firmware_updating"] = safeget(p, "fw_version.is_updating")
+        fields["firmware_update_required"] = None
         fields["firmware_update_available"] = safeget(p, "fw_version.update_available")
         fields["ace_updates"] = [
             {
@@ -507,6 +674,7 @@ class Engine:
                 "target": safeget(fw, "available_version"),
                 "available": safeget(fw, "update_available"),
                 "progress": safeget(fw, "total_progress"),
+                "updating": safeget(fw, "is_updating"),
             }
             for fw in (safeget(p, "multi_color_box_fw_version") or [])
         ]
@@ -742,6 +910,52 @@ def verify_printer_target(request, selected, *, require_model=True):
 
 
 @web.middleware
+async def operational_requests(request, handler):
+    """Corrèle statut et durée HTTP sans enregistrer paramètres, corps, cookie ni adresse client."""
+    request_id = uuid.uuid4().hex
+    resource = getattr(request.match_info.route, "resource", None)
+    route = getattr(resource, "canonical", None) or "unmatched"
+    context = {"request_id": request_id, "method": request.method, "route": route}
+    token = request_context.set(context)
+    started = time.monotonic()
+    status = 500
+    try:
+        try:
+            response = await handler(request)
+        except web.HTTPException as error:
+            status = error.status
+            if not error.prepared:
+                error.headers["X-Request-ID"] = request_id
+            raise
+        status = response.status
+        if not response.prepared:
+            response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        level = (
+            logging.ERROR
+            if status >= 500
+            else logging.WARNING
+            if status >= 400
+            else logging.INFO
+            if request.method not in {"GET", "HEAD", "OPTIONS"}
+            else logging.DEBUG
+        )
+        log_event(
+            HTTP_LOG,
+            level,
+            "http_request",
+            message="Requête HTTP terminée"
+            if status < 400
+            else "Requête HTTP refusée ou en échec ; consultez les événements de cette requête",
+            **context,
+            status=status,
+            duration_ms=round((time.monotonic() - started) * 1000, 1),
+        )
+        request_context.reset(token)
+
+
+@web.middleware
 async def errors(request, handler):
     """Convertit les erreurs en réponses HTTP sans publier les détails internes des exceptions inattendues."""
     try:
@@ -754,13 +968,36 @@ async def errors(request, handler):
             {"ok": False, "message": str(e), "camera_error": e.reason}, status=409
         )
     except ValueError as e:
+        log_event(
+            OPS_LOG,
+            logging.WARNING,
+            "invalid_request",
+            message="Paramètres de la requête refusés; consultez le type et les repères de pile",
+            error_type=type(e).__name__,
+            frames=safe_exception_frames(e),
+        )
         return web.json_response({"ok": False, "message": str(e)[:200]}, status=400)
     except (KeyError, TypeError) as e:
-        logging.getLogger(__name__).warning("Structure de requête invalide (%s)", type(e).__name__)
+        log_event(
+            OPS_LOG,
+            logging.WARNING,
+            "invalid_request",
+            message="Structure de requête invalide ; vérifiez les paramètres du formulaire",
+            error_type=type(e).__name__,
+            frames=safe_exception_frames(e),
+        )
         return web.json_response(
             {"ok": False, "message": "Données de la demande invalides."}, status=400
         )
     except Exception as e:
+        log_event(
+            OPS_LOG,
+            logging.ERROR,
+            "request_failure",
+            message="Traitement interrompu par une erreur inattendue ; utilisez la référence de requête pour retrouver son contexte",
+            error_type=type(e).__name__,
+            frames=safe_exception_frames(e),
+        )
         request_engine(request).event("Erreur", type(e).__name__)
         return web.json_response(
             {
@@ -1015,6 +1252,19 @@ async def audit_command(request, engine, action, request_id, parameters):
     finally:
         command_mqtt_context.reset(context)
         await save_command_event(request, entry)
+        if entry:
+            log_event(
+                OPS_LOG,
+                logging.WARNING
+                if entry.get("outcome") in {"inconnue", "refusée", "expirée"}
+                else logging.INFO,
+                "command_result",
+                message="Résultat de la demande ; une acceptation ne prouve pas l’exécution physique",
+                action=entry.get("action"),
+                outcome=entry.get("outcome"),
+                printer=entry.get("printer"),
+                command_id=entry.get("request_id"),
+            )
 
 
 async def command_journal(request):
@@ -1127,8 +1377,15 @@ async def command(req):
             except Exception as error:
                 if not sent:
                     raise
-                logging.getLogger(__name__).warning(
-                    "Résultat de commande inconnu après transmission (%s)", type(error).__name__
+                log_event(
+                    OPS_LOG,
+                    logging.WARNING,
+                    "command_uncertain",
+                    message="Commande transmise, résultat non confirmé; vérifiez l’état de l’imprimante avant tout nouvel envoi",
+                    action=name,
+                    outcome="inconnue",
+                    error_type=type(error).__name__,
+                    frames=safe_exception_frames(error),
                 )
                 engine.event(str(name), "Résultat inconnu")
                 return web.json_response(uncertain, status=409)
@@ -1281,6 +1538,31 @@ async def camera_close(req):
     return web.json_response({"ok": True}, status=202)
 
 
+async def print_preflight(req):
+    """Prépare les avertissements de bobines sans envoyer de commande à la machine."""
+    engine = request_engine(req)
+    data = await req.json()
+    if not isinstance(data, dict):
+        raise ValueError("Métadonnées de filament invalides")
+    ensure_firmware_ready(engine.printer)
+    if data.get("key"):
+        details = await engine.extras.detail(data["key"])
+        materials = details.get("materials") or []
+        data["materials"] = [row.get("material") or "" for row in materials]
+        data["colors"] = (
+            [
+                [int(row["color"][offset : offset + 2], 16) for offset in (1, 3, 5)]
+                for row in materials
+                if row.get("color")
+            ]
+            if materials and all(row.get("color") for row in materials)
+            else []
+        )
+    return web.json_response(
+        {"warnings": evaluate_preflight(engine.snapshot().get("printer") or {}, data)}
+    )
+
+
 async def upload(req):
     """Renvoie l’acceptation du transfert dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
     engine = request_engine(req)
@@ -1358,6 +1640,7 @@ async def upload_operation(req, engine, audit):
                 if not engine.api:
                     raise ValueError("Connexion en cours")
                 if mode != "upload":
+                    ensure_firmware_ready(engine.printer)
                     if not engine.printer.is_available:
                         raise ValueError("Imprimante non disponible")
                     requested_slots = json.loads(data.get("slots", "[]"))
@@ -1366,6 +1649,11 @@ async def upload_operation(req, engine, audit):
                         audit["parameters"] = filtered_parameters(
                             mode, {"name": filename, "slots": requested_slots}
                         )
+                if mode != "temp-print" and callable(
+                    getattr(engine.api, "get_user_cloud_store", None)
+                ):
+                    store = await engine.api.get_user_cloud_store()
+                    ensure_storage_ready(safeget(store, "available_bytes"), size)
                 engine.commands[rid] = {
                     "ok": False,
                     "message": "Envoi déjà demandé ; résultat en attente",
@@ -1373,6 +1661,14 @@ async def upload_operation(req, engine, audit):
                 if audit:
                     audit["outcome"] = "inconnue"
                     await save_command_event(req, audit)
+                transfer_started = time.monotonic()
+                log_event(
+                    OPS_LOG,
+                    logging.INFO,
+                    "upload_started",
+                    message="Transfert Cloud engagé après validation ; un résultat inconnu ne déclenche pas de nouvel envoi",
+                    action=mode,
+                )
                 try:
                     if mode == "upload":
                         await engine.api.upload_file_to_cloud(
@@ -1391,10 +1687,27 @@ async def upload_operation(req, engine, audit):
                             return web.json_response(engine.commands[rid], status=409)
                 except Exception as error:
                     # Après le transfert ou la demande d’impression, une erreur locale ne prouve aucun refus.
-                    logging.getLogger(__name__).warning(
-                        "Résultat d’envoi inconnu (%s)", type(error).__name__
+                    log_event(
+                        OPS_LOG,
+                        logging.WARNING,
+                        "upload_uncertain",
+                        message="Résultat du transfert ou du lancement non confirmé ; vérifiez les fichiers Cloud et l’imprimante avant tout nouvel essai",
+                        action=mode,
+                        error_type=type(error).__name__,
+                        frames=safe_exception_frames(error),
+                        duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
                     )
                     return web.json_response(engine.commands[rid], status=409)
+                if getattr(engine, "extras", None):
+                    engine.extras.invalidate_task_pages()
+                log_event(
+                    OPS_LOG,
+                    logging.INFO,
+                    "upload_accepted",
+                    message="Transfert accepté par le Cloud ; cela ne prouve pas la fin d’une impression",
+                    action=mode,
+                    duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
+                )
                 engine.event("Fichier", "Envoi accepté")
                 if audit and audit["outcome"] != "confirmée":
                     audit["outcome"] = "acceptée"
@@ -1438,7 +1751,7 @@ async def sample_temperatures(app, selected=None, store=None):
                     history.add(stamp, values)
                     last_source = source
             if history.rows and time.monotonic() - history.saved_at >= 60:
-                history.save()
+                await history.save_async()
         except Exception as error:
             logging.getLogger(__name__).warning(
                 "Relevé de température ignoré (%s)", type(error).__name__
@@ -1464,6 +1777,13 @@ async def temperatures(req):
 
 async def startup(app):
     """Préserve la collecte initiale et initialise le registre des cibles indépendantes."""
+    log_event(
+        OPS_LOG,
+        logging.INFO,
+        "application_starting",
+        message="Démarrage de l’atelier ; initialisation de la connexion Cloud et des données locales",
+        version=APP_VERSION,
+    )
     try:
         await asyncio.to_thread(purge_abandoned_uploads, engine.state_dir)
     except OSError as error:
@@ -1520,6 +1840,12 @@ def purge_abandoned_uploads(state_dir):
 
 async def cleanup(app):
     """Arrête la collecte, sauvegarde les températures et ferme les connexions."""
+    log_event(
+        OPS_LOG,
+        logging.INFO,
+        "application_stopping",
+        message="Arrêt demandé ; sauvegarde des relevés et fermeture des connexions",
+    )
     registry = app["printer_registry"]
     for selected in [engine, *registry.entries.values()]:
         task = selected.camera_close_task
@@ -1532,7 +1858,7 @@ async def cleanup(app):
     with contextlib.suppress(asyncio.CancelledError):
         await app["temperature_task"]
     with contextlib.suppress(OSError):
-        app["temperature_history"].save()
+        await app["temperature_history"].save_async()
     app["poll_task"].cancel()
     with contextlib.suppress(asyncio.CancelledError):
         await app["poll_task"]
@@ -1551,6 +1877,16 @@ async def preview(req):
     async with engine.lock:
         if not engine.api or not engine.printer:
             raise ValueError("Connexion en cours")
+        if d.get("source") == "active":
+            result = await printer_files.current_preview(engine, d.get("project_key"))
+            log_event(
+                OPS_LOG,
+                logging.DEBUG,
+                "active_preview",
+                message="Consultation de l’aperçu du projet courant",
+                outcome="available" if result.get("image") else "unavailable",
+            )
+            return web.json_response(result, headers={"Cache-Control": "no-store"})
         if d.get("source") in ["local", "usb"]:
             with contextlib.suppress(ValueError):
                 image = await engine.local_preview(
@@ -1575,7 +1911,8 @@ async def preview(req):
 
 
 app = web.Application(
-    middlewares=[access_control, errors, select_printer], client_max_size=102 * 1024**2
+    middlewares=[operational_requests, access_control, errors, select_printer],
+    client_max_size=102 * 1024**2,
 )
 app.add_routes(
     [
@@ -1594,6 +1931,7 @@ app.add_routes(
         web.post("/imprimante-api/camera-session", camera),
         web.post("/imprimante-api/camera-close", camera_close),
         web.post("/imprimante-api/upload", upload),
+        web.post("/imprimante-api/preflight", print_preflight),
         web.post("/imprimante-api/preview", preview),
     ]
 )
@@ -1611,8 +1949,13 @@ if __name__ == "__main__":
         raise SystemExit("Le serveur doit être lancé sans privilèges root.")
     if hasattr(time, "tzset"):
         time.tzset()
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S%z"
+    configure_logging()
+    log_event(
+        OPS_LOG,
+        logging.INFO,
+        "logging_ready",
+        message="Journaux du conteneur actifs ; le mode DEBUG ajoute les étapes sans exposer les échanges privés",
+        version=APP_VERSION,
     )
     web.run_app(
         app,

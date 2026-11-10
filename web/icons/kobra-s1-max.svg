@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 170" role="img"><title>Kobra S1 Max — illustration non officielle</title>
+<rect x="39" y="9" width="123" height="146" rx="10" fill="#263747"/>
+<rect x="45" y="32" width="111" height="115" rx="4" fill="#182b39" stroke="#77929e" stroke-width="2"/>
+<path d="M54 63h92M65 44v91m72-91v91" stroke="#516b7c" stroke-width="3"/>
+<rect x="88" y="51" width="23" height="24" rx="4" fill="#778c96"/>
+<path d="m62 117 72 0 12 8H54z" fill="#91a8b5"/>
+<rect x="122" y="14" width="32" height="17" rx="3" fill="#8bb1c5"/>
+<path d="M150 90v20" stroke="#cfdbdf" stroke-width="5" stroke-linecap="round"/>
+<text x="100" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#496476">Kobra S1 Max</text></svg>

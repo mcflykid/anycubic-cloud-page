@@ -13,10 +13,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=2e1dc6d92ed1';
-import { workshopState } from './workshop-state.mjs?v=18a90760f2bd';
-import { slots } from './workshop-commands.mjs?v=21556c8f7005';
-import { definition } from './workshop-overview.mjs?v=d9c6c51a5391';
+} from './workshop-ui.mjs?v=cda4532cd72a';
+import { workshopState } from './workshop-state.mjs?v=f7c4c4153f8f';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=df951fd5daf7';
+import { definition } from './workshop-overview.mjs?v=eab6a8551e05';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
@@ -149,6 +149,7 @@ export function createHistory(request, command, selectedBox) {
     const row = node('li', null, 'notification-row'),
       open = node('button', null, 'notification-open'),
       body = node('span', null, 'notification-copy');
+    let errorBlock = null;
     open.type = 'button';
     const thumb = taskThumbnail(
       { ...item, key: 'notification:' + item.key, notification: true },
@@ -165,19 +166,44 @@ export function createHistory(request, command, selectedBox) {
         'notification-result ' + item.kind,
       ),
     );
-    if (item.reason || item.reason_code)
+    if (item.error_title)
+      body.append(node('span', tr(item.error_title), 'notification-error-title'));
+    if (item.reason)
       body.append(
-        node(
-          'span',
-          [
-            item.reason && serverText(item.reason, 'Pas de diagnostic traduit pour cet événement.'),
-            item.reason_code && tr('Code') + ' ' + item.reason_code,
-          ]
-            .filter(Boolean)
-            .join(' · '),
-          'muted',
-        ),
+        node('span', serverText(item.reason, 'Pas de diagnostic traduit pour cet événement.'), 'muted'),
       );
+    if (item.reason_code) {
+      let helpUrl = '';
+      try {
+        const url = new URL(item.help_url);
+        if (
+          url.protocol === 'https:' && url.hostname === 'wiki.anycubic.com' &&
+          !url.username && !url.password && !url.port && !url.search && !url.hash &&
+          url.pathname.length <= 240 && /^\/(?:en|fr|zh)\/(?:error-codes|fdm-3d-printer)(?:\/[a-z0-9-]+)*\/?$/.test(url.pathname)
+        ) helpUrl = url.href;
+      } catch {}
+      const error = node('span', null, 'notification-error'),
+        description = item.error_description ? tr(item.error_description) : '';
+      if (helpUrl) {
+        const link = node('a', formatText('Code d’erreur : {0}', item.reason_code), 'notification-error-link'),
+          tooltip = node('span', description || tr('Aide Anycubic'), 'notification-error-tooltip');
+        tooltip.id = 'notification-error-' + item.key;
+        tooltip.setAttribute('role', 'tooltip');
+        link.href = helpUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.title = formatText(/\/error-codes\/?$/.test(new URL(helpUrl).pathname)
+          ? 'Ouvrir le catalogue des erreurs Anycubic pour le code {0}'
+          : 'Consulter l’aide officielle Anycubic (code {0})', item.reason_code);
+        link.setAttribute('aria-label', link.title);
+        link.setAttribute('aria-describedby', tooltip.id);
+        error.append(link, tooltip);
+      } else {
+        error.append(node('span', formatText('Code d’erreur : {0}', item.reason_code), 'notification-error-code'));
+        if (description) error.append(node('span', description, 'notification-error-description'));
+      }
+      errorBlock = error;
+    }
     body.append(node('time', date(item.time), 'muted'));
     open.append(body);
     if (item.unread) {
@@ -186,7 +212,10 @@ export function createHistory(request, command, selectedBox) {
       open.append(dot);
     }
     open.onclick = () => openNotice(item);
-    row.append(open);
+    const content = node('div', null, 'notification-content');
+    content.append(open);
+    if (errorBlock) content.append(errorBlock);
+    row.append(content);
     if (noticeSource === 'slicer') return row;
     const remove = node('button', '×', 'notification-delete');
     remove.type = 'button';
@@ -326,7 +355,7 @@ export function createHistory(request, command, selectedBox) {
       .then((data) => data.image || null)
       .catch(() => null)
       .then((src) => {
-        entry.expires = Date.now() + (src ? 300000 : 30000);
+        entry.expires = Date.now() + (src ? 300000 : t.notification ? 5000 : 30000);
         return src;
       });
     taskPreviewCache.set(t.key, entry);
@@ -942,11 +971,14 @@ export function createHistory(request, command, selectedBox) {
           'Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent au fichier.',
         );
     submit.disabled = true;
+    const target = workshopState.selectedPrinter;
     try {
+      const advice = await filamentAdvice(request, {key: pastTaskKey, slots: mapping}, target);
+      if (target !== workshopState.selectedPrinter) return;
       const ok = await command(
         'task-reprint',
         { key: pastTaskKey, slots: mapping },
-        formatText(
+        (advice ? advice + '\n\n' : '') + formatText(
           wording,
           $('reprint-task-name').textContent,
           $('reprint-target').textContent,

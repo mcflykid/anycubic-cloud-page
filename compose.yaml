@@ -4,7 +4,7 @@ services:
   # Anycubic Cloud Page — prépare les données puis sert l’atelier sans droits root.
   # ============================================================================
   anycubic-cloud-page:
-    # Pour figer une livraison, remplacer latest par un tag, par exemple :1.6.0.
+    # Pour figer une livraison, remplacer latest par un tag, par exemple :1.7.0.
     image: "${APP_IMAGE:-ghcr.io/mcflykid/anycubic-cloud-page:latest}"
     container_name: "anycubic-cloud-page"
     cpus: "0.5"
@@ -48,6 +48,8 @@ services:
       - "PUBLIC_ORIGIN=${PUBLIC_ORIGIN:-http://localhost:8080}"
       # Limiter aux adresses des proxys qui ajoutent un X-Forwarded-For fiable.
       - "TRUSTED_PROXIES=${TRUSTED_PROXIES:-}"
+      - "LOG_LEVEL=${LOG_LEVEL:-INFO}"
+      - "LOG_FORMAT=${LOG_FORMAT:-text}"
       # Une valeur vide masque les liens ; HTTP(S) ou chemin relatif uniquement.
       - "HOME_URL=${HOME_URL-/imprimante.html}"
       - "PRINTER_ID=${PRINTER_ID:-}"

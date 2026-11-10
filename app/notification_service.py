@@ -3,11 +3,60 @@
 import asyncio
 import hashlib
 import json
+import re
 import time
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
+
+
+ERROR_HELP = "https://wiki.anycubic.com/en/error-codes"
+ERROR_CATALOGUE = {
+    "10115": {
+        "title": "L’imprimante ne peut pas lire ce fichier",
+        "description": "Le fichier peut être endommagé à la suite d’un tranchage interrompu ou être dans un format incorrect.",
+        "help_url": ERROR_HELP,
+    },
+}
+
+
+def normalize_error_code(value):
+    """Renvoie un code d’erreur numérique stable ; zéro, booléens et texte arbitraire restent absents."""
+    if type(value) is int:
+        return str(value) if 0 < value <= 2**31 - 1 else ""
+    if not isinstance(value, str) or len(value.strip()) > 12:
+        return ""
+    value = value.strip()
+    if not re.fullmatch(r"\d+", value):
+        return ""
+    number = int(value)
+    return str(number) if 0 < number <= 2**31 - 1 else ""
+
+
+def notification_help_url(value):
+    """N’autorise que des fiches du catalogue d’erreurs Anycubic sans paramètres signés."""
+    try:
+        parts = urlsplit(str(value))
+        path = parts.path
+        return (
+            parts.scheme == "https"
+            and parts.hostname == "wiki.anycubic.com"
+            and parts.port in (None, 443)
+            and not parts.username
+            and not parts.password
+            and not parts.query
+            and not parts.fragment
+            and len(path) <= 240
+            and re.fullmatch(
+                r"/(?:en|fr|zh)/(?:error-codes|fdm-3d-printer)(?:/[a-z0-9-]+)*/?", path
+            )
+            is not None
+            and ".." not in path.split("/")
+        )
+    except ValueError:
+        return False
 
 
 def history_entry(row):
@@ -34,7 +83,23 @@ def history_entry(row):
         "User Initiated": "Pause demandée par l’utilisateur",
         "Abnormal consumables, please reload consumables": "Problème de filament. Rechargez le filament.",
     }.get(reason, reason)
-    reason_code = diagnostic_text(row.get("reason_id"))
+    alarm_code = normalize_error_code(row.get("alarm_code"))
+    # 200 est l’événement « impression terminée » du journal natif, pas un refus de fichier.
+    reason_code = (
+        "" if alarm_code == "200" else alarm_code or normalize_error_code(row.get("reason_id"))
+    )
+    error = ERROR_CATALOGUE.get(reason_code, {})
+    if reason_code == "10115" and reason.casefold().rstrip(". ") in {
+        "the printer cannot parse the file",
+        "the device cannot parse the file",
+    }:
+        reason = ""
+    cloud_help = row.get("reason_help_url")
+    help_url = (
+        cloud_help
+        if notification_help_url(cloud_help)
+        else error.get("help_url") or (ERROR_HELP if reason_code else None)
+    )
     printer = row.get("printer_id")
     task = next(
         (
@@ -56,6 +121,9 @@ def history_entry(row):
         "unread": row.get("read") == 0,
         "reason": reason,
         "reason_code": reason_code,
+        "error_title": error.get("title", ""),
+        "error_description": error.get("description", ""),
+        "help_url": help_url,
         "task_key": history_task_key(str(printer) + ":" + str(task_id))
         if printer and isinstance(task_id, (int, str)) and task_id not in ("", "0", 0)
         else None,
@@ -138,6 +206,7 @@ class AccountNotifications:
                 "printer_name": printer.get("name") or item.get("device_type"),
                 "printer_id": printer.get("printer_id"),
                 "task_id": item.get("task_id"),
+                "alarm_code": item.get("alarm_code"),
                 "create_time": timestamp
                 if type(timestamp) is int and 0 < timestamp <= 4102444800
                 else None,
@@ -147,6 +216,20 @@ class AccountNotifications:
                 "img": item.get("img"),
                 "thumbnail": item.get("thumbnail"),
             }
+            # Ces références restent côté serveur : preview_row les valide avant tout téléchargement.
+            for field in ("taskid", "project_id"):
+                value = item.get(field)
+                if type(value) is int or isinstance(value, str) and len(value) <= 128:
+                    raw[field] = value
+            for field in ("image_url", "thumbnail_url", "image_id", "reason_help_url"):
+                value = item.get(field)
+                if isinstance(value, str) and len(value) <= 2048:
+                    raw[field] = value
+            slice_param = item.get("slice_param")
+            if isinstance(slice_param, dict):
+                image_id = slice_param.get("image_id")
+                if isinstance(image_id, str) and len(image_id) <= 256:
+                    raw["slice_param"] = {"image_id": image_id}
             entry = history_entry(raw)
             # Les deux API ont des identifiants indépendants et les actions historiques ne doivent jamais les résoudre.
             key = hashlib.sha256(f"slicer:{item['id']}".encode()).hexdigest()[:20]

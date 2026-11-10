@@ -1,12 +1,28 @@
 """Initialise appdata puis remplace le processus par le serveur sans privilèges root."""
 
-import os, sys, time
+import logging
+import os, pathlib, sys, time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+APP_DIRECTORY = str(pathlib.Path(__file__).resolve().parents[1] / "app")
+if APP_DIRECTORY not in sys.path:
+    sys.path.insert(0, APP_DIRECTORY)
+
+from operational_logging import configure_logging, log_event, safe_exception_frames
 from container_setup import initialize, identity
+
+_log = logging.getLogger("cloud_page.bootstrap")
 
 
 def launch(arguments=None):
     """Prépare la configuration puis exécute la commande ; ValueError/OSError si le démarrage sûr est impossible."""
+    configure_logging()
+    log_event(
+        _log,
+        logging.INFO,
+        "container_starting",
+        message="Initialisation du conteneur avant le démarrage sans privilèges root",
+    )
     command = list(sys.argv[1:] if arguments is None else arguments)
     if not command:
         raise ValueError("Aucune commande serveur fournie.")
@@ -39,12 +55,16 @@ def main():
     """Démarre ou échoue sans révéler les secrets présents dans une exception système ou réseau."""
     try:
         launch()
-    except ValueError as error:
-        raise SystemExit(str(error)) from None
-    except Exception:
-        raise SystemExit(
-            "Préparation impossible : vérifiez la configuration, les permissions et l’accès réseau."
-        ) from None
+    except Exception as error:
+        log_event(
+            _log,
+            logging.ERROR,
+            "container_start_failed",
+            message="Préparation bloquée; vérifiez les identifiants de configuration, les permissions et l’accès réseau",
+            error_type=type(error).__name__,
+            frames=safe_exception_frames(error),
+        )
+        raise SystemExit("Préparation impossible; consultez les événements du conteneur.") from None
 
 
 if __name__ == "__main__":

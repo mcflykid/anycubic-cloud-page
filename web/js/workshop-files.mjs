@@ -8,10 +8,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=2e1dc6d92ed1';
-import { workshopState, setBusy } from './workshop-state.mjs?v=18a90760f2bd';
-import { slots } from './workshop-commands.mjs?v=21556c8f7005';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=6d9e9f9a0a2d';
+} from './workshop-ui.mjs?v=cda4532cd72a';
+import { workshopState, setBusy } from './workshop-state.mjs?v=f7c4c4153f8f';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=df951fd5daf7';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=3771e92634a0';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -402,9 +402,16 @@ export function createFiles(request, command) {
       message(err.message, true);
       return;
     }
+    const target = workshopState.selectedPrinter;
+    let advice = '';
+    if (data.get('mode') !== 'upload') {
+      try {
+        advice = await filamentAdvice(request, {...await filamentMetadata(file), slots: JSON.parse(data.get('slots'))}, target);
+      } catch (err) { message(err.message, true); return; }
+    }
     if (
       !(await confirmAction(
-        formatText(
+        (advice ? advice + '\n\n' : '') + formatText(
           data.get('mode') === 'upload'
             ? tr('Envoyer « {0} » dans votre espace cloud ?')
             : tr('Envoyer « {0} » et lancer son impression ?'),
@@ -413,6 +420,9 @@ export function createFiles(request, command) {
       ))
     )
       return;
+    if (target !== workshopState.selectedPrinter) {
+      message(tr('La cible a changé : commande annulée.'), true); return;
+    }
     const chosen = e.target.elements.file.files[0],
       intent = JSON.stringify([data.get('mode'), data.get('slots'), workshopState.selectedPrinter]);
     if (!uploadAttempt || uploadAttempt.file !== chosen || uploadAttempt.intent !== intent)
@@ -423,7 +433,7 @@ export function createFiles(request, command) {
     try {
       const result = await request('/upload', {
         method: 'POST',
-        body: data,
+        body: data, printerKey: target,
         timeoutMs: Math.min(7200000, 300000 + (file.size / 32768) * 2000),
       });
       uploadAttempt = null;
