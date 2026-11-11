@@ -57,7 +57,7 @@
   padding: var(--atelier-space-3) var(--atelier-space-4);
   border-block-end: var(--atelier-rule) solid var(--atelier-line);
 }
-html[data-style] #tab-fleet #monitor-grid {
+html[data-style] #tab-fleet #monitor-grid.monitor-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
@@ -88,7 +88,7 @@ html[data-style] #tab-fleet #monitor-grid {
   .fleet-workspace > .atelier-card { display: grid; grid-row: span 3; grid-template-rows: subgrid; }
 }
 @container fleet (max-width: 480px) {
-  html[data-style] #tab-fleet #monitor-grid { grid-template-columns: minmax(0, 1fr); }
+  html[data-style] #tab-fleet #monitor-grid.monitor-grid { grid-template-columns: minmax(0, 1fr); }
   #tab-fleet #monitor-grid .monitor-card { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
   #tab-fleet #monitor-grid .monitor-card:not(:nth-child(3n+1)) { border-inline-start: 0; }
 }
