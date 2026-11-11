@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+from pathlib import Path
 import re
 import sys
 
@@ -38,6 +39,10 @@ _FIELD_NAMES = frozenset(
         "nested",
         "endpoint",
         "cloud_code",
+        "owner_present",
+        "msgid_present",
+        "coordinates_complete",
+        "reply_code",
     }
 )
 _TOKEN = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
@@ -160,6 +165,15 @@ def _safe_value(name, value):
         return value if type(value) is int and 0 <= value <= 2**31 - 1 else None
     if name == "connected":
         return value if type(value) is bool else None
+    if name in {"owner_present", "msgid_present", "coordinates_complete"}:
+        return value if type(value) is bool else None
+    if name == "reply_code":
+        return (
+            value
+            if isinstance(value, str)
+            and value in {"success", "refused", "other", "missing", "invalid"}
+            else None
+        )
     if name == "nested":
         return value if type(value) is bool else None
     if name == "file_format":
@@ -279,6 +293,13 @@ class OperationalFormatter(logging.Formatter):
         """Choisit un rendu texte ou JSON pour les événements déjà filtrés."""
         super().__init__()
         self.output_format = output_format
+        try:
+            candidate = json.loads(
+                (Path(__file__).resolve().parents[1] / "package.json").read_text()
+            ).get("version")
+            self.version = _safe_value("version", candidate) or "unknown"
+        except (OSError, ValueError, TypeError, AttributeError):
+            self.version = "unknown"
 
     def format(self, record):
         """Produit une ligne UTC avec les champs sûrs dans un ordre stable."""
@@ -287,7 +308,8 @@ class OperationalFormatter(logging.Formatter):
             .isoformat(timespec="milliseconds")
             .replace("+00:00", "Z")
         )
-        fields = record.safe_fields
+        # La métadonnée embarquée prime sur tout champ fourni par un appelant.
+        fields = {**record.safe_fields, "version": self.version}
         if self.output_format == "json":
             value = {
                 "timestamp": timestamp,

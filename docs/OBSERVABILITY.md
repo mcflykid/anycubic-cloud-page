@@ -1,6 +1,6 @@
 # Contrat Prometheus facultatif
 
-Cette note définit un contrat pour une éventuelle exposition Prometheus. La version actuelle ne démarre aucun endpoint métrique et n’ouvre aucun port supplémentaire. La page continue à fournir ses diagnostics via ses journaux filtrés.
+Cette note définit un contrat pour une éventuelle exposition Prometheus. La [supervision locale JSON](MONITORING.md) est disponible dans Parc et santé ; aucun endpoint Prometheus n’est activé et aucun port supplémentaire n’est ouvert. Les journaux filtrés complètent ces mesures pour le diagnostic.
 
 ## Accès
 

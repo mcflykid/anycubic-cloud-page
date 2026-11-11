@@ -48,6 +48,18 @@ class PublicationTests(unittest.TestCase):
         (self.root / "README.md").write_text("Exemple public : http://localhost:8080\n")
         self.assertEqual(self.output()[0], 0)
 
+    def test_public_wiki_links_do_not_mask_private_paths(self):
+        """Seuls les articles publics explicitement connus échappent au filtre des chemins personnels."""
+        path = b"/" + b"home/knowledge-sharing/ai-detection"
+        public = b"https://wiki.anycubic.com/en" + path
+        private = b"/" + b"home/fixture-account"
+        self.assertEqual(check.findings(public + b"#h-33-relevant-error-codes"), set())
+        self.assertIn("personal home path", check.findings(b"https://example.org/en" + path))
+        self.assertIn("personal home path", check.findings(public + b"?q=private"))
+        self.assertIn("personal home path", check.findings(public + b"/private"))
+        self.assertIn("personal home path", check.findings(public + b" " + private))
+        self.assertIn("private pattern", check.findings(public, [re.compile(b"ai-detection")]))
+
     def test_local_and_ci_patterns_are_both_loaded(self):
         """Les règles privées locales et CI complètent les règles génériques sans se remplacer."""
         local = "fixture-local-marker"

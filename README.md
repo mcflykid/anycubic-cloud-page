@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.7.1**. [Changements](CHANGELOG.md).
+Version **1.8.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -61,12 +61,12 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 | **Fichiers** | Parcourir la mémoire de l’imprimante, l’USB ou le cloud ; prévisualiser, préparer une impression et gérer les fichiers selon les fonctions fournies. |
 | **Envoyer et imprimer** | Stocker un G-code, un STL ou un 3MF dans le Cloud. Un fichier .gcode peut aussi être envoyé à l’impression avec l’ordre des bobines ACE. |
 | **Caméra** | Ouvrir le flux Agora, zoomer, passer en plein écran, piloter l’éclairage et accéder aux déplacements autorisés. |
-| **Historique** | Filtrer les impressions par statut, dates et nom ; consulter cartes et détails ; retirer les fiches sélectionnées de l’historique cloud après confirmation. Les notifications sont dans la cloche. |
+| **Historique** | Filtrer les impressions par statut, dates et nom ; consulter cartes et détails ; retirer les fiches sélectionnées de l’historique cloud après confirmation. Les notifications sont dans la cloche. Un code d’erreur ouvre une fiche d’aide dans l’atelier. |
 | **Statistiques** | Consulter les points locaux sur 24 h et les moyennes horaires sur 30 jours pour les températures, l’humidité de l’ACE et le filament restant ; exporter la période affichée en CSV. |
 | **Parc et santé** | Résumer la disponibilité et la fraîcheur des machines déjà suivies, avec des alertes de connexion bornées et aucune commande depuis les cartes. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
 
-Dans **Réglages → Apparence**, choisissez le style par défaut, Apple Design, Minimaliste, Détaillé, Halloween ou Noël. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
+Dans **Réglages → Apparence**, choisissez Par défaut, Apple Design, Détaillé, Blueprint, Aurore ou Océan. Le mode clair, sombre ou système se règle séparément. Blueprint propose une navigation latérale repliable; Aurore permet de réordonner les cartes de l’atelier et de mémoriser leur disposition locale. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
 
 <details>
 <summary><strong>ACE et filaments</strong> — bobines, RFID et séchage</summary>
@@ -173,7 +173,9 @@ Le [glossaire ACE](docs/ACE-GLOSSARY.md) précise les termes français, anglais 
 
 Avant un envoi avec impression ou une réimpression, l’atelier signale les différences connues entre matières, couleurs et emplacements. Ces avis permettent une confirmation volontaire ; des métadonnées manquantes sont indiquées explicitement. Une mise à jour en cours confirmée empêche tout lancement. Les [notes de protocole](docs/PROTOCOL.md#investigations-du-10-novembre-2026) indiquent les fonctions encore en attente de preuve.
 
-Les [vingt styles exploratoires](docs/THEMES.md) se comparent dans Réglages → Apparence. Les [journaux du conteneur](docs/TROUBLESHOOTING.md#journaux-du-conteneur) proposent un format lisible ou JSON et un niveau DEBUG, avec références de diagnostic et filtrage des données privées.
+Les [sept styles de l’atelier](docs/THEMES.md) se choisissent dans Réglages → Apparence. Blueprint propose une barre latérale repliable; Aurore permet de réorganiser et mémoriser les cartes du tableau de bord. Le Laboratoire explore une navigation groupée par usage et des compositions de page alternatives. Les [journaux du conteneur](docs/TROUBLESHOOTING.md#journaux-du-conteneur) proposent un format lisible ou JSON et un niveau DEBUG, avec références de diagnostic et filtrage des données privées.
+
+La [supervision locale](docs/MONITORING.md) expose neuf cartes détaillables dans Parc et santé, sans nouveau collecteur Cloud. Le [protocole de diagnostic](docs/DIAGNOSTIC-PROTOCOL.md) définit les preuves attendues à chaque essai. La [comparaison des intégrations et forks](docs/UPSTREAM-COMPARISON.md) complète les recherches de compatibilité.
 
 L’[étude de Kobra Mesh Lab et HomeLab Monitor](docs/RESEARCH-IDEAS.md) distingue les idées réutilisables des fonctions qui demandent des données ou des protocoles supplémentaires.
 

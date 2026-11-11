@@ -90,3 +90,49 @@ test('Agora renouvelle uniquement le canal et la session déjà ouverts', async 
   await expect(page.locator('#camera-state')).toHaveText('Session caméra expirée');
   expect(await page.evaluate(() => window.renewals)).toEqual(['fixture-renewed']);
 });
+
+test('la déconnexion attend la confirmation de fermeture du viewer caméra',async({page})=>{
+ // La réponse différée démontre l’ordre entre la libération du lecteur et la révocation.
+ const {login}=require('./helpers.cjs');
+ const order=[];
+ let finishClose;
+ let onCloseStarted;
+ const closeStarted=new Promise(resolve=>{onCloseStarted=resolve;});
+ const closeGate=new Promise(resolve=>{finishClose=resolve;});
+ await page.route('**/imprimante-api/ui/js/agora-rtc.js',route=>route.fulfill({
+  contentType:'application/javascript',
+  body:`window.AgoraRTC={setLogLevel(){},createClient(){return {
+   remoteUsers:[],on(){},setEncryptionConfig(){},async setClientRole(){},async join(){},async leave(){},
+  };}};`,
+ }));
+ await page.route('**/imprimante-api/camera-session',route=>route.fulfill({json:{
+  appid:'fixture-app',channel:'fixture-channel',rtc_token:'fixture-token',
+  encryption_mode:'aes-128-gcm2',encryption_key:'fixture-key',encryption_kdf_salt:'Zml4dHVyZQ=='
+ }}));
+ await page.route('**/imprimante-api/camera-close',async route=>{
+  order.push('camera-close');
+  onCloseStarted();
+  await closeGate;
+  await route.fulfill({status:202,json:{ok:true}});
+  order.push('camera-close-ack');
+ });
+ await page.route('**/logout',async route=>{
+  order.push('logout');
+  await route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><meta charset="utf-8"><title>Session terminée</title>'});
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Caméra',exact:true}).click();
+ await page.locator('#camera-start').click();
+ await expect(page.locator('#camera-state')).toHaveText('En attente de la vidéo');
+ await page.locator('#camera-stop').click();
+ await closeStarted;
+ await expect(page.locator('#camera-state')).toHaveText('Caméra éteinte');
+ await page.getByRole('button',{name:'Se déconnecter',exact:true}).click();
+ await page.locator('.logout-form').evaluate(form=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+ await page.waitForTimeout(150);
+ expect(order).toEqual(['camera-close']);
+ finishClose();
+ await expect.poll(()=>order.includes('logout')).toBe(true);
+ expect(order).toEqual(['camera-close','camera-close-ack','logout']);
+ await expect(page).toHaveTitle('Session terminée');
+});

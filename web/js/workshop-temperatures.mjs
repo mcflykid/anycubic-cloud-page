@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=4fb911698e53';
+} from './workshop-ui.mjs?v=6e32f535c683';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {
@@ -136,8 +136,8 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
   host.append(legend);
 }
 
-/** Crée une courbe par boîtier ou emplacement ayant un relevé dans la période. */
-function renderAceCharts(host, rows, hours, filament) {
+/** Associe chaque série historique au modèle de son boîtier, même si un autre ACE est sélectionné. */
+function renderAceCharts(host, rows, hours, filament, boxes) {
   const series = new Map();
   for (const row of rows) {
     for (const [box, readings] of Object.entries(row.ace_boxes)) {
@@ -152,7 +152,9 @@ function renderAceCharts(host, rows, hours, filament) {
   host.replaceChildren();
   if (!series.size) host.append(node('p', tr('En attente des premiers relevés.'), 'muted'));
   for (const [box, slot] of [...series.values()].sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
-    const title = `ACE ${Number(box) + 1}${filament ? ' · ' + formatText('Emplacement {0}', slot) : ''}`,
+    const moduleModel = boxes.find((entry) => String(entry.box_id) === String(box))?.model;
+    const moduleName = moduleModel || `ACE ${Number(box) + 1}`;
+    const title = `${moduleName}${filament ? ' · ' + formatText('Emplacement {0}', slot) : ' · Humidité'}`,
       card = node('article', null, 'temperature-card'),
       heading = node('div', null, 'temperature-card-title'),
       current = node('strong'),
@@ -173,23 +175,31 @@ function renderAceCharts(host, rows, hours, filament) {
   }
 }
 
-/** Affiche la période demandée, même si une requête précédente arrive plus tard. */
-export function createTemperatureLoader(request) {
+/** Lie courbes, modèles de boîtiers et export à la cible et à la période des requêtes. */
+export function createTemperatureLoader(request, getPrinter = () => '', getBoxes = () => []) {
   let sequence = 0;
   const exportButton = $('temperature-export');
   if (exportButton) exportButton.onclick = async () => {
     exportButton.disabled = true;
+    const hours = Number($('temperature-hours').value), printer = getPrinter();
+    const sameContext = () => !!printer && printer === getPrinter()
+      && hours === Number($('temperature-hours').value)
+      && $('printer-selector').value === printer;
+    const cancelled = () => set('temperature-export-state', tr('Export annulé : la période ou l’imprimante a changé.'));
     try {
-      const hours = Number($('temperature-hours').value), data = await request(`/temperatures?hours=${hours}&format=csv`);
+      if (!sameContext()) { cancelled(); return; }
+      const data = await request(`/temperatures?hours=${hours}&format=csv`);
+      if (!sameContext()) { cancelled(); return; }
       const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob),
         link = document.createElement('a');
       link.href = url;
       link.download = 'historique-temperatures.csv';
       link.click();
       URL.revokeObjectURL(url);
-      set('temperature-note', tr('Export CSV téléchargé pour la période affichée.'));
+      set('temperature-export-state', tr('Export CSV téléchargé pour la période affichée.'));
     } catch (e) {
-      set('temperature-note', e.message);
+      if (sameContext()) set('temperature-export-state', e.message);
+      else cancelled();
     } finally {
       exportButton.disabled = false;
     }
@@ -206,8 +216,11 @@ export function createTemperatureLoader(request) {
         renderChart(plot, $(`temperature-${key}-current`), title, data.readings, hours, key, ' °C', top, color);
       }
       const aceRows = data.readings.filter((row) => row.ace_boxes);
-      renderAceCharts($('chart-humidity'), aceRows, hours, false);
-      renderAceCharts($('chart-filament'), aceRows, hours, true);
+      const boxes = getBoxes() || [];
+      const firstModel = boxes[0]?.model;
+      $('chart-ace-name').textContent = firstModel || tr('Module ACE');
+      renderAceCharts($('chart-humidity'), aceRows, hours, false, boxes);
+      renderAceCharts($('chart-filament'), aceRows, hours, true, boxes);
       set(
         'temperature-note',
         tr(

@@ -48,8 +48,8 @@ class MQTTReplies:
             if len(self.early) > 24:
                 self.early.pop(next(iter(self.early)))
 
-    async def ask(self, kind, action, send, timeout):
-        """Attend l’identifiant de send puis sa réponse, ou lève ValueError au refus ou au délai."""
+    async def ask(self, kind, action, send, timeout, *, on_phase=None):
+        """Attend la réponse corrélée ; le callback facultatif reçoit les phases et délais écoulés."""
         self.loop = asyncio.get_running_loop()
         started = time.monotonic()
         self.opening += 1
@@ -57,9 +57,13 @@ class MQTTReplies:
             identifier = await send()
             if type(identifier) not in (int, str) or identifier == "":
                 raise ValueError("La consultation n’a pas été acceptée par Anycubic")
+            if on_phase:
+                on_phase("cloud_ack", (time.monotonic() - started) * 1000)
             key = (kind, action, str(identifier))
             cached = self.early.pop(key, None)
             if cached and cached[0] >= started:
+                if on_phase:
+                    on_phase("mqtt_reply", (time.monotonic() - started) * 1000)
                 return cached[1]
             if key in self.pending:
                 raise ValueError("Une consultation identique est déjà en cours")
@@ -69,11 +73,20 @@ class MQTTReplies:
             if not self.opening:
                 self.early.clear()
         try:
-            return await asyncio.wait_for(waiter, timeout)
+            result = await asyncio.wait_for(waiter, timeout)
+            if on_phase:
+                on_phase("mqtt_reply", (time.monotonic() - started) * 1000)
+            return result
         except TimeoutError:
-            raise ValueError("L’imprimante n’a pas confirmé cette demande") from None
+            if on_phase:
+                on_phase("mqtt_timeout", (time.monotonic() - started) * 1000)
+            raise MQTTReplyTimeout("L’imprimante n’a pas confirmé cette demande") from None
         finally:
             self.pending.pop(key, None)
+
+
+class MQTTReplyTimeout(ValueError):
+    """Distingue l’absence de réponse MQTT d’un refus ou d’une réponse invalide."""
 
 
 async def direct_request(target, kind, action, data):

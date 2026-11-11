@@ -1,6 +1,6 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=4fb911698e53';
-import { workshopState } from './workshop-state.mjs?v=f086eb175834';
-import { definition, statusBadge } from './workshop-overview.mjs?v=a0dd7fe11950';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=6e32f535c683';
+import { workshopState } from './workshop-state.mjs?v=6f0c4b984abf';
+import { definition, statusBadge } from './workshop-overview.mjs?v=e74eab407465';
 
 // Le même hexadécimal peut désigner deux produits, par exemple PLA blanc et PLA Marble blanc.
 const filamentVariants = new Map([
@@ -59,7 +59,7 @@ function spoolIllustration(color, index, rfid) {
       <ellipse cx="26" cy="39" rx="13" ry="36" fill="#bfc6c3" stroke="#b0b9b5" stroke-width=".6"/>
       <ellipse cx="24" cy="39" rx="11.7" ry="35.3" fill="url(#spool-rim-${index})" stroke="#fbfcfc" stroke-width=".9"/>
       <path d="M24 12c2.4 0 4.4 4.2 5 9l-3 5-4-2-1-9zm-4 40 4-1 4 5-1 7-4 4-3-6z" fill="#aab4ae" opacity=".68"/>
-      ${rfid === true ? '<text class="spool-rfid-mark" x="23.5" y="17.5" text-anchor="middle" font-size="7" font-weight="700" fill="#8b4a05">RFID</text>' : ''}
+      ${rfid === true ? '<g class="spool-rfid-mark" role="img" aria-label="Identification RFID" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="21.5" cy="18" r="1.35" fill="currentColor" stroke="none"/><path d="M24 15.2a4 4 0 0 1 0 5.6M26.7 12.8a7.5 7.5 0 0 1 0 10.4"/></g>' : ''}
       <ellipse cx="23.3" cy="39" rx="6.3" ry="12.2" fill="#c2cac5"/>
       <ellipse cx="23.5" cy="39" rx="4" ry="8.5" fill="#69746d"/>
       <path d="M17 16c-3.3 11.6-3.4 31.9-.4 44" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.25"/>
@@ -382,8 +382,7 @@ export function createAce(command, refresh) {
         )
         .join('');
     set('spool-color-value', form.elements.color.value.toUpperCase());
-    /* Les données RFID sont la référence de l’ACE et ne doivent pas être remplacées par le formulaire. */ const automatic =
-      data.rfid === true;
+    /* Seul le marquage RFID confirmé verrouille les champs; les états manuels et inconnus restent distincts. */ const automatic = data.rfid === true;
     form.elements.material.disabled = automatic;
     form.elements.color.disabled = automatic;
     form.querySelector('[type=submit]').hidden = automatic;
@@ -392,8 +391,12 @@ export function createAce(command, refresh) {
     const variant = filamentVariant(data);
     $('spool-catalog-color').hidden = !variant;
     set('spool-catalog-color', variant ? tr(variant.name) : '');
-    set('spool-rfid-note', automatic ? tr('Les matériaux identifiés par RFID ne peuvent pas être modifiés.') : '');
-    $('spool-rfid-note').hidden = !automatic;
+    set('spool-rfid-note', tr(automatic
+      ? 'Bobine identifiée par RFID. Les matériaux ne peuvent pas être modifiés.'
+      : data.rfid === false
+        ? 'Réglage manuel de la bobine. Matériau et couleur modifiables.'
+        : 'Statut RFID inconnu. Les champs restent modifiables.'));
+    $('spool-rfid-note').hidden = false;
   }
   /** Ouvre les données du numéro local de bobine et place le focus sur sa sélection. */
   function openSpool(slot) {

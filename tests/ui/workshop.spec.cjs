@@ -1,12 +1,12 @@
 const {test,expect}=require('@playwright/test');
-const {login}=require('./helpers.cjs');
+const {login,openSection}=require('./helpers.cjs');
 test('déconnexion au clavier et révocation effective',async({page})=>{await login(page);const button=page.getByRole('button',{name:'Se déconnecter',exact:true});await expect(page.locator('.portal-nav').getByRole('link',{name:'Anycubic Cloud Page'})).toHaveAttribute('href','/imprimante.html');await expect(page.getByText('Atelier autonome',{exact:true})).toHaveCount(0);await button.focus();await button.press('Enter');await expect(page).toHaveURL(/\/login$/);const response=await page.request.get('/imprimante-api/status');expect(response.status()).toBe(401);});
 module.exports={login};
 
 
 test('un catalogue inaccessible laisse l’atelier fonctionner en français',async({page})=>{
  await page.setViewportSize({width:360,height:800});
- const {login}=require('./helpers.cjs');
+ const {login,openSection}=require('./helpers.cjs');
  await page.addInitScript(()=>localStorage.setItem('cloud-page-language','es'));
  const failed=[];
  await page.route('**/js/workshop-translations.json*',route=>{failed.push(route.request().url());return route.fulfill({status:404});});
@@ -98,7 +98,7 @@ test('le choix mémorisé traduit l’atelier, ses confirmations et la connexion
   await expect(page.locator('#connection')).toHaveText(language.online);
   await expect(page.locator('#temperatures')).toContainText(language.temperature);
   expect(await page.locator('.portal-nav').evaluate(nav=>nav.scrollWidth<=nav.clientWidth)).toBe(true);
-  await page.getByRole('button',{name:language.settings,exact:true}).click();
+  await openSection(page,'settings');
   await page.locator('[data-command=firmware]').click();
   await expect(page.locator('#confirm-text')).toHaveText(language.confirm);
   await page.locator('#confirm-yes').click();
@@ -199,21 +199,23 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   await style.selectOption({label: 'Apple Design'});
   await expect(page.locator('.atelier-tabs')).toHaveCSS('border-radius', '999px');
   await expect(page.locator('.portal-nav')).toHaveCSS('backdrop-filter', 'saturate(1.45) blur(18px)');
-  for (const width of [1280, 800, 360]) {
+  for (const width of [1280, 800]) {
     await page.setViewportSize({width,height:900});
-    const tabs = page.locator('.atelier-tabs');
-    const buttons = tabs.getByRole('button');
-    expect(await buttons.evaluateAll(elements => new Set(elements.map(element => element.offsetTop)).size)).toBe(1);
-    expect(await buttons.count()).toBe(9);
-    if (width === 360) expect(await tabs.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-    const settingsTab = buttons.filter({hasText:'Réglages'});
-    await settingsTab.evaluate(element => {element.focus();element.scrollIntoView({block:'nearest',inline:'nearest'});});
-    const [last,currentBar]=await Promise.all([settingsTab.boundingBox(),tabs.boundingBox()]);
-    expect(last.x).toBeGreaterThanOrEqual(currentBar.x - 1);
-    expect(last.x + last.width).toBeLessThanOrEqual(currentBar.x + currentBar.width + 1);
+    const tabs = page.locator('#atelier-tabs');
+    await expect(tabs.locator('button')).toHaveCount(9);
+    expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   }
+  await page.setViewportSize({width:360,height:800});
+  const tabs = page.locator('#atelier-tabs');
+  await expect(tabs).toBeHidden();
+  await page.locator('#section-menu-toggle').click();
+  await expect(tabs).toHaveAttribute('data-open','true');
+  await expect(tabs.locator('button')).toHaveCount(9);
+  expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   await page.setViewportSize({width:1280,height:900});
-  await page.getByRole('button', {name: 'Imprimante', exact: true}).click();
+  await openSection(page,'overview');
   await expect(page.locator('#tab-overview .product')).toHaveCSS('border-radius', '26px');
   const product = await page.locator('#tab-overview .product').boundingBox();
   const job = await page.locator('#tab-overview .overview-content').boundingBox();
@@ -229,13 +231,11 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   expect((await lower.nth(1).boundingBox()).y).toBeCloseTo((await lower.nth(0).boundingBox()).y);
   expect((await page.locator('#details').evaluate(el => getComputedStyle(el).gridTemplateColumns)).split(' ')).toHaveLength(3);
   await settings.click();
-  await style.selectOption({label: 'Halloween'});
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(24, 19, 25)');
-  await style.selectOption({label: 'Noël'});
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 30, 25)');
+  await style.selectOption({label: 'Blueprint'});
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'blueprint');
   await page.reload();
   await settings.click();
-  await expect(style).toHaveValue('christmas');
+  await expect(style).toHaveValue('blueprint');
   await expect(theme).toHaveValue('dark');
   await style.selectOption({label: 'Par défaut'});
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');

@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Consultation en lecture seule de la position des axes via MQTT Anycubic."""
 
+import logging
 import math
 import re
+import uuid
 
 from anycubic_cloud_api.data_models.orders import AnycubicBaseProjectOrderRequest
+from operational_logging import log_event, request_context
 from printer_values import now
 
 
@@ -50,7 +53,7 @@ def _position_from_reply(response):
 
 
 async def query_axis_position(target):
-    """Consulte la position sans déplacer l’imprimante ; lève ValueError si la cible ou la réponse est invalide."""
+    """Consulte sans mouvement ; lève ValueError sur cible invalide et MQTTReplyTimeout sans réponse."""
     printer = getattr(target, "printer", None)
     api = getattr(target, "api", None)
     if printer is None or api is None:
@@ -74,8 +77,42 @@ async def query_axis_position(target):
         printer_id=printer_id,
         project_id=0,
     )
+    context = request_context.get() or {}
+    correlation = context.get("request_id")
+    if not isinstance(correlation, str) or not re.fullmatch(r"[a-fA-F0-9]{16,64}", correlation):
+        correlation = uuid.uuid4().hex
+    logger = logging.getLogger("cloud_page.axes")
+    log_event(
+        logger,
+        logging.INFO,
+        "axis_query_started",
+        message="Consultation des axes démarrée",
+        request_id=correlation,
+        duration_ms=0.0,
+    )
+    phase_events = {
+        "cloud_ack": ("axis_query_cloud_ack", "Accusé Cloud reçu pour la consultation des axes"),
+        "mqtt_reply": ("axis_query_mqtt_reply", "Réponse MQTT reçue pour la consultation des axes"),
+        "mqtt_timeout": (
+            "axis_query_mqtt_timeout",
+            "Délai de réponse MQTT écoulé pour la consultation des axes",
+        ),
+    }
+
+    def record_phase(phase, duration_ms):
+        """Journalise une phase et son temps écoulé sans identifiant MQTT ni contenu de réponse."""
+        event, message = phase_events[phase]
+        log_event(
+            logger,
+            logging.INFO,
+            event,
+            message=message,
+            request_id=correlation,
+            duration_ms=round(duration_ms, 1),
+        )
+
     response = await target.mqtt_replies.ask(
-        "axis", "query", lambda: api._send_anycubic_order(order), 10
+        "axis", "query", lambda: api._send_anycubic_order(order), 10, on_phase=record_phase
     )
     if (
         target.printer is not printer

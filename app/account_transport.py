@@ -8,11 +8,12 @@ from dataclasses import dataclass, field
 import aiohttp
 
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
+from cloud_budget import CloudRequestBudget
 
 
 @dataclass
 class AccountTransport:
-    """Possède le client du compte, ses références de session et son suivi MQTT."""
+    """Conserve le client, le budget HTTP, la session et le suivi MQTT du compte."""
 
     api: object | None = None
     session: aiohttp.ClientSession | None = None
@@ -22,6 +23,7 @@ class AccountTransport:
     mqtt_thread: threading.Thread | None = None
     mqtt_auth_pending: bool = False
     mqtt_auth_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    cloud_budget: CloudRequestBudget = field(default_factory=CloudRequestBudget)
 
     async def connect(self, account, api_factory, owner, session_renewed, updated, subscribed):
         """Ouvre le client authentifié et découvre les imprimantes du compte."""
@@ -52,6 +54,7 @@ class AccountTransport:
             session_renewed=session_renewed,
             auth_token=self.token,
             auth_mode=AnycubicAuthMode.SLICER,
+            cloud_request_budget=self.cloud_budget,
             mqtt_callback_printer_update=updated,
             mqtt_callback_subscribed=subscribed,
         )

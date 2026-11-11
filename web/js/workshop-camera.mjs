@@ -1,4 +1,4 @@
-import { $, serverText, set, tr } from './workshop-ui.mjs?v=4fb911698e53';
+import { $, serverText, set, tr } from './workshop-ui.mjs?v=6e32f535c683';
 
 /** Possède le lecteur et ses générations sans partager ses identifiants avec les autres panneaux. */
 export function createCamera(request, getPrinter) {
@@ -7,6 +7,7 @@ export function createCamera(request, getPrinter) {
     viewer = null,
     sdkPromise = null;
   let generation = 0,
+    releasePending = Promise.resolve(),
     zoom = 1,
     wanted = false;
 
@@ -22,19 +23,22 @@ export function createCamera(request, getPrinter) {
     return sdkPromise;
   }
 
+  /** Garde la fermeture réseau awaitable et borne l’attente pour laisser le navigateur terminer. */
   function releaseViewer(options) {
-    void request('/camera-close', { ...options, keepalive: true }).catch(() => {});
+    releasePending = request('/camera-close', { ...options, timeoutMs: 7000, keepalive: true }).catch(() => {});
+    return releasePending;
   }
 
   async function close() {
     const previous = viewer;
     viewer = null;
-    if (previous)
-      releaseViewer({
-        method: 'POST',
-        printerKey: previous.printer,
-        headers: { 'X-Camera-Viewer': previous.id },
-      });
+    const released = previous
+      ? releaseViewer({
+          method: 'POST',
+          printerKey: previous.printer,
+          headers: { 'X-Camera-Viewer': previous.id },
+        })
+      : releasePending;
     wanted = false;
     const closing = ++generation;
     $('camera-start').disabled = false;
@@ -43,13 +47,10 @@ export function createCamera(request, getPrinter) {
     track = null;
     $('camera-video').replaceChildren();
     set('camera-state', tr('Caméra éteinte'));
-    if (client) {
-      const old = client;
-      client = null;
-      try {
-        await old.leave();
-      } catch {}
-    }
+    const old = client;
+    client = null;
+    const left = old ? Promise.resolve().then(() => old.leave()).catch(() => {}) : Promise.resolve();
+    await Promise.all([released, left]);
     return closing;
   }
 

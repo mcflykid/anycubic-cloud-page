@@ -18,6 +18,8 @@ from print_preflight import ensure_firmware_ready, ensure_storage_ready, evaluat
 from notification_service import AccountNotifications
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from fleet_health import FleetHealth
+from monitoring import Monitoring
+from cloud_budget import CloudRequestBudget
 from idle_controls import idle_limits
 from ace_telemetry import ace2_pro_telemetry
 from printer_axes import is_allowed as axis_query_allowed, query_axis_position
@@ -48,7 +50,7 @@ from command_journal import (
 )
 from session_api import CloudSessionAuthError, SessionRecovery
 from operational_logging import configure_logging, log_event, request_context, safe_exception_frames
-from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized
+from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized, AnycubicRateLimited
 from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
 from native_controls import task_details, ace_model
@@ -70,6 +72,7 @@ UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
 OPS_LOG = logging.getLogger("cloud_page.server")
 HTTP_LOG = logging.getLogger("cloud_page.http")
+MONITORING_KEY = web.AppKey("monitoring", Monitoring)
 
 
 class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
@@ -102,7 +105,11 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                 message="Requête Cloud en échec; consultez le type d’erreur et les repères de pile",
                 endpoint=endpoint_name,
                 method=method,
-                status=401 if isinstance(error, AnycubicHTTPUnauthorized) else None,
+                status=401
+                if isinstance(error, AnycubicHTTPUnauthorized)
+                else 429
+                if isinstance(error, AnycubicRateLimited)
+                else None,
                 duration_ms=round((time.monotonic() - started) * 1000, 1),
                 outcome="error",
                 error_type=type(error).__name__,
@@ -131,6 +138,27 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             cloud_code=code,
         )
         return response
+
+    async def _fetch_ext_resp(self, *args, **kwargs):
+        """Cadence les transports du compte et respecte les pauses 429 sans renouveler la session ni rejouer."""
+        budget = getattr(self, "_cloud_request_budget", None)
+        if budget is None:
+            budget = self._cloud_request_budget = CloudRequestBudget()
+        await budget.acquire()
+        try:
+            return await super()._fetch_ext_resp(*args, **kwargs)
+        except AnycubicRateLimited as error:
+            budget.defer(error.retry_after)
+            log_event(
+                logging.getLogger("cloud_page.cloud"),
+                logging.WARNING,
+                "cloud_rate_limited",
+                message="Le fournisseur limite les requêtes ; pause partagée du compte, sans nouvel essai automatique",
+                outcome="paused",
+                status=429,
+                count=error.retry_after,
+            )
+            raise
 
     async def _send_anycubic_order(self, order_request, raw_data=False):
         """Recontrôle le firmware avant lancement et rattache le msgid à la demande émise."""
@@ -196,6 +224,37 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
         try:
             with contextlib.suppress(Exception):
                 payload = json.loads(message.payload)
+                if payload.get("type") == "axis" and payload.get("action") == "query":
+                    data = payload.get("data")
+                    coordinates = data.get("coordinates") if isinstance(data, dict) else None
+                    code = payload.get("code")
+                    reply_code = (
+                        "success"
+                        if type(code) is int and code == 200
+                        else "refused"
+                        if type(code) is int and code in {400, 401, 403, 404, 409}
+                        else "other"
+                        if type(code) is int
+                        else "missing"
+                        if code is None
+                        else "invalid"
+                    )
+                    log_event(
+                        logging.getLogger("cloud_page.axes"),
+                        logging.INFO,
+                        "axis_query_mqtt_observed",
+                        message="Réponse MQTT de consultation observée avant validation de la cible",
+                        owner_present=owner is not None,
+                        msgid_present=(
+                            type(payload.get("msgid")) in (int, str)
+                            and 0 < len(str(payload.get("msgid"))) <= 128
+                        ),
+                        coordinates_complete=(
+                            isinstance(coordinates, dict)
+                            and all(coordinates.get(axis) is not None for axis in ("x", "y", "z"))
+                        ),
+                        reply_code=reply_code,
+                    )
                 if (
                     owner
                     and owner.printer
@@ -951,6 +1010,9 @@ async def operational_requests(request, handler):
             response.headers["X-Request-ID"] = request_id
         return response
     finally:
+        if monitor := request.app.get(MONITORING_KEY):
+            with contextlib.suppress(Exception):
+                monitor.record_http(status, (time.monotonic() - started) * 1000)
         level = (
             logging.ERROR
             if status >= 500
@@ -981,6 +1043,12 @@ async def errors(request, handler):
         return await handler(request)
     except web.HTTPException:
         raise
+    except AnycubicRateLimited as error:
+        return web.json_response(
+            {"ok": False, "message": str(error), "retry_after_seconds": error.retry_after},
+            status=503,
+            headers={"Retry-After": str(error.retry_after), "Cache-Control": "no-store"},
+        )
     except AnycubicCameraSessionError as e:
         request_engine(request).event("Caméra", e.reason)
         return web.json_response(
@@ -1041,7 +1109,17 @@ async def axis_position(req):
     selected = request_engine(req)
     async with selected.lock:
         verify_printer_target(req, selected)
-        result = await query_axis_position(selected)
+        try:
+            result = await query_axis_position(selected)
+        except printer_files.MQTTReplyTimeout:
+            return web.json_response(
+                {
+                    "ok": False,
+                    "message": "L’imprimante n’a pas répondu à la consultation des axes. Aucune relance automatique n’a été effectuée.",
+                },
+                status=504,
+                headers={"Cache-Control": "no-store"},
+            )
         verify_printer_target(req, selected)
     return web.json_response(result, headers={"Cache-Control": "no-store"})
 
@@ -1058,6 +1136,18 @@ async def fleet(req):
     return web.json_response(
         req.app["fleet_health"].snapshot(req.app["printer_registry"]),
         headers={"Cache-Control": "no-store"},
+    )
+
+
+async def monitoring(req):
+    """Renvoie les métriques locales et l’état des moteurs déjà créés, sans réveiller de cible."""
+    monitor = req.app.get(MONITORING_KEY)
+    if monitor is None:
+        raise web.HTTPServiceUnavailable(text="Supervision locale indisponible.")
+    registry = req.app.get("printer_registry")
+    primary = getattr(registry, "default", engine)
+    return web.json_response(
+        monitor.snapshot(primary, registry), headers={"Cache-Control": "no-store"}
     )
 
 
@@ -1844,6 +1934,7 @@ async def startup(app):
         message="Démarrage de l’atelier ; initialisation de la connexion Cloud et des données locales",
         version=APP_VERSION,
     )
+    app[MONITORING_KEY] = Monitoring(engine.state_dir)
     try:
         await asyncio.to_thread(purge_abandoned_uploads, engine.state_dir)
     except OSError as error:
@@ -1979,6 +2070,7 @@ app.add_routes(
     [
         web.get("/imprimante-api/printers", printers),
         web.get("/imprimante-api/fleet", fleet),
+        web.get("/imprimante-api/monitoring", monitoring),
         web.get("/imprimante-api/health", health),
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),

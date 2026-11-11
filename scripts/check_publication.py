@@ -23,6 +23,13 @@ PATTERNS = {
     "GitHub credential": re.compile(rb"gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}"),
     "personal home path": re.compile(rb'/(?:Users|home)/[^/\s\x00\'"`<>]+'),
 }
+# Deux URL documentaires publiques contiennent le segment « home » ; seule
+# la règle des chemins personnels doit les ignorer, jamais les règles privées.
+PUBLIC_WIKI_LINKS = re.compile(
+    rb"https://wiki\.anycubic\.com/en/"
+    rb"home/knowledge-sharing/(?:pressure-advance|ai-detection(?:\#h-33-relevant-error-codes)?)"
+    rb"""(?=[\s"'\x60<>()]|$)"""
+)
 IPV4 = re.compile(rb"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])")
 IPV6 = re.compile(
     rb"(?i)(?<![\w:])(?:f[cd][0-9a-f]{2}|fe[89ab][0-9a-f])(?::[0-9a-f]{0,4}){2,7}(?![\w:])"
@@ -353,7 +360,13 @@ def jpeg_text(data):
 
 def findings(data, private_patterns=()):
     """Renvoie seulement les catégories détectées, jamais les chaînes sensibles qui leur correspondent."""
-    reasons = {name for name, pattern in PATTERNS.items() if pattern.search(data)}
+    reasons = {
+        name
+        for name, pattern in PATTERNS.items()
+        if pattern.search(
+            PUBLIC_WIKI_LINKS.sub(b" ", data) if name == "personal home path" else data
+        )
+    }
     if private_address(data):
         reasons.add("private network address")
     if any(pattern.search(data) for pattern in private_patterns):

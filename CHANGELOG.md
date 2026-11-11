@@ -1,5 +1,22 @@
 # Changements
 
+## 1.8.0 — 2026-11-11
+
+- Six styles conservés et quatorze retirés, avec migration des préférences ; Blueprint et Aurore sont retravaillés. Aurore propose des cartes réordonnables et mémorisées ; Apple et Océan ont un repère de navigation animé. Un septième thème Laboratoire réorganise les neuf sections par usage et explore les compositions de toutes les pages (#162, #174).
+- Navigation sans barre horizontale : les sections restent visibles sur ordinateur et s’ouvrent en tuiles sur téléphone. Construction en vague, désassemblage, interruptions et réduction du mouvement sont gérés ; l’accès rapide ajoute une recherche de sections au clavier (#160, #162).
+- Sélection des fichiers Cloud par glissement souris ou tactile et Maj+clic, avec volume connu et barre contextuelle. La place de la barre est réservée pour éviter que les lignes bougent sous le doigt ; les actions gardent leurs confirmations (#163).
+- Connexion en verre avec affichage du mot de passe, attente réelle et erreurs accessibles. Le formulaire conserve le POST serveur et le remplissage automatique ; le thème Laboratoire accompagne aussi la connexion et les notices (#165, #174).
+- Neuf cartes de monitoring local avec détail, courbes, pauses et fenêtres de relevés, sans nouvelle collecte Cloud. Les sources, unités, données absentes et valeurs de démonstration sont explicites (#164).
+- Marquage RFID intégré au flasque de la bobine ; les états identifié, manuel et inconnu restent distincts. Température et humidité ACE sont côte à côte sur ordinateur, empilées sur mobile, avec le même nom de module (#161, #171).
+- Chaque ligne de log texte ou JSON porte la version embarquée. Un protocole de diagnostic évolutif relie hypothèses, état initial, logs, observations, limites et tests de régression ; les annotations du nouveau code sont en français (#173, #175).
+- Budget HTTP partagé du compte, conservé après reconnexion : départs espacés et pause sur HTTP 429/Retry-After, sans nouvelle authentification ni rejeu automatique. L’interface respecte aussi le délai annoncé (#169).
+- L’envoi reste désactivé tant qu’une imprimante explicite n’est pas sélectionnée. Une explication visible accompagne les modes d’impression grisés selon le format ; le stockage Cloud reste disponible (#176, #177).
+- L’export CSV ignore toute réponse devenue obsolète après changement de période ou de cible. Son état est séparé de celui des courbes afin qu’une lecture concurrente n’efface pas l’annulation (#159).
+- Les codes de notification ouvrent une fiche de diagnostic dans l’atelier. Neuf codes ont une explication et des vérifications ; les autres conservent le message constructeur. Le wiki officiel reste une source facultative.
+- La déconnexion attend la libération de la session caméra et ferme le flux local avant de révoquer la session web (#178).
+- Revue indépendante backend et frontend, tests de régression et comparaison des intégrations externes, dont MMM-Anycubic et les forks publics Wares. Les limites de couverture et les hypothèses matérielles sont documentées (#158, #170).
+- Diagnostics de lecture des coordonnées enrichis : phases Cloud/MQTT, durées, réponse manquante distincte et HTTP 504 sans relance. La cause des délais observés sur S1 reste suivie dans #167 ; aucune position n’est inventée.
+
 ## 1.7.1 — 2026-11-11
 
 - Répare l’envoi des fichiers locaux vers le Cloud : la mesure de taille utilisait une fonction inexistante et échouait avant le transfert. Le chemin réel de lecture et le cycle de réservation, transfert simulé et libération sont couverts par des tests sans commande physique (#166).

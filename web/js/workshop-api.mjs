@@ -1,4 +1,4 @@
-import { formatText, serverText, tr } from './workshop-ui.mjs?v=4fb911698e53';
+import { formatText, serverText, tr } from './workshop-ui.mjs?v=6e32f535c683';
 export const api = '/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */
@@ -7,8 +7,10 @@ export function createRequest(getPrinter) {
     const { timeoutMs, ...fetchOptions } = options;
     const target = options.printerKey ?? getPrinter();
     const read = !options.method || options.method === 'GET';
+    // La lecture des axes publie une demande : conserver un seul essai explicite, même sous HTTP 504.
+    const replayable = read && path !== '/axis-position';
     let response;
-    for (let attempt = 0; attempt < (read ? 2 : 1); attempt++) {
+    for (let attempt = 0; attempt < (replayable ? 2 : 1); attempt++) {
       try {
         response = await fetch(api + path, {
           cache: 'no-store',
@@ -20,9 +22,11 @@ export function createRequest(getPrinter) {
           },
         });
       } catch {
-        if (read && attempt === 0) continue;
+        if (replayable && attempt === 0) continue;
         throw new Error(
-          path === '/upload'
+          path === '/axis-position'
+            ? tr('La lecture des coordonnées a été interrompue. Relancez-la explicitement si nécessaire.')
+            : path === '/upload'
             ? tr(
                 'Résultat de l’envoi incertain. Vérifiez les fichiers du cloud et l’état de l’imprimante avant tout nouvel essai.',
               )
@@ -33,7 +37,7 @@ export function createRequest(getPrinter) {
                 ),
         );
       }
-      if (read && [502, 503, 504].includes(response.status) && attempt === 0) {
+      if (replayable && [502, 503, 504].includes(response.status) && !response.headers.has('Retry-After') && attempt === 0) {
         await new Promise((resolve) => setTimeout(resolve, 1200));
         continue;
       }

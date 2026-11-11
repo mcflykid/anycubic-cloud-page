@@ -32,5 +32,5 @@ test('la période 30 jours exporte les moyennes affichées en CSV',async({page})
   await page.locator('#temperature-export').click();
   const file=await download;
   expect(file.suggestedFilename()).toMatch(/\.csv$/);
-  await expect(page.locator('#temperature-note')).toContainText('Export CSV téléchargé');
+  await expect(page.locator('#temperature-export-state')).toContainText('Export CSV téléchargé');
 });

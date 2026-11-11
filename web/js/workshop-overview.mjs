@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=4fb911698e53';
-import { workshopState } from './workshop-state.mjs?v=f086eb175834';
+} from './workshop-ui.mjs?v=6e32f535c683';
+import { workshopState } from './workshop-state.mjs?v=6f0c4b984abf';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */

@@ -8,8 +8,9 @@
 <link rel="icon" href="/imprimante-api/ui/icons/cloud-page.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/imprimante-api/ui/css/landing.css">
 <link rel="stylesheet" href="/imprimante-api/ui/css/imprimante.css">
-</head>
+<link rel="stylesheet" href="/imprimante-api/ui/css/lab.css?v=dbbe763c5091"></head>
 <body class="login-body">
+<div class="login-orbits" aria-hidden="true"><i></i><i></i><i></i></div>
 <main class="login-card">
 <img src="/imprimante-api/ui/icons/cloud-page.svg" width="52" height="52" alt="">
 <p class="login-brand">Anycubic Cloud Page</p>
@@ -20,10 +21,11 @@
 <label for="username">Identifiant</label>
 <input id="username" name="username" autocomplete="username" maxlength="256" required autofocus>
 <label for="password">Mot de passe</label>
-<input id="password" name="password" type="password" autocomplete="current-password" maxlength="2048" required>
-<button type="submit" class="primary">Se connecter</button>
+<div class="login-password"><input id="password" name="password" type="password" autocomplete="current-password" maxlength="2048" required><button id="password-visibility" type="button" disabled aria-controls="password" aria-pressed="false">Afficher</button></div>
+<button type="submit" class="primary login-submit"><span>Se connecter</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button>
+<p id="login-status" role="status" aria-live="polite"></p>
 </form>
 <p class="login-note">Votre session reste ouverte pendant huit heures au maximum.</p>
 </main>
-<script id="workshop-language" type="module" src="/imprimante-api/ui/js/workshop-ui.mjs?v=4fb911698e53" integrity="sha256-T7kRaY5TtHfsXWvS0TdM0iv5GKhBnEqaHhpa6HDpgzE=" crossorigin="anonymous"></script></body>
+<script id="workshop-language" type="module" src="/imprimante-api/ui/js/workshop-ui.mjs?v=6e32f535c683" integrity="sha256-bjL1NcaD/UkTozF4fU6NIQWISKk+5oUSEuZiMDpYbks=" crossorigin="anonymous"></script><script id="login-interactions" type="module" src="/imprimante-api/ui/js/workshop-login.mjs?v=e4994e2a8b6e" integrity="sha256-5JlOKotu0fje9uqe9OLCWgC2vMLRBprQMQ/qbD64tuk=" crossorigin="anonymous"></script></body>
 </html>

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+from email.utils import parsedate_to_datetime
 import json
+import math
 import os
 import time
 from typing import Any, BinaryIO, overload
@@ -43,6 +45,30 @@ class AnycubicHTTPUnauthorized(AnycubicAPIParsingError):
         """Marque une réponse 401 contenant un résultat exploitable, sans conserver le corps."""
         self.has_data = bool(has_data)
         super().__init__("Refus HTTP 401 Anycubic")
+
+
+class AnycubicRateLimited(AnycubicAPIParsingError):
+    """Limitation fournisseur avec délai seul, sans corps ni secret et sans reprise implicite."""
+
+    def __init__(self, retry_after=60):
+        """Conserve un délai positif en secondes pour bloquer les appels suivants du compte."""
+        self.retry_after = max(1, math.ceil(retry_after))
+        super().__init__("Le Cloud limite temporairement les requêtes. Réessayez après le délai indiqué.")
+
+    @classmethod
+    def from_header(cls, value, *, now=None):
+        """Accepte Retry-After en secondes ou date HTTP ; applique 60 s si la valeur est absente ou invalide."""
+        now = time.time() if now is None else now
+        try:
+            if isinstance(value, str) and value.isdecimal():
+                seconds = int(value)
+            else:
+                seconds = parsedate_to_datetime(value).timestamp() - now
+            if not math.isfinite(seconds) or seconds <= 0:
+                seconds = 60
+        except (TypeError, ValueError, OverflowError, AttributeError):
+            seconds = 60
+        return cls(seconds)
 
 
 class AnycubicAPIBase:
@@ -225,6 +251,8 @@ class AnycubicAPIBase:
         try:
             async with h_coro as resp:
                 status = resp.status
+                if status == 429:
+                    raise AnycubicRateLimited.from_header(resp.headers.get('Retry-After'))
                 if not allow_redirects and 300 <= status < 400:
                     raise AnycubicAPIParsingError(f'Ordre Anycubic redirigé (HTTP {status})')
                 if method == HTTP_METHODS.PUT and not 200 <= resp.status < 300:

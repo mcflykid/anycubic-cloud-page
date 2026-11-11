@@ -48,8 +48,11 @@ test('un modèle 3MF ne peut sélectionner que le stockage Cloud', async ({page}
   await mode.selectOption('save-print');
   await file.setInputFiles({name:'fixture.3mf',mimeType:'application/zip',buffer:Buffer.from('fixture')});
   await expect(mode).toHaveValue('upload');
+  await expect(page.locator('#upload-format-note')).toBeVisible();
+  await expect(mode).toHaveAttribute('aria-describedby','upload-format-note');
   await expect(mode.locator('option[value=save-print]')).toHaveJSProperty('disabled', true);
   await expect(form.locator('input[name=slots]')).toBeDisabled();
   await file.setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('G28')});
   await expect(mode.locator('option[value=save-print]')).toHaveJSProperty('disabled', false);
+  await expect(page.locator('#upload-format-note')).toBeHidden();
 });
