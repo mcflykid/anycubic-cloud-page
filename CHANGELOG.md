@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Donne aux chargements des fichiers et de l’historique leur forme de liste ou de cartes. Un reflet Esqueleto accompagne uniquement l’attente réelle (#248).
+
 - Garde le bouton actif dans les bords arrondis du rail Aurore (#246).
 
 - Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
