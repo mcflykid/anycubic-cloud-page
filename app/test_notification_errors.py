@@ -1,9 +1,20 @@
 """Erreurs du journal Slicer, liens d'aide et références d’aperçu locales."""
 
+import json
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from urllib.parse import urlsplit
 from unittest.mock import AsyncMock
 
-from notification_service import AccountNotifications, history_entry
+from anycubic_cloud_api.api.functions import AnycubicAPIFunctions
+from anycubic_cloud_api.exceptions.exceptions import AnycubicOrderRefused
+from notification_service import (
+    AccountNotifications,
+    ERROR_CATALOGUE,
+    history_entry,
+    notification_error_title,
+)
 
 
 class NotificationErrorTests(unittest.IsolatedAsyncioTestCase):
@@ -36,6 +47,61 @@ class NotificationErrorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(entry["reason"], "")
         self.assertTrue(entry["error_description"])
         self.assertEqual(entry["help_url"], "https://wiki.anycubic.com/en/error-codes")
+
+    def test_download_integrity_uses_the_shared_catalogue(self):
+        """Une somme incohérente possède un diagnostic distinct d’un refus de lecture."""
+        entry = history_entry({"id": 28, "alarm_code": 10113})
+        self.assertEqual(entry["reason_code"], "10113")
+        self.assertEqual(entry["error_title"], "Intégrité du fichier téléchargé non vérifiée")
+        self.assertIn("empreinte", entry["error_description"])
+        self.assertEqual(
+            entry["help_url"], "https://wiki.anycubic.com/en/error-codes/10113-code/s1"
+        )
+
+    def test_every_sheet_has_safe_sources_and_three_languages(self):
+        """Chaque fiche française possède ses textes anglais et espagnols et un lien officiel."""
+        translations = json.loads(
+            (Path(__file__).parents[1] / "web" / "js" / "workshop-translations.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for code, sheet in ERROR_CATALOGUE.items():
+            with self.subTest(code=code):
+                self.assertRegex(code, r"^[1-9][0-9]{4}$")
+                self.assertTrue(sheet["steps"])
+                self.assertIsInstance(sheet["models"], list)
+                for text in (sheet["title"], sheet["description"], *sheet["steps"]):
+                    self.assertTrue(text)
+                    self.assertEqual(len(translations[text]), 2)
+                    self.assertTrue(all(value.strip() for value in translations[text]))
+                source = urlsplit(sheet["source"])
+                self.assertEqual(source.scheme, "https")
+                self.assertEqual(source.netloc, "wiki.anycubic.com")
+                self.assertFalse(source.query)
+
+    def test_external_notification_title_uses_the_exact_code_and_language(self):
+        """Les titres de canal externe restent issus des fiches locales et excluent les codes inconnus."""
+        self.assertEqual(
+            notification_error_title(10113, "en"), "Downloaded file integrity check failed"
+        )
+        self.assertEqual(
+            notification_error_title("10113", "es"),
+            "Falló la comprobación de integridad del archivo descargado",
+        )
+        self.assertEqual(notification_error_title(99999, "en"), "")
+
+    async def test_coded_command_refusal_keeps_only_the_numeric_code(self):
+        """La réponse synthétique sépare le code constructeur du message distant arbitraire."""
+        api = SimpleNamespace(
+            _fetch_api_resp=AsyncMock(
+                return_value={"code": 10113, "data": None, "msg": "contenu interne fictif"}
+            )
+        )
+        order = SimpleNamespace(order_request_data={"order_id": 1, "printer_id": 7})
+        with self.assertRaises(AnycubicOrderRefused) as error:
+            await AnycubicAPIFunctions._send_anycubic_order(api, order)
+        self.assertEqual(error.exception.code, "10113")
+        self.assertNotIn("contenu interne fictif", str(error.exception))
 
     def test_zero_boolean_and_unstable_codes_do_not_become_error_codes(self):
         """Les absences et données arbitraires ne doivent pas devenir de fausses alarmes."""

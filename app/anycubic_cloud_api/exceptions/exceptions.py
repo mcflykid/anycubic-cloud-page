@@ -9,6 +9,15 @@ class AnycubicAPIError(Exception):
     pass
 
 
+class AnycubicOrderRefused(AnycubicAPIError):
+    """Identifie un refus codé sans exposer le texte brut de la réponse distante."""
+
+    def __init__(self, code: str) -> None:
+        """Conserve le code constructeur déjà validé par l’adaptateur HTTP."""
+        self.code = code
+        super().__init__("Ordre refusé par Anycubic.")
+
+
 class AnycubicAuthTokensExpired(AnycubicAPIError):
     """Session cloud refusée à cause de jetons absents ou expirés."""
     pass

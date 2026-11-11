@@ -20,7 +20,7 @@ import {
 import { workshopState } from './workshop-state.mjs';
 import { slots, filamentAdvice } from './workshop-commands.mjs';
 import { definition } from './workshop-overview.mjs';
-import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs';
+import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from './workshop-error-catalogue.mjs';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
@@ -175,10 +175,8 @@ export function createHistory(request, command, selectedBox) {
     thumb.tabIndex = -1;
     row.append(thumb);
     const code = String(item.reason_code || '');
-    const isError = /^[1-9]\d{0,9}$/.test(code) && code !== '200';
-    const sheet = isError && Object.hasOwn(notificationErrorCatalogue, code)
-      ? notificationErrorCatalogue[code]
-      : null;
+    const isError = isDeviceErrorCode(code);
+    const sheet = errorSheet(code);
     /* Une erreur codée est expliquée par sa fiche et son aide contextuelle : éviter de répéter la même phrase. */
     const meta = node('span', null, 'muted notification-meta');
     if (item.printer) meta.append(node('span', item.printer));
@@ -215,7 +213,7 @@ export function createHistory(request, command, selectedBox) {
       button.type = 'button';
       button.setAttribute('aria-haspopup', 'dialog');
       button.setAttribute('aria-describedby', tooltip.id);
-      button.onclick = () => openErrorSheet(item, code, sheet);
+      button.onclick = () => openErrorSheet(item);
       error.append(button, tooltip);
       errorBlock = error;
     }
@@ -239,46 +237,6 @@ export function createHistory(request, command, selectedBox) {
     row.append(remove);
     return row;
   }
-  /** La fiche s’ouvre localement ; le lien facultatif reste limité au wiki officiel. */
-  function openErrorSheet(item, code, sheet) {
-    const dialog = $('notification-error-dialog');
-    if (dialog.open) return;
-    set('notification-error-dialog-title', formatText('Code d’erreur : {0}', code));
-    set('notification-error-subject', [item.printer, item.name].filter(Boolean).join(' · '));
-    $('notification-error-heading').hidden = !sheet?.title;
-    set('notification-error-heading', sheet ? tr(sheet.title) : '');
-    set('notification-error-explanation', tr(sheet?.description || 'Ce code n’est pas encore documenté dans l’atelier.'));
-    $('notification-error-message').hidden = !item.reason;
-    set('notification-error-message-text', item.reason || '');
-    $('notification-error-checks').hidden = !sheet?.steps.length;
-    $('notification-error-steps').replaceChildren(
-      ...(sheet?.steps || []).map((step) => node('li', tr(step))),
-    );
-
-    const source = $('notification-error-source');
-    const url = sheet
-      ? sheet.source || 'https://wiki.anycubic.com/en/error-codes#' + sheet.anchor
-      : safeErrorSource(item.help_url);
-    source.hidden = !url;
-    if (url) source.href = url;
-    else source.removeAttribute('href');
-    dialog.showModal();
-  }
-
-  /** Refuse les hôtes voisins, les redirections et les paramètres provenant de la notification. */
-  function safeErrorSource(value) {
-    try {
-      const url = new URL(value);
-      if (
-        url.origin === 'https://wiki.anycubic.com' &&
-        !url.username && !url.password && !url.search && !url.hash &&
-        url.pathname.length <= 240 &&
-        /^\/(?:en|fr|zh)\/(?:error-codes|fdm-3d-printer)(?:\/[a-z0-9-]+)*\/?$/.test(url.pathname)
-      ) return url.href;
-    } catch {}
-    return '';
-  }
-
   /** Le marquage est confirmé avant le détail ; aucune impression n’est déclenchée. */
   async function openNotice(item) {
     try {
@@ -886,6 +844,8 @@ export function createHistory(request, command, selectedBox) {
     $('past-task-preview-state').hidden = false;
     $('past-task-diagnostic').hidden = true;
     $('past-task-help').hidden = true;
+    $('past-task-error').hidden = true;
+    $('past-task-error').onclick = null;
     $('past-task-data').replaceChildren();
     $('past-task-parameters').replaceChildren();
     const selected = t.printer_key === workshopState.selectedPrinter;
@@ -951,10 +911,14 @@ export function createHistory(request, command, selectedBox) {
           .filter(Boolean)
           .join(' · '),
       );
-      if (d.help_url) {
-        $('past-task-help').href = d.help_url;
-        $('past-task-help').hidden = false;
-      }
+      const help = $('past-task-help');
+      const error = $('past-task-error');
+      const hasCode = isDeviceErrorCode(d.reason_code);
+      const source = safeErrorSource(d.help_url);
+      error.hidden = !hasCode;
+      error.onclick = hasCode ? () => openErrorSheet({ ...d, printer: t.printer, name: d.name || t.name }) : null;
+      help.hidden = !source || hasCode;
+      if (!help.hidden) help.href = source;
       const dims = d.dimensions,
         params = d.parameters || {};
       definition('past-task-data', [

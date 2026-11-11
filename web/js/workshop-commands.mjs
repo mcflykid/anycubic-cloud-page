@@ -1,3 +1,4 @@
+import { openErrorSheet } from './workshop-error-catalogue.mjs';
 import { $, confirmAction, message, set, tr } from './workshop-ui.mjs';
 import { workshopState, setBusy } from './workshop-state.mjs';
 
@@ -111,6 +112,11 @@ export function createCommands(request, refresh) {
       return d;
     } catch (e) {
       notify(e.message, true);
+      if (e.errorSheet) {
+        const help = $('message-error-help');
+        help.hidden = false;
+        help.onclick = () => openErrorSheet(e.errorSheet);
+      }
       return null;
     } finally {
       setBusy(false);

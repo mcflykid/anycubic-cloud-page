@@ -67,6 +67,7 @@ from anycubic_cloud_api.data_models.orders import (
 )
 from anycubic_cloud_api.exceptions.exceptions import (
     AnycubicCameraSessionError,
+    AnycubicOrderRefused,
 )
 
 COMMAND_READ_WAIT_SECONDS = 30
@@ -162,6 +163,10 @@ async def errors(request, handler):
         request_engine(request).event("Caméra", e.reason)
         return web.json_response(
             {"ok": False, "message": str(e), "camera_error": e.reason}, status=409
+        )
+    except AnycubicOrderRefused as e:
+        return web.json_response(
+            {"ok": False, "message": str(e), "reason_code": e.code}, status=409
         )
     except ValueError as e:
         log_event(
@@ -525,6 +530,8 @@ async def command(req):
             except Exception as error:
                 if not sent:
                     raise
+                if isinstance(error, AnycubicOrderRefused):
+                    uncertain["reason_code"] = error.code
                 log_event(
                     OPS_LOG,
                     logging.WARNING,
