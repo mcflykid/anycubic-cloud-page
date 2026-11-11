@@ -202,7 +202,7 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   for (const width of [1280, 800]) {
     await page.setViewportSize({width,height:900});
     const tabs = page.locator('#atelier-tabs');
-    await expect(tabs.locator('button')).toHaveCount(9);
+    await expect(tabs.locator('button')).toHaveCount(10);
     expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   }
@@ -211,7 +211,7 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   await expect(tabs).toBeHidden();
   await page.locator('#section-menu-toggle').click();
   await expect(tabs).toHaveAttribute('data-open','true');
-  await expect(tabs.locator('button')).toHaveCount(9);
+  await expect(tabs.locator('button')).toHaveCount(10);
   expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   await page.setViewportSize({width:1280,height:900});
@@ -220,7 +220,8 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   const product = await page.locator('#tab-overview .product').boundingBox();
   const job = await page.locator('#tab-overview .overview-content').boundingBox();
   expect(product.y).toBeCloseTo(job.y);
-  expect(product.height).toBeCloseTo(job.height);
+  expect(product.height).toBeLessThan(job.height);
+  expect(product.height).toBeGreaterThan(48);
   await expect(page.locator('#controls-open')).toHaveCSS('border-radius', '999px');
   await settings.click();
   const lower = page.locator('.printer-lower-grid > section');

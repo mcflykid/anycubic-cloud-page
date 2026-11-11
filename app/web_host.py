@@ -1,19 +1,22 @@
 """Ressources de l’interface et contrôle d’accès de la distribution autonome."""
 
 import asyncio, hashlib, hmac, html, ipaddress, json, os, pathlib, re, secrets, time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from urllib.parse import urlsplit, parse_qs
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
+from web_assets import UI_PREFIX, build_web_assets
 
 ROOT = pathlib.Path(__file__).resolve().parents[1] / "web"
 APP_VERSION = json.loads((ROOT.parent / "package.json").read_text())["version"]
-UI_PREFIX = "/imprimante-api/ui"
 PUBLIC_ASSETS = {
     "/css/landing.css",
     "/css/imprimante.css",
     "/css/lab.css",
+    "/css/density.css",
+    "/css/visual-states.css",
     "/icons/cloud-page.svg",
     # Ces visuels sont des fichiers publics du dépôt ; une session expirée ne doit pas servir une page de connexion à leur place.
     "/icons/kobra-s1-ace2pro.png",
@@ -68,6 +71,7 @@ SESSION_SECONDS = 8 * 60 * 60
 FAILURE_SECONDS = 5 * 60
 FAILURE_LIMIT = 5
 GLOBAL_FAILURE_LIMIT = 100
+GLOBAL_FAILURE_DELAY = 1.0
 REAUTH_SECONDS = 120
 SENSITIVE_ACTIONS = frozenset(("firmware", "ace-firmware", "factory-reset"))
 
@@ -96,8 +100,11 @@ class Session:
 class AccessState:
     """Conserve uniquement les empreintes de sessions et compte les échecs récents, sans persistance de cookie."""
 
-    def __init__(self):
-        """Initialise des tables bornées ; un redémarrage déconnecte toutes les sessions web."""
+    def __init__(self, clock=time.monotonic, wait=asyncio.sleep):
+        """Initialise l’état d’accès ; clock et wait injectables gardent les tests rapides et déterministes."""
+        self.clock = clock
+        self.wait = wait
+        self.login_lock = asyncio.Lock()
         self.sessions = {}
         self.failures = {}
         self.global_failures = 0
@@ -106,13 +113,22 @@ class AccessState:
 
     def prune(self):
         """Retire les sessions et compteurs expirés afin de borner la mémoire de l’authentification."""
-        now = time.monotonic()
+        now = self.clock()
         self.sessions = {key: value for key, value in self.sessions.items() if value.expires > now}
         self.failures = {key: value for key, value in self.failures.items() if value[1] > now}
         if self.global_window_until <= now:
             self.global_failures = 0
             self.global_window_until = 0
             self.global_until = 0
+
+    @asynccontextmanager
+    async def login_slot(self):
+        """Sérialise les comparaisons ; après le seuil global, chaque tentative attend une seconde."""
+        async with self.login_lock:
+            # Une file FIFO ralentie laisse entrer le propriétaire après les essais déjà admis.
+            if self.global_until > self.clock():
+                await self.wait(GLOBAL_FAILURE_DELAY)
+            yield
 
 
 ACCESS_KEY = web.AppKey("access", AccessState)
@@ -299,15 +315,9 @@ async def access_control(request, handler):
 
 def login_page(message="", status=200):
     """Renvoie le formulaire français sans refléter les identifiants saisis ; message est échappé."""
-    content = (
-        (ROOT / "login.html")
-        .read_text()
-        .replace(
-            "<!-- LOGIN_MESSAGE -->",
-            '<p class="login-error" role="alert">' + html.escape(message) + "</p>"
-            if message
-            else "",
-        )
+    content = build_web_assets(ROOT)[0]["login.html"].replace(
+        "<!-- LOGIN_MESSAGE -->",
+        '<p class="login-error" role="alert">' + html.escape(message) + "</p>" if message else "",
     )
     return web.Response(text=content, content_type="text/html", status=status)
 
@@ -321,10 +331,10 @@ async def login(request):
     state.prune()
     client = rate_limit_client(request)
     # Le quota individuel garde son comportement historique avant le traitement du formulaire.
-    failures, until = state.failures.get(client, (0, time.monotonic() + FAILURE_SECONDS))
+    failures, until = state.failures.get(client, (0, state.clock() + FAILURE_SECONDS))
     if failures >= FAILURE_LIMIT:
         response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
-        response.headers["Retry-After"] = str(max(1, int(until - time.monotonic()) + 1))
+        response.headers["Retry-After"] = str(max(1, int(until - state.clock()) + 1))
         return response
     if request.content_type != "application/x-www-form-urlencoded":
         raise web.HTTPUnsupportedMediaType()
@@ -338,33 +348,43 @@ async def login(request):
         form = parse_qs(raw.decode(), keep_blank_values=True, max_num_fields=8)
     except (ValueError, UnicodeError):
         raise web.HTTPBadRequest(text="Formulaire invalide.") from None
-    username, password, fingerprint = credentials()
     supplied_user = form.get("username", [""])[0]
     supplied_password = form.get("password", [""])[0]
-    valid_user = hmac.compare_digest(supplied_user.encode(), username.encode())
-    valid_password = hmac.compare_digest(supplied_password.encode(), password.encode())
-    if valid_user and valid_password:
-        # Le plafond agrégé freine les refus, mais ne verrouille pas les identifiants valides.
-        state.failures.pop(client, None)
-    else:
-        now = time.monotonic()
-        if state.global_until > now:
+    async with state.login_slot():
+        # La file peut durer au-delà du délai individuel ; retirer les compteurs expirés avant vérification.
+        state.prune()
+        # Relire sous le verrou empêche des formulaires simultanés de contourner le quota individuel.
+        failures, until = state.failures.get(client, (0, state.clock() + FAILURE_SECONDS))
+        now = state.clock()
+        if until <= now:
+            failures, until = 0, now + FAILURE_SECONDS
+            state.failures.pop(client, None)
+        if failures >= FAILURE_LIMIT:
             response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
-            response.headers["Retry-After"] = str(max(1, int(state.global_until - now) + 1))
+            response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
             return response
-        if client not in state.failures and len(state.failures) >= 1024:
-            state.failures.pop(next(iter(state.failures)))
-        state.failures.pop(client, None)
-        state.failures[client] = (failures + 1, until)
-        if not state.global_window_until:
-            state.global_window_until = now + FAILURE_SECONDS
-        state.global_failures += 1
-        if state.global_failures >= GLOBAL_FAILURE_LIMIT:
-            state.global_until = state.global_window_until
-            response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
-            response.headers["Retry-After"] = str(max(1, int(state.global_until - now) + 1))
-            return response
-        return login_page("Identifiant ou mot de passe incorrect.", 401)
+        transport = request.transport
+        if transport is None or transport.is_closing():
+            # Une requête abandonnée dans la file ne doit pas consommer un essai d’authentification.
+            return web.Response(status=499)
+        username, password, fingerprint = credentials()
+        valid_user = hmac.compare_digest(supplied_user.encode(), username.encode())
+        valid_password = hmac.compare_digest(supplied_password.encode(), password.encode())
+        if valid_user and valid_password:
+            # Un seuil agrégé ralentit aussi le propriétaire, sans bloquer ses identifiants valides.
+            state.failures.pop(client, None)
+        else:
+            now = state.clock()
+            if client not in state.failures and len(state.failures) >= 1024:
+                state.failures.pop(next(iter(state.failures)))
+            state.failures.pop(client, None)
+            state.failures[client] = (failures + 1, until)
+            if not state.global_window_until:
+                state.global_window_until = now + FAILURE_SECONDS
+            state.global_failures += 1
+            if state.global_failures >= GLOBAL_FAILURE_LIMIT:
+                state.global_until = state.global_window_until
+            return login_page("Identifiant ou mot de passe incorrect.", 401)
     if len(state.sessions) >= 128:
         state.sessions.pop(next(iter(state.sessions)))
     # Le jeton change à chaque connexion et seule son empreinte est conservée côté serveur.
@@ -373,7 +393,7 @@ async def login(request):
     for old_name in {name, COOKIE_NAME}:
         state.sessions.pop(session_digest(request.cookies.get(old_name, "")), None)
     token = secrets.token_urlsafe(32)
-    state.sessions[session_digest(token)] = Session(time.monotonic() + SESSION_SECONDS, fingerprint)
+    state.sessions[session_digest(token)] = Session(state.clock() + SESSION_SECONDS, fingerprint)
     response = web.Response(status=303, headers={"Location": "/imprimante.html"})
     set_session_cookie(response, name, token, SESSION_SECONDS, secure)
     if secure and COOKIE_NAME in request.cookies:
@@ -475,10 +495,21 @@ def consume_action_ticket(request, action, token):
 
 def render_page(destination, time_zone):
     """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
+    content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
+        "<!-- APP_VERSION -->", html.escape(APP_VERSION)
+    )
+    # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
+    level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
+    log_format = os.environ.get("LOG_FORMAT", "text").strip().lower() or "text"
     content = (
-        (ROOT / "imprimante.html")
-        .read_text()
-        .replace("<!-- APP_VERSION -->", html.escape(APP_VERSION))
+        content.replace("<!-- CONTAINER_TIME_ZONE -->", html.escape(time_zone))
+        .replace(
+            "<!-- CONTAINER_LOG_LEVEL -->",
+            level if level in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"} else "—",
+        )
+        .replace(
+            "<!-- CONTAINER_LOG_FORMAT -->", log_format if log_format in {"text", "json"} else "—"
+        )
     )
     if TIMELAPSE_GALLERY_ENABLED:
         content = content.replace(
@@ -512,14 +543,23 @@ async def index(request):
 async def about(request):
     """Sert uniquement les notices statiques déclarées par l’application."""
     return web.Response(
-        text=(ROOT / INFORMATION_PAGES[request.path.removeprefix(UI_PREFIX)]).read_text(),
+        text=build_web_assets(ROOT)[0][INFORMATION_PAGES[request.path.removeprefix(UI_PREFIX)]],
         content_type="text/html",
     )
 
 
+async def versioned_script(request):
+    """Sert les octets qui ont servi au calcul de l’intégrité dans les pages."""
+    name = request.path.removeprefix(UI_PREFIX).lstrip("/")
+    return web.Response(body=build_web_assets(ROOT)[1][name], content_type="text/javascript")
+
+
 def install_ui_resources(app):
     """Sert les ressources via le préfixe déjà routé et conserve les anciennes adresses."""
+    _, scripts = build_web_assets(ROOT)
     for prefix in ("", UI_PREFIX):
+        for name in scripts:
+            app.router.add_get(f"{prefix}/{name}", versioned_script)
         for path in INFORMATION_PAGES:
             app.router.add_get(prefix + path, about)
         for folder in ("css", "js", "icons"):

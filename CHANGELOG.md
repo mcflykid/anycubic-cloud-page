@@ -1,12 +1,31 @@
 # Changements
 
-## À venir
+## 1.9.0 — 2026-11-11
+
+### Atelier
+
+- Ouvre l’atelier sur **Résumé**, qui réunit l’impression en cours, les températures et l’état de l’ACE. Regroupe les dix onglets par usage et place **Statistiques** avant **Réglages** (#227).
+- Ajoute **Studio**, **Observatoire** et **Verrière** aux sept styles existants. Tous donnent accès aux mêmes données et commandes en clair comme en sombre (#230).
+- Permet de déplacer et de redimensionner les cartes après ouverture du cadenas. La disposition est mémorisée par onglet dans le navigateur et peut être exportée, importée ou réinitialisée depuis **Réglages** (#229).
+- Réorganise la cloche, rapproche l’aperçu du nom de fichier en style **Par défaut** et aère les graphiques de **Parc et santé** dans **Laboratoire** sur grand écran (#216).
+- Distingue les aperçus absents ou indisponibles, les listes vides et les états de chargement ou d’erreur de la caméra (#228).
+- Harmonise les transitions, les chargements de listes et les signaux de changement réel. Respecte la préférence de réduction des animations (#195, #196, #197, #198, #199, #200).
+
+### Fiabilité et sécurité
+
+- Expire les sessions de visionnage caméra abandonnées et laisse passer pause et annulation pendant les lectures longues et les transferts de stockage. Les ordres physiques restent sérialisés (#183, #184).
+- Nettoie les transferts STL et 3MF abandonnés, valide les paramètres avant appel au Cloud et exige une impression active pour modifier les réglages d’une tâche (#185, #187, #188).
+- Renforce les quotas IPv6 derrière un proxy, fiabilise les réponses de notification et invalide les aperçus des fichiers mémoire ou USB modifiés (#186, #189, #190).
+- Suit les échecs de reconnexion MQTT, compare sans distinction de casse l’adresse du compte enregistré et épingle les actions GitHub externes par empreinte (#191, #192, #193).
 
 - Retire la lecture des coordonnées dans Caméra → Déplacer ainsi que sa route et son diagnostic. Les commandes de déplacement restent disponibles (#167).
+- Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - L’ouverture et la fermeture de la caméra laissent passer pause et annulation pendant l’attente d’une lecture. Le verrou d’envoi continue de sérialiser les ordres machine (#206).
+- Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
 - Le journal des commandes garde l’adresse IPv6 du client. Seul le quota de connexion regroupe les adresses par préfixe /64 (#207).
 - Les spectateurs caméra sans signal expirent en trois minutes, au plus tard à la fin de leur session web. Le navigateur renouvelle la présence localement pendant l’affichage de la vidéo (#208).
 - La chaîne des proxys est lue jusqu’au premier client identifié ou élément illisible. Un plafond temporaire s’applique aux refus de connexion répartis entre les adresses (#209).
+- Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
 - Les statistiques affichent le nom de la machine et regroupent les courbes sous le nom de chaque ACE. Les commandes CSV et le résumé du parc tiennent sur une ligne.
 - Corrige l’alignement du menu Apple Design, les libellés Blueprint et le repère de sélection Océan. Le style se choisit dans la liste Apparence.
 - Anime les ouvertures de sections et de fenêtres selon le style et la préférence de mouvement. Corrige les marges du séchage dans Laboratoire.
@@ -26,7 +45,7 @@
 - Les codes de notification ouvrent une fiche de diagnostic dans l’atelier. Neuf codes ont une explication et des vérifications ; les autres conservent le message constructeur. Le wiki officiel reste une source facultative (#180).
 - La déconnexion attend la libération de la session caméra et ferme le flux local avant de révoquer la session web (#178).
 - Revue indépendante backend et frontend, tests de régression et comparaison des intégrations externes, dont MMM-Anycubic et les forks publics Wares. Les limites de couverture et les hypothèses matérielles sont documentées (#158, #170).
-- Diagnostics de lecture des coordonnées enrichis : phases Cloud/MQTT, durées, réponse manquante distincte et HTTP 504 sans relance. La cause des délais observés sur S1 reste suivie dans #167 ; aucune position n’est inventée.
+- Diagnostics de lecture des coordonnées enrichis : phases Cloud/MQTT, durées, réponse manquante distincte et HTTP 504 sans relance. La cause des délais observés sur S1 était alors suivie dans #167 et n’a pas été établie.
 
 ## 1.7.1 — 2026-11-11
 
@@ -109,7 +128,7 @@
 
 - Chaque nouvelle release ouvre une discussion dans la catégorie Annonces (#108).
 
-Les parcours de notifications et de dossiers Cloud ont été vérifiés sur des réponses fictives. La galerie Timelapse, la chauffe au repos et la lecture des coordonnées restent suivies dans #30, #95 et #96.
+Les parcours de notifications et de dossiers Cloud ont été vérifiés sur des réponses fictives. La galerie Timelapse, la chauffe au repos et la lecture des coordonnées étaient alors suivies dans #30, #95 et #96.
 
 ## 1.3.1 — 2026-11-06
 

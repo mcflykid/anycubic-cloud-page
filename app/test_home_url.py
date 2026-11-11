@@ -1,10 +1,11 @@
 """Tests des destinations de navigation, sans accès cloud ni modification des scripts statiques."""
 
-import base64, hashlib, os, pathlib, unittest
+import base64, hashlib, os, pathlib, re, shutil, tempfile, unittest
 from unittest.mock import patch
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from web_host import home_url, install_static
+from web_assets import build_web_assets
 
 
 class Navigation(unittest.IsolatedAsyncioTestCase):
@@ -46,9 +47,18 @@ class Navigation(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(page.count('href="/atelier?x=&quot;demo&quot;&amp;a=1"'), 1)
             self.assertIn('action="/logout"', page)
             self.assertNotIn("Atelier autonome", page)
-            script = pathlib.Path(__file__).resolve().parents[1] / "web/js/imprimante.js"
-            digest = base64.b64encode(hashlib.sha256(script.read_bytes()).digest()).decode()
-            self.assertTrue('integrity="sha256-' + digest + '"' in page)
+            url = re.search(r'id="workshop-script"[^>]+src="([^"]+)"', page)[1]
+            self.assertRegex(url, r"\?v=[0-9a-f]{12}$")
+            script = await client.get(url)
+            self.assertEqual(script.status, 200)
+            body = await script.read()
+            digest = base64.b64encode(hashlib.sha256(body).digest()).decode()
+            self.assertIn('integrity="sha256-' + digest + '"', page)
+            source = pathlib.Path(__file__).resolve().parents[1] / "web/js/imprimante.js"
+            self.assertFalse("?v=" in source.read_text())
+            module = await client.get("/imprimante-api/ui/js/workshop-ui.mjs")
+            self.assertEqual(module.status, 200)
+            self.assertIn(url.rsplit("?", 1)[1], await module.text())
             response = await client.get("/about")
             self.assertEqual(response.status, 200)
             self.assertIn("auto-hébergée", await response.text())
@@ -66,6 +76,24 @@ class Navigation(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual('class="document-brand"' in page, value is None)
                 if value is None:
                     self.assertEqual(page.count('href="/imprimante.html"'), 1)
+
+
+class AssetRevision(unittest.TestCase):
+    """Vérifie qu’un changement de dépendance suffit à renouveler les URL."""
+
+    def test_stylesheet_change_updates_module_revision(self):
+        """Deux instantanés de CSS différents ne servent pas la même URL de script."""
+        source = pathlib.Path(__file__).resolve().parents[1] / "web"
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "web"
+            shutil.copytree(source, root)
+            pages, scripts = build_web_assets(root)
+            stylesheet = root / "css/landing.css"
+            stylesheet.write_bytes(stylesheet.read_bytes() + b"\n")
+            build_web_assets.cache_clear()
+            changed_pages, changed_scripts = build_web_assets(root)
+            self.assertNotEqual(pages["login.html"], changed_pages["login.html"])
+            self.assertNotEqual(scripts["js/imprimante.js"], changed_scripts["js/imprimante.js"])
 
 
 class TimeZone(unittest.IsolatedAsyncioTestCase):
