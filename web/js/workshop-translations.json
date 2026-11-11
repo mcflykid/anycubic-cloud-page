@@ -4150,5 +4150,53 @@
   "Sections de l’atelier": [
     "Workshop sections",
     "Secciones del taller"
+  ],
+  "Déverrouiller la disposition": [
+    "Unlock layout",
+    "Desbloquear la disposición"
+  ],
+  "Verrouiller la disposition": [
+    "Lock layout",
+    "Bloquear la disposición"
+  ],
+  "Déplacer avant": [
+    "Move earlier",
+    "Mover antes"
+  ],
+  "Déplacer après": [
+    "Move later",
+    "Mover después"
+  ],
+  "Redimensionner cette tuile": [
+    "Resize this tile",
+    "Cambiar tamaño de la tarjeta"
+  ],
+  "Disposition restaurée.": [
+    "Layout restored.",
+    "Disposición restaurada."
+  ],
+  "Sauvegarde de disposition invalide.": [
+    "Invalid layout backup.",
+    "Copia de disposición no válida."
+  ],
+  "Sauvegarde des dispositions": [
+    "Layout backup",
+    "Copia de las disposiciones"
+  ],
+  "Les positions et tailles des tuiles sont enregistrées dans ce navigateur.": [
+    "Tile positions and sizes are saved in this browser.",
+    "Las posiciones y tamaños de las tarjetas se guardan en este navegador."
+  ],
+  "Exporter la disposition": [
+    "Export layout",
+    "Exportar disposición"
+  ],
+  "Restaurer les dispositions d’origine": [
+    "Restore default layouts",
+    "Restaurar disposiciones originales"
+  ],
+  "Importer une disposition": [
+    "Import a layout",
+    "Importar una disposición"
   ]
 }
