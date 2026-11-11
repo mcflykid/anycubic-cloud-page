@@ -1,4 +1,4 @@
-import { formatText, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { formatText, tr } from './workshop-ui.mjs?v=544c79feee4e';
 
 /** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
 export function initializeWorkshopNavigation() {
@@ -13,7 +13,11 @@ export function initializeWorkshopNavigation() {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   navigation.dataset.open = 'false';
   navigation.dataset.phase = '';
-  navigation.querySelectorAll('[data-tab]').forEach((tab, index) => tab.style.setProperty('--tile-index', index));
+  const tabs = [...navigation.querySelectorAll('[data-tab]')];
+  tabs.forEach((tab, index) => {
+    tab.style.setProperty('--tile-index', index);
+    tab.style.setProperty('--tile-exit-index', tabs.length - index - 1);
+  });
   let phase = 0, closeTimer = 0, bento = null, bentoItems = [], indicator = null;
   let mobileLabel = document.getElementById('section-menu-current');
   if (!mobileLabel) {
@@ -75,6 +79,7 @@ export function initializeWorkshopNavigation() {
     if (toggle.getAttribute('aria-expanded') === 'true') close(true);
     else open();
   };
+  toggle.disabled = false;
   navigation.addEventListener('click', event => {
     const tab = event.target.closest('[data-tab]');
     if (!tab) return;

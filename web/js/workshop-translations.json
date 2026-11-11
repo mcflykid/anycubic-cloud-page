@@ -4082,5 +4082,73 @@
   "La détection IA signale une forme qui peut correspondre à une accumulation de filament. Cette alerte ne confirme pas un arrêt.": [
     "AI detection reported a shape that may be a buildup of filament. This alert does not confirm that the printer stopped.",
     "La detección mediante IA ha señalado una forma que podría ser una acumulación de filamento. Esta alerta no confirma que la impresora se haya detenido."
+  ],
+  "Résumé": [
+    "Overview",
+    "Resumen"
+  ],
+  "Accueil": [
+    "Home",
+    "Inicio"
+  ],
+  "Appareils": [
+    "Devices",
+    "Dispositivos"
+  ],
+  "Impressions": [
+    "Printing",
+    "Impresión"
+  ],
+  "Suivi": [
+    "Monitoring",
+    "Seguimiento"
+  ],
+  "Configuration": [
+    "Configuration",
+    "Configuración"
+  ],
+  "Ouvrir l’imprimante": [
+    "Open printer",
+    "Abrir la impresora"
+  ],
+  "Ouvrir l’ACE": [
+    "Open ACE",
+    "Abrir ACE"
+  ],
+  "Connexion, apparence et configuration de l’atelier.": [
+    "Connection, appearance and workshop configuration.",
+    "Conexión, apariencia y configuración del taller."
+  ],
+  "Conteneur": [
+    "Container",
+    "Contenedor"
+  ],
+  "Niveau des journaux": [
+    "Log level",
+    "Nivel de registro"
+  ],
+  "Format des journaux": [
+    "Log format",
+    "Formato de registro"
+  ],
+  "Les paramètres du conteneur se règlent dans Compose.": [
+    "Container settings are configured in Compose.",
+    "Los ajustes del contenedor se configuran en Compose."
+  ],
+  "Guide d’installation": [
+    "Installation guide",
+    "Guía de instalación"
+  ],
+  "Journaux du conteneur": [
+    "Container logs",
+    "Registros del contenedor"
+  ],
+  "Fuseau horaire": [
+    "Time zone",
+    "Zona horaria"
+  ],
+  "Sections de l’atelier": [
+    "Workshop sections",
+    "Secciones del taller"
   ]
 }

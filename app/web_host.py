@@ -480,6 +480,19 @@ def render_page(destination, time_zone):
         .read_text()
         .replace("<!-- APP_VERSION -->", html.escape(APP_VERSION))
     )
+    # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
+    level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
+    log_format = os.environ.get("LOG_FORMAT", "text").strip().lower() or "text"
+    content = (
+        content.replace("<!-- CONTAINER_TIME_ZONE -->", html.escape(time_zone))
+        .replace(
+            "<!-- CONTAINER_LOG_LEVEL -->",
+            level if level in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"} else "—",
+        )
+        .replace(
+            "<!-- CONTAINER_LOG_FORMAT -->", log_format if log_format in {"text", "json"} else "—"
+        )
+    )
     if TIMELAPSE_GALLERY_ENABLED:
         content = content.replace(
             'class="form-panel timelapse-panel" hidden', 'class="form-panel timelapse-panel"', 1
