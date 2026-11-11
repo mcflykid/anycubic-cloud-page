@@ -201,7 +201,7 @@ export function createOverview(request) {
     if (!key || previewJob?.key !== key) {
       image.hidden = true;
       summaryImage.hidden = true;
-      image.onerror = null;
+      image.onerror = image.onload = summaryImage.onload = null;
       status.hidden = true;
       status.removeAttribute('aria-busy');
       delete status.dataset.previewState;
@@ -227,31 +227,28 @@ export function createOverview(request) {
         if (previewJob === current && result.image) {
           image.onerror = () => {
             if (previewJob !== current) return;
-            image.hidden = true;
-            summaryImage.hidden = true;
-            current.done = true;
             showStatus('unavailable', 'Aperçu indisponible');
           };
           image.onload = () => {
-            if (previewJob === current) {
-              status.hidden = true;
-              status.removeAttribute('aria-busy');
-            }
+            if (previewJob !== current) return;
+            image.hidden = false;
+            status.hidden = true;
+            status.removeAttribute('aria-busy');
+            summaryImage.onload = () => {
+              if (previewJob === current) summaryImage.hidden = false;
+            };
+            summaryImage.src = result.image;
           };
-          image.src = result.image;
-          image.hidden = false;
-          summaryImage.src = result.image;
-          summaryImage.hidden = false;
+          // La réponse Cloud fournit une URL. Le navigateur doit encore charger l’image.
           current.done = true;
-          status.hidden = true;
-          status.removeAttribute('aria-busy');
+          image.src = result.image;
         }
       })
       .catch(() => {})
       .finally(() => {
         current.pending = false;
         current.next = Date.now() + Math.min(30000, current.attempts * 5000);
-        if (previewJob === current && image.hidden) {
+        if (previewJob === current && !current.done) {
           if (current.attempts >= 6) showStatus('unavailable', 'Aperçu indisponible');
           else showStatus('waiting', 'Aperçu en attente');
         }
