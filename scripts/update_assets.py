@@ -89,6 +89,7 @@ def update(check=False):
     for name in (
         "imprimante.html",
         "login.html",
+        "discord.html",
         "cookies.html",
         "credits.html",
         "privacy.html",

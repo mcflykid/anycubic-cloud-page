@@ -137,3 +137,26 @@ body:has(.legal-shell) { background: var(--surface); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } .card:hover .card-logo, .card:active .card-logo { transform: none; } }
 
 .document-brand{gap:9px}.document-brand img{display:block;width:32px;height:32px;object-fit:contain;flex-shrink:0}
+
+/* Réglages Discord : les deux options gardent leur libellé et leur cible sur une seule rangée. */
+.discord-card > p { margin-block: .55rem; }
+.discord-card form p { margin: .35rem 0 .75rem; }
+.discord-card .discord-options { display: grid; gap: .15rem; margin-block: .65rem; }
+.discord-card .discord-options label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .65rem;
+  min-height: 36px;
+  margin: 0;
+}
+.login-body .discord-card .discord-options input {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.discord-card .actions { gap: .45rem; margin-block: 1rem; }
+.discord-card .actions button { margin: 0; }

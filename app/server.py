@@ -3,6 +3,7 @@
 
 import asyncio, collections, contextlib, json, logging, os, pathlib, re, shutil, time, tempfile, uuid
 from datetime import datetime
+from functools import partial
 import aiohttp, ssl
 from aiohttp import web
 from aiofiles import open as aio_open
@@ -16,6 +17,7 @@ from upload_formats import validate_cloud_model
 from filament_catalog import editable_materials
 from print_preflight import ensure_firmware_ready, ensure_storage_ready, evaluate_preflight
 from notification_service import AccountNotifications
+from notification_settings import DELIVERY_KEY, install_discord
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from fleet_health import FleetHealth
 from monitoring import Monitoring
@@ -27,7 +29,7 @@ from request_validation import json_object
 from printer_values import integer, now, safeget, serial
 from printer_commands import execute_command, slot_indices
 import printer_files
-from account_auth import AccountAuth
+from account_auth import AccountAuth, claims
 from web_host import (
     APP_VERSION,
     SESSION_DIGEST_KEY,
@@ -307,6 +309,7 @@ class Engine:
         self.upload_lock = asyncio.Lock()
         self.mqtt_reconnect_task = None
         self.notifications = AccountNotifications()
+        self.notification_delivery = None
         self.extras = None
         self.notifications_error = None
         self.fleet_registry = None
@@ -571,6 +574,7 @@ class Engine:
         """Actualise chaque cible et le catalogue du compte, sans changer l’identité d’un moteur existant."""
         while True:
             poll_started = time.monotonic()
+            observation = None
             try:
                 async with self.lock:
                     primary = not self.fleet_registry or self is self.fleet_registry.default
@@ -616,8 +620,16 @@ class Engine:
                         await self.restart_mqtt_auth(self.api)
                     self.mqtt_start()
                     try:
-                        await self.print_history(1)
+                        history_page = await self.print_history(1)
                         self.notifications_error = None
+                        delivery = self.notification_delivery
+                        if primary and delivery and delivery.config.enabled:
+                            observation = (
+                                claims(self.account_token).get("sub"),
+                                history_page["source"],
+                                self.notifications.observed_rows(history_page),
+                                self.api,
+                            )
                     except Exception as error:
                         if self.notifications_error is None:
                             log_event(
@@ -656,6 +668,21 @@ class Engine:
                         with contextlib.suppress(Exception):
                             owner.api.disconnect_mqtt()
                     self.printer = None
+            if observation is not None:
+                scope, source, rows, api = observation
+                # Les compléments de preuve ne retiennent ni le verrou machine ni le verrou de lecture.
+                try:
+                    await self.notification_delivery.observe_cloud(
+                        scope, source, rows, partial(self.notifications.terminal_legacy_rows, api)
+                    )
+                except Exception as error:
+                    log_event(
+                        OPS_LOG,
+                        logging.WARNING,
+                        "notification_observation_failed",
+                        message="Observation Discord interrompue ; le suivi Cloud continue",
+                        error_type=type(error).__name__,
+                    )
             await asyncio.sleep(60)
 
     def command_project_key(self):
@@ -2062,6 +2089,7 @@ async def startup(app):
     with contextlib.suppress(Exception):
         engine.presets = json.loads(pathlib.Path("/appdata/state/presets.json").read_text())
     engine.catalogue_source = True
+    engine.notification_delivery = app.get(DELIVERY_KEY)
     app["printer_registry"] = PrinterRegistry(engine, Engine, sample_temperatures, app)
     app["fleet_health"] = FleetHealth()
     app["poll_task"] = asyncio.create_task(engine.poll())
@@ -2222,6 +2250,7 @@ app.on_cleanup.append(cleanup)
 from web_host import install_static
 
 install_static(app)
+install_discord(app, engine.state_dir)
 if __name__ == "__main__":
     if os.geteuid() == 0:
         raise SystemExit("Le serveur doit être lancé sans privilèges root.")

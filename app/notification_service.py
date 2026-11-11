@@ -276,7 +276,8 @@ class AccountNotifications:
             "has_more": page * 20 < total if type(total) is int else len(rows) == 20,
         }
 
-    async def _legacy_page(self, api, page):
+    async def terminal_legacy_rows(self, api, page=1):
+        """Lit les preuves du journal historique sans demander ses compteurs."""
         response = await api._fetch_api_resp(
             AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessages"),
             params={"type": 1, "page": page, "limit": 20},
@@ -287,6 +288,15 @@ class AccountNotifications:
             or not isinstance(response.get("data"), list)
         ):
             raise ValueError("Le journal Anycubic est temporairement indisponible")
+        return response["data"]
+
+    def observed_rows(self, page):
+        """Prend un instantané serveur des lignes d’une page sans exposer les références brutes."""
+        return [self.rows[item["key"]] for item in page["items"] if item["key"] in self.rows]
+
+    async def _legacy_page(self, api, page):
+        """Normalise les lignes historiques et complète leur compteur pour la cloche."""
+        raw_rows = await self.terminal_legacy_rows(api, page)
         try:
             counts = await api._fetch_api_resp(
                 AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessageCount"), params={}
@@ -294,7 +304,7 @@ class AccountNotifications:
         except (AnycubicAPIError, TimeoutError, ValueError):
             counts = None
         rows = []
-        for raw in response["data"]:
+        for raw in raw_rows:
             if not isinstance(raw, dict) or type(raw.get("id")) is not int:
                 continue
             entry = history_entry(raw)

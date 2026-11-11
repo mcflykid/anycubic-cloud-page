@@ -4082,5 +4082,105 @@
   "La détection IA signale une forme qui peut correspondre à une accumulation de filament. Cette alerte ne confirme pas un arrêt.": [
     "AI detection reported a shape that may be a buildup of filament. This alert does not confirm that the printer stopped.",
     "La detección mediante IA ha señalado una forma que podría ser una acumulación de filamento. Esta alerta no confirma que la impresora se haya detenido."
+  ],
+  "Notifications Discord — Anycubic Cloud Page": [
+    "Discord notifications — Anycubic Cloud Page",
+    "Notificaciones de Discord — Anycubic Cloud Page"
+  ],
+  "Notifications Discord": [
+    "Discord notifications",
+    "Notificaciones de Discord"
+  ],
+  "Configurer les notifications Discord": [
+    "Set up Discord notifications",
+    "Configurar las notificaciones de Discord"
+  ],
+  "Recevez un message après une impression terminée ou échouée.": [
+    "Get a message when a print finishes or fails.",
+    "Recibe un mensaje cuando una impresión termina o falla."
+  ],
+  "Webhook enregistré.": [
+    "Webhook saved.",
+    "Webhook guardado."
+  ],
+  "Aucun webhook enregistré.": [
+    "No webhook saved.",
+    "No hay un webhook guardado."
+  ],
+  "Dernier envoi confirmé.": [
+    "Last delivery confirmed.",
+    "Último envío confirmado."
+  ],
+  "Dernier envoi refusé.": [
+    "Last delivery refused.",
+    "Último envío rechazado."
+  ],
+  "Dernier envoi sans confirmation.": [
+    "Last delivery unconfirmed.",
+    "Último envío sin confirmar."
+  ],
+  "État de livraison indisponible.": [
+    "Delivery status unavailable.",
+    "Estado de entrega no disponible."
+  ],
+  "Adresse du webhook Discord": [
+    "Discord webhook URL",
+    "Dirección del webhook de Discord"
+  ],
+  "Laissez vide pour conserver le webhook enregistré.": [
+    "Leave blank to keep the saved webhook.",
+    "Déjalo en blanco para conservar el webhook guardado."
+  ],
+  "Langue du message": [
+    "Message language",
+    "Idioma del mensaje"
+  ],
+  "Activer les notifications Discord": [
+    "Enable Discord notifications",
+    "Activar las notificaciones de Discord"
+  ],
+  "Inclure le nom du fichier": [
+    "Include the file name",
+    "Incluir el nombre del archivo"
+  ],
+  "Envoyer un test": [
+    "Send a test",
+    "Enviar una prueba"
+  ],
+  "Supprimer le webhook": [
+    "Remove webhook",
+    "Eliminar el webhook"
+  ],
+  "Adresse de webhook Discord invalide.": [
+    "Invalid Discord webhook URL.",
+    "La dirección del webhook de Discord no es válida."
+  ],
+  "Renseignez une adresse de webhook Discord.": [
+    "Enter a Discord webhook URL.",
+    "Introduce una dirección de webhook de Discord."
+  ],
+  "Message de test confirmé.": [
+    "Test message confirmed.",
+    "Mensaje de prueba confirmado."
+  ],
+  "Le test est temporairement limité. Réessayez plus tard.": [
+    "Testing is temporarily limited. Try again later.",
+    "La prueba está limitada temporalmente. Inténtalo más tarde."
+  ],
+  "Discord n’a pas confirmé le message de test.": [
+    "Discord did not confirm the test message.",
+    "Discord no confirmó el mensaje de prueba."
+  ],
+  "Impossible d’enregistrer le réglage Discord.": [
+    "Could not save Discord settings.",
+    "No se pudo guardar la configuración de Discord."
+  ],
+  "Webhook supprimé.": [
+    "Webhook removed.",
+    "Webhook eliminado."
+  ],
+  "Réglage Discord enregistré.": [
+    "Discord settings saved.",
+    "Configuración de Discord guardada."
   ]
 }

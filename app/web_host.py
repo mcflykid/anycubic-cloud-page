@@ -424,29 +424,39 @@ async def reauthenticate(request):
         or not isinstance(password, str)
     ):
         return web.json_response({"message": "Demande de confirmation invalide."}, status=400)
+    session, refusal = confirm_web_password(request, password)
+    if refusal is not None:
+        return refusal
+    token = secrets.token_urlsafe(32)
+    session.ticket = ActionTicket(
+        session_digest(token), action, printer, time.monotonic() + REAUTH_SECONDS
+    )
+    return web.json_response({"confirmation": token})
+
+
+def confirm_web_password(request, password):
+    """Confirme le mot de passe de la session avec le quota des opérations sensibles."""
     session = active_session(request)
     if session is None:
-        return web.json_response({"message": "Session expirée."}, status=401)
+        return None, web.json_response({"message": "Session expirée."}, status=401)
     now = time.monotonic()
     if session.reauth_until <= now:
         session.reauth_failures = 0
         session.reauth_until = now + FAILURE_SECONDS
     if session.reauth_failures >= FAILURE_LIMIT:
-        return web.json_response(
+        return None, web.json_response(
             {"message": "Trop de tentatives. Réessayez dans quelques minutes."},
             status=429,
             headers={"Retry-After": str(max(1, int(session.reauth_until - now) + 1))},
         )
     _, expected, fingerprint = credentials()
     if not hmac.compare_digest(fingerprint, session.fingerprint):
-        return web.json_response({"message": "Session expirée."}, status=401)
+        return None, web.json_response({"message": "Session expirée."}, status=401)
     if not hmac.compare_digest(password.encode(errors="surrogatepass"), expected.encode()):
         session.reauth_failures += 1
-        return web.json_response({"message": "Mot de passe web incorrect."}, status=403)
+        return None, web.json_response({"message": "Mot de passe web incorrect."}, status=403)
     session.reauth_failures = 0
-    token = secrets.token_urlsafe(32)
-    session.ticket = ActionTicket(session_digest(token), action, printer, now + REAUTH_SECONDS)
-    return web.json_response({"confirmation": token})
+    return session, None
 
 
 def consume_action_ticket(request, action, token):
