@@ -10,11 +10,11 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('data-style','standard');
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
- await expect(page.locator('#interface-style option')).toHaveCount(7);
+ await expect(page.locator('#interface-style option')).toHaveCount(10);
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 
-test('Apple Design garde neuf sections accessibles sans débordement horizontal',async({page})=>{
+test('Apple Design garde dix sections accessibles sans débordement horizontal',async({page})=>{
  await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page);
  const tabs=page.locator('#atelier-tabs');
  await expect(page.locator('#section-menu-toggle')).toBeVisible();

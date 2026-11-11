@@ -1,4 +1,4 @@
-import { $, fmt, mins, node, set, tr } from './workshop-ui.mjs?v=f51999168421';
+import { $, fmt, mins, node, set, tr } from './workshop-ui.mjs?v=d730a15b9b57';
 
 /** Réunit le suivi de la tâche et des ACE à partir du relevé déjà chargé. */
 export function renderSummary(snapshot) {

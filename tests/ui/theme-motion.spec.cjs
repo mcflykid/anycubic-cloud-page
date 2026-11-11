@@ -20,10 +20,10 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les sept styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
+test('les dix styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
   await login(page);
   await openSettings(page);
-  const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab'];
+  const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab','studio','observatory','glasshouse'];
   for(const mode of ['light','dark']){
     await page.locator('#interface-theme').selectOption(mode);
     for(const style of themes){
