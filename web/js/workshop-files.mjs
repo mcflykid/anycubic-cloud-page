@@ -9,10 +9,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=d730a15b9b57';
-import { workshopState, setBusy } from './workshop-state.mjs?v=6a5b469f1035';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=fc6bf9f1d9bf';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=9967bcf9f1f2';
+} from './workshop-ui.mjs?v=e3a401985858';
+import { workshopState, setBusy } from './workshop-state.mjs?v=9c67b13bd97a';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=8457f5134585';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=0c0ffb4fb034';
 
 import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
 
@@ -206,6 +206,9 @@ export function createFiles(request, command) {
             ? formatText('{0} élément(s).', rows.length)
             : tr('Ce dossier est vide.'),
       );
+    if (list === null) $('files-state').dataset.visualState = 'waiting';
+    else if (rows.length === 0) $('files-state').dataset.visualState = 'empty';
+    else delete $('files-state').dataset.visualState;
     $('cloud-tools').hidden = source !== 'cloud';
     if (source === 'cloud') {
       if (Array.isArray(list)) set('files-state', formatText('{0} fichier(s).', rows.length));
@@ -233,6 +236,7 @@ export function createFiles(request, command) {
       printer: workshopState.selectedPrinter,
     };
     filePending = true;
+    $('files-state').dataset.visualState = 'loading';
     renderFiles();
     const stopLoading = beginListLoading($('file-rows'), $('files-loading'), () => {
       if (generation !== fileGeneration || !currentFileContext(context)) return false;
@@ -276,6 +280,7 @@ export function createFiles(request, command) {
         renderFiles();
         message(e.message, true);
         set('files-state', tr('Liste indisponible.'));
+        $('files-state').dataset.visualState = 'error';
       }
     } finally {
       stopLoading();

@@ -103,6 +103,7 @@ def update(check=False):
             "monitoring.css",
             "interactions.css",
             "lab.css",
+            "visual-states.css",
             "workshop-navigation.css",
             "workshop-layout.css",
             "workshop-styles.css",

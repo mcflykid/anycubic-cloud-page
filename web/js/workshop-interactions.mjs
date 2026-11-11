@@ -1,4 +1,4 @@
-import { node, tr } from './workshop-ui.mjs?v=d730a15b9b57';
+import { node, tr } from './workshop-ui.mjs?v=e3a401985858';
 
 /** Une palette de navigation reste sans commandes physiques ; les raccourcis ne remplacent pas les champs natifs. */
 export function initializeInteractions() {
