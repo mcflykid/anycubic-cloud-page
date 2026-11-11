@@ -37,11 +37,11 @@ test('le glissement peint une plage sans ordre et Maj+clic la complète',async({
  await page.locator('[data-source=cloud]').click();
  const checks=page.locator('#file-rows input[type=checkbox]');
  await expect(checks).toHaveCount(5);
- await checks.nth(2).scrollIntoViewIfNeeded();
- const first=await checks.nth(0).boundingBox(),third=await checks.nth(2).boundingBox();
- await page.mouse.move(first.x+first.width/2,first.y+first.height/2);
+ await checks.nth(0).hover();
  await page.mouse.down();
- await page.mouse.move(third.x+third.width/2,third.y+third.height/2);
+ await expect(checks.nth(0)).toBeChecked();
+ // La première sélection révèle la barre groupée. La cible se mesure après ce changement.
+ await checks.nth(2).hover();
  await page.mouse.up();
  await expect(page.locator('#file-rows .file-selected')).toHaveCount(3);
  await expect(page.locator('#cloud-selected-count')).toHaveText('3 sélections');
