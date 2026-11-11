@@ -4,7 +4,7 @@
 
 - Garde l’état de chargement jusqu’à l’arrivée de l’aperçu. Prisme révèle alors l’image par une courte transition (#248).
 
-- Ajoute Prisme, un style aux panneaux de verre fumé et aux mesures en tuiles (#277).
+- Ajoute Prisme, un style aux panneaux graphite, aux reflets bleus et aux mesures en tuiles. Sa navigation de bureau regroupe les onglets en capsules (#277, #281).
 
 - Indique la source de fichiers active par un curseur à ressort. Ajoute un interrupteur en relief pour le relais des bobines et une pulsation pendant la préparation réelle du CSV. Anime les étoiles de l’évaluation et regroupe les liens du pied de page (#248).
 

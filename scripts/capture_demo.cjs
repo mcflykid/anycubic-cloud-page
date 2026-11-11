@@ -202,7 +202,7 @@ async function main() {
     await page.reload();
     await openSection(page, 'summary');
     await photo(page, '24-prisme-mobile.png');
-    await page.setViewportSize(desktop);
+    await page.setViewportSize({width:1920, height:1080});
     await photo(page, '23-prisme-sombre.png');
     await captureTotp(page, browser, base);
     console.log('25 captures de démonstration produites, sans compte réel.');

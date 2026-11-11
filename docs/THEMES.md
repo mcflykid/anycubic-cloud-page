@@ -14,7 +14,7 @@ Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste. 
 | Aurore | Tableau bento avec machine, travail, températures et détails. | Les cartes se déplacent par glissement ou par commandes haut/bas; l’ordre est mémorisé localement et peut être réinitialisé. |
 | Laboratoire | Cartes de supervision plus espacées sur grand écran. | Les graphiques s’adaptent à la largeur disponible. |
 | Verrière | Panneaux translucides et cartes aérées. | Les commandes de navigation restent regroupées par usage. |
-| Prisme | Surfaces fumées, reflets verts, cyan et ambrés, mesures en tuiles dans le Résumé. | La section active reste dans une pilule. Les cartes suivent la disposition enregistrée et se replient sur une colonne sur téléphone. |
+| Prisme | Surfaces graphite, reflets bleus et mesures en tuiles dans le Résumé. | Les onglets se regroupent en capsules sur ordinateur et la section active reste visible. Les cartes suivent la disposition enregistrée et se replient sur une colonne sur téléphone. |
 
 [Prisme sur ordinateur](../screenshots/23-prisme-sombre.png) · [Prisme sur téléphone](../screenshots/24-prisme-mobile.png).
 

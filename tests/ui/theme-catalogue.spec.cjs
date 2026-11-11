@@ -117,6 +117,13 @@ test('Prisme montre les relevés en tuiles et replie les deux appareils sur tél
   await page.locator('#interface-style').selectOption('prism');
   await page.locator('#interface-theme').selectOption('dark');
   await openSection(page,'summary');
+  await page.setViewportSize({width:1920,height:1080});
+  const navigation=page.locator('#atelier-tabs');
+  await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(navigation.locator('[data-tab]')).toHaveCount(10);
+  const bounds=await navigation.boundingBox();
+  expect(bounds.height).toBeLessThan(60);
+  expect(bounds.width).toBeLessThan(1440);
   const printer=page.locator('.summary-printer');
   const ace=page.locator('.summary-ace');
   await expect(printer.locator('.summary-values')).toHaveCSS('display','grid');
