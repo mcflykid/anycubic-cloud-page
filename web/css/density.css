@@ -70,12 +70,11 @@
   }
 
   /* Le repère n'existe visuellement que dans Apple et Océan ; le retirer ailleurs évite un vieux transform hors cadre. */
-  [data-style]:not([data-style="apple"]):not([data-style="ocean"]) #atelier-tabs .atelier-active-indicator {
+  [data-style]:not([data-style="apple"]) #atelier-tabs .atelier-active-indicator {
     display: none;
   }
 
-  [data-style="apple"] #atelier-tabs .atelier-active-indicator,
-  [data-style="ocean"] #atelier-tabs .atelier-active-indicator {
+  [data-style="apple"] #atelier-tabs .atelier-active-indicator{
     display: block;
   }
 
@@ -1374,24 +1373,11 @@
   }
 }
 
-/* Les styles Détaillé et Aurore conservent leurs compositions sans pousser le pied hors écran. */
+/* Aurore conserve sa composition sans pousser le pied hors écran. */
 @media (min-width: 960px) {
-  [data-style="detailed"] #tab-overview {
-    gap: 8px;
-  }
 
-  [data-style="detailed"] #tab-overview > .overview-grid {
-    margin-bottom: 4px;
-  }
 
-  [data-style="detailed"] #tab-overview .printer-lower-grid .metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
-  [data-style="detailed"] #tab-overview .printer-lower-grid .metrics > div {
-    grid-column: auto;
-    padding: 4px 6px;
-  }
 
   [data-style="aurora"] #aurora-bento {
     gap: 6px;
@@ -1442,19 +1428,8 @@
     min-height: 32px;
   }
 
-  [data-style="detailed"] #tab-overview .printer-lower-grid #temperatures {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
 
-  [data-style="detailed"] #tab-overview .printer-lower-grid #temperatures > div {
-    grid-column: auto;
-    padding: 8px;
-  }
 
-  [data-style="detailed"] #tab-overview #controls-open {
-    margin: 10px auto 0;
-  }
 }
 
 /* Téléphone : le menu et les commandes gardent leur taille de toucher, les listes peuvent défiler. */

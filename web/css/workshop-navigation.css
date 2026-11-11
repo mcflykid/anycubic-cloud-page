@@ -72,12 +72,12 @@
     border-inline-start: 1px solid var(--line);
   }
 
-  :is([data-style="apple"], [data-style="ocean"]) #atelier-tabs .atelier-nav-group > button {
+  [data-style="apple"] #atelier-tabs .atelier-nav-group > button {
     position: relative;
     z-index: 1;
   }
 
-  :is([data-style="apple"], [data-style="ocean"]) #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
+  [data-style="apple"] #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
     background: transparent;
   }
 

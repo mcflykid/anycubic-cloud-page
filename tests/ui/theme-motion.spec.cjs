@@ -20,10 +20,10 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les dix styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
+test('les six styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
   await login(page);
   await openSettings(page);
-  const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab','studio','observatory','glasshouse'];
+  const themes=['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
   for(const mode of ['light','dark']){
     await page.locator('#interface-theme').selectOption(mode);
     for(const style of themes){
@@ -89,7 +89,7 @@ test('les transitions suivent le style et la préférence de mouvement',async({p
   await expect(dialog).toHaveCSS('animation-name','none');
 });
 
-for (const theme of ['apple','ocean']) {
+for (const theme of ['apple']) {
   test(`${theme} garde le repère de sélection sur une rangée de navigation`,async({page})=>{
     await page.setViewportSize({width:1249,height:800});
     await page.emulateMedia({reducedMotion:'reduce'});
