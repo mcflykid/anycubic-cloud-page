@@ -14,7 +14,7 @@ import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
 import { createFileThumbnails } from './workshop-file-previews.mjs';
 
-import { initializePaintSelection } from './workshop-selection.mjs';
+import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -27,6 +27,8 @@ export function createFiles(request, command) {
     cloudHasMore = false,
     renameHandle = null;
   const cloudSelected = new Set();
+  const cloudCount = createSelectionCounter($('cloud-selection-digits'));
+  cloudCount.pon(0);
   initializePaintSelection($('file-rows'), () => cloudSelectionState());
   let fileContext = null,
     fileGeneration = 0,
@@ -518,7 +520,12 @@ export function createFiles(request, command) {
       else total += file.size_mb;
     }
     set('cloud-selected-size', n ? known ? fmt(total, tr(' Mo')) : tr('Taille inconnue') : '');
-    set('cloud-selected-count', formatText('{0} sélection{1}', n, n > 1 ? 's' : ''));
+    const plural = n > 1 ? 's' : '';
+    const [prefix, suffix] = tr('{0} sélection{1}').replace('{1}', plural).split('{0}');
+    set('cloud-selected-count', formatText('{0} sélection{1}', n, plural));
+    set('cloud-selection-prefix', prefix || '');
+    set('cloud-selection-suffix', suffix || '');
+    cloudCount.pon(n);
     for (const id of ['cloud-download-selected', 'cloud-delete-selected']) {
       $(id).hidden = !!cloudFolder;
       $(id).disabled = !n || !!cloudFolder;
