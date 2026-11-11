@@ -1,3 +1,4 @@
+import { createNotificationMotion } from './workshop-notification-motion.mjs';
 import {
   $,
   beginListLoading,
@@ -34,26 +35,33 @@ export function createHistory(request, command, selectedBox) {
     noticeMore = false,
     noticeSignature = '',
     noticeUnread = 0,
+    cloudUnread = 0,
     noticeError = '',
-    noticeSource = 'legacy',
-    legacySelected = false;
+    noticeSource = 'slicer',
+    legacySelected = false,
+    noticeGeneration = 0;
   /** Charge une page de notifications du compte, en empêchant deux lectures simultanées. */
   async function loadHistory(force = false, page = 1) {
     if (historyPending) return;
     historyPending = true;
+    const generation = noticeGeneration;
+    const source = legacySelected ? 'legacy' : 'slicer';
+    const snapshot = workshopState.snapshot;
     try {
-      const source = legacySelected ? 'legacy' : page > 1 ? noticeSource : '';
       const d =
-        !force && !source && workshopState.snapshot?.notifications &&
-          !workshopState.snapshot.notifications_error
-          ? workshopState.snapshot.notifications
-          : await request(`/history?page=${page}${source ? `&source=${source}` : ''}`);
+        !force && source === 'slicer' && snapshot?.notifications?.source === source &&
+          !snapshot.notifications_error
+          ? snapshot.notifications
+          : await request(`/history?page=${page}&source=${source}`);
+      if (generation !== noticeGeneration) return;
+      if ((d.source || 'legacy') !== source) throw new Error(tr('Messages temporairement indisponibles'));
       applyNotifications(d, page);
     } catch (e) {
+      if (generation !== noticeGeneration) return;
       noticeError = e.message || tr('Messages temporairement indisponibles');
       renderNotifications();
     } finally {
-      historyPending = false;
+      if (generation === noticeGeneration) historyPending = false;
     }
   }
   /** Actualise le panneau sans mélanger les pages issues de journaux différents. */
@@ -72,21 +80,23 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
   function updateNoticeCount(count) {
-    const previous = noticeUnread;
     noticeUnread = count == null
       ? noticeRows.filter((item) => item.unread).length
       : Math.max(0, Number(count) || 0);
     const displayed = fmt(noticeUnread);
     const plural = noticeUnread > 1 ? 's' : '';
     const badge = $('notifications-dot');
-    badge.hidden = !noticeUnread;
-    if (noticeUnread > previous) signalChange(badge);
+    if (!legacySelected) {
+      badge.hidden = !noticeUnread;
+      if (noticeUnread > cloudUnread) signalChange(badge);
+      cloudUnread = noticeUnread;
+      $('notifications-toggle').setAttribute(
+        'aria-label',
+        formatText('Notifications : {0} message{1} non lu{2}', displayed, plural, plural),
+      );
+    }
     $('notifications-filter-dot').hidden = !noticeUnread;
     set('notifications-title', formatText('Messages ({0})', displayed));
-    $('notifications-toggle').setAttribute(
-      'aria-label',
-      formatText('Notifications : {0} message{1} non lu{2}', displayed, plural, plural),
-    );
     $('history-read-all').disabled = !noticeUnread || noticeSource === 'slicer';
   }
   /** Filtre les messages chargés ; les noms du cloud restent du texte et les aperçus sont différés. */
@@ -150,8 +160,6 @@ export function createHistory(request, command, selectedBox) {
     const fromSlicer = noticeSource === 'slicer';
     $('history-read-all').hidden = $('history-delete-all').hidden = fromSlicer;
     $('history-delete-all').disabled = fromSlicer || !noticeRows.length;
-    $('notifications-source').hidden = !fromSlicer && !legacySelected;
-    set('notifications-source', tr(legacySelected ? 'Notifications Cloud' : 'Journal historique'));
   }
   /** Chaque événement conserve sa miniature, son horodatage et ses actions individuelles. */
   function notificationRow(item) {
@@ -289,21 +297,22 @@ export function createHistory(request, command, selectedBox) {
       message(e.message, true);
     }
   }
+  const animateNoticePanel = createNotificationMotion($('notifications-panel'), $('notifications-toggle'));
   /** Ferme le panneau et restitue le clavier à la cloche sur Échap. */
-  function noticePanel(open, focus = false) {
-    $('notifications-panel').hidden = !open;
+  function noticePanel(open, focus = false, immediate = false) {
     $('notifications-toggle').setAttribute('aria-expanded', String(open));
+    animateNoticePanel(open, immediate);
     if (open) {
       historyPage = 1;
       void loadHistory();
     } else if (focus) $('notifications-toggle').focus();
   }
-  $('notifications-toggle').onclick = () => noticePanel($('notifications-panel').hidden);
+  $('notifications-toggle').onclick = () => noticePanel($('notifications-toggle').getAttribute('aria-expanded') !== 'true');
   document.addEventListener('keydown', (event) => {
     if (
       event.key === 'Escape' &&
       !document.querySelector('dialog[open]') &&
-      !$('notifications-panel').hidden
+      $('notifications-toggle').getAttribute('aria-expanded') === 'true'
     ) {
       event.preventDefault();
       noticePanel(false, true);
@@ -312,7 +321,7 @@ export function createHistory(request, command, selectedBox) {
   document.addEventListener('pointerdown', (event) => {
     if (
       !document.querySelector('dialog[open]') &&
-      !$('notifications-panel').hidden &&
+      $('notifications-toggle').getAttribute('aria-expanded') === 'true' &&
       !event.target.closest('.notifications')
     )
       noticePanel(false);
@@ -327,17 +336,46 @@ export function createHistory(request, command, selectedBox) {
     };
   $('notification-search').oninput = renderNotifications;
   $('notifications-more').onclick = () => void loadHistory(true, historyPage + 1);
-  $('notifications-source').onclick = () => {
-    if (historyPending) return;
-    legacySelected = !legacySelected;
+  const noticeDialog = $('historical-notifications-dialog');
+  const historyOpen = $('historical-notifications-open');
+  const noticeContent = $('notifications-panel');
+  const bellContainer = noticeContent.parentElement;
+  /** Invalide les réponses de la source précédente avant de réutiliser la liste. */
+  function selectNoticeSource(legacy) {
+    noticeGeneration++;
+    historyPending = false;
+    legacySelected = legacy;
+    noticeSource = legacy ? 'legacy' : 'slicer';
     noticeRows = [];
     noticeMore = false;
     noticeError = '';
     noticeSignature = '';
     historyPage = 1;
+    noticeFilter = 'all';
+    $('notification-search').value = '';
+    for (const button of document.querySelectorAll('[data-notice-filter]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.noticeFilter === 'all'));
+    }
+    updateNoticeCount(legacy ? 0 : cloudUnread);
     renderNotifications();
+  }
+  historyOpen.onclick = () => {
+    noticePanel(false, false, true);
+    selectNoticeSource(true);
+    noticeDialog.append(noticeContent);
+    noticeContent.hidden = false;
+    noticeContent.inert = false;
+    noticeDialog.showModal();
     void loadHistory(true);
   };
+  noticeDialog.addEventListener('close', () => {
+    noticeContent.hidden = true;
+    bellContainer.append(noticeContent);
+    selectNoticeSource(false);
+    const latest = workshopState.snapshot?.notifications;
+    if (latest?.source === 'slicer') syncNotifications(latest);
+    historyOpen.focus({preventScroll: true});
+  });
   /** Marque une notification ou toutes comme lues ; allItems exige une confirmation puis rafraîchit le journal. */
   async function markHistoryRead(key, allItems, button) {
     button.disabled = true;
@@ -1082,7 +1120,7 @@ export function createHistory(request, command, selectedBox) {
 
   /** Réconcilie la première page du statut sans remplacer un journal choisi manuellement. */
   function syncNotifications(notifications) {
-    if (legacySelected || historyPending) return;
+    if (legacySelected || historyPending || notifications.source !== 'slicer') return;
     const signature = JSON.stringify(notifications);
     if (signature === noticeSignature) return;
     noticeSignature = signature;
