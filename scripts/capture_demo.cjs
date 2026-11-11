@@ -124,6 +124,22 @@ async function captureTotp(page, browser, base) {
   }
 }
 
+/** Montre l’état enregistré sans envoi à Discord ni adresse présente dans la capture. */
+async function captureDiscordAlertSettings(page) {
+  const address = page.getByLabel('Adresse du webhook Discord');
+  const fictitiousUrl = ['https:', '', 'discord.com', 'api', 'webhooks', '12345678901234567', 'c'.repeat(64)].join('/');
+  await address.fill(fictitiousUrl);
+  await page.getByRole('checkbox', {name:'Activer les notifications', exact:true}).check();
+  await page.getByLabel('Mot de passe web').fill(password);
+  await page.getByRole('button', {name:'Enregistrer', exact:true}).click();
+  await page.getByText('Réglage Discord enregistré.', {exact:true}).waitFor();
+  await page.goto(page.url());
+  await page.getByText('Webhook enregistré', {exact:true}).waitFor();
+  if (await address.inputValue() || await page.getByLabel('Mot de passe web').inputValue())
+    throw new Error('Un champ secret est rempli dans la vue Discord.');
+  await photo(page, '23-discord-alertes.png');
+}
+
 async function main() {
   const port = process.env.UI_PORT || '8765';
   const base = 'http://127.0.0.1:' + port;
@@ -159,9 +175,15 @@ async function main() {
       if (tab === 'files') await page.locator('#file-rows tr').first().waitFor();
       await photo(page, filename);
       if (tab === 'files') await captureCloudFolders(page);
+      if (tab === 'overview') {
+        await page.locator('#task-details-open').click();
+        await page.getByRole('dialog', {name:'Détails de la tâche'}).waitFor();
+        await photo(page, '27-details-tache.png');
+        await page.keyboard.press('Escape');
+      }
     }
     await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
-    await photo(page, '23-discord-alertes.png');
+    await captureDiscordAlertSettings(page);
     await page.getByRole('link',{name:'Configurer les bilans Discord'}).click();
     await photo(page, '24-discord-bilans.png');
     await page.goto(base + '/imprimante.html');

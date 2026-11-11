@@ -1,6 +1,6 @@
 /* La grille du formulaire sert aussi de repère à l’extrémité des traits. */
 #controls-dialog {
-  width: min(var(--atelier-controls-width), calc(100% - var(--atelier-space-6)));
+  width: min(var(--atelier-detail-dialog-width), calc(100% - var(--atelier-space-6)));
   max-width: none;
   padding: 0;
   border-radius: var(--atelier-card-radius);

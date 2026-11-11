@@ -155,7 +155,7 @@
   .history-table :is(th, td):nth-child(4) { width: 13%; }
   .history-table :is(th, td):nth-child(5) { width: 6%; }
 }
-.task-detail-dialog{width:min(60rem,calc(100vw - var(--atelier-space-6) - var(--atelier-space-4)));max-width:60rem;max-height:calc(100dvh - var(--atelier-space-6) - var(--atelier-space-4));padding:0;overflow:auto;border:var(--atelier-rule) solid var(--atelier-line);border-radius:var(--atelier-card-radius);background:var(--atelier-surface);color:var(--atelier-fg);font:var(--atelier-text);box-shadow:none}
+.task-detail-dialog{width:min(var(--atelier-detail-dialog-width),calc(100vw - var(--atelier-space-6) - var(--atelier-space-4)));max-width:var(--atelier-detail-dialog-width);max-height:calc(100dvh - var(--atelier-space-6) - var(--atelier-space-4));padding:0;overflow:auto;border:var(--atelier-rule) solid var(--atelier-line);border-radius:var(--atelier-card-radius);background:var(--atelier-surface);color:var(--atelier-fg);font:var(--atelier-text);box-shadow:none}
 .task-detail-dialog::backdrop{background:var(--atelier-backdrop);backdrop-filter:none}
 .task-detail-dialog .dialog-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:var(--atelier-space-4);margin:0;padding:var(--atelier-space-3) var(--atelier-space-4);border-bottom:var(--atelier-rule) solid var(--atelier-line);background:var(--atelier-surface)}
 .task-detail-dialog .dialog-top h2{margin:0;font:var(--atelier-card-title);font-weight:var(--atelier-semibold);white-space:nowrap}

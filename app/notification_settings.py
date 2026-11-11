@@ -122,7 +122,6 @@ def discord_page(delivery, message="", status=200, *, report=False):
     feedback_state = "neutral" if not message else "success" if status < 400 else "error"
     last = labels.get(delivery.last_outcome, "")
     last_delivery = f" · {last}" if last else ""
-    enabled = " checked" if config.enabled else ""
     include_filename = " checked" if config.include_filename else ""
     title = "Bilans Discord" if report else "Notifications Discord"
     introduction = (
@@ -132,9 +131,13 @@ def discord_page(delivery, message="", status=200, *, report=False):
     )
     action = REPORT_PATH if report else PATH
     activation = "Activer les bilans Discord" if report else "Activer les notifications"
-    filename = "" if report else (
-        f'<label class="check"><input type="checkbox" name="include_filename"{include_filename}> '
-        "<span>Inclure le nom du fichier</span></label>"
+    filename = (
+        ""
+        if report
+        else (
+            f'<label class="check"><input type="checkbox" name="include_filename"{include_filename}> '
+            "<span>Inclure le nom du fichier</span></label>"
+        )
     )
     other_path = PATH if report else REPORT_PATH
     other_title = (
@@ -159,12 +162,12 @@ def discord_page(delivery, message="", status=200, *, report=False):
 <section class="discord-panel" aria-labelledby="discord-panel-title">
   <header class="discord-panel-header">
     <h2 id="discord-panel-title">Webhook</h2>
-    <span class="discord-configured" data-configured="{'true' if config.url else 'false'}" data-state="{feedback_state}" data-default="{configured}"><span aria-hidden="true"></span><span id="discord-feedback" role="status" aria-live="polite">{html.escape(header_text + (last_delivery if not message else ""))}</span></span>
+    <span class="discord-configured" data-configured="{"true" if config.url else "false"}" data-state="{feedback_state}" data-default="{configured}"><span aria-hidden="true"></span><span id="discord-feedback" role="status" aria-live="polite">{html.escape(header_text + (last_delivery if not message else ""))}</span></span>
   </header>
   <form id="discord-settings-form" method="post" action="{action}">
     <div class="discord-panel-body">
       <div class="discord-url-field"><label for="discord-url">Adresse du webhook Discord</label>
-        <span class="discord-secret-control"><input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" placeholder="{hidden_placeholder}"><button id="discord-reveal" class="atelier-control atelier-control-icon" type="button" aria-label="Afficher l’adresse du webhook" aria-pressed="false" {'disabled' if not config.url else ''}><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>
+        <span class="discord-secret-control"><input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" placeholder="{hidden_placeholder}"><button id="discord-reveal" class="atelier-control atelier-control-icon" type="button" aria-label="Afficher l’adresse du webhook" aria-pressed="false" {"disabled" if not config.url else ""}><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>
       </div>
       <div class="discord-form-row">
         <label for="discord-language">Langue du message<select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option></select></label>
@@ -239,7 +242,8 @@ async def discord_settings(request):
     if operation == "reveal":
         if not delivery.config.url:
             return web.json_response(
-                {"message": "Aucun webhook enregistré."}, status=404,
+                {"message": "Aucun webhook enregistré."},
+                status=404,
                 headers={"Cache-Control": "no-store"},
             )
         return web.json_response(

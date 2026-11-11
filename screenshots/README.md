@@ -27,10 +27,11 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [20-supervision-sombre.png](20-supervision-sombre.png) | Supervision en mode sombre. |
 | [21-resume-mobile.png](21-resume-mobile.png) | Résumé sur téléphone. |
 | [22-detail-supervision.png](22-detail-supervision.png) | Détail des relevés dans Parc et santé. |
-| [23-discord-alertes.png](23-discord-alertes.png) | Réglage du webhook des alertes, champ secret vide. |
+| [23-discord-alertes.png](23-discord-alertes.png) | Webhook fictif enregistré pour les alertes, adresse masquée. |
 | [24-discord-bilans.png](24-discord-bilans.png) | Réglage distinct des bilans programmés. |
-| [25-commandes-au-repos.png](25-commandes-au-repos.png) | Réglages au repos et commandes séparées des ventilateurs Pièce et Auxiliaire, en mode sombre. |
+| [25-commandes-au-repos.png](25-commandes-au-repos.png) | Commandes courantes, schéma de la S1 et mesures de chaque organe, en mode sombre. |
 | [26-sechage-ace.png](26-sechage-ace.png) | Interrupteur, état et réglages du séchage ACE, en mode sombre. |
+| [27-details-tache.png](27-details-tache.png) | Fenêtre commune à la tâche courante et à l’historique. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
@@ -49,3 +50,5 @@ Chaque planche compare la version 1.8.0 et la revue de l’interface, en clair, 
 ## Comparaison avec les maquettes
 
 Les [références HTML](../docs/DESIGN.md#maquettes-de-référence) s’ouvrent localement. Les [captures de la refonte](refonte/) montrent le cadre, les pages, les versions claire et sombre et le rendu sur téléphone.
+
+Les [comparaisons de clôture](refonte/maquettes-cloture/) juxtaposent les trois nouvelles maquettes et les captures de l’atelier à 1 440 px.

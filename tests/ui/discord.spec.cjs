@@ -46,6 +46,8 @@ test('Discord se configure, se teste et se retire sans réafficher le webhook',a
   });
   expect(absent.status()).toBe(404);
   expect(absent.headers()['cache-control']).toBe('no-store');
+  await page.getByRole('link',{name:'Notifications',exact:true}).click();
+  await expect(page.locator('#notifications-panel')).toBeVisible();
 });
 
 test('un webhook fictif est absent au chargement et sa révélation revalide le mot de passe',async({page})=>{

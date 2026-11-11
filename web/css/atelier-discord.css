@@ -9,8 +9,8 @@
 .discord-settings-page .portal-nav {
   position: relative;
   z-index: 2;
-  min-height: 52px;
-  padding: var(--atelier-space-2) 32px;
+  min-height: var(--atelier-discord-nav-height);
+  padding: var(--atelier-space-2) var(--atelier-space-6);
   border-bottom: var(--atelier-rule) solid var(--atelier-line);
   background: var(--atelier-surface);
 }
@@ -27,8 +27,8 @@
   font-weight: var(--atelier-semibold);
 }
 .discord-settings-page .document-brand img {
-  width: 20px;
-  height: 20px;
+  width: var(--atelier-space-4);
+  height: var(--atelier-space-4);
 }
 .discord-settings-page .nav-actions {
   gap: var(--atelier-space-2);
@@ -41,11 +41,11 @@
 }
 .discord-title,
 .discord-content {
-  width: min(720px, calc(100% - 2 * var(--atelier-space-4)));
+  width: min(var(--atelier-discord-width), calc(100% - 2 * var(--atelier-space-4)));
   margin-inline: auto;
 }
 .discord-title {
-  margin-top: clamp(var(--atelier-space-4), 3vw, 26px);
+  margin-top: clamp(var(--atelier-space-4), 3vw, var(--atelier-discord-title-offset));
   margin-bottom: var(--atelier-space-4);
 }
 .discord-title h1 {
@@ -72,7 +72,7 @@
   padding: var(--atelier-space-3) var(--atelier-space-4);
 }
 .discord-panel-header {
-  padding-block: 14px;
+  padding-block: var(--atelier-discord-header-inset);
   border-bottom: var(--atelier-rule) solid var(--atelier-line);
 }
 .discord-panel-header h2 {
@@ -103,7 +103,7 @@
 }
 .discord-configured #discord-feedback {
   min-width: 0;
-  max-width: min(50vw, 430px);
+  max-width: min(50vw, var(--atelier-discord-feedback-width));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -115,7 +115,7 @@
 .discord-panel-body {
   display: grid;
   gap: var(--atelier-space-1);
-  padding: 18px var(--atelier-space-4) 10px;
+  padding: var(--atelier-discord-body-top) var(--atelier-space-4) var(--atelier-discord-body-bottom);
 }
 .discord-url-field,
 .discord-form-row > label:not(.check) {
@@ -130,7 +130,7 @@
   gap: 0;
 }
 .discord-url-field {
-  gap: 2px;
+  gap: var(--atelier-active-rule);
 }
 .discord-secret-control {
   display: grid;
@@ -147,14 +147,14 @@
   background: var(--atelier-surface);
   color: var(--atelier-fg);
   font: var(--atelier-text);
-  letter-spacing: .04em;
+  letter-spacing: var(--atelier-discord-secret-tracking);
   height: var(--atelier-control);
   min-height: var(--atelier-control);
 }
 .discord-secret-control input::placeholder {
   color: var(--atelier-fg);
   opacity: 1;
-  letter-spacing: .08em;
+  letter-spacing: var(--atelier-discord-placeholder-tracking);
 }
 .discord-secret-control button {
   display: inline-grid;
@@ -173,10 +173,10 @@
   gap: var(--atelier-space-4);
 }
 .discord-form-row:not(.discord-check-row) {
-  margin-top: 11px;
+  margin-top: var(--atelier-discord-link-offset);
 }
 .discord-check-row {
-  margin-top: 9px;
+  margin-top: var(--atelier-discord-footer-offset);
 }
 .discord-form-row select,
 .discord-form-row input[type="password"] {
@@ -216,11 +216,11 @@
   justify-content: space-between;
   gap: var(--atelier-space-4);
   margin-inline: calc(-1 * var(--atelier-space-4));
-  padding: 7px var(--atelier-space-4);
+  padding: var(--atelier-discord-footer-inset) var(--atelier-space-4);
   border-top: var(--atelier-rule) solid var(--atelier-line);
   color: var(--atelier-fg);
   text-decoration: none;
-  transform: translateY(11px);
+  transform: translateY(var(--atelier-discord-link-offset));
 }
 .discord-report-link > span:first-child {
   display: grid;
@@ -242,7 +242,7 @@
   flex: none;
 }
 .discord-panel-footer {
-  min-height: 60px;
+  min-height: var(--atelier-discord-footer-height);
   border-top: var(--atelier-rule) solid var(--atelier-line);
 }
 .discord-panel-footer button {
@@ -283,7 +283,7 @@
     gap: var(--atelier-space-1);
   }
   .discord-settings-page .nav-actions > select {
-    max-width: 112px;
+    max-width: var(--atelier-discord-mobile-language-width);
     padding-inline: var(--atelier-space-2);
   }
   .discord-title h1 {
@@ -312,11 +312,11 @@
 }
 @media (max-width: 420px) {
   .discord-settings-page .document-brand img {
-    width: 24px;
-    height: 24px;
+    width: var(--atelier-space-5);
+    height: var(--atelier-space-5);
   }
   .discord-settings-page .document-brand span {
-    max-width: 122px;
+    max-width: var(--atelier-discord-mobile-header-width);
     white-space: normal;
   }
   .discord-settings-page .portal-nav {
@@ -326,7 +326,7 @@
     margin-left: auto;
   }
   .discord-settings-page .nav-actions > select {
-    max-width: 86px;
+    max-width: var(--atelier-discord-mobile-logout-width);
     font-size: var(--atelier-caption-size);
   }
   .discord-settings-page .logout-form button {
