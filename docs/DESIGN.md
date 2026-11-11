@@ -22,3 +22,31 @@ Les styles redéfinissent les couleurs, la police et les deux rayons. Le Laborat
 ## Maquettes de référence
 
 Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](design/maquette/resume.html) dans un navigateur à 1 440 px. Les onglets du Résumé ouvrent les autres maquettes. Les données de ces pages sont des exemples. Les fichiers utilisent la police Inter locale du projet.
+
+| Écran | Fichier de référence |
+| --- | --- |
+| Résumé | [resume.html](design/maquette/resume.html) |
+| Imprimante | [imprimante.html](design/maquette/imprimante.html) |
+| ACE | [ace.html](design/maquette/ace.html) |
+| Fichiers | [fichiers.html](design/maquette/fichiers.html) |
+| Envoyer | [envoyer.html](design/maquette/envoyer.html) |
+| Caméra | [camera.html](design/maquette/camera.html) |
+| Historique | [historique.html](design/maquette/historique.html) |
+| Parc et santé | [parc.html](design/maquette/parc.html) |
+| Statistiques | [statistiques.html](design/maquette/statistiques.html) |
+| Réglages | [reglages.html](design/maquette/reglages.html) |
+
+## Vérification
+
+Le test de mise en page ouvre les dix sections du jeu de démonstration à 1 366 × 768 et 1 920 × 1 080, dans les quatre styles et les deux modes de couleur. Il vérifie que la page tient dans la fenêtre. Les tests sur téléphone vérifient l’absence de débordement horizontal. Les [captures](../screenshots/README.md) sont produites à partir d’un serveur de démonstration.
+
+Le contrôle des valeurs s’applique aux feuilles `atelier-*.css`. Les feuilles historiques comportent encore des valeurs propres à leurs composants. L’inventaire ci-dessous compare les déclarations littérales de `web/css/` avant la refonte et après le retrait de la feuille de densité et des dispositions propres aux styles. Les références de variables, les seuils de média et les couleurs des SVG incorporés sont exclus.
+
+| Valeurs distinctes | Avant | Après |
+| --- | ---: | ---: |
+| Tailles et interlignes écrits dans les déclarations de texte | 75 | 64 |
+| Rayons | 28 | 25 |
+| Marges et écarts | 56 | 54 |
+| Marges intérieures | 58 | 47 |
+| Ombres | 50 | 28 |
+| Couleurs littérales | 301 | 246 |

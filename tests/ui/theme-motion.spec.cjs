@@ -96,3 +96,24 @@ test('Aurore conserve l’ordre commun des cartes de l’imprimante', async ({ p
   await expect(page.locator('.printer-workspace .atelier-card-header h2'))
     .toHaveText(['Impression', 'Températures et ventilation']);
 });
+
+test('le repère suit l’onglet horizontal sans déplacer le contenu', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page, 'summary');
+  const marker = page.locator('.atelier-navigation-marker');
+  await expect(marker).toBeVisible();
+  const before = await page.locator('#atelier').boundingBox();
+  await page.locator('[data-tab="history"]').click();
+  const active = page.locator('[data-tab][aria-current="page"]');
+  await expect(active).toHaveAttribute('data-tab', 'history');
+  await expect.poll(async () => {
+    const [line, button] = await Promise.all([marker.boundingBox(), active.boundingBox()]);
+    return Math.round(Math.abs(line.x - button.x) + Math.abs(line.width - button.width));
+  }).toBe(0);
+  const after = await page.locator('#atelier').boundingBox();
+  expect(after.y).toBe(before.y);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(marker).toHaveCSS('transition-property', 'none');
+  await page.evaluate(() => { document.documentElement.dataset.style = 'lab'; });
+  await expect(marker).toBeHidden();
+});

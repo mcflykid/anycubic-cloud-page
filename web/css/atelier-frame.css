@@ -300,3 +300,33 @@ html[data-style] .workshop-frame .printer-footer {
     padding-block-start: var(--atelier-space-1);
   }
 }
+
+
+/* Le trait animé est réservé à la navigation horizontale. Le rail et les tuiles gardent leur état local. */
+.atelier-navigation-marker-layer, .atelier-navigation-marker { display: none; }
+@media (min-width: 761px) {
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs { position: relative; }
+  html:not([data-style="lab"]) .atelier-navigation-marker-layer {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  html:not([data-style="lab"]) .atelier-navigation-marker {
+    position: absolute;
+    inset-block-start: calc(-1 * var(--atelier-active-rule));
+    inset-inline-start: 0;
+    display: block;
+    block-size: var(--atelier-active-rule);
+    background: var(--atelier-accent);
+    pointer-events: none;
+  }
+  html:not([data-style="lab"]) #atelier-tabs[data-marker-ready] .atelier-navigation-marker {
+    transition: translate var(--motion-fast) var(--motion-ease),
+      inline-size var(--motion-fast) var(--motion-ease);
+  }
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs[data-marker-ready] [aria-current="page"] {
+    box-shadow: none;
+  }
+}

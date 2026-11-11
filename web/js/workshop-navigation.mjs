@@ -36,6 +36,33 @@ export function initializeWorkshopNavigation() {
     toggle.append(mobileLabel);
   }
   const currentButton = () => navigation.querySelector('[data-tab][aria-current="page"]');
+  // Le trait est hors du flux. Il suit le bouton actif sans redimensionner la navigation.
+  const markerLayer = document.createElement('span');
+  markerLayer.className = 'atelier-navigation-marker-layer';
+  markerLayer.setAttribute('aria-hidden', 'true');
+  const marker = document.createElement('span');
+  marker.className = 'atelier-navigation-marker';
+  markerLayer.append(marker);
+  navigation.append(markerLayer);
+  const placeMarker = () => {
+    const current = currentButton();
+    if (!current || !marker.getClientRects().length) return;
+    const navBox = navigation.getBoundingClientRect();
+    const activeBox = current.getBoundingClientRect();
+    marker.style.inlineSize = activeBox.width + 'px';
+    marker.style.translate =
+      (activeBox.left - navBox.left) + 'px ' + (activeBox.bottom - navBox.top) + 'px';
+    // La première mesure doit placer le trait directement sur la section d’accueil.
+    navigation.dataset.markerReady = 'true';
+  };
+  const navigationSize = new ResizeObserver(placeMarker);
+  navigationSize.observe(navigation);
+  tabs.forEach((tab) => navigationSize.observe(tab));
+  new MutationObserver(placeMarker).observe(navigation, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['aria-current'],
+  });
   const updateCurrentLabel = () => {
     const label = currentButton()?.querySelector('span')?.textContent?.trim();
     mobileLabel.textContent = label || '';
