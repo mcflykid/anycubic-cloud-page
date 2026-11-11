@@ -1,0 +1,20 @@
+# Règles communes de l’atelier
+
+Le même vocabulaire visuel s’applique au Résumé, aux Réglages, aux Fichiers, à la Caméra et aux autres écrans. Les valeurs de référence se trouvent dans [atelier-tokens.css](../web/css/atelier-tokens.css). La police Inter est servie avec l’application, avec les graisses 400 et 600 et une police système de secours.
+
+| Usage | Taille et interligne |
+| --- | --- |
+| Nom de la machine | 28 / 36 px |
+| Titre d’onglet | 20 / 28 px |
+| Titre de carte | 16 / 24 px |
+| Texte, valeur, bouton | 14 / 20 px |
+| Libellé, aide | 13 / 20 px |
+| Groupe, mention | 12 / 16 px |
+
+Les mesures utilisent des chiffres tabulaires. Leur valeur suit le libellé à 8 px. Les mesures voisines sont espacées de 24 px. Les pas d’espacement sont 4, 8, 12, 16, 24 et 32 px. Les cartes ont un trait de 1 px, un rayon de 10 px et une marge intérieure de 16 px. L’en-tête et le pied partagent les mêmes séparations entre cartes voisines. Une action seule est centrée dans le pied.
+
+Les commandes mesurent 36 px de haut, ou 44 px au toucher. Le rayon des champs, boutons et vignettes est de 6 px. Les pictogrammes mesurent 18 px et leur trait 1,8 px. Les groupes d’onglets ont des titres centrés et un trait de 2 px indique l’onglet actif. Un mot accompagne le repère d’état, dont la forme varie selon l’état.
+
+Les neuf rôles sont le fond, la surface, le texte, le texte secondaire, le trait, l’accent, l’état normal, l’attention et l’erreur. Le mode sombre redéfinit les mêmes rôles. Les couleurs de texte respectent un contraste de 4,5:1. L’accent identifie l’action principale et l’onglet actif. Les ombres sont réservées aux fenêtres et menus ouverts.
+
+Les styles redéfinissent les couleurs, la police et les deux rayons. Le Laboratoire peut utiliser une navigation latérale repliable. Les cartes s’empilent sur téléphone. La réduction des animations du système est respectée.
