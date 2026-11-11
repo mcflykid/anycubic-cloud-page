@@ -70,6 +70,7 @@ FIELDS = json.loads((ROOT / "fields.json").read_text())
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
+CAMERA_VIEWER_TTL = 120
 OPS_LOG = logging.getLogger("cloud_page.server")
 HTTP_LOG = logging.getLogger("cloud_page.http")
 MONITORING_KEY = web.AppKey("monitoring", Monitoring)
@@ -325,6 +326,8 @@ class Engine:
         self.camera_stage = -1
         self.transport = AccountTransport()
         self.camera_viewers = set()
+        self.camera_viewer_expiries = {}
+        self.camera_expiry_task = None
         self.camera_departures = collections.OrderedDict()
         self.camera_owner = None
         self.camera_close_task = None
@@ -1580,39 +1583,98 @@ async def camera(req):
         raise ValueError("Session vidéo invalide")
     if not engine.printer:
         raise ValueError("Connexion en cours")
-    async with engine.lock:
-        verify_printer_target(req, engine)
-        if viewer and engine.camera_departures.get(viewer, 0) > time.monotonic():
-            raise ValueError("Cet onglet a déjà fermé sa session vidéo")
-        if viewer and len(engine.camera_viewers) >= 32 and viewer not in engine.camera_viewers:
-            raise ValueError("Trop de sessions vidéo ouvertes")
-        if (
-            not engine.camera
-            or time.time() - engine.last_session > 5
-            or (viewer and engine.camera_owner != viewer)
-        ):
-            engine.camera_message_id = None
-            engine.camera_diagnostic = None
-            engine.camera_stage = -1
-            try:
-                session = await engine.printer.get_camera_session()
-            except Exception as error:
-                # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
-                if not camera_transport_failure(error):
-                    raise
-                session = await engine.printer.get_camera_session()
-            if session is None:
-                raise ValueError("Caméra indisponible")
-            engine.camera = session.data
-            engine.camera_message_id = getattr(session, "msg_id", None)
-            engine.last_session = time.time()
-        if viewer:
-            engine.camera_owner = viewer
-            engine.camera_viewers.add(viewer)
-        elif hasattr(engine, "camera_viewers"):
-            # Un client ancien sans référence de spectateur ne permet pas de confirmer son départ.
-            engine.camera_viewers.add("legacy")
-        return web.json_response(engine.camera, headers={"Cache-Control": "no-store"})
+    async with engine.command_lock:
+        async with engine.lock:
+            verify_printer_target(req, engine)
+            prune_camera_viewers(engine)
+            if viewer and engine.camera_departures.get(viewer, 0) > time.monotonic():
+                raise ValueError("Cet onglet a déjà fermé sa session vidéo")
+            if viewer and len(engine.camera_viewers) >= 32 and viewer not in engine.camera_viewers:
+                raise ValueError("Trop de sessions vidéo ouvertes")
+            if (
+                not engine.camera
+                or time.time() - engine.last_session > 5
+                or (viewer and engine.camera_owner != viewer)
+            ):
+                engine.camera_message_id = None
+                engine.camera_diagnostic = None
+                engine.camera_stage = -1
+                try:
+                    session = await engine.printer.get_camera_session()
+                except Exception as error:
+                    # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
+                    if not camera_transport_failure(error):
+                        raise
+                    session = await engine.printer.get_camera_session()
+                if session is None:
+                    raise ValueError("Caméra indisponible")
+                engine.camera = session.data
+                engine.camera_message_id = getattr(session, "msg_id", None)
+                engine.last_session = time.time()
+            if viewer:
+                engine.camera_owner = viewer
+                engine.camera_viewers.add(viewer)
+            elif hasattr(engine, "camera_viewers"):
+                # L’échéance évite qu’une interface ancienne garde la caméra réservée après sa déconnexion.
+                engine.camera_viewers.add("legacy")
+                viewer = "legacy"
+            engine.camera_viewer_expiries[viewer] = camera_viewer_deadline(req)
+            schedule_camera_expiry(engine)
+            if engine.camera_close_task and not engine.camera_close_task.done():
+                engine.camera_close_task.cancel()
+            return web.json_response(engine.camera, headers={"Cache-Control": "no-store"})
+
+
+def camera_viewer_deadline(request):
+    """Borne le spectateur à l’expiration fixe de sa session web authentifiée."""
+    now_monotonic = time.monotonic()
+    expires = request.get("session_expires") if hasattr(request, "get") else None
+    if isinstance(expires, (int, float)) and not isinstance(expires, bool):
+        return max(now_monotonic, expires)
+    return now_monotonic + CAMERA_VIEWER_TTL
+
+
+def prune_camera_viewers(engine):
+    """Retire les onglets dont la session web n’a pas renouvelé son échéance."""
+    now_monotonic = time.monotonic()
+    expired = [
+        viewer
+        for viewer, deadline in engine.camera_viewer_expiries.items()
+        if deadline <= now_monotonic
+    ]
+    for viewer in expired:
+        engine.camera_viewer_expiries.pop(viewer, None)
+        engine.camera_viewers.discard(viewer)
+
+
+def schedule_camera_expiry(engine):
+    """Recalcule l’échéance la plus proche quand un onglet rejoint une autre session web."""
+    task = engine.camera_expiry_task
+    if task and not task.done():
+        task.cancel()
+    engine.camera_expiry_task = asyncio.create_task(expire_camera_viewers(engine))
+
+
+async def expire_camera_viewers(engine):
+    """Attend l’échéance la plus proche et programme la fermeture si aucun onglet ne revient."""
+    try:
+        while engine.camera_viewer_expiries:
+            deadline = min(engine.camera_viewer_expiries.values())
+            await asyncio.sleep(max(0, deadline - time.monotonic()))
+            async with engine.lock:
+                prune_camera_viewers(engine)
+                if not engine.camera_viewer_expiries:
+                    if engine.printer:
+                        previous = engine.camera_close_task
+                        if previous and not previous.done():
+                            previous.cancel()
+                        engine.camera_close_task = asyncio.create_task(
+                            close_idle_camera(engine, str(engine.printer.id))
+                        )
+                    return
+    finally:
+        if engine.camera_expiry_task is asyncio.current_task():
+            engine.camera_expiry_task = None
 
 
 async def close_idle_camera(engine, target):
@@ -1662,6 +1724,12 @@ async def camera_close(req):
             engine.camera_departures.popitem(last=False)
         if viewer in engine.camera_viewers:
             engine.camera_viewers.remove(viewer)
+            engine.camera_viewer_expiries.pop(viewer, None)
+            if not engine.camera_viewers:
+                expiry = engine.camera_expiry_task
+                if expiry and not expiry.done():
+                    expiry.cancel()
+                engine.camera_expiry_task = None
             if not engine.camera_viewers and engine.printer:
                 previous = engine.camera_close_task
                 if previous and not previous.done():
@@ -2000,11 +2068,11 @@ async def cleanup(app):
     )
     registry = app["printer_registry"]
     for selected in [engine, *registry.entries.values()]:
-        task = selected.camera_close_task
-        if task and not task.done():
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+        for task in (selected.camera_expiry_task, selected.camera_close_task):
+            if task and not task.done():
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
     await registry.close()
     app["temperature_task"].cancel()
     with contextlib.suppress(asyncio.CancelledError):

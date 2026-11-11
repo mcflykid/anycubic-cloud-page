@@ -256,6 +256,7 @@ async def access_control(request, handler):
                     state.sessions[key] = session
                     migration = (token, max(1, int(session.expires - time.monotonic())))
                 request[SESSION_DIGEST_KEY] = key
+                request["session_expires"] = session.expires
                 response = await handler(request)
     except web.HTTPException as error:
         response = web.Response(body=error.body, status=error.status, headers=error.headers)
