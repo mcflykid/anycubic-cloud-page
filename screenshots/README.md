@@ -16,10 +16,21 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [07-reglages.png](07-reglages.png) | Connexion, versions et réglages. |
 | [08-notifications.png](08-notifications.png) | Cloche, compteurs, filtres, recherche et actions sur les messages. |
 | [09-detection-ia.png](09-detection-ia.png) | Fenêtre de détection IA. |
+| [12-resume.png](12-resume.png) | Résumé du projet et de l’ACE. |
+| [13-parc-et-sante.png](13-parc-et-sante.png) | Indicateurs locaux et disponibilité. |
+| [14-statistiques.png](14-statistiques.png) | Mesures par appareil et par emplacement. |
+| [15-journal.png](15-journal.png) | Journal historique depuis l’onglet Historique. |
+| [16-fiche-erreur.png](16-fiche-erreur.png) | Fiche locale du code 10115. |
+| [17-six-styles.jpg](17-six-styles.jpg) | Comparaison des six styles. |
+| [18-code-temporaire.png](18-code-temporaire.png) | Étape de vérification, formulaire vide. |
+| [19-resume-sombre.png](19-resume-sombre.png) | Résumé en mode sombre. |
+| [20-supervision-sombre.png](20-supervision-sombre.png) | Supervision en mode sombre. |
+| [21-resume-mobile.png](21-resume-mobile.png) | Résumé sur téléphone. |
+| [22-detail-supervision.png](22-detail-supervision.png) | Détail des relevés dans Parc et santé. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
-La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les modales sont capturées dans la fenêtre ; les onglets en page entière. Ne jamais utiliser un compte réel pour produire les images publiques.
+La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les captures de bureau mesurent 1 440 × 1 000 px. La vue mobile mesure 390 × 844 px. Ne jamais utiliser un compte réel pour produire les images publiques.
 
 ## Comparaison historique des styles conservés
 

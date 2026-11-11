@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Centre la vérification par code et les réglages de sécurité sur ordinateur et téléphone (#273).
+
 - Dans Parc et santé, ouvre le détail depuis la carte avec le ressort d’Instrumental et affiche la moyenne, le 95e centile et le nombre de relevés disponibles. L’interrupteur Canica accompagne la suspension locale des mesures (#248).
 
 - Donne aux chargements des fichiers et de l’historique leur forme de liste ou de cartes. Un reflet Esqueleto accompagne uniquement l’attente réelle (#248).
