@@ -195,8 +195,8 @@ async def execute_command(target, name, d):
         }
         if not values:
             raise ValueError("Aucun réglage fourni")
-        if not p.latest_project:
-            raise ValueError("Ces réglages nécessitent une impression active, comme dans le dépôt")
+        if not p.latest_project or not p.latest_project_print_in_progress:
+            raise ValueError("Ces réglages nécessitent une impression active")
         result = await dispatch_command(
             a._send_order_change_print_settings(p, AnycubicPrintingSettings(**values))
         )
