@@ -35,7 +35,7 @@
 }
 .summary-device-information {
   display: grid;
-  flex: 1 1 15rem;
+  flex: 1 1 var(--atelier-content-min);
   min-inline-size: 0;
   gap: var(--atelier-space-3);
 }

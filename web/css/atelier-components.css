@@ -144,3 +144,6 @@ button.atelier-control-icon {
   accent-color: var(--atelier-accent);
 }
 .atelier-control-danger:disabled { border-color: var(--atelier-line); }
+
+/* Une commande masquée ne réserve aucune place dans une carte ou une fenêtre. */
+.atelier-card [hidden], .atelier-field[hidden] { display: none; }

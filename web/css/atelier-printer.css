@@ -24,7 +24,7 @@
   align-items: flex-start;
   gap: var(--atelier-space-4);
 }
-.printer-task-info { display: grid; gap: var(--atelier-space-3); flex: 1 1 12rem; min-width: 0; }
+.printer-task-info { display: grid; gap: var(--atelier-space-3); flex: 1 1 var(--atelier-job-min); min-width: 0; }
 #tab-overview #job-name { overflow-wrap: anywhere; }
 #tab-overview #job-state {
   margin: 0;
