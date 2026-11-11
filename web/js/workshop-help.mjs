@@ -155,6 +155,9 @@ for (const trigger of document.querySelectorAll('[data-context-help]')) {
     $('context-help-title').textContent = tr(title);
     $('context-help-text').textContent = tr(paragraph);
     $('context-help-source').href = url;
-    $('context-help-dialog').showModal();
+    const dialog = $('context-help-dialog');
+    // Safari ne focalise pas toujours le bouton lors d’un clic à la souris.
+    dialog.addEventListener('close', () => trigger.focus(), { once: true });
+    dialog.showModal();
   });
 }

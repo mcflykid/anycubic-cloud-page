@@ -78,6 +78,12 @@ GPL-3.0-or-later. Independent community project; not an official Anycubic produc
 
 `TZ` defaults to `Europe/Paris` and controls history, chart labels and application log times. `PUID`/`PGID` default to `1000`. Startup prepares `appdata` as root, then starts the server without root privileges. `init: true`, `pids_limit: 100`, resource limits, read-only root and privilege restrictions are enabled. `/etc/localtime` is mounted read-only. The unhealthy-restart label is commented out and requires an external tool.
 
+## Project status
+
+The workshop enters maintenance with ten sections and three styles. In **Settings → Discord notifications**, alert and report webhooks are configured separately. Known error codes have local help in French, English and Spanish.
+
+See the [qualification notes](docs/CLOSURE.md) for Kobra S1 Combo coverage and remaining checks. Printing `.gcode.3mf`, Cloud mesh export and the timelapse gallery remain unavailable. Other printer models require separate validation. [Discord](docs/NOTIFICATIONS.md) · [Installation and Compose variables](docs/INSTALLATION.md)
+
 ## Web sign-in
 
 The French `/login` form uses an eight-hour session cookie: HttpOnly, SameSite=Strict, and Secure when `PUBLIC_ORIGIN` is HTTPS. Sign-out revokes the session. Five failures per five-minute window limit attempts per connection address; users behind a proxy may share this limit. Restarting the application or changing the web password invalidates sessions.

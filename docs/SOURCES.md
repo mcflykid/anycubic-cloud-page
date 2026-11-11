@@ -1,4 +1,6 @@
-# Sources des effets
+# Registre des sources
+
+## Effets de l’atelier
 
 | Ressource | Origine | Date | Archive d’origine | Utilisation dans l’atelier |
 | --- | --- | --- | --- | --- |
@@ -14,3 +16,7 @@
 | Interrupteur · Uiverse | [njesenberger](https://uiverse.io/njesenberger/rude-stingray-22) | 2026-11-11 | [Galaxy adbd2ad](https://github.com/uiverse-io/galaxy/blob/adbd2adde0a299a3956ea288fb444ec01891ca41/Toggle-switches/njesenberger_rude-stingray-22.html) | Rail en creux et bouton en relief adaptés sous MIT dans `web/css/interactions.css` pour le formulaire ACE. |
 | Téléchargement · Uiverse | [nazar-gavrylyk](https://uiverse.io/nazar-gavrylyk/evil-dragon-24) | 2026-11-11 | [Galaxy adbd2ad](https://github.com/uiverse-io/galaxy/blob/adbd2adde0a299a3956ea288fb444ec01891ca41/Toggle-switches/Na3ar-17_evil-dragon-24.html) | Icône et pulsation adaptées sous MIT pour l’attente réelle de l’export CSV. |
 | Étoiles · Uiverse | [SelfMadeSystem](https://uiverse.io/SelfMadeSystem/selfish-starfish-40) | 2026-11-11 | [Galaxy adbd2ad](https://github.com/uiverse-io/galaxy/blob/adbd2adde0a299a3956ea288fb444ec01891ca41/Radio-buttons/SelfMadeSystem_selfish-starfish-40.html) | Tracé SVG et rebond adaptés sous MIT pour l’évaluation d’une impression. |
+
+## Sources de clôture
+
+Les [révisions et licences amont](UPSTREAM-COMPARISON.md#lectures-retenues-pour-la-clôture-260) et les [guides du wiki](ANYCUBIC-WIKI-S1.md) documentent les études et l’aide de l’atelier. Les [notices](../THIRD_PARTY_NOTICES.md) identifient les composants distribués. Les archives Moxen gardent leur propre licence et restent hors de l’image du conteneur.

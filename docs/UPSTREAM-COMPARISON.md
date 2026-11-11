@@ -86,3 +86,62 @@ Les autres branches non par défaut observées dans le réseau public comprennen
 ## Bilan
 
 La découverte nouvelle la plus utile est le modèle ioBroker pour distinguer mises à jour MQTT et resynchronisation REST configurable. Elle sert de piste de réduction des appels, pas de code à importer. Le réseau de forks Wares contient beaucoup de miroirs de même SHA, un fork d’évolution conséquent (Baeka89) et plusieurs copies contenant caméra Home Assistant; aucun ne prouve un nouvel ordre de coordonnées S1. Aucun patch, source tiers, secret, requête Cloud ni commande machine n’a été utilisé ou ajouté.
+
+## Lectures retenues pour la clôture (#260)
+
+Les révisions sont figées. Les essais matériels cités proviennent des auteurs.
+
+### xNoVoSx/kobra-spoolman
+
+Licence relevée **MIT**. [Révision `671064962a34`](https://github.com/xNoVoSx/kobra-spoolman/tree/671064962a34019d9f2a205996629a90b2b14b39)
+
+Sépare la bobine affectée dans Spoolman, l’état ACE en direct et la dernière affectation connue. Enregistre l’usage par emplacement, puis garde les consommations sans bobine identifiée à part pour correction. La masse est une mesure ou une estimation du pont selon le mode, distincte du pourcentage ACE. Les essais S1 de l’auteur passent par un pont local, dont Rinkhals pour sa configuration. Ils ne valident pas ces champs dans le Cloud.
+
+Retenir les indicateurs de provenance et la correction des affectations pour #93. Garder Spoolman comme intégration facultative à l’étude. Aucune dépendance Moonraker ni reprise de code.
+
+Sources consultées. [`docs/findings.md`](https://github.com/xNoVoSx/kobra-spoolman/blob/671064962a34019d9f2a205996629a90b2b14b39/docs/findings.md), [`docs/api.md`](https://github.com/xNoVoSx/kobra-spoolman/blob/671064962a34019d9f2a205996629a90b2b14b39/docs/api.md), [`docs/spoolman-fields.md`](https://github.com/xNoVoSx/kobra-spoolman/blob/671064962a34019d9f2a205996629a90b2b14b39/docs/spoolman-fields.md), [`bridge/app/acebridge/acemodel.py`](https://github.com/xNoVoSx/kobra-spoolman/blob/671064962a34019d9f2a205996629a90b2b14b39/bridge/app/acebridge/acemodel.py)
+
+### Shawman511/printer-hub
+
+Licence relevée **MIT**. [Révision `9c15ea23a5d7`](https://github.com/Shawman511/printer-hub/tree/9c15ea23a5d7e9c12743e3e4e71961ecd37fce90)
+
+Sépare consultation, exploitation et administration. Le journal conserve les résultats terminé, annulé ou échoué. L’usage du filament peut être corrigé via le journal. Les timelapses de l’application sont des enregistrements de son propre flux et ne prouvent pas l’accès aux vidéos existantes de la S1. Une configuration caméra absente est traitée séparément d’une caméra non disponible.
+
+Retenir la distinction d’état pour #254 et #30. Conserver les confirmations de l’atelier et évaluer l’idée d’un accès de consultation si le besoin se confirme.
+
+Sources consultées. [`docs/users-and-security.md`](https://github.com/Shawman511/printer-hub/blob/9c15ea23a5d7e9c12743e3e4e71961ecd37fce90/docs/users-and-security.md), [`docs/troubleshooting.md`](https://github.com/Shawman511/printer-hub/blob/9c15ea23a5d7e9c12743e3e4e71961ecd37fce90/docs/troubleshooting.md), [`docs/using.md`](https://github.com/Shawman511/printer-hub/blob/9c15ea23a5d7e9c12743e3e4e71961ecd37fce90/docs/using.md), [`drivers/anycubic.js`](https://github.com/Shawman511/printer-hub/blob/9c15ea23a5d7e9c12743e3e4e71961ecd37fce90/drivers/anycubic.js)
+
+### tobecwb/ace2k
+
+Licence relevée **GPL-3.0 (fichier LICENSE)**. [Révision `a0a8398ccd27`](https://github.com/tobecwb/ace2k/tree/a0a8398ccd27d84ef7862d53df6da1cadc436a49)
+
+Firmware alternatif pour ACE 2 Pro. Distingue lecture RFID brute, décodage par l’hôte, position du filament et fin réelle d’un déplacement. L’auteur documente les écarts avec le firmware d’origine et des événements de séchage répétés ou perdus après redémarrage. Ces événements ne sont pas des codes Cloud.
+
+Retenir cette séparation d’états pour #93 et #136. Les mesures et limites du firmware alternatif ne sont pas transposées à la S1 Cloud.
+
+Sources consultées. [`docs/protocol.md`](https://github.com/tobecwb/ace2k/blob/a0a8398ccd27d84ef7862d53df6da1cadc436a49/docs/protocol.md), [`docs/commands.md`](https://github.com/tobecwb/ace2k/blob/a0a8398ccd27d84ef7862d53df6da1cadc436a49/docs/commands.md), [`docs/features.md`](https://github.com/tobecwb/ace2k/blob/a0a8398ccd27d84ef7862d53df6da1cadc436a49/docs/features.md), [`docs/limitations.md`](https://github.com/tobecwb/ace2k/blob/a0a8398ccd27d84ef7862d53df6da1cadc436a49/docs/limitations.md), [`docs/differences-from-stock.md`](https://github.com/tobecwb/ace2k/blob/a0a8398ccd27d84ef7862d53df6da1cadc436a49/docs/differences-from-stock.md)
+
+### Rec0iL/AnycubicGcodeFix
+
+Licence relevée **MIT**. [Révision `d9d8d36e5408`](https://github.com/Rec0iL/AnycubicGcodeFix/tree/d9d8d36e54087c4b961caf7d9a29d24c72dddca1)
+
+L’auteur isole sur sa S1 le cas de G-code brut refusé. Il compare en-tête, blocs de miniature, bloc d’impression et statistiques de fin et conserve le fichier d’origine. Son profil de réécriture embarque des séquences machine et une configuration de trancheur. Le code 10115 seul ne prouve aucun des défauts de structure particuliers.
+
+Retenir une comparaison hors ligne entre fichier connu, fichier refusé et format déclaré pour #142. Ne pas réécrire le G-code, ajouter des mouvements ou déclarer le fichier imprimable sur cette seule base.
+
+Sources consultées. [`README.md`](https://github.com/Rec0iL/AnycubicGcodeFix/blob/d9d8d36e54087c4b961caf7d9a29d24c72dddca1/README.md), [`gcodefix/fixer.py`](https://github.com/Rec0iL/AnycubicGcodeFix/blob/d9d8d36e54087c4b961caf7d9a29d24c72dddca1/gcodefix/fixer.py), [`gcodefix/profile.py`](https://github.com/Rec0iL/AnycubicGcodeFix/blob/d9d8d36e54087c4b961caf7d9a29d24c72dddca1/gcodefix/profile.py), [`gcodefix/thumbnail.py`](https://github.com/Rec0iL/AnycubicGcodeFix/blob/d9d8d36e54087c4b961caf7d9a29d24c72dddca1/gcodefix/thumbnail.py)
+
+### Références hors périmètre de clôture
+
+- `cluzl/kobra-bridge` · hors de la comparaison de clôture.
+- `drpngx/orcaslicer-webconfig` · hors de la comparaison de clôture.
+- `EmreTekir/anycubic-slicer-mcp` · hors de la comparaison de clôture.
+- `tobecwb/ace2k-u1` · hors de la comparaison de clôture.
+- `hwiedermann/ioBroker.anycubic-cloud` · hors de la comparaison de clôture.
+- `marcodiniz/OrcaCubic` · hors de la comparaison de clôture.
+- `MineTech13/anycubic-slicer-next` · hors de la comparaison de clôture.
+- `sh4un-dot-com/Anycubic-SlicerNext-CachyBox` · hors de la comparaison de clôture.
+- `nzrbits/anycubic-uploader` · hors de la comparaison de clôture.
+- `Nino6689/anycubic-cloud-frontend` · hors de la comparaison de clôture.
+- `iu2frl/3d-printer-logs-decrypter` · hors de la comparaison de clôture.
+- `balassy/MMM-Anycubic` · hors de la comparaison de clôture.

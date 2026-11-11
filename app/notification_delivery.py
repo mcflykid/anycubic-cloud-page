@@ -321,7 +321,10 @@ class Delivery:
         return await finish_transaction(commit())
 
     async def observe_cloud(self, scope, page, rows, read_legacy):
-        """Réutilise le journal de compte et borne les compléments destinés aux alarmes ambiguës."""
+        """Établit une référence par compte avant d’admettre les résultats nouveaux.
+
+        Une alarme ambiguë nécessite une preuve terminale issue du journal historique.
+        """
         if not self.config.enabled or not scope or self.last_outcome == "unavailable":
             return
         if self.scope != scope:

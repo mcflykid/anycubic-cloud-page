@@ -699,6 +699,7 @@ async def totp_settings(request):
         config = current_totp(request)
 
         def render_refusal(message, status):
+            """Garde l’écran de sécurité ouvert avec un message expurgé."""
             return totp_settings_page(store, config, message, status)
 
         session, refusal = confirm_web_password(

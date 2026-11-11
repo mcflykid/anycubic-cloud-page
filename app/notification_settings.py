@@ -60,6 +60,7 @@ def install_discord(app, state_dir, *, fake_sender=None, history_reader=None):
     app[SETTINGS_LOCK] = asyncio.Lock()
 
     async def lifecycle(app):
+        """Arrête la collecte et les livraisons avant de fermer leur session HTTP."""
         async with aiohttp.ClientSession(trust_env=False) as session:
             sender = fake_sender if fake_sender is not None else partial(send_discord, session)
             report_sender = (
@@ -203,6 +204,7 @@ async def discord_settings(request):
     config_path = request.app[REPORT_CONFIG_KEY if report else CONFIG_KEY]
 
     def render(message="", status=200):
+        """Conserve la destination courante dans les réponses et les refus."""
         return discord_page(delivery, message, status, report=report)
 
     if request.method in {"GET", "HEAD"}:

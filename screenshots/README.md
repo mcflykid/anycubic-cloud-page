@@ -27,6 +27,8 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [20-supervision-sombre.png](20-supervision-sombre.png) | Supervision en mode sombre. |
 | [21-resume-mobile.png](21-resume-mobile.png) | Résumé sur téléphone. |
 | [22-detail-supervision.png](22-detail-supervision.png) | Détail des relevés dans Parc et santé. |
+| [23-discord-alertes.png](23-discord-alertes.png) | Réglage du webhook des alertes, champ secret vide. |
+| [24-discord-bilans.png](24-discord-bilans.png) | Réglage distinct des bilans programmés. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
