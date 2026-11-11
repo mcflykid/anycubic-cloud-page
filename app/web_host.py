@@ -7,6 +7,15 @@ from urllib.parse import urlsplit, parse_qs
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
+from web_totp import (
+    TotpConfig,
+    TotpStore,
+    matching_step,
+    new_recovery_codes,
+    new_secret,
+    qr_image,
+    recovery_digest,
+)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1] / "web"
 APP_VERSION = json.loads((ROOT.parent / "package.json").read_text())["version"]
@@ -71,6 +80,8 @@ FAILURE_LIMIT = 5
 GLOBAL_FAILURE_LIMIT = 100
 GLOBAL_FAILURE_DELAY = 1.0
 REAUTH_SECONDS = 120
+LOGIN_CHALLENGE_SECONDS = 180
+ENROLLMENT_SECONDS = 300
 SENSITIVE_ACTIONS = frozenset(("firmware", "ace-firmware", "factory-reset"))
 
 
@@ -95,6 +106,23 @@ class Session:
     reauth_until: float = 0
 
 
+@dataclass
+class TotpChallenge:
+    """Lie la vérification du code à un client et à la version actuelle du mot de passe."""
+
+    expires: float
+    client: str
+    fingerprint: bytes
+
+
+@dataclass
+class TotpEnrollment:
+    """Conserve une clé provisoire uniquement dans la session qui configure le facteur."""
+
+    expires: float
+    secret: str
+
+
 class AccessState:
     """Conserve uniquement les empreintes de sessions et compte les échecs récents, sans persistance de cookie."""
 
@@ -104,6 +132,8 @@ class AccessState:
         self.wait = wait
         self.login_lock = asyncio.Lock()
         self.sessions = {}
+        self.challenges = {}
+        self.enrollments = {}
         self.failures = {}
         self.global_failures = 0
         self.global_window_until = 0
@@ -113,6 +143,14 @@ class AccessState:
         """Retire les sessions et compteurs expirés afin de borner la mémoire de l’authentification."""
         now = self.clock()
         self.sessions = {key: value for key, value in self.sessions.items() if value.expires > now}
+        self.challenges = {
+            key: value for key, value in self.challenges.items() if value.expires > now
+        }
+        self.enrollments = {
+            key: value
+            for key, value in self.enrollments.items()
+            if value.expires > now and key in self.sessions
+        }
         self.failures = {key: value for key, value in self.failures.items() if value[1] > now}
         if self.global_window_until <= now:
             self.global_failures = 0
@@ -128,9 +166,22 @@ class AccessState:
                 await self.wait(GLOBAL_FAILURE_DELAY)
             yield
 
+    def record_failure(self, client, failures, until):
+        """Consomme un essai dans le quota individuel et le compteur agrégé."""
+        if client not in self.failures and len(self.failures) >= 1024:
+            self.failures.pop(next(iter(self.failures)))
+        self.failures.pop(client, None)
+        self.failures[client] = (failures + 1, until)
+        if not self.global_window_until:
+            self.global_window_until = self.clock() + FAILURE_SECONDS
+        self.global_failures += 1
+        if self.global_failures >= GLOBAL_FAILURE_LIMIT:
+            self.global_until = self.global_window_until
+
 
 ACCESS_KEY = web.AppKey("access", AccessState)
 ORIGIN_KEY = web.AppKey("public_origin", str)
+TOTP_KEY = web.AppKey("web_totp", TotpStore)
 TRUSTED_PROXIES_KEY = web.AppKey("trusted_proxies", tuple)
 SESSION_DIGEST_KEY = web.RequestKey("session_digest", bytes)
 
@@ -189,11 +240,15 @@ def rate_limit_client(request):
         return client_address(request)
 
 
+def password_path():
+    """Renvoie l’emplacement privé du mot de passe, y compris pour la démonstration."""
+    return pathlib.Path(os.environ.get("WEB_PASSWORD_FILE", "/appdata/private/web-password"))
+
+
 def credentials():
     """Renvoie identifiant, mot de passe et empreinte ; HTTPServiceUnavailable si la configuration est inutilisable."""
-    path = pathlib.Path(os.environ.get("WEB_PASSWORD_FILE", "/appdata/private/web-password"))
     try:
-        password = path.read_text().strip()
+        password = password_path().read_text().strip()
     except OSError:
         raise web.HTTPServiceUnavailable(
             text="Configurez le mot de passe web avant de démarrer le service."
@@ -243,9 +298,15 @@ def install_access(app):
     app[TRUSTED_PROXIES_KEY] = trusted
     app[ORIGIN_KEY] = origin
     app[ACCESS_KEY] = AccessState()
+    reset = os.environ.get("WEB_TOTP_RESET", "false").strip().lower()
+    if reset not in {"true", "false", ""}:
+        raise ValueError("WEB_TOTP_RESET doit être true ou false.")
+    app[TOTP_KEY] = TotpStore(password_path(), reset=reset == "true")
     app.router.add_get("/login", login)
     app.router.add_post("/login", login)
     app.router.add_post("/logout", logout)
+    app.router.add_get("/imprimante-api/security", totp_settings)
+    app.router.add_post("/imprimante-api/security", totp_settings)
     app.router.add_post("/imprimante-api/reauth", reauthenticate)
 
 
@@ -326,20 +387,8 @@ def login_page(message="", status=200):
     return web.Response(text=content, content_type="text/html", status=status)
 
 
-async def login(request):
-    """Vérifie le formulaire borné avec quotas par client et plafond agrégé temporaire."""
-    if request.method in {"GET", "HEAD"}:
-        return login_page()
-    require_origin(request)
-    state = request.app[ACCESS_KEY]
-    state.prune()
-    client = rate_limit_client(request)
-    # Le quota individuel garde son comportement historique avant le traitement du formulaire.
-    failures, until = state.failures.get(client, (0, state.clock() + FAILURE_SECONDS))
-    if failures >= FAILURE_LIMIT:
-        response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
-        response.headers["Retry-After"] = str(max(1, int(until - state.clock()) + 1))
-        return response
+async def read_login_form(request):
+    """Lit un formulaire de sécurité borné avant d’attendre le verrou."""
     if request.content_type != "application/x-www-form-urlencoded":
         raise web.HTTPUnsupportedMediaType()
     try:
@@ -352,43 +401,164 @@ async def login(request):
         form = parse_qs(raw.decode(), keep_blank_values=True, max_num_fields=8)
     except (ValueError, UnicodeError):
         raise web.HTTPBadRequest(text="Formulaire invalide.") from None
-    supplied_user = form.get("username", [""])[0]
-    supplied_password = form.get("password", [""])[0]
-    async with state.login_slot():
-        # La file peut durer au-delà du délai individuel ; retirer les compteurs expirés avant vérification.
-        state.prune()
-        # Relire sous le verrou empêche des formulaires simultanés de contourner le quota individuel.
-        failures, until = state.failures.get(client, (0, state.clock() + FAILURE_SECONDS))
-        now = state.clock()
-        if until <= now:
-            failures, until = 0, now + FAILURE_SECONDS
-            state.failures.pop(client, None)
-        if failures >= FAILURE_LIMIT:
-            response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
-            response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
+    return {key: values[0] for key, values in form.items()}
+
+
+def limited_response(render, until, now):
+    """Indique la durée restante du quota sans révéler les identifiants présentés."""
+    response = render("Trop de tentatives. Réessayez dans quelques minutes.", 429)
+    response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
+    return response
+
+
+def challenge_cookie_name(request):
+    """Réserve un cookie distinct qui ne donne aucun droit à l’atelier."""
+    return (
+        "__Host-web-totp-challenge"
+        if session_cookie_name(request) == SECURE_COOKIE_NAME
+        else "web-totp-challenge"
+    )
+
+
+def get_challenge(request, state):
+    """Retrouve un défi opaque sans accepter un jeton dans un paramètre ou une URL."""
+    name = challenge_cookie_name(request)
+    digest = session_digest(request.cookies.get(name, ""))
+    return digest, state.challenges.get(digest)
+
+
+def security_page(title, content, message="", status=200):
+    """Affiche un écran de sécurité à partir de contenu interne et d’un message échappé."""
+    feedback = f'<p role="alert" class="login-error">{html.escape(message)}</p>' if message else ""
+    body = f"<h1>{html.escape(title)}</h1>{feedback}{content}"
+    return web.Response(
+        text=(ROOT / "security.html").read_text().replace("<!-- SECURITY_CONTENT -->", body),
+        status=status,
+        content_type="text/html",
+    )
+
+
+def totp_login_page(message="", status=200):
+    """Demande un code temporaire ou un code de secours après l’étape du mot de passe."""
+    return security_page(
+        "Vérifier la connexion",
+        """<p>Saisissez un code de votre application d’authentification ou un code de secours.</p>
+<form action="/login" method="post">
+<input type="hidden" name="stage" value="totp">
+<label for="totp-code">Code temporaire ou de secours</label>
+<input id="totp-code" name="code" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" maxlength="24" required autofocus>
+<button type="submit" class="primary">Vérifier le code</button>
+</form><p><a href="/login?recommencer=1">Recommencer la connexion</a></p>""",
+        message,
+        status,
+    )
+
+
+def current_totp(request):
+    """Refuse l’accès si le fichier privé existe mais ne peut pas être vérifié."""
+    try:
+        return request.app[TOTP_KEY].read()
+    except (OSError, ValueError):
+        raise web.HTTPServiceUnavailable(
+            text="Le facteur web est indisponible. Consultez le guide de récupération."
+        ) from None
+
+
+async def login(request):
+    """Valide le mot de passe puis, si configuré, le facteur à usage unique."""
+    state = request.app[ACCESS_KEY]
+    state.prune()
+    digest, challenge = get_challenge(request, state)
+    client = rate_limit_client(request)
+    if request.method in {"GET", "HEAD"}:
+        if "recommencer" in request.query:
+            # La navigation retire le cookie de défi sans toucher au quota.
+            response = login_page()
+            set_session_cookie(
+                response,
+                challenge_cookie_name(request),
+                "",
+                0,
+                session_cookie_name(request) == SECURE_COOKIE_NAME,
+            )
             return response
+        return totp_login_page() if challenge and challenge.client == client else login_page()
+    require_origin(request)
+    code_stage = challenge is not None and challenge.client == client
+    render = totp_login_page if code_stage else login_page
+    failures, until = state.failures.get(client, (0, state.clock() + FAILURE_SECONDS))
+    if failures >= FAILURE_LIMIT:
+        return limited_response(render, until, state.clock())
+    form = await read_login_form(request)
+    async with state.login_slot():
+        state.prune()
+        now = state.clock()
+        failures, until = state.failures.get(client, (0, now + FAILURE_SECONDS))
+        if failures >= FAILURE_LIMIT:
+            return limited_response(render, until, now)
         transport = request.transport
         if transport is None or transport.is_closing():
-            # Une requête abandonnée dans la file ne doit pas consommer un essai d’authentification.
+            # Une requête abandonnée dans la file ne doit pas consommer d’essai.
             return web.Response(status=499)
         username, password, fingerprint = credentials()
-        valid_user = hmac.compare_digest(supplied_user.encode(), username.encode())
-        valid_password = hmac.compare_digest(supplied_password.encode(), password.encode())
-        if valid_user and valid_password:
-            # Un seuil agrégé ralentit aussi le propriétaire, sans bloquer ses identifiants valides.
-            state.failures.pop(client, None)
+        config = current_totp(request)
+        if form.get("stage") == "totp":
+            challenge = state.challenges.get(digest)
+            if (
+                challenge is None
+                or challenge.client != client
+                or config is None
+                or not hmac.compare_digest(challenge.fingerprint, fingerprint)
+            ):
+                return login_page(
+                    "Vérification expirée. Saisissez de nouveau le mot de passe.", 401
+                )
+            next_config = config.consume(form.get("code", ""), time.time())
+            if next_config is None:
+                state.record_failure(client, failures, until)
+                return totp_login_page("Code invalide, expiré ou déjà utilisé.", 401)
+            save_totp(request, next_config)
+            state.challenges.pop(digest, None)
         else:
-            now = state.clock()
-            if client not in state.failures and len(state.failures) >= 1024:
-                state.failures.pop(next(iter(state.failures)))
-            state.failures.pop(client, None)
-            state.failures[client] = (failures + 1, until)
-            if not state.global_window_until:
-                state.global_window_until = now + FAILURE_SECONDS
-            state.global_failures += 1
-            if state.global_failures >= GLOBAL_FAILURE_LIMIT:
-                state.global_until = state.global_window_until
-            return login_page("Identifiant ou mot de passe incorrect.", 401)
+            valid_user = hmac.compare_digest(form.get("username", "").encode(), username.encode())
+            valid_password = hmac.compare_digest(
+                form.get("password", "").encode(), password.encode()
+            )
+            if not (valid_user and valid_password):
+                state.record_failure(client, failures, until)
+                return login_page("Identifiant ou mot de passe incorrect.", 401)
+            if config is not None:
+                state.challenges.pop(digest, None)
+                if len(state.challenges) >= 128:
+                    state.challenges.pop(next(iter(state.challenges)))
+                token = secrets.token_urlsafe(32)
+                state.challenges[session_digest(token)] = TotpChallenge(
+                    state.clock() + LOGIN_CHALLENGE_SECONDS, client, fingerprint
+                )
+                response = totp_login_page()
+                set_session_cookie(
+                    response,
+                    challenge_cookie_name(request),
+                    token,
+                    LOGIN_CHALLENGE_SECONDS,
+                    session_cookie_name(request) == SECURE_COOKIE_NAME,
+                )
+                return response
+        state.failures.pop(client, None)
+        response = create_session(request, state, fingerprint)
+        if challenge_cookie_name(request) in request.cookies:
+            set_session_cookie(
+                response,
+                challenge_cookie_name(request),
+                "",
+                0,
+                session_cookie_name(request) == SECURE_COOKIE_NAME,
+            )
+        return response
+
+
+def create_session(request, state, fingerprint):
+    """Crée un cookie de session seulement après validation de tous les facteurs."""
     if len(state.sessions) >= 128:
         state.sessions.pop(next(iter(state.sessions)))
     # Le jeton change à chaque connexion et seule son empreinte est conservée côté serveur.
@@ -403,6 +573,120 @@ async def login(request):
     if secure and COOKIE_NAME in request.cookies:
         set_session_cookie(response, COOKIE_NAME, "", 0, True)
     return response
+
+
+def save_totp(request, config):
+    """Confirme une modification de sécurité uniquement après sa persistance privée."""
+    store = request.app[TOTP_KEY]
+    try:
+        if config is None:
+            store.disable()
+        else:
+            store.save(config)
+    except OSError:
+        raise web.HTTPServiceUnavailable(text="Écriture du facteur web indisponible.") from None
+
+
+def totp_settings_page(store, config, message="", status=200, *, enrollment=None, codes=()):
+    """Affiche la phase de réglage autorisée par le serveur, sans relire de code de secours."""
+    path = "/imprimante-api/security"
+    back = '<p><a href="/imprimante.html">Retour à l’atelier</a></p>'
+    password = '<label for="totp-password">Mot de passe web</label><input id="totp-password" name="password" type="password" autocomplete="current-password" maxlength="2048" required>'
+    if store.reset:
+        content = "<p>La récupération Compose est active. Retirez WEB_TOTP_RESET puis redémarrez pour configurer le facteur.</p>"
+    elif codes:
+        items = "".join(f"<li><code>{html.escape(code)}</code></li>" for code in codes)
+        content = f"<p>La connexion à deux facteurs est active. Conservez ces codes de secours. Ils sont affichés une seule fois.</p><ul>{items}</ul>"
+    elif enrollment:
+        key = html.escape(enrollment.secret)
+        qr = html.escape(qr_image(enrollment.secret), quote=True)
+        content = f"""<p>Scannez le QR ou saisissez la clé dans votre application d’authentification.</p>
+<img src="{qr}" width="180" height="180" alt="QR d’activation du facteur temporaire">
+<p>Clé manuelle <code>{key}</code></p>
+<form method="post" action="{path}">
+<input type="hidden" name="stage" value="activate">{password}
+<label for="totp-code">Premier code temporaire</label>
+<input id="totp-code" name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{{6}}" maxlength="6" required>
+<button type="submit" class="primary">Activer le facteur</button></form>"""
+    else:
+        stage = "disable" if config else "prepare"
+        label = "Désactiver le facteur" if config else "Préparer l’activation"
+        state = "activée" if config else "désactivée"
+        content = f"""<p>La connexion à deux facteurs est {state}.</p>
+<form method="post" action="{path}"><input type="hidden" name="stage" value="{stage}">{password}
+<button type="submit" class="primary">{label}</button></form>"""
+    return security_page("Connexion à deux facteurs", content + back, message, status)
+
+
+async def totp_settings(request):
+    """Protège la préparation, l’activation et la désactivation par la session et le mot de passe."""
+    store = request.app[TOTP_KEY]
+    config = current_totp(request)
+    if request.method in {"GET", "HEAD"} or store.reset:
+        return totp_settings_page(store, config)
+    form = await read_login_form(request)
+    state = request.app[ACCESS_KEY]
+    client = rate_limit_client(request)
+    key = request.get(SESSION_DIGEST_KEY)
+    async with state.login_slot():
+        state.prune()
+        config = current_totp(request)
+        _, expected, fingerprint = credentials()
+        session = state.sessions.get(key)
+        if session is None or not hmac.compare_digest(session.fingerprint, fingerprint):
+            raise web.HTTPUnauthorized(text="Session expirée.")
+        now = state.clock()
+        failures, until = state.failures.get(client, (0, now + FAILURE_SECONDS))
+        if failures >= FAILURE_LIMIT:
+            response = totp_settings_page(
+                store, config, "Trop de tentatives. Réessayez dans quelques minutes.", 429
+            )
+            response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
+            return response
+        if not hmac.compare_digest(form.get("password", "").encode(), expected.encode()):
+            state.record_failure(client, failures, until)
+            return totp_settings_page(store, config, "Mot de passe web incorrect.", 403)
+        stage = form.get("stage")
+        if stage == "prepare" and config is None:
+            enrollment = TotpEnrollment(now + ENROLLMENT_SECONDS, new_secret())
+            state.enrollments[key] = enrollment
+            return totp_settings_page(store, config, enrollment=enrollment)
+        if stage == "activate" and config is None:
+            enrollment = state.enrollments.get(key)
+            if enrollment is None:
+                return totp_settings_page(
+                    store, config, "Préparation expirée. Recommencez l’activation.", 409
+                )
+            step = matching_step(enrollment.secret, form.get("code", ""), time.time())
+            if step is None:
+                state.record_failure(client, failures, until)
+                # Le QR et la clé restent limités à la réponse initiale de préparation.
+                return totp_settings_page(
+                    store, config, "Code invalide. Recommencez la préparation.", 400
+                )
+            codes = new_recovery_codes()
+            config = TotpConfig(enrollment.secret, step, tuple(map(recovery_digest, codes)))
+        elif stage == "disable" and config is not None:
+            codes = ()
+            config = None
+        else:
+            return totp_settings_page(
+                store, config, "Le réglage a changé. Actualisez la page.", 409
+            )
+        try:
+            save_totp(request, config)
+        except web.HTTPServiceUnavailable:
+            # Un remplacement peut avoir précédé l’échec de synchronisation.
+            state.sessions.clear()
+            state.enrollments.clear()
+            state.challenges.clear()
+            raise
+        # L’ancienne confirmation et les autres sessions appartiennent au réglage précédent.
+        session.ticket = None
+        state.sessions = {key: session}
+        state.enrollments.clear()
+        state.challenges.clear()
+        return totp_settings_page(store, config, codes=codes)
 
 
 async def logout(request):
