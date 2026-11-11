@@ -20,3 +20,11 @@ La saisie des identifiants dans le Compose ou `.env` est un choix d’installati
 
 
 Le mot de passe web est actuellement conservé dans un fichier privé en mode 0600. Une migration vers une empreinte doit conserver les mots de passe existants, notamment les valeurs longues et la rotation des sessions. La limite d’entrée de bcrypt et la compatibilité entre versions doivent être traitées avant une conversion automatique.
+
+## Facteur temporaire local
+
+L’atelier peut demander un TOTP après le mot de passe web. Le défi expire après trois minutes ou trois échecs. Les codes temporaires ont également un quota commun de vingt échecs en deux minutes. Un code de secours demeure utilisable après une nouvelle étape de mot de passe. L’atelier crée la session après consommation du code. La confirmation des opérations sensibles dispose d’un quota par session.
+
+Le fichier `APPDATA_DIR/private/web-totp.json` appartient à l’utilisateur du service, en mode 0600. Il contient la clé requise pour vérifier les codes, le dernier pas accepté et les empreintes des codes de secours. Protégez les sauvegardes de ce fichier comme celles des autres secrets. La preuve est enregistrée avant l’émission du cookie. Le verrou d’authentification couvre la lecture et l’écriture sur l’unique processus du service Compose. Une copie ancienne de l’état peut restaurer une clé ou un code déjà consommé. En cas de restauration, réinitialisez et réenrôlez le facteur.
+
+La clé et les codes ne figurent jamais dans les journaux ni dans une URL HTTP. Le QR et la clé ne sont affichés qu’à la préparation, puis les codes de secours sont affichés à l’activation. Les réponses de sécurité sont servies sans cache. La récupération opérateur figure dans le [guide d’installation](docs/INSTALLATION.md#connexion-à-deux-facteurs).

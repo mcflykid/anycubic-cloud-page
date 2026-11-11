@@ -37,3 +37,7 @@ Les treize illustrations SVG supplémentaires du catalogue Kobra (#128) sont des
 ## Étude amont 0.4.8 et forks
 
 Les versions 0.4.5 à 0.4.8 de [ljschmitt/hass-anycubic_cloud_v3](https://github.com/ljschmitt/hass-anycubic_cloud_v3), sous GPL-3.0, et leurs forks ont été comparés. La qualification locale du champ de pourcentage ACE 2 Pro suit les critères constructeur employés dans `AnycubicSpoolInfo.consumables_percent` au [commit stable étudié](https://github.com/ljschmitt/hass-anycubic_cloud_v3/tree/bef29d737edf431fb78a3a0619a971a0eaff7fb8), avec reconnaissance du travail des contributeurs amont; elle est réimplémentée dans un helper local. Aucun composant Home Assistant, bundle généré ou binaire tiers supplémentaire n’est embarqué. La revue et les décisions figurent dans `docs/UPSTREAM-FORKS.md`.
+
+## QR de connexion à deux facteurs
+
+[Segno 1.6.6](https://pypi.org/project/segno/), Copyright (c) 2016 - 2025, Lars Heuer, encodeur Python sous licence BSD à trois clauses. Le paquet installé conserve l’avis complet dans son dossier de métadonnées. La dépendance n’est utilisée que pour la génération locale du QR. Aucun service externe ne reçoit la clé.
