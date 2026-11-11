@@ -142,3 +142,16 @@
   grid-template-columns: minmax(0, 1fr);
   width: 100%;
 }
+#tab-history .history-table .task-thumbnail { min-width: 0; }
+#tab-history .history-table .task-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#tab-history .history-table .task-thumbnail img[hidden] { display: none; }
+@container history (min-width: 690px) {
+  .history-table :is(th, td):nth-child(3) { width: 12%; }
+  .history-table :is(th, td):nth-child(4) { width: 13%; }
+  .history-table :is(th, td):nth-child(5) { width: 6%; }
+}

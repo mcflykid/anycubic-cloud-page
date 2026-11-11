@@ -143,3 +143,4 @@ button.atelier-control-icon {
   margin: 0;
   accent-color: var(--atelier-accent);
 }
+.atelier-control-danger:disabled { border-color: var(--atelier-line); }

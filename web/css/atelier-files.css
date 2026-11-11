@@ -185,3 +185,5 @@
 }
 .files-filters select, .history-toolbar select { appearance: auto; }
 .files-table .file-thumbnail img { width: 100%; height: 100%; object-fit: contain; }
+#files-form .files-sources > .atelier-control,
+.history-toolbar .files-sources > .atelier-control { padding-inline: var(--atelier-space-4); }
