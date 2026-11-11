@@ -123,3 +123,20 @@ test('Apple Design utilise un seul repère et agrandit le visuel de l’impriman
  await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test('Aurore maintient la sélection à l’intérieur du rail',async({page})=>{
+ await useStyle(page,'aurora');
+ await page.setViewportSize({width:1366,height:768});
+ await login(page,'settings');
+ const nav=page.locator('#atelier-tabs');
+ const active=nav.locator('[aria-current=page]');
+ const group=nav.locator('.atelier-nav-group').filter({has:page.locator('button[aria-current=page]')});
+ const [button,rail]=await Promise.all([active.boundingBox(),group.boundingBox()]);
+ expect(button.x-rail.x).toBeGreaterThanOrEqual(5);
+ expect(rail.x+rail.width-button.x-button.width).toBeGreaterThanOrEqual(5);
+ await expect(active).toHaveCSS('border-radius','16px');
+ await expect(active).toHaveCSS('box-shadow',/inset/);
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.locator('#section-menu-toggle')).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Garde le bouton actif dans les bords arrondis du rail Aurore (#246).
+
 - Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
 
 - Place le journal historique dans Historique. La cloche présente uniquement les messages Cloud et s’ouvre avec la découpe animée de Burbuja (#243, #248).

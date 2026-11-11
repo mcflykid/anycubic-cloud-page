@@ -148,6 +148,17 @@
     justify-content: center;
   }
 
+  /* Le repère Aurore reste à l’intérieur de son rail arrondi. */
+  [data-style="aurora"] #atelier-tabs .atelier-nav-group > button {
+    width: calc(100% - 12px);
+    margin-inline: 6px;
+    border-radius: 16px;
+  }
+
+  [data-style="aurora"] #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+
   [data-style="blueprint"] .blueprint-sidebar-collapsed #atelier-tabs .atelier-nav-group > button > span {
     position: absolute;
     width: 1px;
