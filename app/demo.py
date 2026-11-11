@@ -182,6 +182,7 @@ async def demo_index(request):
         display_timezone(),
         totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
         discord_active=discord_enabled(request.app),
+        reports_active=discord_enabled(request.app, reports=True),
     ).replace(
         "<body>",
         '<body><div class="demo-banner">Démonstration · Données fictives · Aucune imprimante connectée</div>',

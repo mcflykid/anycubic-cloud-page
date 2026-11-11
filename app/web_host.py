@@ -857,7 +857,9 @@ def consume_action_ticket(request, action, token):
     return True
 
 
-def render_page(destination, time_zone, *, totp_active=False, discord_active=None):
+def render_page(
+    destination, time_zone, *, totp_active=False, discord_active=None, reports_active=None
+):
     """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
     content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
         "<!-- APP_VERSION -->", html.escape(APP_VERSION)
@@ -870,6 +872,8 @@ def render_page(destination, time_zone, *, totp_active=False, discord_active=Non
         )
         .replace("<!-- DISCORD_BADGE_STATE -->", "normal" if discord_active else "unknown")
         .replace("<!-- DISCORD_STATE -->", "Activées" if discord_active else "Désactivées")
+        .replace("<!-- REPORTS_BADGE_STATE -->", "normal" if reports_active else "unknown")
+        .replace("<!-- REPORTS_STATE -->", "Activés" if reports_active else "Désactivés")
     )
     # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
     level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
@@ -915,6 +919,7 @@ async def index(request):
             request.app[TIME_ZONE_KEY],
             totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
             discord_active=discord_enabled(request.app),
+            reports_active=discord_enabled(request.app, reports=True),
         ),
         content_type="text/html",
     )

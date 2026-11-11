@@ -185,9 +185,20 @@ async def finish_transaction(operation):
 class Delivery:
     """Admet uniquement des événements nouveaux et envoie au plus un résultat certain par tâche."""
 
-    def __init__(self, state_dir, send, clock=time.time, wait=asyncio.sleep):
+    def __init__(
+        self,
+        state_dir,
+        send,
+        clock=time.time,
+        wait=asyncio.sleep,
+        *,
+        channel="discord",
+    ):
         """Charge les traces d’envoi sans rejouer le travail interrompu lors du redémarrage."""
-        self.path = Path(state_dir) / "notification-delivery.json"
+        self.channel = channel
+        self.path = Path(state_dir) / (
+            "discord-reports.json" if channel == "discord_report" else "notification-delivery.json"
+        )
         self.clock, self.wait, self.send = clock, wait, send
         self.config = DiscordConfig()
         self.ready = False
@@ -401,15 +412,19 @@ class Delivery:
                 and self.baseline < event.timestamp <= now + 60
                 and now - event.timestamp < _TTL
             ][: max(0, _MAX_QUEUE - len(self.queue))]
-            if not entries or not await self.persist(
-                {event.key: ["pending", now] for event in entries}
-            ):
-                return
-            if revision != self.revision:
-                return
-            self.queue.extend((revision, event) for event in entries)
-            if self.worker is None or self.worker.done():
-                self.worker = asyncio.create_task(self.run())
+            await self.enqueue(revision, entries, now)
+
+    async def enqueue(self, revision, entries, now):
+        """Réserve les résultats sous le verrou d’observation avant de démarrer leur envoi."""
+        if not entries or not await self.persist(
+            {event.key: ["pending", now] for event in entries}
+        ):
+            return
+        if revision != self.revision:
+            return
+        self.queue.extend((revision, event) for event in entries)
+        if self.worker is None or self.worker.done():
+            self.worker = asyncio.create_task(self.run())
 
     async def run(self):
         """Dépile les événements sans bloquer le suivi Cloud ni rejouer un résultat ambigu."""
@@ -472,7 +487,7 @@ class Delivery:
             logging.INFO if result.outcome == "sent" else logging.WARNING,
             "notification_delivery",
             message="Résultat d’un envoi Discord",
-            action="discord",
+            action=self.channel,
             outcome=result.outcome,
             status=result.status,
             attempt=attempt,

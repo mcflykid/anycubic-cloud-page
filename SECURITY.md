@@ -21,9 +21,9 @@ La saisie des identifiants dans le Compose ou `.env` est un choix d’installati
 
 Le mot de passe web est actuellement conservé dans un fichier privé en mode 0600. Une migration vers une empreinte doit conserver les mots de passe existants, notamment les valeurs longues et la rotation des sessions. La limite d’entrée de bcrypt et la compatibilité entre versions doivent être traitées avant une conversion automatique.
 
-## Webhook Discord
+## Webhooks Discord
 
-Le canal Discord est facultatif et désactivé par défaut. Le secret n’est relu que côté serveur depuis `APPDATA_DIR/private/discord-webhook` en mode 0600. La modification, la suppression et le message de test demandent une session et le mot de passe web. Les connexions sortantes sont limitées au point d’entrée HTTPS de Discord et les redirections sont refusées. Ne partagez pas l’adresse du webhook ni le fichier privé. Si l’adresse a été divulguée, révoquez le webhook depuis Discord avant de le remplacer.
+Les canaux Discord sont facultatifs et désactivés par défaut. Le serveur lit les secrets depuis `APPDATA_DIR/private/discord-webhook` et `APPDATA_DIR/private/discord-reports-webhook`, en mode 0600. La modification, la suppression et le message de test demandent une session et le mot de passe web. Les connexions sortantes sont limitées au point d’entrée HTTPS de Discord et les redirections sont refusées. Ne partagez pas l’adresse du webhook ni le fichier privé. Si l’adresse a été divulguée, révoquez le webhook depuis Discord avant de le remplacer.
 
 ## Facteur temporaire local
 
