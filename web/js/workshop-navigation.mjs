@@ -1,4 +1,4 @@
-import { formatText, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { formatText, tr } from './workshop-ui.mjs?v=fdeafc76b674';
 
 /** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
 export function initializeWorkshopNavigation() {
@@ -23,11 +23,14 @@ export function initializeWorkshopNavigation() {
     mobileLabel.setAttribute('aria-hidden', 'true');
     toggle.append(mobileLabel);
   }
+  /** Retrouve le bouton de l’onglet actif, y compris le mode compact mobile. */
   const currentButton = () => navigation.querySelector('[data-tab][aria-current="page"]');
+  /** Synchronise le titre compact avec l’onglet réellement sélectionné. */
   const updateCurrentLabel = () => {
     const label = currentButton()?.querySelector('span')?.textContent?.trim();
     mobileLabel.textContent = label || '';
   };
+  /** Ignore la fin d’animation si une ouverture plus récente a déjà commencé. */
   const finishClose = (token) => {
     // Un jeton empêche le minuteur d’une ancienne fermeture de masquer un menu rouvert.
     if (token !== phase || toggle.getAttribute('aria-expanded') === 'true') return;
@@ -36,6 +39,7 @@ export function initializeWorkshopNavigation() {
     navigation.inert = false;
     clearTimeout(closeTimer);
   };
+  /** Ferme le menu et rend le focus à son bouton quand la fermeture a été demandée au clavier. */
   const close = (restoreFocus = false) => {
     if (toggle.getAttribute('aria-expanded') !== 'true') return;
     const token = ++phase;
@@ -54,6 +58,7 @@ export function initializeWorkshopNavigation() {
     // Le délai couvre la vague de sortie même si animationend ne remonte pas du dernier bouton.
     closeTimer = window.setTimeout(() => finishClose(token), 900);
   };
+  /** Ouvre le menu en conservant son état accessible et son ordre d’animation. */
   const open = () => {
     const token = ++phase;
     clearTimeout(closeTimer);
@@ -144,6 +149,7 @@ export function initializeWorkshopNavigation() {
   });
   styleObserver.observe(document.documentElement, {attributes: true, attributeFilter: ['data-style']});
 
+  /** Transforme les cartes du résumé en grille réorganisable propre au style Aurore. */
   function buildAuroraBento() {
     if (bento) return;
     const overview = document.getElementById('tab-overview');
@@ -174,6 +180,7 @@ export function initializeWorkshopNavigation() {
     const key = 'cloud-page-layout:aurora';
     const defaults = entries.map(([name]) => name);
     // Valide la préférence locale avant d’insérer les cartes pour tolérer les versions partielles.
+    /** Valide l’ordre sauvegardé et complète les cartes manquantes pour tolérer les anciennes préférences. */
     const readOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(key) || 'null');
@@ -216,17 +223,21 @@ export function initializeWorkshopNavigation() {
       down.onclick = () => move(card, 1, true);
       installPointerDrag(handle, card);
     }
+    /** Renvoie les cartes présentes dans l’ordre visuel courant. */
     const list = () => [...bento.querySelectorAll('.aurora-widget')];
+    /** Sauvegarde uniquement les identifiants de cartes, sans recopier leur contenu. */
     const persist = () => {
       try { localStorage.setItem(key, JSON.stringify(list().map(card => card.dataset.widget))); } catch {}
       updateControls();
     };
+    /** Met à jour les libellés de position et désactive les déplacements impossibles. */
     const updateControls = () => {
       for (const [index, card] of list().entries()) {
         card.querySelector('.aurora-move-up').disabled = index === 0;
         card.querySelector('.aurora-move-down').disabled = index === list().length - 1;
       }
     };
+    /** Place les cartes dans l’ordre demandé en laissant les éléments inconnus à leur place par défaut. */
     const arrange = order => {
       for (const name of order) {
         const card = cards.get(name)?.card;
@@ -234,11 +245,13 @@ export function initializeWorkshopNavigation() {
       }
       updateControls();
     };
+    /** Annonce la nouvelle position de la carte aux technologies d’assistance. */
     const announce = card => {
       const index = list().indexOf(card) + 1;
       status.textContent = formatText('{0} · {1}/{2}', cards.get(card.dataset.widget)?.label || '', index, list().length);
     };
     // L’animation FLIP conserve les positions visuelles; les mouvements sont annulés en mode réduit.
+    /** Anime le déplacement depuis les positions visuelles avant/après sans imposer de hauteur. */
     const flip = action => {
       const before = new Map(list().map(card => [card, card.getBoundingClientRect()]));
       // Repartir de la position visible si un déplacement est encore en cours.
@@ -257,6 +270,7 @@ export function initializeWorkshopNavigation() {
         }
       }
     };
+    /** Déplace une carte d’un cran et conserve l’ordre si la limite est atteinte. */
     function move(card, direction, save) {
       const current = list().indexOf(card), next = Math.max(0, Math.min(list().length - 1, current + direction));
       if (next === current) return;
@@ -265,6 +279,7 @@ export function initializeWorkshopNavigation() {
       announce(card);
     }
     // Le glissement au pointeur complète les commandes haut/bas accessibles au clavier.
+    /** Gère le glisser-déposer avec capture du pointeur et restitution du focus. */
     function installPointerDrag(handle, card) {
       let drag = null;
       handle.addEventListener('pointerdown', event => {
@@ -283,6 +298,7 @@ export function initializeWorkshopNavigation() {
         const rect = target.getBoundingClientRect();
         flip(() => bento.insertBefore(card, event.clientY < rect.top + rect.height / 2 ? target : target.nextSibling));
       });
+      /** Termine le glissement une fois et restaure les styles temporaires même après annulation. */
       const finish = (event, cancelled) => {
         if (!drag || event.pointerId !== drag.pointerId) return;
         const previous = drag.original;
@@ -305,6 +321,7 @@ export function initializeWorkshopNavigation() {
     arrange(readOrder());
   }
   // Replace chaque élément avant son repère afin de quitter Aurore sans déplacer le contenu.
+  /** Replace les cartes à leur emplacement source avant de quitter le style Aurore. */
   function restoreAuroraBento() {
     if (!bento) return;
     for (const {marker, element} of bentoItems) {
@@ -316,6 +333,7 @@ export function initializeWorkshopNavigation() {
     bentoItems = [];
   }
   // Le repère est positionné en coordonnées de la barre pour suivre le bouton actif.
+  /** Suit l’onglet actif pour garder l’indicateur Apple/Océan aligné sur le contrôle. */
   function updateIndicator() {
     if (!indicator || !['apple', 'ocean'].includes(document.documentElement.dataset.style)) return;
     const active = currentButton();

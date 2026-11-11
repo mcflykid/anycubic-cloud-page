@@ -176,6 +176,7 @@ class CommandJournal:
         await asyncio.to_thread(self.record, entry.copy())
 
     def _record(self, entry):
+        "Fusionne les étapes d’une même demande sans remplacer un résultat terminal par un état antérieur."
         rows = self.rows()
         if entry["request_id"]:
             key = (entry["printer"], entry["request_id"])
@@ -316,6 +317,7 @@ class JournalMQTT:
                 self.pending[(row["printer"], digest)] = row
 
     async def _save(self, entry):
+        "Persiste un résultat MQTT et consigne l’échec disque sans interrompre la commande."
         try:
             await self.journal.record_async(entry)
         except OSError:

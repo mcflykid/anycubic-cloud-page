@@ -1,8 +1,9 @@
-import { formatText, serverText, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { formatText, serverText, tr } from './workshop-ui.mjs?v=fdeafc76b674';
 export const api = '/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */
 export function createRequest(getPrinter) {
+  /** Exécute une requête liée à la cible active et applique les reprises réservées aux lectures. */
   return async function request(path, options = {}) {
     const { timeoutMs, ...fetchOptions } = options;
     const target = options.printerKey ?? getPrinter();
@@ -44,6 +45,7 @@ export function createRequest(getPrinter) {
       throw new Error(tr('Session expirée. Reconnectez-vous avant toute nouvelle action.'));
     }
     const diagnosticId = response.headers.get('X-Request-ID');
+    /** Ajoute la référence de requête seulement lorsqu’elle respecte le format expurgé attendu. */
     const diagnosticText = text => /^[a-f0-9]{32}$/.test(diagnosticId || '')
       ? `${text} ${formatText('Référence de diagnostic : {0}', diagnosticId)}` : text;
     const raw = await response.text();

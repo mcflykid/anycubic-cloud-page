@@ -15,10 +15,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
-import { slots, filamentAdvice } from './workshop-commands.mjs?v=05b621e58cf0';
-import { definition } from './workshop-overview.mjs?v=7af87df1caba';
+} from './workshop-ui.mjs?v=fdeafc76b674';
+import { workshopState } from './workshop-state.mjs?v=9eb913982509';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=25860249f357';
+import { definition } from './workshop-overview.mjs?v=33d385b8447e';
 import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs?v=b7032b1dcfc1';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
@@ -419,6 +419,7 @@ export function createHistory(request, command, selectedBox) {
     dialog.showModal();
     const src = await taskPreview({ ...item, key: 'notification:' + item.key, notification: true });
     if (!dialog.open || dialog.dataset.notification !== item.key) return;
+    /** Affiche l’indisponibilité sans remplacer l’aperçu par une donnée fabriquée. */
     const unavailable = () =>
       set('notification-preview-state', tr('Aperçu indisponible pour cette notification.'));
     if (!src) {
@@ -528,7 +529,9 @@ export function createHistory(request, command, selectedBox) {
   const dateLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }),
     monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
     weekLabel = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+  /** Convertit une date de calendrier en clé de formulaire UTC stable. */
   const calendarDate = (date) => date.toISOString().slice(0, 10);
+  /** Calcule le premier jour d’un mois en UTC pour éviter les décalages de fuseau. */
   const monthAt = (month, delta = 0) =>
     new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + delta, 1));
   /** Un clic fixe le début, le suivant termine la plage, même en ordre inverse. */
@@ -838,6 +841,7 @@ export function createHistory(request, command, selectedBox) {
       $('task-reprint-dialog').showModal();
     };
     dialog.showModal();
+    /** Vérifie que la demande d’aperçu appartient encore à la notification affichée. */
     const current = () => dialog.open && pastTaskKey === t.key;
     taskPreview(t).then((src) => {
       if (src && current()) {

@@ -9,6 +9,7 @@ class FleetHealthTests(unittest.TestCase):
     """Les sources périmées et absentes ne deviennent jamais des machines disponibles."""
 
     def test_unmonitored_does_not_resolve_or_poll(self):
+        "Vérifie qu’un résumé non surveillé ne démarre pas de collecte."
         registry = SimpleNamespace(
             default_key=lambda: "a",
             catalogue=lambda: {"a": SimpleNamespace(name="A"), "b": SimpleNamespace(name="B")},
@@ -26,6 +27,7 @@ class FleetHealthTests(unittest.TestCase):
         self.assertEqual(registry.entries, {})
 
     def test_offline_threshold_dedup_recovery(self):
+        "Vérifie le seuil hors ligne, l’absence de doublons et le retour en ligne."
         tracker = FleetHealth()
         snapshot = {"ok": True, "updated_at": 100, "printer": {"printer_online": False}}
         registry = SimpleNamespace(
@@ -46,6 +48,7 @@ class FleetHealthTests(unittest.TestCase):
         self.assertEqual([e["transition"] for e in data["events"]], ["opened", "recovered"])
 
     def test_stale_future_missing_and_failed_are_explicit(self):
+        "Distingue une mesure périmée, future, absente ou échouée."
         tracker = FleetHealth()
         for value in (None, 0, 10000, float("nan"), float("inf")):
             with self.subTest(value=value):
@@ -61,6 +64,7 @@ class FleetHealthTests(unittest.TestCase):
         )
 
     def test_removed_machine_state_is_pruned_and_events_bounded(self):
+        "Retire les états d’une machine supprimée et borne les événements conservés."
         tracker = FleetHealth()
         tracker.pending["retired"] = ("offline", 0)
         registry = SimpleNamespace(
@@ -96,6 +100,7 @@ class FleetHealthTests(unittest.TestCase):
         """Une exception locale reste limitée à sa machine et n’active aucun moteur."""
 
         def fail():
+            "Fait échouer le relevé fictif pour tester le signalement d’une collecte indisponible."
             raise RuntimeError("fixture")
 
         registry = SimpleNamespace(

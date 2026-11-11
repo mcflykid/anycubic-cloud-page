@@ -55,6 +55,7 @@ def update(check=False):
     changed = []
 
     def apply(file, content):
+        "Écrit une ressource seulement si son contenu versionné diffère, ou la signale en mode vérification."
         if file.read_text() == content:
             return
         changed.append(file.name)
@@ -62,6 +63,7 @@ def update(check=False):
             file.write_text(content)
 
     def version_imports(content):
+        "Actualise les versions locales des imports sans modifier leur ordre ni leur destination."
         for module, version in versions.items():
             path = f"./{module}"
             content = re.sub(re.escape(path) + r"(?:\?v=[^'\"]*)?", f"{path}?v={version}", content)

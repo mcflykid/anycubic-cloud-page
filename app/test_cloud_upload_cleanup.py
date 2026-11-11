@@ -34,6 +34,7 @@ class CloudUploadCleanup(unittest.IsolatedAsyncioTestCase):
             path.write_bytes(content)
 
             async def receive(*, final_url, put_data):
+                "Reçoit le transfert local et conserve le corps pour contrôler son intégrité."
                 self.assertEqual(final_url, "https://example.test/upload")
                 self.assertEqual(put_data.read(), content)
 

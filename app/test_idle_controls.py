@@ -93,6 +93,7 @@ class IdleControlsTests(unittest.IsolatedAsyncioTestCase):
         target = self.target()
 
         async def busy():
+            "Rend la machine fictive occupée pendant la vérification de pré-envoi."
             target.printer.is_busy = True
 
         target.refresh_printer_details.side_effect = busy
@@ -102,6 +103,7 @@ class IdleControlsTests(unittest.IsolatedAsyncioTestCase):
         target = self.target()
 
         async def changed():
+            "Change l’identité de la cible fictive pendant la vérification réseau."
             target.printer.id = 8
 
         target.refresh_printer_details.side_effect = changed

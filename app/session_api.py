@@ -35,6 +35,7 @@ class SessionRecovery:
     @staticmethod
     def _expired(response):
         # Un résultat joint contredit le refus et ne permet pas de rejouer la demande.
+        "Reconnaît le refus de session documenté uniquement sans données jointes à la réponse."
         return (
             isinstance(response, dict)
             and str(response.get("code")) == "10001"
@@ -42,6 +43,7 @@ class SessionRecovery:
         )
 
     async def _fetch_api_resp(self, *args, **kwargs):
+        "Renouvelle une session explicitement refusée une fois, sans rejouer un résultat ambigu."
         generation = self._session_generation
         unauthorized = False
         unauthorized_error = None

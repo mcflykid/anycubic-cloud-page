@@ -884,6 +884,7 @@ class MQTTReplyTests(unittest.IsolatedAsyncioTestCase):
         payload = {"type": "file", "action": "listLocal", "msgid": "fixture"}
 
         async def send():
+            "Envoie une requête HTTP au serveur fictif et renvoie sa réponse décodée."
             second.receive(payload)
             first.receive({**payload, "action": "listUdisk"})
             await asyncio.sleep(0)

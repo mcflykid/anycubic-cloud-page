@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
+} from './workshop-ui.mjs?v=fdeafc76b674';
+import { workshopState } from './workshop-state.mjs?v=9eb913982509';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -146,6 +146,7 @@ function renderHardware(printer) {
   const box = printer.boxes?.[0];
   const generation = box?.model;
   const aceName = box ? generation || tr('Module ACE') : tr('Aucun module ACE');
+  /** Applique une illustration de matériel et retire une ancienne image d’une autre cible. */
   const setImage = (id, source, fallback) => {
     const image = $(id);
     if (image.dataset.illustration === source) return;

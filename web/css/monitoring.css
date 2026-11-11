@@ -3,7 +3,11 @@
   padding: 1rem;
   border: 1px solid var(--line);
   border-radius: 1.2rem;
-  background: color-mix(in srgb, var(--panel, Canvas) 94%, var(--accent, #5680a8));
+  background: color-mix(
+    in srgb,
+    var(--panel, Canvas) 94%,
+    var(--accent, #5680a8)
+  );
 }
 
 #monitor-grid.monitor-grid {
@@ -25,7 +29,10 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .monitor-card:hover {
@@ -177,24 +184,47 @@
 }
 
 @keyframes monitor-dialog-in {
-  from { opacity: 0; transform: translateY(5px) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 820px) {
-  #monitor-grid.monitor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #monitor-grid.monitor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 520px) {
-  #monitoring { padding: 0.7rem; }
-  #monitor-grid.monitor-grid { grid-template-columns: 1fr; }
-  .monitor-card { min-height: 7.8rem; }
-  .monitor-card-graph { width: 34%; }
-  .monitor-detail { padding: 1rem; }
+  #monitoring {
+    padding: 0.7rem;
+  }
+  #monitor-grid.monitor-grid {
+    grid-template-columns: 1fr;
+  }
+  .monitor-card {
+    min-height: 7.8rem;
+  }
+  .monitor-card-graph {
+    width: 34%;
+  }
+  .monitor-detail {
+    padding: 1rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .monitor-card,
-  .monitor-detail[open] { animation: none; transition: none; }
-  .monitor-card:hover { transform: none; }
+  .monitor-detail[open] {
+    animation: none;
+    transition: none;
+  }
+  .monitor-card:hover {
+    transform: none;
+  }
 }

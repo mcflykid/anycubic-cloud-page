@@ -20,6 +20,7 @@ class Transport:
         self.anycubic_auth = SimpleNamespace(set_access_token=Mock())
 
     async def _fetch_api_resp(self, *a, **kw):
+        "Simule le refus explicite d’une session pour contrôler le renouvellement unique."
         return await self.send(*a, **kw)
 
 

@@ -349,9 +349,11 @@ class CloudExtras:
         """Fusionne les flux chronologiques avant de découper la page globale."""
 
         def stamp(row):
+            "Renvoie un horodatage de tâche utilisable pour fusionner les historiques."
             return number(row.get("start_time") or row.get("create_time"), 0)
 
         async def stream(identifier):
+            "Parcourt l’historique d’une imprimante, en rejetant les doublons et les dates désordonnées."
             seen = set()
             previous = math.inf
             for source_page in range(1, 1001):
@@ -375,6 +377,7 @@ class CloudExtras:
         queue = []
 
         async def advance(identifier):
+            "Ajoute au tas la prochaine tâche du flux demandé, s’il en reste une."
             row = await anext(streams[identifier], None)
             if row is not None:
                 heapq.heappush(queue, (-stamp(row), identifier, row))
@@ -518,6 +521,7 @@ class CloudExtras:
 
     async def _notification_project_rows(self):
         # L’observateur peut demander plusieurs vignettes visibles pendant la même lecture.
+        "Partage brièvement le catalogue Cloud utilisé pour relier une notification à son aperçu."
         async with self.notification_projects_lock:
             cached = self.notification_projects
             if cached and time.monotonic() - cached[0] < 30:

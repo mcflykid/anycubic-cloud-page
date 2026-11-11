@@ -1,4 +1,4 @@
-import { fmt, mins, node, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { fmt, mins, node, tr } from './workshop-ui.mjs?v=fdeafc76b674';
 
 /** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
 function openFilePreview(file, src) {
@@ -97,6 +97,7 @@ export function createFileThumbnails(request, isCurrent) {
 
   /** Le nom reste lisible si le fichier n’a pas d’image ou si son décodage échoue. */
   function show(host, file, src) {
+    /** Retire l’état de chargement et annonce que la vignette ne peut pas être affichée. */
     const unavailable = () => {
       host.removeAttribute('aria-busy');
       host.title = tr('Aperçu indisponible');
@@ -150,6 +151,7 @@ export function createFileThumbnails(request, isCurrent) {
   }
   return {
     create,
+    /** Libère l’observateur de vignettes et vide sa file au changement de vue. */
     reset() {
       observer.disconnect();
       queue.clear();

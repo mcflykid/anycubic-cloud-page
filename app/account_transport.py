@@ -44,6 +44,7 @@ class AccountTransport:
         self.mqtt_auth_pending = False
 
         async def refresh_access():
+            "Renouvelle le jeton d’accès après le refus explicite de la session Cloud."
             self.token = await account.renew_after_rejection(self.session)
             return self.token
 
@@ -73,6 +74,7 @@ class AccountTransport:
         client = self.api
 
         def run():
+            "Démarre MQTT dans le fil dédié et remonte seulement le type d’échec."
             try:
                 client.connect_mqtt()
             except Exception as error:

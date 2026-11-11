@@ -1,5 +1,5 @@
-import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState, setBusy } from './workshop-state.mjs?v=81b1204c8b64';
+import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=fdeafc76b674';
+import { workshopState, setBusy } from './workshop-state.mjs?v=9eb913982509';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {
@@ -67,6 +67,7 @@ export function createCommands(request, refresh) {
   }
   /** Renvoie le résultat ou null ; question demande confirmation et request_id empêche une répétition côté serveur. */
   async function command(action, data = {}, question, feedback) {
+    /** Présente le résultat au bandeau et rappelle la fonction de retour du panneau. */
     const notify = (text, error) => {
       message(text, error);
       feedback?.(text);
@@ -136,6 +137,7 @@ export async function filamentAdvice(request, data, printerKey = workshopState.s
 /** Lit seulement l’en-tête de commentaires G-code ; aucune commande du fichier n’est exécutée. */
 export async function filamentMetadata(file) {
   const header = await file.slice(0, 65536).text();
+  /** Extrait une valeur de tranche limitée aux métadonnées de l’en-tête G-code. */
   const field = key => header.match(new RegExp(`^;\\s*${key}\\s*=\\s*([^\\r\\n]*)`, 'mi'))?.[1]
     ?.split(';').slice(0, 16).map(value => value.trim()) || [];
   const rawColors = field('filament_(?:colour|color)');

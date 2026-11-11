@@ -17,6 +17,7 @@ class HttpProfileTests(unittest.IsolatedAsyncioTestCase):
         captured = []
 
         async def receive(request):
+            "Capture les en-têtes réellement reçus par le serveur HTTP de test."
             captured.append(dict(request.headers))
             return web.json_response({"ok": True})
 
@@ -28,6 +29,7 @@ class HttpProfileTests(unittest.IsolatedAsyncioTestCase):
         account = SimpleNamespace(token=AsyncMock(return_value="fixture-token"))
 
         def factory(session, jar, **kwargs):
+            "Construit un client Cloud factice et vérifie son profil d’authentification."
             self.assertEqual(kwargs["auth_mode"], AnycubicAuthMode.SLICER)
             return SimpleNamespace(
                 check_api_tokens=AsyncMock(return_value=True),

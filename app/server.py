@@ -256,6 +256,7 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             self.message_engine = None
 
     def _mqtt_on_connect(self, client, userdata, flags, rc, properties=None):
+        "Journalise l’acquittement de connexion MQTT sans exposer les identifiants du client."
         log_event(
             logging.getLogger("cloud_page.mqtt"),
             logging.WARNING if rc else logging.INFO,
@@ -271,6 +272,7 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
         return super()._mqtt_on_connect(client, userdata, flags, rc, properties)
 
     def _mqtt_on_disconnect(self, client, userdata, rc, *args):
+        "Journalise la coupure du transport MQTT pour faciliter le diagnostic de fraîcheur."
         log_event(
             logging.getLogger("cloud_page.mqtt"),
             logging.WARNING,
@@ -354,6 +356,7 @@ class Engine:
 
     @api.setter
     def api(self, value):
+        "Remplace le client API détenu par le transport partagé du compte."
         self.transport.api = value
 
     @property
@@ -363,6 +366,7 @@ class Engine:
 
     @session.setter
     def session(self, value):
+        "Expose la même session HTTP à chaque imprimante liée au compte."
         self.transport.session = value
 
     @property
@@ -372,6 +376,7 @@ class Engine:
 
     @account_token.setter
     def account_token(self, value):
+        "Expose au moteur la valeur du jeton détenu par le transport partagé."
         self.transport.token = value
 
     @property
@@ -381,6 +386,7 @@ class Engine:
 
     @reconnect_required.setter
     def reconnect_required(self, value):
+        "Expose l’état de reconnexion partagé par toutes les cibles du compte."
         self.transport.reconnect_required = value
 
     def event(self, action, state):
@@ -914,6 +920,7 @@ class Engine:
         if isinstance(data, dict) and isinstance(data.get("ai_settings"), dict):
 
             def deliver():
+                "Réveille uniquement l’attente IA qui était active quand le rapport a été reçu."
                 if self.ai_query_waiter is waiter and not waiter.done():
                     waiter.set_result(data)
 
@@ -1501,6 +1508,7 @@ async def command(req):
             sent = False
 
             async def before_send():
+                "Enregistre un résultat inconnu juste avant l’envoi, car une coupure ne prouve pas le refus Cloud."
                 nonlocal sent
                 if sent:
                     return

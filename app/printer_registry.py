@@ -108,6 +108,7 @@ class PrinterRegistry:
 
     @staticmethod
     def _missing_printer():
+        "Construit le conflit HTTP commun lorsqu’une cible n’est plus dans le compte."
         return web.HTTPConflict(
             text=json.dumps(
                 {
@@ -184,6 +185,7 @@ class PrinterRegistry:
         await self._retire(self.entries.keys() - self.catalogue().keys())
 
     async def _retire(self, keys):
+        "Annule les collectes des cibles retirées puis sauvegarde leur historique propre."
         async with self.lock:
             retired = [
                 (self.entries.pop(key), self.jobs.pop(key)) for key in keys if key in self.entries

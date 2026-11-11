@@ -17,17 +17,21 @@ class FakeClock:
     """Fournit trois horloges indépendantes pour vérifier les deltas sans attendre."""
 
     def __init__(self):
+        "Associe l’instantané fictif au compteur d’appels de la sonde."
         self.mono = 100.0
         self.wall = 1_800_000_000.0
         self.cpu = 20.0
 
     def monotonic(self):
+        "Renvoie l’horloge monotone contrôlée par le test."
         return self.mono
 
     def time(self):
+        "Renvoie l’horloge civile contrôlée par le test."
         return self.wall
 
     def process_time(self):
+        "Renvoie le temps CPU contrôlé par le test."
         return self.cpu
 
 
@@ -96,12 +100,16 @@ class MonitoringTests(unittest.TestCase):
         """Le résumé ne révèle que des états et des quantités, et ne réveille aucun moteur."""
 
         class Engine:
+            "Fournit un moteur minimal pour tester le résumé du parc sans collecte."
+
             def __init__(self, snapshot):
+                "Associe l’instantané fictif au compteur d’appels de la sonde."
                 self.api = SimpleNamespace(_mqtt_client=SimpleNamespace(is_connected=lambda: True))
                 self._snapshot = snapshot
                 self.calls = 0
 
             def snapshot(self):
+                "Compte les lectures du moteur puis renvoie l’instantané fictif fourni."
                 self.calls += 1
                 return self._snapshot
 

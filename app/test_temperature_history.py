@@ -168,6 +168,7 @@ class TemperatureHistoryTests(unittest.IsolatedAsyncioTestCase):
             original = history._save_snapshot
 
             def slow_save(payload, generation=None):
+                "Suspend la sauvegarde pour vérifier que l’effacement attend le même verrou."
                 entered.set()
                 release.wait(2)
                 original(payload, generation)

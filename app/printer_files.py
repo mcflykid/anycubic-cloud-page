@@ -61,6 +61,7 @@ class MQTTReplies:
                 self.loop.call_soon_threadsafe(self._deliver, payload, time.monotonic())
 
     def _deliver(self, payload, received):
+        "Réveille une attente corrélée ou conserve temporairement une réponse MQTT arrivée trop tôt."
         key = (payload.get("type"), payload.get("action"), str(payload["msgid"]))
         waiter = self.pending.get(key)
         if waiter is not None and not waiter.done():
@@ -105,6 +106,7 @@ async def direct_request(target, kind, action, data):
     msgid = str(uuid.uuid4())
 
     async def publish():
+        "Envoie une demande MQTT ciblée ; l’identifiant reste celui que le corrélateur attend."
         target.api._mqtt_publish_to_printer(
             target.printer,
             kind,

@@ -114,10 +114,12 @@ class TemperatureHistory:
             pass
 
     def _load_raw(self, row):
+        "Charge un relevé brut historique par le même validateur que les nouveaux relevés."
         if isinstance(row, dict):
             self.add(row.get("time"), row, aggregate=True)
 
     def _load_rollups(self, rows):
+        "Charge les moyennes horaires bornées sans mélanger les séries de machines ou de bobines."
         for row in rows if isinstance(rows, list) else []:
             if not isinstance(row, dict) or not isinstance(row.get("time"), int):
                 continue
@@ -180,6 +182,7 @@ class TemperatureHistory:
 
     @staticmethod
     def _merge_metric(target, key, value, count=1):
+        "Ajoute une moyenne pondérée seulement si la valeur et son effectif sont valides."
         value = bounded_number(value, -30, 400)
         if value is None or type(count) is not int or count < 1 or count > RAW_MAX_ROWS:
             return
@@ -228,6 +231,7 @@ class TemperatureHistory:
         return True
 
     def _prune(self, now):
+        "Retire les relevés bruts et agrégats horaires qui dépassent leurs fenêtres de conservation."
         while self.rows and self.rows[0]["time"] < now - RAW_RETENTION_SECONDS:
             self.rows.popleft()
         cutoff = int(now // 3600) * 3600 - (ROLLUP_MAX_HOURS - 1) * 3600
@@ -274,9 +278,11 @@ class TemperatureHistory:
 
     @staticmethod
     def _average(pair):
+        "Calcule une moyenne arrondie ou None lorsque l’agrégat ne contient aucun échantillon."
         return round(pair[0] / pair[1], 1) if pair and pair[1] else None
 
     def _payload(self):
+        "Construit le format versionné à sauvegarder depuis un instantané cohérent des séries."
         hourly = []
         for stamp, values in sorted(self._hourly.items()):
             metrics = {
@@ -367,6 +373,7 @@ class TemperatureHistory:
             await asyncio.to_thread(self.clear)
 
     def _unlink_file(self):
+        "Supprime le fichier de relevés après effacement explicite, sans masquer les autres erreurs disque."
         try:
             self.path.unlink()
         except FileNotFoundError:

@@ -25,6 +25,7 @@ def ace_model(box_id, firmware, report):
     names = {"ace pro": "ACE Pro", "ace 2 pro": "ACE 2 Pro"}
 
     def recognized(value):
+        "Reconnaît uniquement les noms constructeur attendus, après retrait du préfixe Anycubic."
         if not isinstance(value, str):
             return None
         return names.get(value.strip().casefold().removeprefix("anycubic "))

@@ -1,4 +1,4 @@
-import { $, serverText, set, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { $, serverText, set, tr } from './workshop-ui.mjs?v=fdeafc76b674';
 
 const CAMERA_PRESENCE_INTERVAL_MS = 45000;
 
@@ -15,11 +15,13 @@ export function createCamera(request, getPrinter) {
   let presenceTimer = null,
     presencePending = false;
 
+  /** Arrête le signal local de présence quand le panneau ou la session caméra se ferme. */
   function stopPresence() {
     if (presenceTimer !== null) clearInterval(presenceTimer);
     presenceTimer = null;
   }
 
+  /** Renouvelle la présence de ce spectateur sans redemander de session vidéo Cloud. */
   async function signalPresence(target) {
     if (
       presencePending ||
@@ -48,16 +50,19 @@ export function createCamera(request, getPrinter) {
     }
   }
 
+  /** Programme le signal de présence seulement pendant une session vidéo active. */
   function startPresence(target) {
     stopPresence();
     presenceTimer = setInterval(() => void signalPresence(target), CAMERA_PRESENCE_INTERVAL_MS);
   }
 
+  /** Renouvelle la présence quand l’onglet redevient visible, sans trafic en arrière-plan. */
   function refreshVisiblePresence() {
     if (document.visibilityState === 'visible' && viewer && client)
       void signalPresence(viewer);
   }
 
+  /** Charge une seule fois le client vidéo localisé par la page, puis partage sa promesse. */
   function loadSdk() {
     if (!sdkPromise)
       sdkPromise = new Promise((resolve, reject) => {
@@ -76,6 +81,7 @@ export function createCamera(request, getPrinter) {
     return releasePending;
   }
 
+  /** Quitte la session vidéo avant de libérer l’état partagé avec le serveur. */
   async function close() {
     const previous = viewer;
     viewer = null;
@@ -102,6 +108,7 @@ export function createCamera(request, getPrinter) {
     return closing;
   }
 
+  /** Ouvre le flux de la cible courante et abandonne proprement une ouverture devenue obsolète. */
   async function open() {
     let opening;
     try {
@@ -129,7 +136,9 @@ export function createCamera(request, getPrinter) {
       }
       const mine = sdk.createClient({ mode: 'live', codec: 'h264', role: 'host' });
       client = mine;
+      /** Indique si cette ouverture correspond toujours à la tentative caméra la plus récente. */
       const current = () => opening === generation && client === mine;
+      /** Attache la piste vidéo publiée par le participant courant, sans utiliser sa piste audio. */
       const subscribe = async (user) => {
         if (!current()) return;
         await mine.subscribe(user, 'video');
@@ -211,6 +220,7 @@ export function createCamera(request, getPrinter) {
     }
   }
 
+  /** Applique le zoom d’affichage local sans envoyer d’ordre de mouvement. */
   function renderZoom() {
     $('camera-video').style.transform = `scale(${zoom})`;
     set('zoom-label', `${Math.round(zoom * 100)} %`);
@@ -243,6 +253,7 @@ export function createCamera(request, getPrinter) {
     get hasVideo() {
       return !!track;
     },
+    /** Affiche un diagnostic serveur seulement si le flux vidéo ne fournit pas déjà son état. */
     updateDiagnostic(diagnostic) {
       if (wanted && !track && diagnostic)
         set(

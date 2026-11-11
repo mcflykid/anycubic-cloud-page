@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=9d97ce06364c';
+} from './workshop-ui.mjs?v=fdeafc76b674';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {
@@ -22,6 +22,7 @@ const temperatures = {
   ace: [80, 'light-dark(#42765c,#88d5ae)'],
 };
 
+/** Formate l’horodatage d’un point dans le fuseau configuré pour l’atelier. */
 const hour = (t) =>
   new Date(t * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone });
 
@@ -49,7 +50,9 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
         Math.max(...valid.map((r) => r[key]), ...rows.map((r) => r[key + '_target'] || 0)) / 25,
       ) * 25,
     ),
+    // Ces fonctions convertissent une mesure et un instant en coordonnées SVG.
     x = (t) => L + ((t - start) / (end - start)) * (W - L - R),
+    /* Place une température dans l’axe vertical du graphique. */
     y = (v) => T + (1 - v / top) * (H - T - B),
     svg = chartElement('svg', {
       viewBox: `0 0 ${W} ${H}`,
@@ -160,9 +163,12 @@ function renderAceCharts(rows, hours, boxes) {
     }
   }
   for (const host of [humidity, other, filament]) host.replaceChildren();
+  /** Indique si aucune mesure valide ne peut alimenter cette courbe. */
   const empty = () => node('p', tr('En attente des premiers relevés.'), 'muted');
+  /** Trie les numéros de boîtier afin de garder un ordre visuel stable. */
   const ordered = (values) => [...values].sort((a, b) => Number(a) - Number(b));
 
+  /** Construit le groupe de graphiques associé à un seul ACE. */
   function group(host, box) {
     const section = node('section'), charts = node('div', null, 'temperature-charts');
     section.append(node('h4', aceChartName(boxes, box), 'ace-chart-group-name'), charts);
@@ -170,6 +176,7 @@ function renderAceCharts(rows, hours, boxes) {
     return charts;
   }
 
+  /** Dessine la série d’humidité ou de filament à partir des relevés valides. */
   function chart(host, box, slot) {
     const isHumidity = slot === undefined;
     const title = isHumidity ? tr('Humidité') : formatText('Emplacement {0}', slot);
@@ -206,9 +213,11 @@ export function createTemperatureLoader(request, getPrinter = () => '', getHardw
   if (exportButton) exportButton.onclick = async () => {
     exportButton.disabled = true;
     const hours = Number($('temperature-hours').value), printer = getPrinter();
+    /** Refuse une réponse tardive si période ou imprimante ont changé pendant la lecture. */
     const sameContext = () => !!printer && printer === getPrinter()
       && hours === Number($('temperature-hours').value)
       && $('printer-selector').value === printer;
+    /** Annule uniquement la lecture précédente de température lorsqu’un nouveau contexte la remplace. */
     const cancelled = () => set('temperature-export-state', tr('Export annulé : la période ou l’imprimante a changé.'));
     try {
       if (!sameContext()) { cancelled(); return; }
@@ -228,6 +237,7 @@ export function createTemperatureLoader(request, getPrinter = () => '', getHardw
       exportButton.disabled = false;
     }
   };
+  /** Charge la période affichée et dessine seulement si la cible est toujours active. */
   return async function loadTemperatures() {
     const current = ++sequence;
     try {

@@ -343,6 +343,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         engine.api._send_order_set_light_status = AsyncMock(return_value=True)
 
         async def actual_action(name, data):
+            "Remplace l’action sensible par un témoin qui ne contacte aucun appareil."
             return await execute_command(engine, name, data)
 
         engine.action.side_effect = actual_action

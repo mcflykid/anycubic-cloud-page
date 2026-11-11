@@ -10,16 +10,17 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
-import { definition } from './workshop-overview.mjs?v=7af87df1caba';
-import { api } from './workshop-api.mjs?v=7d1c7225d9bd';
+} from './workshop-ui.mjs?v=fdeafc76b674';
+import { workshopState } from './workshop-state.mjs?v=9eb913982509';
+import { definition } from './workshop-overview.mjs?v=33d385b8447e';
+import { api } from './workshop-api.mjs?v=5f8cc940dbeb';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
   let deviceOptions = null,
     resetTicket = null,
     resetDeadline = 0;
+  /** Affiche le retour de commande sans laisser un ancien état machine paraître actuel. */
   const controlFeedback = (text) => set('control-feedback', text);
   /** Refuse les nouvelles commandes lorsque le serveur n’a plus d’état utilisable. */
   function disableQuickControls() {
@@ -29,6 +30,7 @@ export function createSettings(request, command, camera) {
       button.disabled = true;
     set('control-light-state', tr('État inconnu'));
   }
+  /** Bascule les réglages et les commandes au repos sans mélanger leurs formulaires. */
   function showControlView(settings) {
     $('controls-monitor').hidden = settings;
     $('settings-form').hidden = !settings;
@@ -168,6 +170,7 @@ export function createSettings(request, command, camera) {
       ['Temps estimé', time],
       ['Filament estimé', fmt(d.material_grams, ' g')],
     ]);
+    /** Convertit les valeurs booléennes rapportées en libellés français compréhensibles. */
     const yes = (v) =>
       v == null ? '—' : [true, 1, '1', 'true'].includes(single(v)) ? tr('Activé') : tr('Désactivé');
     definition('task-parameters', [
@@ -558,6 +561,7 @@ export function createSettings(request, command, camera) {
     else set('reset-state', tr('Demandez un nouveau code avant de réessayer'));
   };
 
+  /** Charge les capacités de l’appareil à l’ouverture, puis réutilise leur cache local. */
   function enter() {
     if (!deviceOptions) loadDeviceOptions();
   }

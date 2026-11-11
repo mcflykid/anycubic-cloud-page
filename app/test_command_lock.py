@@ -212,6 +212,7 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
                     engine.api = SimpleNamespace(_send_anycubic_order=transport)
 
                     async def priority(*args, started=started, finish=finish):
+                        "Maintient l’ordre prioritaire en attente pour vérifier son exclusion physique."
                         started.set()
                         await finish.wait()
                         return "accepted"

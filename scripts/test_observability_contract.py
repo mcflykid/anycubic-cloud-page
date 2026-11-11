@@ -8,6 +8,7 @@ class ObservabilityContractTests(unittest.TestCase):
     """Les séries restent fixes, sans étiquette portant une identité sensible."""
 
     def test_metrics_contract_is_explicit_and_bounded(self):
+        "Vérifie que la documentation décrit des métriques bornées sans identifiant sensible."
         doc = (Path(__file__).parents[1] / "docs" / "OBSERVABILITY.md").read_text()
         expected = (
             "cloud_page_known_printers",

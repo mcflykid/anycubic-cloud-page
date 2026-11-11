@@ -184,6 +184,7 @@ class AccountNotifications:
 
     async def _slicer_page(self, api, page):
         # Le mode normal du slicer lit tous les statuts sans modifier leur état.
+        "Lit une page du journal Slicer sans demander de mise à jour de statut."
         response = await api._fetch_api_resp(
             AnycubicAPIEndpoint(HTTP_METHODS.POST, "/farm/message/list"),
             params={
@@ -277,6 +278,7 @@ class AccountNotifications:
         }
 
     async def _legacy_page(self, api, page):
+        "Convertit une page de l’ancien journal Cloud et son compteur en lignes internes."
         response = await api._fetch_api_resp(
             AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessages"),
             params={"type": 1, "page": page, "limit": 20},

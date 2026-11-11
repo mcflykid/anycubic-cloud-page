@@ -19,11 +19,13 @@ class UploadTimeout(unittest.IsolatedAsyncioTestCase):
         calls = []
 
         async def order(request):
+            "Interrompt la connexion après réception afin de vérifier qu’un POST n’est pas répété."
             calls.append(request.path)
             await request.read()
             raise web.HTTPTemporaryRedirect("/repeat")
 
         async def repeat(request):
+            "Compte toute requête vers la destination de redirection fictive."
             calls.append(request.path)
             return web.json_response({"data": {"msgid": "fixture"}})
 
@@ -42,6 +44,7 @@ class UploadTimeout(unittest.IsolatedAsyncioTestCase):
         calls = []
 
         async def update(request):
+            "Reçoit la demande de mise à jour et contrôle le comportement au transport."
             calls.append(request.path)
             if len(calls) == 1:
                 request.transport.abort()

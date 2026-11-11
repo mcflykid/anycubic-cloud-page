@@ -197,6 +197,7 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         self.task()
 
         async def refresh():
+            "Rend la machine occupée entre la prévalidation et le contrôle final."
             self.e.printer.latest_project_print_in_progress = True
 
         self.e.printer.update_info_from_api = AsyncMock(side_effect=refresh)
@@ -371,6 +372,7 @@ class ExtrasTests(unittest.IsolatedAsyncioTestCase):
         by_device = {7: list(range(65, 24, -1)), 8: [60, 24, 23]}
 
         async def cloud(path, *, query, method):
+            "Renvoie une liste de fichiers Cloud fictive filtrée par le dossier demandé."
             if path != "/v2/project/printHistory":
                 return []
             identifier = query["printer_id"]
@@ -605,6 +607,7 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
         self.x.preview_row = AsyncMock(return_value={"image": None})
 
         async def delayed_catalogue(*args, **kwargs):
+            "Suspend la lecture fictive du catalogue pour exercer la fusion des requêtes concurrentes."
             await asyncio.sleep(0)
             return []
 
@@ -621,6 +624,7 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
         image = "data:image/png;base64,eA=="
 
         async def delayed_catalogue(*args, **kwargs):
+            "Suspend la lecture fictive du catalogue pour exercer la fusion des requêtes concurrentes."
             catalogue_started.set()
             await release_catalogue.wait()
             return [{"id": 44, "printer_id": 7, "img": "https://anycubic.com/fixture.png"}]

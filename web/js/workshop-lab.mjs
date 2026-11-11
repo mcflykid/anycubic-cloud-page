@@ -1,4 +1,4 @@
-import { tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { tr } from './workshop-ui.mjs?v=fdeafc76b674';
 
 /** Explore une navigation par usage en déplaçant les vrais boutons ; les gestionnaires et confirmations sont conservés. */
 export function initializeLabLayout() {

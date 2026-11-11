@@ -1,4 +1,4 @@
-import { signalChange, $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { signalChange, $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=fdeafc76b674';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** Décrit les unités et la provenance des neuf séries rendues dans le panneau local. */
@@ -172,7 +172,9 @@ function makeChart(points, key, large, sampleCount) {
     high = max + (max === min ? spread / 2 : spread * 0.08),
     innerWidth = width - padding.left - padding.right,
     innerHeight = height - padding.top - padding.bottom,
+    // Ces fonctions convertissent le numéro du point et la mesure en coordonnées SVG.
     x = (index) => padding.left + (points.length < 2 ? innerWidth / 2 : index / (points.length - 1) * innerWidth),
+    /* Place la mesure dans l’axe vertical sans arrondir les données affichées. */
     y = (value) => padding.top + (1 - (value - low) / (high - low)) * innerHeight,
     svg = svgElement('svg', {
       viewBox: `0 0 ${width} ${height}`,

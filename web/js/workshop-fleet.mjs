@@ -1,4 +1,4 @@
-import { $, node, tr, formatText, date } from './workshop-ui.mjs?v=9d97ce06364c';
+import { $, node, tr, formatText, date } from './workshop-ui.mjs?v=fdeafc76b674';
 
 /** La vue n’active aucune machine et ne permet aucune commande ni sélection implicite. */
 export function createFleet(request) {
@@ -7,6 +7,7 @@ export function createFleet(request) {
     online: 'En ligne', offline: 'Hors ligne', stale: 'Données périmées',
     unavailable: 'Cloud indisponible', unmonitored: 'Pas encore suivie', unknown: 'État inconnu',
   };
+  /** Recharge l’état du parc et écarte la réponse si la cible active a changé. */
   return async function loadFleet() {
     if (pending) return;
     pending = true;

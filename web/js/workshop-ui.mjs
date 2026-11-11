@@ -37,6 +37,7 @@ export function serverText(text, fallback) {
   return tr(fallback);
 }
 
+/** Applique les traductions locales aux éléments marqués sans interpréter leur contenu comme du HTML. */
 function translatePage() {
   if (language === 'fr') return;
   document.documentElement.lang = language;
@@ -58,6 +59,7 @@ function translatePage() {
   }
 }
 
+/** Charge le choix de langue local et attend le catalogue avant de traduire la page. */
 async function initializeLanguage() {
   let requested = 'fr';
   try {
@@ -108,6 +110,7 @@ async function initializeLanguage() {
   });
   choice.disabled = false;
 }
+/** Restaure le thème clair ou sombre et suit les changements de préférence système. */
 function initializeTheme() {
   const storageKey = 'cloud-page-theme',
     root = document.documentElement,
@@ -125,6 +128,7 @@ function initializeTheme() {
   choice.addEventListener('change', () => {
     const nextTheme = choice.value;
     transition?.skipTransition();
+    /** Applique le thème choisi et conserve le choix sans imposer un rechargement. */
     const applyTheme = () => {
       // Le navigateur peut différer le rendu jusqu’après un deuxième changement.
       if (choice.value === nextTheme) root.dataset.theme = nextTheme;
@@ -180,6 +184,7 @@ function initializeStyle() {
       choice.value = saved;
     }
   } catch {}
+  /** Applique le style de composition choisi et actualise son aide descriptive. */
   const apply = () => {
     document.documentElement.dataset.style = choice.value;
     const selected = styleCatalogue.find(([id]) => id === choice.value);
@@ -212,6 +217,7 @@ export function beginListLoading(list, skeleton, announce) {
   const timer = setTimeout(() => {
     if (announce() !== false) skeleton.hidden = list.childElementCount !== 0;
   }, 240);
+  /** Arrête une annonce de chargement différée sans effacer une liste déjà visible. */
   const stop = () => {
     if (pendingLists.get(list) !== stop) return;
     clearTimeout(timer);
@@ -278,11 +284,13 @@ export function confirmAction(text) {
     set('confirm-text', text);
     d.showModal();
     let settled = false;
+    /** Résout la confirmation une seule fois même si plusieurs événements ferment la fenêtre. */
     const settle = (value) => {
       if (settled) return;
       settled = true;
       resolve(value);
     };
+    /** Ferme la fenêtre et renvoie le choix déjà stabilisé par settle. */
     const finish = (value) => {
       settle(value);
       d.close();

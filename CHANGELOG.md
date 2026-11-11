@@ -2,6 +2,7 @@
 
 ## À venir
 
+- Ajoute des annotations françaises aux modules, classes et fonctions Python et JavaScript, et reformate les styles CSS avec des repères lisibles (#223).
 - Retire la lecture des coordonnées dans Caméra → Déplacer ainsi que sa route et son diagnostic. Les commandes de déplacement restent disponibles (#167).
 - L’ouverture et la fermeture de la caméra laissent passer pause et annulation pendant l’attente d’une lecture. Le verrou d’envoi continue de sérialiser les ordres machine (#206).
 - Le journal des commandes garde l’adresse IPv6 du client. Seul le quota de connexion regroupe les adresses par préfixe /64 (#207).

@@ -9,10 +9,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState, setBusy } from './workshop-state.mjs?v=81b1204c8b64';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=05b621e58cf0';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=25357d373d9e';
+} from './workshop-ui.mjs?v=fdeafc76b674';
+import { workshopState, setBusy } from './workshop-state.mjs?v=9eb913982509';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=25860249f357';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=233fd713182c';
 
 import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
 
@@ -90,6 +90,7 @@ export function createFiles(request, command) {
         if (!f.is_dir && !context.folder) identity.append(fileThumbnails.create(f, context));
         identity.append(node('span', f.name));
         name.append(identity);
+        /** Construit un bouton d’action avec son icône et son libellé accessibles. */
         const add = (label, fn, cls) => {
           const b = node('button', null, cls);
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -616,6 +617,7 @@ export function createFiles(request, command) {
     }
   };
 
+  /** Rafraîchit seulement la source et le panneau actifs pour éviter une liste périmée. */
   function update() {
     if (source !== 'cloud' && workshopState.currentTab === 'files') renderFiles();
   }

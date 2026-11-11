@@ -21,12 +21,14 @@ class BudgetTests(unittest.IsolatedAsyncioTestCase):
         clock = [10.0]
 
         async def sleep(seconds):
+            "Avance l’horloge simulée pour vérifier l’espacement des demandes concurrentes."
             clock[0] += seconds
 
         budget = CloudRequestBudget(monotonic=lambda: clock[0], sleep=sleep)
         starts = []
 
         async def ask():
+            "Réserve une requête dans le budget partagé avant de l’ajouter aux mesures de départ."
             await budget.acquire()
             starts.append(clock[0])
 
@@ -85,6 +87,7 @@ class BudgetTests(unittest.IsolatedAsyncioTestCase):
         clock = [10.0]
 
         async def sleep(seconds):
+            "Fait avancer l’horloge pendant la file afin de vérifier la réévaluation du cooldown."
             clock[0] += seconds
             budget.defer(60)
 
