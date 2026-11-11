@@ -1,8 +1,11 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 
 import argparse, base64, csv, io, math, os, re, time
+from pathlib import Path
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
+from notification_discord import DiscordResult
+from notification_settings import discord_enabled, install_discord
 from filament_catalog import editable_materials
 from print_preflight import evaluate_preflight
 from temperature_history import ace_readings
@@ -178,6 +181,7 @@ async def demo_index(request):
         home_url(os.environ.get("HOME_URL", "/imprimante.html")),
         display_timezone(),
         totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
+        discord_active=discord_enabled(request.app),
     ).replace(
         "<body>",
         '<body><div class="demo-banner">Démonstration · Données fictives · Aucune imprimante connectée</div>',
@@ -454,6 +458,13 @@ def create_demo(authenticated=False):
     app[PRINT_TASKS] = [dict(x) for x in TASKS]
     if authenticated:
         install_access(app)
+
+        async def demo_discord(config, event):
+            """Confirme fictivement le test Discord, sans ouvrir de connexion externe."""
+            return DiscordResult("sent", 200)
+
+        private = Path(os.environ.get("WEB_PASSWORD_FILE", "/appdata/private/web-password")).parent
+        install_discord(app, private, fake_sender=demo_discord)
     app.router.add_get("/", demo_index)
     app.router.add_get("/imprimante.html", demo_index)
     install_ui_resources(app)

@@ -155,6 +155,10 @@ Une recréation interrompt brièvement HTTP et invalide les sessions web. Reconn
 
 Un dossier appdata reste associé à son compte enregistré. Pour changer de compte, sauvegardez ce dossier, choisissez un nouvel `APPDATA_DIR` et renseignez les identifiants de ce compte. La préparation refuse de remplacer le compte d’un dossier existant.
 
+## Notifications Discord
+
+Consultez le [guide des notifications Discord](NOTIFICATIONS.md) pour connecter le canal et vérifier les envois.
+
 ## Connexion à deux facteurs
 
 Dans **Réglages → Sécurité**, ouvrez la configuration de la connexion à deux facteurs. Saisissez le mot de passe web, scannez le QR dans une application d’authentification ou entrez la clé manuelle. Saisissez le premier code pour activer le facteur. Conservez les dix codes de secours hors de l’atelier. La page ne les affiche qu’une fois. Un code de secours remplace un code temporaire lors d’une connexion et ne peut servir qu’une fois.

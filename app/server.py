@@ -26,6 +26,7 @@ from printer_registry import PrinterRegistry, select_printer, printer_key
 from printer_engine import CloudPageAPI as CloudPageAPI, Engine, engine
 from fleet_health import FleetHealth
 from monitoring import Monitoring
+from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
 from printer_values import integer, now as now, safeget
 import printer_files
@@ -714,6 +715,7 @@ async def startup(app):
     engine.catalogue_source = True
     app["printer_registry"] = PrinterRegistry(engine, Engine, sample_temperatures, app)
     app["fleet_health"] = FleetHealth()
+    engine.notification_delivery = app[DELIVERY_KEY]
     app["poll_task"] = asyncio.create_task(engine.poll())
     app["temperature_history"] = TemperatureHistory()
     app[COMMAND_JOURNAL_KEY] = CommandJournal(engine.state_dir / "command-journal.jsonl")
@@ -834,6 +836,7 @@ install_extras(app, engine)
 app.router.add_get("/imprimante-api/journal", command_journal)
 app.on_startup.append(startup)
 app.on_cleanup.append(cleanup)
+install_discord(app, engine.state_dir)
 from web_host import install_static
 
 install_static(app)

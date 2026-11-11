@@ -85,3 +85,9 @@ Lorsqu’une référence de corrélation est disponible, les rapports MQTT de la
 Le transfert vers le stockage signé dispose de 120 secondes plus une durée calculée à 32 Kio/s, avec plafond d’une heure ; connexion et attente de réponse restent bornées séparément. Les appels API gardent leur délai court. Le navigateur réserve une durée supérieure pour l’envoi au serveur puis au cloud, jusqu’à deux heures. Ces budgets ne garantissent pas le succès sur tout réseau.
 
 Une interruption ne prouve pas l’échec : vérifier les fichiers cloud et l’état machine avant toute nouvelle tentative. Aucun transfert n’est rejoué automatiquement. Dans la même page et pour le même fichier, mode, cible et ordre de bobines, une nouvelle tentative manuelle après erreur conserve l’identifiant de demande afin que le serveur reconnaisse une opération déjà commencée. Un rechargement de page ou un redémarrage du service ne conserve pas cette protection en mémoire : la vérification manuelle reste nécessaire.
+
+## Notifications Discord
+
+Si le test est confirmé mais qu’une impression ne génère pas de message, vérifiez l’activation et la présence d’un résultat terminal dans les notifications de l’atelier. Un arrêt sans motif d’échec explicite, un identifiant de tâche manquant ou deux preuves contradictoires restent silencieux. L’atelier exploite le journal du compte au rythme existant. Lors d’une nouvelle alarme qui pourrait correspondre à un échec, une lecture complémentaire du journal historique est autorisée au plus une fois par minute pour le compte.
+
+Recherchez `notification_delivery` dans les journaux. `sent` indique que Discord a confirmé la création du message, `failed` un refus, `uncertain` un résultat ambigu. `retry` avec 429 attend le délai indiqué par Discord. Aucun secret, nom de fichier ou contenu du message n’est journalisé. Si l’état de livraison est indisponible, vérifiez les droits et l’espace du dossier d’état avant de réessayer.

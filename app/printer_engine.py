@@ -4,13 +4,14 @@
 import asyncio
 import collections
 import contextlib
+from functools import partial
 import json
 import logging
 import os
 import pathlib
 import time
 
-from account_auth import AccountAuth
+from account_auth import AccountAuth, claims
 from account_transport import AccountTransport
 from ace_telemetry import ace2_pro_telemetry
 from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized, AnycubicRateLimited
@@ -256,6 +257,7 @@ class Engine:
         """Initialise le modèle et ses données locales depuis les paramètres fournis."""
         self.selected_id = os.environ.get("PRINTER_ID") or None
         self.known_printers = []
+        self.notification_delivery = None
         self.state_dir = pathlib.Path("/appdata/state")
         self.catalogue_source = False
         self.transport_only = False
@@ -538,6 +540,7 @@ class Engine:
         """Actualise chaque cible et le catalogue du compte, sans changer l’identité d’un moteur existant."""
         while True:
             poll_started = time.monotonic()
+            observation = None
             try:
                 async with self.lock:
                     primary = not self.fleet_registry or self is self.fleet_registry.default
@@ -584,8 +587,16 @@ class Engine:
                         await self.restart_mqtt_auth(self.api)
                     self.mqtt_start()
                     try:
-                        await self.print_history(1)
+                        history_page = await self.print_history(1)
                         self.notifications_error = None
+                        delivery = self.notification_delivery
+                        if primary and delivery and delivery.config.enabled:
+                            observation = (
+                                claims(self.account_token).get("sub"),
+                                history_page["source"],
+                                self.notifications.observed_rows(history_page),
+                                self.api,
+                            )
                     except Exception as error:
                         if self.notifications_error is None:
                             log_event(
@@ -624,6 +635,21 @@ class Engine:
                         with contextlib.suppress(Exception):
                             owner.api.disconnect_mqtt()
                     self.printer = None
+            if observation is not None:
+                scope, source, rows, api = observation
+                # Vérifier les résultats hors du verrou de l’imprimante.
+                try:
+                    await delivery.observe_cloud(
+                        scope, source, rows, partial(self.notifications.terminal_legacy_rows, api)
+                    )
+                except Exception as error:
+                    log_event(
+                        OPS_LOG,
+                        logging.WARNING,
+                        "notification_observation_failed",
+                        message="Observation Discord interrompue ; le suivi Cloud continue",
+                        error_type=type(error).__name__,
+                    )
             await asyncio.sleep(60)
 
     def command_project_key(self):

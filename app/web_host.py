@@ -857,13 +857,20 @@ def consume_action_ticket(request, action, token):
     return True
 
 
-def render_page(destination, time_zone, *, totp_active=False):
+def render_page(destination, time_zone, *, totp_active=False, discord_active=None):
     """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
     content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
         "<!-- APP_VERSION -->", html.escape(APP_VERSION)
     )
     content = content.replace("<!-- TOTP_BADGE_STATE -->", "normal" if totp_active else "unknown")
     content = content.replace("<!-- TOTP_STATE -->", "Activée" if totp_active else "Désactivée")
+    content = (
+        content.replace(
+            "<!-- DISCORD_CARD_VISIBILITY -->", "hidden" if discord_active is None else ""
+        )
+        .replace("<!-- DISCORD_BADGE_STATE -->", "normal" if discord_active else "unknown")
+        .replace("<!-- DISCORD_STATE -->", "Activées" if discord_active else "Désactivées")
+    )
     # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
     level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
     log_format = os.environ.get("LOG_FORMAT", "text").strip().lower() or "text"
@@ -900,11 +907,14 @@ def render_page(destination, time_zone, *, totp_active=False):
 
 async def index(request):
     """Renvoie l’interface avec les destinations et le fuseau validés au démarrage."""
+    from notification_settings import discord_enabled
+
     return web.Response(
         text=render_page(
             request.app[HOME_URL_KEY],
             request.app[TIME_ZONE_KEY],
             totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
+            discord_active=discord_enabled(request.app),
         ),
         content_type="text/html",
     )

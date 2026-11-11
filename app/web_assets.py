@@ -12,6 +12,7 @@ REQUIRED = {
     "imprimante.html",
     "login.html",
     "security.html",
+    "discord.html",
     "privacy.html",
     "terms.html",
     "cookies.html",
