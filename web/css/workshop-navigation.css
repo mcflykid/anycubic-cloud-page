@@ -79,6 +79,8 @@
 
   [data-style="apple"] #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
     background: transparent;
+    border-color: transparent;
+    box-shadow: none;
   }
 
   [data-style] .atelier-title {

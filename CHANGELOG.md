@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
+
 - Réorganise la barre des fichiers Cloud et adapte le compteur à rouleaux et la cascade de sélection de Lote (#242, #248).
 
 - Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).
