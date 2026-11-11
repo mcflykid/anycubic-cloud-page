@@ -131,13 +131,13 @@ def set_session_cookie(response, name, token, remaining, secure):
 
 
 def client_address(request):
-    """Résout le pair non fiable depuis la droite et regroupe IPv6 par /64."""
+    """Résout l’adresse réelle du client depuis le pair et les proxys déclarés fiables."""
     remote = request.remote or "unknown"
     trusted = request.app[TRUSTED_PROXIES_KEY]
     try:
         peer = ipaddress.ip_address(remote)
         if not any(peer in network for network in trusted):
-            return rate_limit_address(peer)
+            return str(peer)
         chain = [
             ipaddress.ip_address(part.strip())
             for part in request.headers.get("X-Forwarded-For", "").split(",")
@@ -146,7 +146,7 @@ def client_address(request):
             if not any(peer in network for network in trusted):
                 break
             peer = candidate
-        return rate_limit_address(peer)
+        return str(peer)
     except ValueError:
         return remote
 
@@ -156,6 +156,14 @@ def rate_limit_address(address):
     if address.version == 6:
         return str(ipaddress.ip_network(f"{address}/64", strict=False))
     return str(address)
+
+
+def rate_limit_client(request):
+    """Renvoie la clé de quota ; IPv6 est regroupée sans altérer l’adresse du journal."""
+    try:
+        return rate_limit_address(ipaddress.ip_address(client_address(request)))
+    except ValueError:
+        return client_address(request)
 
 
 def credentials():
@@ -302,7 +310,7 @@ async def login(request):
     require_origin(request)
     state = request.app[ACCESS_KEY]
     state.prune()
-    client = client_address(request)
+    client = rate_limit_client(request)
     # Le compteur reste individuel uniquement derrière des proxys explicitement déclarés fiables.
 
     failures, until = state.failures.get(client, (0, time.monotonic() + FAILURE_SECONDS))
