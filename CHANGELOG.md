@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Place le journal historique dans Historique. La cloche présente uniquement les messages Cloud et s’ouvre avec la découpe animée de Burbuja (#243, #248).
+
 - Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).
 
 - Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).

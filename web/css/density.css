@@ -2114,3 +2114,18 @@
     padding: 18px;
   }
 }
+
+/* Le journal historique utilise les mêmes cartes dans sa propre fenêtre. */
+#historical-notifications-dialog {
+  width: min(670px, calc(100vw - 24px));
+}
+
+#historical-notifications-dialog #notifications-panel:not([hidden]) {
+  position: static;
+  width: 100%;
+  max-height: min(70dvh, 620px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-inline: 0;
+}

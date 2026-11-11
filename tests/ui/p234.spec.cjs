@@ -137,13 +137,9 @@ test('les pauses regroupées gardent leurs événements individuels',async({page
   {...base,key:'p2',group:'a',time:1750000001},
   {...base,key:'p3',group:'b',printer:'Autre atelier',time:1750000002},
  ]};
- await page.route('**/imprimante-api/status',async route=>{
-  const response=await route.fetch();
-  await route.fulfill({response,json:{...await response.json(),notifications}});
- });
- await page.route('**/imprimante-api/history?page=1',route=>route.fulfill({json:notifications}));
- await login(page);
- await page.locator('#notifications-toggle').click();
+ await page.route('**/imprimante-api/history?page=1&source=legacy',route=>route.fulfill({json:{...notifications,source:'legacy'}}));
+ await login(page,'history');
+ await page.locator('#historical-notifications-open').click();
  const group=page.locator('.notification-group');
  await expect(group).toHaveCount(1);
  await expect(group.locator('summary')).toContainText('2 événements');
