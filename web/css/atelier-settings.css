@@ -79,6 +79,7 @@
 .settings-container-values > div { flex-wrap: wrap; }
 .settings-container-links {
   display: flex;
+  align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: var(--atelier-space-2) var(--atelier-space-5);

@@ -29,6 +29,14 @@ test('les paires de cartes partagent les mêmes largeurs, hauteurs et séparatio
     return {width,height,y};
   }));
   expect(buttons.every(button=>button.height===36&&Math.abs(button.width-buttons[0].width)<1&&button.y===buttons[0].y)).toBe(true);
+  const linkCenters = await page.locator('.settings-container-links > :is(a, button)').evaluateAll(
+    links => links.map(link => {
+      const bounds = link.getBoundingClientRect();
+      return bounds.top + bounds.height / 2;
+    }),
+  );
+  expect(linkCenters).toHaveLength(2);
+  expect(Math.abs(linkCenters[0] - linkCenters[1])).toBeLessThan(1);
 });
 
 test('le résumé garde le nom long et les huit bobines dans les limites de la page', async ({page})=>{
