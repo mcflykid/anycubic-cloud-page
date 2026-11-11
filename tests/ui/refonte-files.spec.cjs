@@ -8,7 +8,7 @@ test('les fichiers gardent les commandes et le tableau dans la largeur disponibl
   await expect(page.locator('#files-title')).toHaveText('Cloud Anycubic');
   await expect(page.locator('#file-rows tr').first()).toBeVisible();
   await expect(page.locator('#cloud-quota')).toHaveText('184 Mo sur 2 Go');
-  const selectors=['.files-sources','#cloud-folder','#files-search','#files-sort'];
+  const selectors=['#files-form .files-sources','#cloud-folder','#files-search','#files-sort'];
   const controls=await Promise.all(selectors.map(selector=>page.locator(selector).boundingBox()));
   expect(new Set(controls.map(control=>control.height))).toEqual(new Set([36]));
   expect(new Set(controls.map(control=>control.y))).toHaveProperty('size',1);

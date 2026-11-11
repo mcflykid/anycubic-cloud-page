@@ -30,7 +30,7 @@ export function createFiles(request, command) {
   const cloudSelected = new Set();
   const cloudCount = createSelectionCounter($('cloud-selection-digits'));
   cloudCount.pon(0);
-  initializePaintSelection($('file-rows'), () => cloudSelectionState());
+  const isPainting = initializePaintSelection($('file-rows'), () => cloudSelectionState());
   let fileContext = null,
     fileGeneration = 0,
     fileReload = false,
@@ -88,7 +88,7 @@ export function createFiles(request, command) {
     $('file-rows').replaceChildren(
       ...rows.map((f) => {
         const row = node('tr'),
-          name = node('td'),
+          name = node('td', null, 'files-identity-cell'),
           size = node('td', fmt(f.size_mb, tr(' Mo')), 'files-size'),
           actions = node('td', null, 'files-actions-cell'),
           wrap = node('div', null, 'files-row-actions');
@@ -160,7 +160,8 @@ export function createFiles(request, command) {
           check.setAttribute('aria-label', tr('Sélectionner ') + f.name);
           check.onchange = () => {
             check.checked ? cloudSelected.add(f.handle) : cloudSelected.delete(f.handle);
-            cloudSelectionState();
+            row.classList.toggle('file-selected', check.checked);
+            if (!isPainting()) cloudSelectionState();
           };
           const gutter = node('span', null, 'file-selection-gutter');
           gutter.append(check);

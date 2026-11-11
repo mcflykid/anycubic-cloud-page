@@ -17,12 +17,8 @@ function filamentVariant(spool) {
   return filamentVariants.get(`${spool.material_type.trim().toLowerCase()}:${spool.color.join(',')}`);
 }
 
-/** Illustre la bobine avec les couleurs annoncées par l’ACE et un repère pour les bobines RFID. */
-function spoolIllustration(color, index, rfid) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 80 84');
-  svg.setAttribute('class', 'spool-illustration');
-  svg.setAttribute('aria-hidden', 'true');
+/** Utilise uniquement les triplets RVB valides reçus avec la bobine. */
+function spoolColors(color) {
   const colors = [];
   if (Array.isArray(color)) {
     for (let offset = 0; offset + 2 < color.length; offset += 3) {
@@ -31,7 +27,16 @@ function spoolIllustration(color, index, rfid) {
       colors.push(`rgb(${rgb.join(',')})`);
     }
   }
-  const palette = [...new Set(colors)];
+  return [...new Set(colors)];
+}
+
+/** Illustre la bobine avec les couleurs annoncées par l’ACE et un repère pour les bobines RFID. */
+function spoolIllustration(color, index, rfid) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 80 84');
+  svg.setAttribute('class', 'spool-illustration');
+  svg.setAttribute('aria-hidden', 'true');
+  const palette = spoolColors(color);
   const banded = palette.length > 1;
   const winding = banded ? `url(#spool-colors-${index})` : palette[0] || 'rgb(150,150,150)';
   const filament = 'M25 10h26c6 0 10 13 10 29S57 68 51 68H25z';
@@ -73,8 +78,9 @@ export function createAce(command, refresh) {
   const selectorLabel = node('label', tr('Module ACE'));
   const selector = node('select');
   selector.id = 'ace-selector';
+  selectorLabel.className = 'atelier-field';
   selectorLabel.append(selector);
-  $('ace-model').parentElement.append(selectorLabel);
+  $('ace-module-name').after(selectorLabel);
   selector.onchange = () => {
     selectedBoxId = selector.value;
     for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog']) if ($(id).open) $(id).close();
@@ -97,7 +103,24 @@ export function createAce(command, refresh) {
   /** Affiche les bobines et le séchage ; distingue la lecture RFID de la saisie manuelle. */
   function renderAce(p) {
     const box = selectedBox();
-    set('ace-model', box?.model || tr(box ? 'Module ACE' : 'Aucun module ACE'));
+    const model = box?.model || tr(box ? 'Module ACE' : 'Aucun module ACE');
+    set('ace-model', model);
+    set('ace-module-name', model);
+    const picture = $('ace-illustration');
+    picture.hidden = !box;
+    if (box) {
+      const src = '/imprimante-api/ui/icons/' + ({ 'ACE 2 Pro': 'ace2pro.png', 'ACE Pro': 'ace-pro.svg' }[box.model] || 'ace.svg');
+      if (picture.dataset.illustration !== src) {
+        picture.dataset.illustration = src;
+        picture.onerror = () => {
+          picture.onerror = null;
+          picture.src = '/imprimante-api/ui/icons/ace.svg';
+        };
+        picture.src = src;
+      }
+    }
+    $('ace-relay-open').disabled = !box || !p.printer_online;
+    $('go-drying').disabled = $('go-spool').disabled = !box;
     const previous = selectedBoxId;
     selectedBoxId = box ? String(box.box_id) : null;
     if (previous !== null && previous !== selectedBoxId) {
@@ -110,72 +133,68 @@ export function createAce(command, refresh) {
     selectorLabel.hidden = (p.boxes || []).length < 2;
     selector.disabled = dryingPending;
     updateDryToggle(box, p.printer_online);
+    const status = $('ace-status');
+    status.classList.toggle('offline', !box || !p.printer_online);
+    status.dataset.state = box?.drying?.is_drying ? 'running' : '';
+    set('ace-status', tr(!box ? 'Aucun module ACE détecté.' : !p.printer_online ? 'Hors ligne' :
+      box.drying?.is_drying ? 'Séchage en cours' : 'Disponible'));
     if (!box) {
-      statusBadge('ace-status', tr('Aucun module ACE détecté.'), false);
-      $('spools').replaceChildren();
+      $('spools').replaceChildren(node('p', tr('Aucun module ACE détecté.'), 'muted'));
       $('ace-stats').replaceChildren();
+      $('ace-drying-progress').hidden = true;
+      set('ace-loaded-count', '');
+      set('ace-relay-state', '—');
       return;
     }
-    statusBadge(
-      'ace-status',
-      !p.printer_online
-        ? tr('Hors ligne')
-        : box.drying?.is_drying
-          ? tr('Séchage en cours')
-          : tr('Disponible'),
-      !!p.printer_online,
-    );
+    const spools = box.spools || [];
+    const loaded = spools.filter(spool => spool.spool_loaded === true).length;
+    set('ace-loaded-count', formatText(loaded === 1 ? '{0} bobine chargée' : '{0} bobines chargées', loaded));
+    set('ace-relay-state', tr(box.auto_feed ? 'Activé' : 'Désactivé'));
     definition('ace-stats', [
       ['Température', fmt(box.temperature, ' °C')],
       ['Humidité', fmt(box.humidity, ' %')],
-      ['Relais automatique', box.auto_feed ? tr('Activé') : tr('Désactivé')],
     ]);
     $('spools').replaceChildren(
-      ...(box.spools || []).map((s, index) => {
-        const art = node('article', null, 'slot'), variant = filamentVariant(s);
-        art.append(
-          spoolIllustration(variant?.band ? [...s.color, ...variant.band] : s.color, `ace-${box.box_id}-${index}`, s.rfid),
-          node('h3', s.material_type || tr('Non renseigné')),
-          node('p', formatText('Emplacement {0}', s.display_slot ?? s.slot)),
-          node(
-            'p',
-            Number.isInteger(box.loaded_slot) &&
-              box.loaded_slot >= 0 &&
-              box.loaded_slot === (s.local_slot ?? s.slot) - 1
-              ? tr('● Bobine engagée')
-              : s.spool_loaded
-                ? tr('Filament présent')
-                : tr('Filament absent ou non détecté'),
-            Number.isInteger(box.loaded_slot) &&
-              box.loaded_slot >= 0 &&
-              box.loaded_slot === (s.local_slot ?? s.slot) - 1
-              ? 'engaged-spool'
-              : '',
-          ),
-          node(
-            'p',
-            s.remaining_percent == null
-              ? tr('Quantité non renseignée')
-              : formatText('{0} % restants', s.remaining_percent),
-          ),
-        );
-        if (s.rfid === true) art.append(node('p', tr('RFID reconnu'), 'rfid-badge'));
-        else if (s.rfid === false) art.append(node('p', tr('Configuration manuelle'), 'muted'));
-        const edit = node('button', tr(s.rfid === true ? 'Voir' : 'Modifier'));
+      ...spools.map((spool) => {
+        const row = node('article', null, 'ace-spool-row'),
+          color = node('span', null, 'summary-spool-color'),
+          copy = node('div', null, 'ace-spool-copy'),
+          remaining = node('div', null, 'ace-spool-remaining'),
+          edit = node('button', tr(spool.rfid === true ? 'Voir' : 'Modifier'), 'atelier-control');
+        const variant = filamentVariant(spool);
+        const palette = spoolColors(variant?.band ? [...spool.color, ...variant.band] : spool.color);
+        if (palette.length > 1) color.style.backgroundImage = 'linear-gradient(90deg,' + palette.join(',') + ')';
+        else if (palette.length) color.style.backgroundColor = palette[0];
+        color.setAttribute('aria-hidden', 'true');
+        const title = formatText('Emplacement {0}', spool.display_slot ?? spool.slot);
+        copy.append(node('strong', title + ' · ' + (spool.material_type || tr('Non renseigné'))));
+        if (typeof spool.rfid === 'boolean')
+          copy.append(node('p', tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle')));
+        if (Number.isInteger(box.loaded_slot) && box.loaded_slot >= 0 && box.loaded_slot === (spool.local_slot ?? spool.slot) - 1)
+          copy.append(node('p', tr('Bobine engagée'), 'engaged-spool'));
+        remaining.append(node('strong', fmt(spool.remaining_percent, ' %')));
+        if (Number.isFinite(spool.remaining_percent)) {
+          const progress = node('progress');
+          progress.max = 100;
+          progress.value = spool.remaining_percent;
+          progress.setAttribute('aria-label', title + ' · ' + tr('Filament restant'));
+          remaining.append(progress);
+        }
         edit.type = 'button';
-        edit.title =
-          s.rfid === true
-            ? tr('Consulter les informations RFID et gérer le chargement de cette bobine.')
-            : tr('Modifier le matériau, la couleur et le chargement de cet emplacement.');
-        edit.onclick = () => openSpool(s.local_slot || s.slot);
-        const actions = node('div', null, 'spool-actions');
-        actions.append(edit);
-        art.append(actions);
-        return art;
+        edit.onclick = () => openSpool(spool.local_slot || spool.slot);
+        row.append(color, copy, remaining, edit);
+        return row;
       }),
     );
     const dry = box.drying || {};
     const drying = typeof dry.is_drying === 'boolean' ? dry.is_drying : null;
+    const progressKnown = drying === true && Number.isFinite(dry.total_duration) && dry.total_duration > 0 && Number.isFinite(dry.remaining_time);
+    $('ace-drying-progress').hidden = !progressKnown;
+    if (progressKnown) {
+      $('ace-drying-bar').value = Math.max(0, Math.min(100, 100 * (1 - dry.remaining_time / dry.total_duration)));
+      set('ace-drying-title', dry.target_temperature == null ? tr('Séchage en cours') : formatText('Séchage à {0}', fmt(dry.target_temperature, ' °C')));
+      set('ace-drying-remaining', formatText('{0} restantes', mins(dry.remaining_time)));
+    }
     statusBadge(
       'drying-state',
       drying === true
@@ -272,6 +291,10 @@ export function createAce(command, refresh) {
     form.elements.hours.value = settings.hours;
     if (!$('dry-dialog').open) $('dry-dialog').showModal();
     form.elements.temperature.focus({ preventScroll: true });
+  };
+  $('ace-relay-open').onclick = () => {
+    $('go-drying').click();
+    $('auto-feed').focus({preventScroll: true});
   };
   $('dry-toggle').onclick = async () => {
     const printer = workshopState.snapshot?.printer, box = selectedBox();

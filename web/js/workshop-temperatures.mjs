@@ -37,7 +37,7 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
     return;
   }
   const W = 360,
-    H = 180,
+    H = 126,
     L = 38,
     R = 12,
     T = 12,

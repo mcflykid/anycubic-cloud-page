@@ -78,3 +78,10 @@
     grid-template-rows: subgrid;
   }
 }
+#tab-upload .upload-drop-body input.sr-only {
+  position: absolute;
+  width: var(--atelier-rule);
+  height: var(--atelier-rule);
+  min-height: 0;
+  padding: 0;
+}

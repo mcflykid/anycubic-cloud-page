@@ -153,7 +153,7 @@
 }
 /* La liste défile dans sa carte quand la page contient plus de lignes que la fenêtre. */
 :is(.files-table-region, .history-table-region) {
-  max-block-size: max(calc(5 * var(--atelier-file-thumbnail)), calc(100dvh - 10 * var(--atelier-control) - var(--atelier-space-5)));
+  max-block-size: max(calc(5 * var(--atelier-file-thumbnail)), calc(100dvh - 11 * var(--atelier-control) - var(--atelier-space-6)));
   overflow-y: auto;
 }
 :is(.files-table-region, .history-table-region) thead {
@@ -162,3 +162,26 @@
   z-index: 1;
   background: var(--atelier-surface);
 }
+
+@container files (min-width: 580px) {
+  .files-row-actions { flex-wrap: nowrap; }
+}
+#tab-files .atelier-card-header h2,
+#tab-history .atelier-card-header h2 {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+.files-table .files-selection-cell input[type="checkbox"] {
+  width: var(--atelier-space-4);
+  height: var(--atelier-space-4);
+  min-height: 0;
+  margin: 0;
+  vertical-align: middle;
+}
+.files-table:has(.files-selection-cell:not([hidden])) .files-identity-cell { padding-inline-start: 0; }
+.files-table:has(.files-selection-cell:not([hidden])) .files-identity-heading {
+  padding-inline-start: calc(var(--atelier-file-thumbnail) + var(--atelier-space-3));
+}
+.files-filters select, .history-toolbar select { appearance: auto; }
+.files-table .file-thumbnail img { width: 100%; height: 100%; object-fit: contain; }

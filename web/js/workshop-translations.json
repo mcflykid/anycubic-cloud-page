@@ -4570,5 +4570,121 @@
   "ou déposer un fichier ici": [
     "or drop a file here",
     "o suelta un archivo aquí"
+  ],
+  "Cible": [
+    "Target",
+    "Objetivo"
+  ],
+  "État": [
+    "Status",
+    "Estado"
+  ],
+  "Supervision de l’application": [
+    "Application monitoring",
+    "Supervisión de la aplicación"
+  ],
+  "Matériel et compteurs": [
+    "Hardware and counters",
+    "Hardware y contadores"
+  ],
+  "Mettre à jour": [
+    "Update",
+    "Actualizar"
+  ],
+  "Style": [
+    "Style",
+    "Estilo"
+  ],
+  "Choisir un fichier": [
+    "Choose a file",
+    "Elegir un archivo"
+  ],
+  "Régler": [
+    "Configure",
+    "Configurar"
+  ],
+  "24 heures": [
+    "24 hours",
+    "24 horas"
+  ],
+  "Cloud": [
+    "Cloud",
+    "Nube"
+  ],
+  "6 heures": [
+    "6 hours",
+    "6 horas"
+  ],
+  "30 jours": [
+    "30 days",
+    "30 días"
+  ],
+  "Début": [
+    "Start",
+    "Inicio"
+  ],
+  "Aucun événement de connexion.": [
+    "No connection events.",
+    "No hay eventos de conexión."
+  ],
+  "2 jours": [
+    "2 days",
+    "2 días"
+  ],
+  "Actuelle": [
+    "Current",
+    "Actual"
+  ],
+  "Impression": [
+    "Print",
+    "Impresión"
+  ],
+  "7 jours": [
+    "7 days",
+    "7 días"
+  ],
+  "Machines": [
+    "Machines",
+    "Máquinas"
+  ],
+  "Réinitialiser le zoom": [
+    "Reset zoom",
+    "Restablecer zoom"
+  ],
+  "Thème": [
+    "Theme",
+    "Tema"
+  ],
+  "Envoi": [
+    "Upload",
+    "Envío"
+  ],
+  "Période": [
+    "Period",
+    "Período"
+  ],
+  "Durée": [
+    "Duration",
+    "Duración"
+  ],
+  "Mesure": [
+    "Reading",
+    "Medición"
+  ],
+  "Bobine engagée": [
+    "Spool engaged",
+    "Bobina cargada"
+  ],
+  "Enceinte": [
+    "Enclosure",
+    "Recinto"
+  ],
+  "Les événements de connexion sont indisponibles.": [
+    "Connection events are unavailable.",
+    "Los eventos de conexión no están disponibles."
+  ],
+  "Surfaces lumineuses et accents violets.": [
+    "Bright surfaces and violet accents.",
+    "Superficies luminosas y acentos violetas."
   ]
 }

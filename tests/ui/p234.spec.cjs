@@ -97,8 +97,8 @@ test('la Kobra S1 garde un visuel dédié et un ACE générique si la générati
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{
  await page.setViewportSize({width:360,height:800});
  await login(page);
- await expect(page.locator('#details')).toContainText('Nombre d’impressions');
- await expect(page.locator('#temperatures dt svg').first()).toHaveAttribute('aria-hidden','true');
+ await expect(page.locator('#details')).toContainText('Impressions');
+ await expect(page.locator('#temperatures thead')).toContainText('Actuelle');
  await expect(page.locator('#temperatures dd svg,#details dd svg')).toHaveCount(0);
  await openSection(page,'camera');
  await expect(page.getByRole('button',{name:'Lire les coordonnées',exact:true})).toHaveCount(0);
@@ -168,7 +168,7 @@ test('ouvrir Caméra ne consulte pas la galerie Timelapse désactivée',async({p
  expect(response.status()).toBe(404);
 });
 
-test('les états utilisent les pastilles et l’aide du relais explique la bobine de secours',async({page})=>{
+test('les états associent un point à un libellé et l’aide du relais explique la bobine de secours',async({page})=>{
  let drying=true;
  await page.route('**/imprimante-api/status',async route=>{
   const response=await route.fetch();
@@ -177,18 +177,12 @@ test('les états utilisent les pastilles et l’aide du relais explique la bobin
   await route.fulfill({response,json:data});
  });
  await login(page);
- await expect(page.locator('#printer-status')).toHaveClass(/badge/);
+ await expect(page.locator('#printer-status')).toHaveClass(/atelier-status/);
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
- await expect(page.locator('#ace-status')).toHaveClass(/badge/);
+ await expect(page.locator('#ace-status')).toHaveAttribute('data-state','running');
  for(const width of [1280,360]){
   await page.setViewportSize({width,height:900});
-  const extraWidth=await page.locator('#ace-status').evaluate(badge=>{
-   const text=document.createRange();
-   text.selectNodeContents(badge);
-   const {paddingLeft,paddingRight}=getComputedStyle(badge);
-   return badge.getBoundingClientRect().width-text.getBoundingClientRect().width-parseFloat(paddingLeft)-parseFloat(paddingRight);
-  });
-  expect(Math.abs(extraWidth)).toBeLessThan(1);
+  expect(await page.locator('#ace-status').evaluate(status=>getComputedStyle(status,'::before').width)).toBe('8px');
  }
  await page.setViewportSize({width:1280,height:900});
  await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
@@ -257,7 +251,7 @@ test('les visuels suivent le modèle constructeur et la présence réelle de l�
  await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-x.svg');
  await expect(page.locator('#ace-illustration')).toBeHidden();
  await openSection(page,'camera');
- await expect(page.locator('#camera-video img')).toHaveAttribute('src',new RegExp(icons+'kobra-x.svg$'));
+ await expect(page.locator('#camera-wrapper')).toContainText('Flux vidéo de la caméra');
  model='Modèle inconnu';
  await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
  await expect(page.locator('#summary-printer-image')).toHaveAttribute('src',icons+'printer.svg');
@@ -303,66 +297,29 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
 });
 
-test('les cartes de l’imprimante et de l’ACE sont bien composées sur ordinateur et restent lisibles sur mobile', async ({page}) => {
-  await page.setViewportSize({width: 1280, height: 900});
+test('les cartes des deux appareils s’alignent et se replient sur téléphone', async ({page}) => {
+  await page.setViewportSize({width:1440,height:900});
   await login(page);
-  await expect(page.locator('#connection')).toHaveText('En ligne');
-  const overview = page.locator('#tab-overview > .overview-grid');
-  const lower = page.locator('.printer-lower-grid');
-  const printerCard = await overview.boundingBox();
-  const lowerCards = await lower.boundingBox();
-  expect(printerCard.width).toBeGreaterThan(1100);
-  expect(printerCard.height).toBeLessThan(500);
-  const preview = page.locator('#job-preview');
-  await expect(preview).toBeVisible();
-  const [machine, thumbnail] = await Promise.all([
-    page.locator('#printer-illustration').boundingBox(), preview.boundingBox(),
-  ]);
-  const jobHeading = await page.locator('#job-name').boundingBox();
-  expect(Math.abs(thumbnail.y + thumbnail.height / 2 - jobHeading.y - jobHeading.height / 2)).toBeLessThan(80);
-  expect(Math.max(0, Math.max(jobHeading.x - (thumbnail.x + thumbnail.width), thumbnail.x - (jobHeading.x + jobHeading.width)))).toBeLessThan(24);
-  expect((await page.locator('#job-progress-wrap').boundingBox()).width).toBeGreaterThan(thumbnail.width * 2);
-  expect((await page.locator('#job-stats').boundingBox()).width).toBeGreaterThan(thumbnail.width * 2);
-  expect((await page.locator('#tab-overview .actions').boundingBox()).width).toBeGreaterThan(thumbnail.width * 2);
-  await expect(page.locator('#tab-overview .temperature-section')).toHaveCount(0);
-  const [temperature, details] = await lower.locator(':scope > section').evaluateAll(cards =>
-    cards.map(card => ({left:card.getBoundingClientRect().left,right:card.getBoundingClientRect().right})),
+  await expect(page.locator('#job-preview')).toBeVisible();
+  const [machine,heading,thumbnail] = await Promise.all(
+    ['#printer-illustration','#job-name','#job-preview'].map(selector=>page.locator(selector).boundingBox()),
   );
-  expect(lowerCards.width).toBe(printerCard.width);
-  expect(temperature.left).toBeCloseTo(printerCard.x);
-  expect(details.right).toBeCloseTo(printerCard.x + printerCard.width);
-  expect(details.left - temperature.right).toBeGreaterThanOrEqual(8);
-  expect(details.left - temperature.right).toBeLessThanOrEqual(20);
-  expect(Math.abs(printerCard.x + printerCard.width / 2 - 640)).toBeLessThan(2);
-  await page.getByRole('button', {name: 'Statistiques', exact: true}).click();
-  const charts = await page.locator('#tab-statistics > .temperature-section').boundingBox();
-  expect(charts.x).toBeCloseTo(printerCard.x);
-  expect(charts.width).toBeCloseTo(printerCard.width);
-  await page.getByRole('button', {name: 'ACE et filaments', exact: true}).click();
-  const ace = page.locator('.ace-overview');
-  const aceCard = await ace.boundingBox();
-  expect(aceCard.width).toBe(printerCard.width);
-  expect(aceCard.height).toBeLessThan(260);
-  const aceHeading = await ace.locator('.ace-heading').boundingBox();
-  const aceBadge = await ace.locator('#ace-status').boundingBox();
-  expect(aceHeading.y - aceCard.y).toBeLessThan(18);
-  expect(aceBadge.y - aceHeading.y).toBeLessThan(8);
-  const spoolButtons = await page.locator('#spools .spool-actions button').evaluateAll((buttons) =>
-    buttons.map((button) => button.getBoundingClientRect().top),
-  );
-  expect(spoolButtons).toHaveLength(4);
-  expect(Math.max(...spoolButtons) - Math.min(...spoolButtons)).toBeLessThan(1);
-  await page.setViewportSize({width: 390, height: 800});
-  const mobile = await ace.boundingBox();
-  expect(mobile.width).toBeLessThan(390);
-  expect(mobile.width).toBeGreaterThan(300);
-  expect(await ace.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-  await openSection(page,'overview');
-  expect(await overview.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-  const [left, right] = await lower.locator('section').evaluateAll((cards) =>
-    cards.map((card) => card.getBoundingClientRect().top),
-  );
-  expect(right).toBeGreaterThan(left);
+  expect(machine.x+machine.width).toBeLessThan(heading.x);
+  expect(heading.x+heading.width).toBeLessThan(thumbnail.x);
+  await expect(page.locator('#details dd')).toHaveCount(5);
+  for(const [section,selector] of [['overview','.printer-workspace'],['ace','.ace-workspace']]){
+    await openSection(page,section);
+    const cards=page.locator(selector+' > section');
+    const [left,right]=await Promise.all([cards.first().boundingBox(),cards.last().boundingBox()]);
+    expect(left.width).toBeCloseTo(right.width);
+    expect(left.height).toBeCloseTo(right.height);
+    await page.setViewportSize({width:390,height:844});
+    const [top,bottom]=await Promise.all([cards.first().boundingBox(),cards.last().boundingBox()]);
+    expect(top.y+top.height).toBeLessThan(bottom.y);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    await page.setViewportSize({width:1440,height:900});
+  }
+  await expect(page.locator('#spools .ace-spool-row')).toHaveCount(4);
 });
 
 test('les statistiques distinguent les boîtiers, le zéro, les lacunes et les changements de bobine', async ({page}) => {
@@ -439,20 +396,14 @@ test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
   });
   await login(page);
   await page.getByRole('button', {name:'ACE et filaments',exact:true}).click();
-  const colors = page.locator('#spool-colors-ace-0-0 stop');
-  await expect(colors).toHaveCount(4);
-  await expect(colors.first()).toHaveAttribute('stop-color', 'rgb(243,241,230)');
-  await expect(colors.last()).toHaveAttribute('stop-color', 'rgb(0,167,235)');
-  await expect(page.locator('.spool-rfid-mark')).toHaveCount(1);
-  await expect(page.locator('.spool-rfid-mark')).toHaveCount(1);
-  expect(await page.locator('.spool-rfid-mark').evaluateAll(nodes=>nodes.every(node=>node.getAttribute('aria-label')==='Identification RFID'))).toBe(true);
-  await expect(page.locator('#spool-colors-ace-0-1 stop').last()).toHaveAttribute('stop-color','rgb(0,174,239)');
-  await expect(page.locator('#spool-colors-ace-0-2, #spool-colors-ace-0-3')).toHaveCount(0);
-  const spool = page.locator('.slot').first();
-  await expect(spool.locator('.spool-rfid-mark')).toHaveCount(1);
-  const markSize = await spool.locator('.spool-rfid-mark').boundingBox();
-  expect(markSize.width).toBeGreaterThan(7);
-  expect(markSize.height).toBeGreaterThan(7);
+  const spools = page.locator('#spools .ace-spool-row');
+  const swatch = index => spools.nth(index).locator('.summary-spool-color');
+  await expect(swatch(0)).toHaveCSS('background-image',/rgb\(243, 241, 230\).*rgb\(0, 167, 235\)/);
+  await expect(swatch(1)).toHaveCSS('background-image',/rgb\(0, 174, 239\)/);
+  await expect(swatch(2)).toHaveCSS('background-color','rgb(239, 240, 241)');
+  await expect(swatch(3)).toHaveCSS('background-color','rgb(239, 240, 241)');
+  const spool = spools.first();
+  await expect(spool).toContainText('RFID reconnu');
   await spool.getByRole('button', {name:'Voir',exact:true}).click();
   const dialog = page.locator('#spool-dialog');
   await expect(dialog.locator('#spool-color-value')).toHaveText('#F3F1E6');
@@ -586,6 +537,7 @@ test('le raccourci de séchage demande confirmation et utilise le réglage confi
  });
  await login(page);
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
+ await page.locator('#go-drying').click();
  const toggle = page.getByRole('switch',{name:'Séchage'});
  await expect(toggle).toBeEnabled();
  await expect(toggle).toHaveAttribute('aria-checked','false');

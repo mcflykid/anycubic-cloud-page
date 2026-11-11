@@ -89,12 +89,11 @@ test('les transitions suivent le style et la préférence de mouvement',async({p
   await expect(dialog).toHaveCSS('animation-name','none');
 });
 
-test('Aurore affiche les quatre cartes de l’imprimante dans l’ordre prévu', async ({ page }) => {
+test('Aurore conserve l’ordre commun des cartes de l’imprimante', async ({ page }) => {
   await login(page);
   await openSettings(page);
   await page.locator('#interface-style').selectOption('aurora');
   await openSection(page, 'overview');
-  const cards = page.locator('#aurora-bento .aurora-widget');
-  await expect(cards).toHaveCount(4);
-  await expect(cards.first()).toHaveAttribute('data-widget', 'machine');
+  await expect(page.locator('.printer-workspace .atelier-card-header h2'))
+    .toHaveText(['Impression', 'Températures et ventilation']);
 });

@@ -735,7 +735,7 @@ export function createHistory(request, command, selectedBox) {
         const row = node('tr'),
           selectCell = node('td', null, 'files-selection-cell'),
           select = node('input'),
-          file = node('td'),
+          file = node('td', null, 'files-identity-cell'),
           identity = node('div', null, 'history-table-identity'),
           copy = node('div', null, 'file-row-caption'),
           name = node('strong', t.name, 'history-card-name'),

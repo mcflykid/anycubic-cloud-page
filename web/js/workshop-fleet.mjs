@@ -27,7 +27,9 @@ export function createFleet(request) {
         const short = node('span', hasAge ? `${row.age_seconds} s` : '—', 'fleet-age-short');
         short.setAttribute('aria-hidden', 'true');
         age.append(short);
-        summary.append(name, node('span', tr(labels[row.state] || labels.unknown)), age);
+        const state = node('span', tr(labels[row.state] || labels.unknown), 'atelier-status');
+        state.dataset.state = row.state === 'online' ? 'normal' : row.state === 'offline' ? 'offline' : 'unknown';
+        summary.append(name, state, age);
         card.append(summary);
         if (row.job_in_progress === true) card.append(node('p', tr('Impression en cours')));
         if (row.alerts?.length) {
@@ -38,7 +40,9 @@ export function createFleet(request) {
         return card;
       });
       $('fleet-cards').replaceChildren(...cards);
-      $('fleet-state').textContent = cards.length ? tr('Résumé des machines déjà suivies, sans collecte supplémentaire.') : tr('Aucune imprimante disponible.');
+      $('fleet-state').textContent = cards.length ? '' : tr('Aucune imprimante disponible.');
+      $('fleet-events-empty').hidden = !!data.events?.length;
+      $('fleet-events-empty').textContent = tr('Aucun événement de connexion.');
       const names = new Map((data.items || []).map((row) => [row.key, row.name]));
       $('fleet-events').replaceChildren(...(data.events || []).slice(-8).reverse().map((event) =>
         node('li', `${names.get(event.key) || tr('Imprimante')} · ${tr(event.transition === 'recovered' ? 'Connexion rétablie' : event.transition === 'changed' ? 'État de connexion modifié' : 'Alerte de connexion')} · ${date(event.time)}`)));
@@ -46,6 +50,8 @@ export function createFleet(request) {
       $('fleet-cards').replaceChildren();
       $('fleet-events').replaceChildren();
       $('fleet-state').textContent = tr('Le résumé du parc est temporairement indisponible.');
+      $('fleet-events-empty').hidden = false;
+      $('fleet-events-empty').textContent = tr('Les événements de connexion sont indisponibles.');
     } finally {
       pending = false;
     }

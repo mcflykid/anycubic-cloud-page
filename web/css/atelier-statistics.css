@@ -83,3 +83,16 @@
 @container statistics (max-width: 480px) {
   .statistics-plots { grid-template-columns: minmax(0, 1fr); }
 }
+#tab-statistics :is(#statistics-printer, #statistics-ace, #statistics-filament) { grid-area: auto; gap: 0; }
+@container statistics (min-width: 760px) {
+  #tab-statistics #statistics-filament { grid-column: 1 / -1; }
+}
+#temperature-export:not([aria-busy="true"]) .csv-export-icon { display: none; }
+#tab-statistics #statistics-ace { display: flex; }
+#tab-statistics .atelier-card .temperature-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+}
+#tab-statistics #statistics-ace .temperature-card-title { min-height: 0; }

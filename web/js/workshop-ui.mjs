@@ -167,7 +167,7 @@ initializeTheme();
 
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
-  ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
+  ['aurora', 'Surfaces lumineuses et accents violets.'],
   ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
   ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
 ];

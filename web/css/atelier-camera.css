@@ -170,3 +170,10 @@
 @container camera (max-width: 560px) {
   .camera-axis-grid { --atelier-axis-size: var(--atelier-touch-control); }
 }
+#tab-camera .atelier-card-header :is(h2, h3) {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+.camera-move .axis-step-control span { width: auto; }
+.camera-warning > p:only-child { margin-inline: 0; }

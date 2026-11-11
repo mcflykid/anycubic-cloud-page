@@ -71,11 +71,17 @@ export function initializePaintSelection(container, changed) {
   };
   container.addEventListener('pointerup', end);
   container.addEventListener('pointercancel', end);
-  container.addEventListener('lostpointercapture', () => { gesture = null; });
+  container.addEventListener('lostpointercapture', () => {
+    if (!gesture) return;
+    gesture = null;
+    changed();
+  });
   container.addEventListener('click', event => {
     const input = event.target.closest('input[data-selection]');
     if (!input) return;
     // Le clic synthétique du pointeur ne doit pas annuler la peinture ; Espace reste natif.
     if (event.detail) event.preventDefault();
   });
+  // La barre groupée attend la fin du geste pour ne pas déplacer les cases sous le doigt.
+  return () => gesture !== null;
 }

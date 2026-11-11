@@ -72,9 +72,10 @@ test('l’envoi présente le fichier en premier et limite le repère animé à l
   const file=form.locator('input[type=file]');
   const mode=form.locator('[name=mode]');
   await expect(slots).toBeHidden();
-  const fileBounds=await file.boundingBox();
-  const modeBounds=await mode.boundingBox();
-  expect(fileBounds.y+fileBounds.height).toBeLessThan(modeBounds.y);
+  const fileBounds=await form.locator('section').first().boundingBox();
+  const sendBounds=await form.locator('section').last().boundingBox();
+  expect(fileBounds.x+fileBounds.width).toBeLessThan(sendBounds.x);
+  expect(fileBounds.height).toBeCloseTo(sendBounds.height);
   await mode.selectOption('save-print');
   await expect(slots).toBeVisible();
   await mode.selectOption('upload');

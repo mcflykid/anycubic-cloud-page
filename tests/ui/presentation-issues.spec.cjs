@@ -40,7 +40,7 @@ test('les statistiques regroupent température, ACE et filaments en trois zones 
  const positions=await page.locator('.atelier-statistics-grid > section').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}}));
  expect(positions[0].y).toBeCloseTo(positions[1].y,0); expect(positions[2].y).toBeGreaterThan(positions[0].y);
  await page.setViewportSize({width:390,height:800});
- expect(await page.locator('.statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ expect(await page.locator('.atelier-statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 
 test('les mesures absentes gardent les cartes',async({page})=>{
@@ -51,7 +51,7 @@ test('les mesures absentes gardent les cartes',async({page})=>{
  });
  await login(page);
  const metrics=page.locator('#temperatures');
- await expect(metrics.locator('dd')).toHaveCount(5);
+ await expect(metrics.locator('td')).toHaveCount(4);
  await expect(metrics).toContainText('—');
 });
 

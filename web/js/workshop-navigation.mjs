@@ -1,6 +1,6 @@
 import { tr } from './workshop-ui.mjs';
 
-/** Gère la navigation responsive et la composition Aurore. */
+/** Gère la navigation responsive et le rail du Laboratoire. */
 export function initializeWorkshopNavigation() {
   const toggle = document.getElementById('section-menu-toggle');
   const navigation = document.getElementById('atelier-tabs');
@@ -26,7 +26,7 @@ export function initializeWorkshopNavigation() {
     tab.style.setProperty('--tile-index', index);
     tab.style.setProperty('--tile-exit-index', tabs.length - index - 1);
   });
-  let phase = 0, closeTimer = 0, bento = null, bentoItems = [];
+  let phase = 0, closeTimer = 0;
   let mobileLabel = document.getElementById('section-menu-current');
   if (!mobileLabel) {
     mobileLabel = document.createElement('span');
@@ -119,51 +119,5 @@ export function initializeWorkshopNavigation() {
     if (navigation.dataset.phase === 'closing') finishClose(phase);
   });
 
-  const styleObserver = new MutationObserver(() => {
-    const style = document.documentElement.dataset.style;
-    updateCurrentLabel();
-    if (style === 'aurora') buildAuroraBento();
-    else restoreAuroraBento();
-  });
-  styleObserver.observe(document.documentElement, {attributes: true, attributeFilter: ['data-style']});
-
-  function buildAuroraBento() {
-    if (bento) return;
-    const overview = document.getElementById('tab-overview');
-    if (!overview) return;
-    const entries = [
-      ['machine', overview.querySelector('.overview-grid .product')],
-      ['job', overview.querySelector('.overview-grid .overview-content')],
-      ['temperatures', overview.querySelector('.printer-lower-grid > section:first-of-type')],
-      ['details', overview.querySelector('.printer-lower-grid > section:last-of-type')],
-    ].filter(([, element]) => element);
-    bento = document.createElement('div');
-    bento.id = 'aurora-bento';
-    bento.className = 'aurora-bento';
-    for (const [name, element] of entries) {
-      // Les repères rétablissent les éléments à leur place à la sortie d’Aurore.
-      const marker = document.createComment(`aurora:${name}`);
-      element.before(marker);
-      const card = document.createElement('article');
-      card.className = `aurora-widget aurora-widget-${name}`;
-      card.dataset.widget = name;
-      card.append(element);
-      bento.append(card);
-      bentoItems.push({marker, element});
-    }
-    overview.prepend(bento);
-  }
-  // Replace chaque élément avant son repère afin de quitter Aurore sans déplacer le contenu.
-  function restoreAuroraBento() {
-    if (!bento) return;
-    for (const {marker, element} of bentoItems) {
-      if (marker.parentNode) marker.parentNode.insertBefore(element, marker);
-      marker.remove();
-    }
-    bento.remove();
-    bento = null;
-    bentoItems = [];
-  }
   updateCurrentLabel();
-  if (document.documentElement.dataset.style === 'aurora') buildAuroraBento();
 }

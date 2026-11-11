@@ -1,6 +1,5 @@
 import {
   $,
-  date,
   fmt,
   formatText,
   locale,
@@ -8,7 +7,6 @@ import {
   node,
   set,
   tr,
-  valueUnit,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 
@@ -91,26 +89,6 @@ function decorateMetric(label, icon) {
 }
 for (const title of document.querySelectorAll('[data-metric-icon]'))
   decorateMetric(title, title.dataset.metricIcon);
-const detailNames = {
-  job_eta: tr('Fin estimée'),
-  job_z_thick: tr('Épaisseur de couche'),
-  job_model_height: tr('Hauteur du modèle'),
-  job_speed_mode: tr('Mode de vitesse'),
-  print_speed_pct: 'Vitesse',
-  job_anti_alias_count: tr('Anticrénelage'),
-  job_on_time: 'Exposition',
-  job_off_time: tr('Pause exposition'),
-  job_bottom_time: tr('Exposition de base'),
-  job_bottom_layers: tr('Couches de base'),
-  job_z_up_height: tr('Levée Z'),
-  job_z_up_speed: tr('Vitesse de levée Z'),
-  job_z_down_speed: tr('Vitesse de descente Z'),
-};
-const detailUnits = {
-  job_z_thick: ' mm',
-  job_model_height: ' mm',
-  print_speed_pct: ' %',
-};
 /** Garde le texte de statut et la couleur synchronisés avec la dernière mesure. */
 export function statusBadge(id, text, active) {
   const badge = $(id);
@@ -175,16 +153,7 @@ function renderHardware(printer) {
   set('ace-model', aceName);
   set('firmware-printer-model', model);
   set('firmware-ace-model', aceName);
-  $('ace-illustration').hidden = !box;
-  setImage(
-    'ace-illustration',
-    generation === 'ACE 2 Pro'
-        ? 'ace2pro.png'
-        : generation === 'ACE Pro'
-          ? 'ace-pro.svg'
-          : 'ace.svg',
-    generation ? 'ace.svg' : null,
-  );
+
 }
 
 /** Affiche l’état courant et charge l’aperçu du projet actif. */
@@ -267,11 +236,9 @@ export function createOverview(request) {
         : p.is_busy
           ? tr('Impression en cours')
           : tr('Disponible');
-    statusBadge(
-      'printer-status',
-      state,
-      p.printer_online ? (p.job_is_paused ? null : true) : false,
-    );
+    set('printer-status', state);
+    $('printer-status').classList.toggle('offline', !p.printer_online);
+    $('printer-status').dataset.state = p.job_is_paused ? 'paused' : p.is_busy ? 'running' : '';
     $('job-name').dataset.tooltip = p.job_name || tr('Imprimante prête');
     set(
       'job-name',
@@ -322,7 +289,15 @@ export function createOverview(request) {
       ['Ventilation auxiliaire', fmt(p.aux_fan_speed_pct, ' %')],
       ['Ventilation enceinte', fmt(p.box_fan_level)],
     ];
-    definition('temperatures', measurements);
+    for (const [id, value] of [
+      ['printer-nozzle-current', p.curr_nozzle_temp], ['printer-nozzle-target', p.target_nozzle_temp],
+      ['printer-bed-current', p.curr_hotbed_temp], ['printer-bed-target', p.target_hotbed_temp],
+    ]) set(id, fmt(value, ' °C'));
+    definition('printer-fans', [
+      ['Pièce', fmt(p.fan_speed_pct, ' %')],
+      ['Auxiliaire', fmt(p.aux_fan_speed_pct, ' %')],
+      ['Enceinte', fmt(p.box_fan_level)],
+    ]);
     definition('control-metrics', measurements);
     set(
       'control-light-state',
@@ -338,10 +313,6 @@ export function createOverview(request) {
       ['Modèle', p.machine_name || '—'],
       ['Micrologiciel', fmt(p.firmware)],
       ['Temps total', fmt(p.statistics?.hours, ' h')],
-      ['Nombre d’impressions', fmt(p.statistics?.print_count)],
-      ['Source du compteur', p.statistics?.print_count_source === 'cloud_summary'
-        ? tr('Compteur cumulé Cloud') : p.statistics?.print_count_source === 'device_detail'
-          ? tr('Détail constructeur (repli)') : '—'],
       [
         'Filament utilisé',
         String(p.statistics?.material ?? '—').replace(
@@ -349,9 +320,7 @@ export function createOverview(request) {
           (_, n, u) => Number(n).toLocaleString(locale, { maximumFractionDigits: 2 }) + ' ' + u,
         ),
       ],
-      ...Object.entries(detailNames)
-        .filter(([key]) => p[key] != null && (key !== 'job_eta' || p.job_in_progress))
-        .map(([key, label]) => [label, key === 'job_eta' ? date(p[key]) : valueUnit(p[key], detailUnits[key])]),
+      ['Impressions', fmt(p.statistics?.print_count)],
     ]);
     for (const action of ['pause', 'resume', 'cancel'])
       document.querySelector(`[data-command="${action}"]`).disabled =
