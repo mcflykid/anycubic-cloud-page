@@ -262,3 +262,27 @@ html[data-style] .workshop-frame .printer-footer {
 @media (min-width: 761px) and (pointer: fine) {
   .workshop-frame .printer-footer a { min-height: 0; }
 }
+@media (max-width: 760px) {
+  .workshop-frame .portal-nav .document-brand {
+    flex: none;
+    min-width: var(--atelier-icon);
+  }
+  .workshop-frame .document-brand span {
+    position: absolute;
+    width: var(--atelier-rule);
+    height: var(--atelier-rule);
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .workshop-frame .portal-nav .nav-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .workshop-frame .portal-nav #interface-language {
+    max-width: calc(2 * var(--atelier-touch-control));
+    padding-inline: var(--atelier-space-2);
+  }
+  html[data-style] .workshop-frame .portal-nav .logout-form button {
+    padding-inline: var(--atelier-space-2);
+  }
+}

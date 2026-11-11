@@ -37,6 +37,8 @@
   --atelier-stroke: 1.8;
   --atelier-dot: 8px;
   --atelier-progress: 6px;
+  --atelier-content-min: 15rem;
+  --atelier-job-min: 12rem;
   --atelier-bg: light-dark(#f3f4f6, #11151a);
   --atelier-surface: light-dark(#ffffff, #1b222a);
   --atelier-fg: light-dark(#14181d, #eef2f6);

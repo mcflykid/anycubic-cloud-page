@@ -50,7 +50,7 @@
   gap: var(--atelier-space-2);
   margin: 0;
 }
-#tab-settings .settings-printer-name label { flex: 1 1 15rem; margin: 0; }
+#tab-settings .settings-printer-name label { flex: 1 1 var(--atelier-content-min); margin: 0; }
 #tab-settings .settings-printer-name input { min-height: var(--atelier-control); }
 #tab-settings .settings-appearance-fields select { appearance: auto; }
 .settings-firmwares { padding-inline: var(--atelier-space-4); }

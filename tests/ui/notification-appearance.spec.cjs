@@ -46,13 +46,6 @@ test('le panneau des notifications reste lisible dans les quatre styles et les d
   await page.setViewportSize({ width: 1366, height: 768 });
   await loadErrorNotice(page);
 
-  await page.locator('#notifications-toggle').click();
-  const densityStylesheet = page.locator('link[href*="/css/density.css"]');
-  await densityStylesheet.evaluate((element) => { element.disabled = true; });
-  await page.screenshot({ path: 'docs/screenshots/notifications-before.png', animations: 'disabled' });
-  await densityStylesheet.evaluate((element) => { element.disabled = false; });
-  await page.locator('#notifications-toggle').click();
-
   for (const style of styles) {
     for (const palette of palettes) {
       await setAppearance(page, style, palette);
@@ -72,12 +65,6 @@ test('le panneau des notifications reste lisible dans les quatre styles et les d
       expect(geometry.left, `${style}/${palette}: panneau hors écran à gauche`).toBeGreaterThanOrEqual(0);
       expect(geometry.right, `${style}/${palette}: panneau hors écran à droite`).toBeLessThanOrEqual(geometry.viewport);
       expect(geometry.document, `${style}/${palette}: débordement de page`).toBeLessThanOrEqual(geometry.viewport);
-      if (style === 'standard' && palette === 'light') {
-        await page.screenshot({ path: 'docs/screenshots/notifications-after.png', animations: 'disabled' });
-      }
-      if (style === 'lab' && palette === 'dark') {
-        await page.screenshot({ path: 'docs/screenshots/notifications-lab-dark-after.png', animations: 'disabled' });
-      }
       await page.keyboard.press('Escape');
     }
   }
