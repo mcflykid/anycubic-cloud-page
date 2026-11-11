@@ -299,7 +299,7 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  await page.locator('#confirm-yes').click();
  await expect(panel.locator('#control-feedback')).toHaveText('Refus fictif');
  expect(commands).toHaveLength(1);
- expect(commands[0]).toMatchObject({data:{action:'settings',box_fan_level:'3'},target:'demo-printer'});
+ expect(commands[0]).toMatchObject({data:{action:'settings',box_fan_level:'100'},target:'demo-printer'});
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
 });
 

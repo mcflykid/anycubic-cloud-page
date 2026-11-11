@@ -7,9 +7,9 @@ const temperatureNames = ['target_nozzle_temp', 'target_hotbed_temp'];
 const organPoints = {nozzle: [115, 102], part: [115, 81], auxiliary: [200, 140], circulation: [78, 175], bed: [160, 228]};
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
-/** Convertit l’échelle bornée des niveaux reçus sans confondre une donnée absente avec zéro. */
+/** Valide le pourcentage Cloud de circulation, y compris les petites valeurs de 1 à 3. */
 export function circulationPercent(level) {
-  return Number.isInteger(level) && level >= 0 && level <= 3 ? Math.round(level * 100 / 3) : null;
+  return Number.isInteger(level) && level >= 0 && level <= 100 ? level : null;
 }
 
 /** Dessine des repères propres à l’illustration, jusqu’au centre de chaque libellé. */
@@ -150,10 +150,6 @@ export function createCurrentControls(command) {
     }
     if (!active && 'print_speed_mode' in values)
       return feedback(tr('Le mode de vitesse nécessite une impression active.'));
-    if (!active && 'box_fan_level' in values)
-      return feedback(tr('Le réglage de circulation au repos reste à valider sur cette imprimante.'));
-    if ('box_fan_level' in values)
-      values.box_fan_level = String(Math.round(+values.box_fan_level * 3 / 100));
 
     // L’ordre natif n’accepte qu’une famille de commandes au repos.
     const temperatures = Object.fromEntries(Object.entries(values).filter(([name]) => temperatureNames.includes(name)));
@@ -161,6 +157,7 @@ export function createCurrentControls(command) {
       ['Températures', temperatures],
       ['Pièce', 'fan_speed_pct' in values ? {fan_speed_pct: values.fan_speed_pct} : {}],
       ['Auxiliaire', 'aux_fan_speed_pct' in values ? {aux_fan_speed_pct: values.aux_fan_speed_pct} : {}],
+      ['Circulation', 'box_fan_level' in values ? {box_fan_level: values.box_fan_level} : {}],
     ].filter(([, entries]) => Object.keys(entries).length);
     sequence = true;
     try {

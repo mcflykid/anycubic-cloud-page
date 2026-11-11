@@ -15,18 +15,23 @@ test('les réglages au repos partagent une confirmation et conservent des ordres
   await panel.getByLabel('Plateau', {exact:true}).fill('30');
   await panel.getByLabel('Pièce', {exact:true}).fill('25');
   await panel.getByLabel('Auxiliaire', {exact:true}).fill('35');
+  await panel.getByLabel('Circulation', {exact:true}).fill('33');
   await panel.getByRole('button', {name:'Appliquer les réglages'}).click();
   await expect(page.locator('#confirm-dialog')).toBeVisible();
   expect(sent).toHaveLength(0);
   await page.locator('#confirm-yes').click();
-  await expect.poll(() => sent.length).toBe(3);
+  await expect.poll(() => sent.length).toBe(4);
   expect(sent).toEqual([
     expect.objectContaining({action:'idle-settings', confirmed:true, target_hotbed_temp:'30'}),
     expect.objectContaining({action:'idle-settings', confirmed:true, fan_speed_pct:'25'}),
     expect.objectContaining({action:'idle-settings', confirmed:true, aux_fan_speed_pct:'35'}),
+    expect.objectContaining({action:'idle-settings', confirmed:true, box_fan_level:'33'}),
   ]);
   expect(sent[1]).not.toHaveProperty('aux_fan_speed_pct');
   expect(sent[2]).not.toHaveProperty('fan_speed_pct');
+  expect(sent[3]).not.toHaveProperty('target_hotbed_temp');
+  expect(sent[3]).not.toHaveProperty('fan_speed_pct');
+  expect(sent[3]).not.toHaveProperty('aux_fan_speed_pct');
 });
 
 test('les limites absentes ne masquent pas le champ et empêchent la commande', async ({page}) => {
@@ -97,7 +102,7 @@ test('la vue garde ses lignes et propose les deux actions si l’éclairage est 
   let active = false;
   await page.route('**/imprimante-api/status', async route => {
     const response = await route.fetch(), data = await response.json();
-    Object.assign(data.printer, {job_in_progress:active, camera_light:null, box_fan_level:2});
+    Object.assign(data.printer, {job_in_progress:active, camera_light:null, box_fan_level:33});
     await route.fulfill({json:data});
   });
   await page.setViewportSize({width:1440,height:860});
@@ -108,7 +113,7 @@ test('la vue garde ses lignes et propose les deux actions si l’éclairage est 
   for (const expected of ['Au repos', 'Impression en cours']) {
     await page.locator('#controls-open').click();
     await expect(panel.locator('#controls-machine-state')).toHaveText(expected);
-    await expect(panel.locator('#current-circulation-reading')).toContainText('67 %');
+    await expect(panel.locator('#current-circulation-reading')).toContainText('33 %');
     await expect(panel.locator('#control-light-on')).toBeVisible();
     await expect(panel.locator('#control-light-off')).toBeVisible();
     sizes.push(await panel.locator('.current-control-row').evaluateAll(rows =>
@@ -119,4 +124,29 @@ test('la vue garde ses lignes et propose les deux actions si l’éclairage est 
     await openSection(page, 'overview');
   }
   expect(sizes[0]).toEqual(sizes[1]);
+});
+
+test('les commandes affichent l’état et la mesure dans les trois langues', async ({page}) => {
+  await page.setViewportSize({width:1920,height:1080});
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    data.printer.box_fan_level = 33;
+    await route.fulfill({json:data});
+  });
+  await login(page);
+  const panel = page.locator('#controls-dialog');
+  for (const [language, idle, circulation, reading] of [
+    ['fr', 'Au repos', 'Circulation', 'Actuelle'],
+    ['en', 'Idle', 'Circulation', 'Current'],
+    ['es', 'En reposo', 'Circulación', 'Actual'],
+  ]) {
+    await page.locator('#interface-language').selectOption(language);
+    await expect(page.locator('html')).toHaveAttribute('lang', language);
+    await openSection(page, 'overview');
+    await page.locator('#controls-open').click();
+    await expect(panel.locator('#controls-machine-state')).toHaveText(idle);
+    await expect(panel.getByLabel(circulation, {exact:true})).toBeVisible();
+    await expect(panel.locator('#current-circulation-reading')).toHaveText(`${reading} 33 %`);
+    await page.keyboard.press('Escape');
+  }
 });
