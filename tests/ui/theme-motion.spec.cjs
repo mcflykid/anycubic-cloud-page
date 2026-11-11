@@ -80,7 +80,7 @@ test('les transitions suivent le style et la préférence de mouvement',async({p
   await openSection(page,'statistics');
   const panel=page.locator('#tab-statistics');
   await expect(panel).toHaveCSS('animation-name','section-fade');
-  await expect(panel.locator('.statistics-grid > section').nth(1)).toHaveCSS('animation-delay','0.045s');
+  await expect(panel.locator('.atelier-statistics-grid > section').nth(1)).toHaveCSS('animation-delay','0.045s');
   await openSection(page,'overview');
   await page.locator('#controls-open').click();
   const dialog=page.locator('#controls-dialog');

@@ -4442,5 +4442,133 @@
   "Désactivée": [
     "Disabled",
     "Desactivada"
+  ],
+  "Flux vidéo de la caméra": [
+    "Camera video stream",
+    "Transmisión de la cámara"
+  ],
+  "Allumer la caméra": [
+    "Turn on the camera",
+    "Encender la cámara"
+  ],
+  "Éteindre la caméra": [
+    "Turn off the camera",
+    "Apagar la cámara"
+  ],
+  "Commandes": [
+    "Controls",
+    "Controles"
+  ],
+  "Zoom de la vidéo": [
+    "Video zoom",
+    "Zoom del vídeo"
+  ],
+  "Distance par appui": [
+    "Distance per press",
+    "Distancia por pulsación"
+  ],
+  "Origine de tous les axes": [
+    "Home all axes",
+    "Llevar todos los ejes al origen"
+  ],
+  "Désactiver les moteurs": [
+    "Disable motors",
+    "Desactivar los motores"
+  ],
+  "Mémoire": [
+    "Memory",
+    "Memoria"
+  ],
+  "Précédente": [
+    "Previous",
+    "Anterior"
+  ],
+  "Suivante": [
+    "Next",
+    "Siguiente"
+  ],
+  "Sélectionner les fichiers de cette page": [
+    "Select files on this page",
+    "Seleccionar archivos de esta página"
+  ],
+  "{0} fichier": [
+    "{0} file",
+    "{0} archivo"
+  ],
+  "{0} fichiers": [
+    "{0} files",
+    "{0} archivos"
+  ],
+  "{0} sur {1}": [
+    "{0} of {1}",
+    "{0} de {1}"
+  ],
+  "{0} · imprimable": [
+    "{0} · printable",
+    "{0} · imprimible"
+  ],
+  "Surveillez la distance buse-plateau pendant un déplacement.": [
+    "Watch the nozzle-to-bed distance while moving the axes.",
+    "Vigila la distancia entre la boquilla y la cama durante el movimiento."
+  ],
+  "Déplacer les axes de l’imprimante avec ces paramètres ? La surveillance à distance sera activée.": [
+    "Move the printer axes with these settings? Remote monitoring will turn on.",
+    "¿Mover los ejes de la impresora con estos ajustes? Se activará la supervisión remota."
+  ],
+  "Imprimer « {0} » sur « {1} » ? Vérifiez que le plateau est libre.": [
+    "Print “{0}” on “{1}”? Make sure the bed is clear.",
+    "¿Imprimir «{0}» en «{1}»? Comprueba que la cama esté libre."
+  ],
+  "Imprimante sélectionnée": [
+    "Selected printer",
+    "Impresora seleccionada"
+  ],
+  "Journal des notifications": [
+    "Notification log",
+    "Registro de notificaciones"
+  ],
+  "Aucune sélection": [
+    "Nothing selected",
+    "Ninguna selección"
+  ],
+  "Terminées": [
+    "Completed",
+    "Terminadas"
+  ],
+  "Arrêtées": [
+    "Stopped",
+    "Detenidas"
+  ],
+  "Terminée": [
+    "Completed",
+    "Terminada"
+  ],
+  "Arrêtée": [
+    "Stopped",
+    "Detenida"
+  ],
+  "Réimprimer": [
+    "Reprint",
+    "Reimprimir"
+  ],
+  "Liste des impressions": [
+    "Print list",
+    "Lista de impresiones"
+  ],
+  "{0} impression sur la période": [
+    "{0} print in this period",
+    "{0} impresión en este período"
+  ],
+  "{0} impressions sur la période": [
+    "{0} prints in this period",
+    "{0} impresiones en este período"
+  ],
+  "Aucun fichier choisi": [
+    "No file selected",
+    "Ningún archivo seleccionado"
+  ],
+  "ou déposer un fichier ici": [
+    "or drop a file here",
+    "o suelta un archivo aquí"
   ]
 }

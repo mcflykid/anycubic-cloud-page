@@ -51,7 +51,7 @@ async function openTab(page, key) {
   await expect(page.locator(`#tab-${key}`)).toBeVisible();
   if (key === 'overview') await expect(page.locator('#job-name')).not.toBeEmpty();
   if (key === 'files') await expect(page.locator('#file-rows tr').first()).toBeVisible();
-  if (key === 'history') await expect(page.locator('#tasks-list > li').first()).toBeVisible();
+  if (key === 'history') await expect(page.locator('#tasks-list > tr').first()).toBeVisible();
   if (key === 'statistics') await expect(page.locator('#chart-nozzle svg')).toBeVisible();
   if (key === 'fleet') await expect(page.locator('#monitor-grid .monitor-card').first()).toBeVisible();
 }
@@ -77,15 +77,15 @@ test('les onglets du tableau de bord tiennent dans les deux vues ordinateur, qua
             `${style}/${color}/${viewport.name}/${tab}: débordement horizontal ${JSON.stringify(dimensions)}`,
           ).toBeLessThanOrEqual(viewport.width);
           if (tab === 'files') {
-            await expect(page.locator('#tab-files .table-scroll')).toHaveCSS('overflow-y', 'auto');
-            await expect(page.locator('#tab-files > .section-title')).toBeInViewport();
+            await expect(page.locator('#tab-files .files-table-region')).toHaveCSS('overflow-y', 'auto');
+            await expect(page.locator('#tab-files .atelier-card-header')).toBeInViewport();
             await expect(page.locator('#files-form')).toBeInViewport();
           }
           if (tab === 'history') {
-            await expect(page.locator('#tasks-list')).toHaveCSS('overflow-y', 'auto');
-            await expect(page.locator('#tab-history .section-title')).toBeInViewport();
-            await expect(page.locator('.history-filters')).toBeInViewport();
-            await expect(page.locator('.history-selection')).toBeInViewport();
+            await expect(page.locator('.history-table-region')).toHaveCSS('overflow-y', 'auto');
+            await expect(page.locator('#tab-history .atelier-card-header')).toBeInViewport();
+            await expect(page.locator('.history-toolbar')).toBeInViewport();
+            await expect(page.locator('.history-footer-selection')).toBeInViewport();
           }
         }
       }

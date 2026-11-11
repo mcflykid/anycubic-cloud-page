@@ -68,18 +68,13 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(page.locator('#task-reprint-dialog')).toBeVisible();
 });
 
-test('les pastilles Terminé et Arrêté sont centrées dans leurs cartes',async({page})=>{
- await login(page);
- await openSection(page,'history');
- for(const kind of ['Terminé','Arrêté']){
-  const badge=page.locator('.history-badge').filter({hasText:new RegExp('^'+kind+'$')}).first();
-  await expect(badge).toBeVisible();
-  const rect=await badge.evaluate(el=>{
-   const tag=el.getBoundingClientRect(),card=el.closest('.history-card-body').getBoundingClientRect();
-   return Math.abs(tag.left+tag.width/2-card.left-card.width/2);
-  });
-  expect(rect).toBeLessThan(2);
- }
+test('l’historique affiche les états et interdit la réimpression d’une tâche active',async({page})=>{
+ await login(page,'history');
+ await expect(page.locator('.history-status-2').first()).toHaveText('Terminée');
+ await expect(page.locator('.history-status-3').first()).toHaveText('Arrêtée');
+ const active=page.locator('#tasks-list tr').filter({has:page.locator('.history-status-1')}).first();
+ await expect(active.locator('.history-status-1')).toContainText('50 %');
+ await expect(active.getByRole('button',{name:'Réimprimer'})).toBeDisabled();
 });
 
 test('la Kobra S1 garde un visuel dédié et un ACE générique si la génération manque',async({page})=>{
@@ -112,22 +107,24 @@ test('les axes conservent leurs directions et les pictogrammes restent sur les l
  await steps.getByRole('radio',{name:'15 mm',exact:true}).check();
  await expect(steps.getByRole('radio',{name:'15 mm',exact:true})).toBeChecked();
  await expect(page.getByText('Surveillez la distance buse-plateau',{exact:false})).toBeVisible();
- const grid=page.locator('.axis-grid');
- const [left,middle,right]=await grid.locator(':scope > div').evaluateAll(groups=>groups.map(group=>group.getBoundingClientRect().x));
- expect(left).toBeLessThan(middle);
- expect(middle).toBeLessThan(right);
- await expect(page.locator('.camera-control-group h3')).toHaveText(['Caméra','Affichage','Éclairage']);
+ const grid=page.locator('.camera-axis-grid');
+ await expect(grid.getByRole('group',{name:'Déplacement XY'})).toBeVisible();
+ await expect(grid.getByRole('group',{name:'Déplacement Z'})).toBeVisible();
+ await expect(grid.getByRole('button',{name:'Origine de tous les axes'})).toBeVisible();
+ for(const name of ['X −','X +','Y −','Y +','Z −','Z +']){
+  await expect(grid.getByRole('button',{name,exact:true})).toHaveCSS('justify-content','center');
+  await expect(grid.getByRole('button',{name,exact:true})).toHaveCSS('align-items','center');
+ }
  await expect(page.getByRole('button',{name:'X −',exact:true})).toHaveAttribute('data-direction','0');
  await expect(page.getByRole('button',{name:'Y +',exact:true})).toHaveAttribute('data-axis','2');
  await expect(page.getByRole('button',{name:'Z +',exact:true})).toHaveAttribute('data-direction','1');
  await expect(page.getByRole('button',{name:'Origine XY',exact:true})).toHaveAttribute('data-axis','4');
  await expect(page.getByRole('button',{name:'Origine Z',exact:true})).toHaveAttribute('data-direction','2');
  const pad=page.getByRole('group',{name:'Déplacement XY'});
- await expect(pad).toHaveCSS('border-top-left-radius','50%');
  await pad.scrollIntoViewIfNeeded();
  const shape=await pad.evaluate(element=>{
   const bounds=element.getBoundingClientRect();
-  const points=[[.5,.23],[.23,.5],[.77,.5],[.5,.77],[.5,.5]];
+  const points=[[.5,1/6],[1/6,.5],[5/6,.5],[.5,5/6],[.5,.5]];
   return {width:bounds.width,height:bounds.height,axes:points.map(([x,y])=>document.elementFromPoint(bounds.left+x*bounds.width,bounds.top+y*bounds.height)?.closest('button')?.dataset.axis)};
  });
  expect(shape.width).toBeCloseTo(shape.height);

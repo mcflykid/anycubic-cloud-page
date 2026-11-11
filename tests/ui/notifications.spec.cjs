@@ -4,7 +4,7 @@ const {openSection}=require('./helpers.cjs');
 /** Ouvre le journal à partir de l’onglet Historique. */
 async function openHistoryJournal(page) {
  await openSection(page,'history');
- await page.getByRole('button',{name:'Journal historique',exact:true}).click();
+ await page.getByRole('button',{name:'Journal des notifications',exact:true}).click();
 }
 /** Isole chaque scénario sur le serveur fictif pour ne jamais toucher au cloud. */
 async function openWorkshop(page){await page.goto('/login');await page.getByLabel('Identifiant').fill('admin');await page.getByLabel('Mot de passe').fill('ui-fixture-password');await page.getByRole('button',{name:'Se connecter',exact:true}).click();const reset=await page.request.post('/imprimante-api/demo/reset',{data:{},headers:{Origin:new URL(page.url()).origin}});expect(reset.status()).toBe(200);await page.reload();await expect(page.locator('#notifications-dot')).toBeVisible();}
@@ -88,7 +88,7 @@ test('la cloche affiche une fin d’impression du slicer et conserve le journal 
  await page.keyboard.press('Escape');
  expect(writes).toHaveLength(0);
  await page.getByRole('button',{name:'Tous',exact:true}).click();
- await expect(page.locator('#notifications-panel')).not.toContainText('Journal historique');
+ await expect(page.locator('#notifications-panel')).not.toContainText('Journal des notifications');
  await page.keyboard.press('Escape');
  await openHistoryJournal(page);
  await expect(row).toHaveCount(3);

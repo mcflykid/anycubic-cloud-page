@@ -112,9 +112,10 @@ test('la recherche occupe la barre des fichiers Cloud et les dossiers locaux gar
   const form=page.locator('#files-form');
   await page.locator('[data-source=cloud]').click();
   await expect(page.locator('#file-path-label')).toBeHidden();
+  await expect(page.locator('#cloud-folder-label')).toBeVisible();
   const search=await page.locator('#files-search').boundingBox();
   const refresh=await form.locator('button[type=submit]').boundingBox();
-  const sort=await form.locator('select').boundingBox();
+  const sort=await form.locator('#files-sort').boundingBox();
   expect(search.width).toBeGreaterThan(refresh.width);
   expect(search.x).toBeGreaterThan(refresh.x);
   expect(sort.x).toBeGreaterThan(search.x);

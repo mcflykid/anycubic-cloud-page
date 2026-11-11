@@ -105,9 +105,16 @@ export function createSettings(request, command, camera) {
       input.disabled = !idle || !pair;
       if (pair) { input.min = pair[0]; input.max = pair[1]; }
     }
+    // L’état affiché vient de l’imprimante, y compris lorsqu’il est inconnu.
+    const light = p.camera_light;
+    set('camera-light-state', tr(light === true ? 'Allumé' : light === false ? 'Éteint' : 'État inconnu'));
+    $('light-on').hidden = light === true;
+    $('light-off').hidden = light === false;
+    for (const id of ['light-on', 'light-off']) $(id).disabled = !p.printer_online;
     const canMove = !!p.axes_supported && p.is_available && !p.job_in_progress;
     for (const button of document.querySelectorAll('[data-axis],#axis-release,#axis-step input'))
       button.disabled = !canMove;
+    $('axis-state').dataset.available = String(!!canMove);
     set(
       'axis-state',
       !p.axes_supported
@@ -285,7 +292,7 @@ export function createSettings(request, command, camera) {
           direction: Number(b.dataset.direction),
           distance: Number($('axis-step').querySelector('input:checked').value),
         },
-        tr('Déplacer les axes de l’imprimante avec ces paramètres ?'),
+        tr('Déplacer les axes de l’imprimante avec ces paramètres ? La surveillance à distance sera activée.'),
       );
     };
   $('axis-release').onclick = () =>

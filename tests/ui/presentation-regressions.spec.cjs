@@ -25,7 +25,7 @@ test('les fiches de l’historique peuvent défiler sans rogner leur contenu', a
   await page.setViewportSize({width: 1440, height: 900});
   await page.route('**/imprimante-api/extras/tasks?*', mockHistory);
   await login(page, 'history');
-  const rows = page.locator('#tasks-list > li');
+  const rows = page.locator('#tasks-list > tr');
   await expect(rows).toHaveCount(15);
   const measurements = await rows.first().evaluate(card => ({
     visible: card.clientHeight,
@@ -36,17 +36,29 @@ test('les fiches de l’historique peuvent défiler sans rogner leur contenu', a
   await expect(rows.last().locator('.history-card-name')).toBeInViewport();
 });
 
-test('la caméra et ses commandes partagent la même largeur sur grand écran', async ({page}) => {
-  await page.setViewportSize({width: 1720, height: 900});
+test('le flux vidéo reste dans sa carte et les deux pieds s’alignent', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 800 });
   await login(page, 'camera');
-  const stage = await page.locator('#camera-wrapper').boundingBox();
-  const controls = await page.locator('.camera-controls').boundingBox();
-  const axes = await page.locator('.axis-card').boundingBox();
-  expect(Math.abs(controls.width - stage.width)).toBeLessThan(3);
-  expect(axes.x - stage.x - stage.width).toBeGreaterThanOrEqual(0);
-  expect(axes.x - stage.x - stage.width).toBeLessThan(24);
-  await expect(page.locator('.axis-step-control label').last()).toHaveCSS('white-space', 'nowrap');
+  await expectCameraLayout(page, true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectCameraLayout(page, false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+async function expectCameraLayout(page, sideBySide) {
+  const [stage, feed, commands, feedFooter, commandFooter] = await Promise.all(
+    ['#camera-wrapper', '.camera-feed', '.camera-command-card', '.camera-feed-actions', '.camera-warning']
+      .map(selector => page.locator(selector).boundingBox()),
+  );
+  expect(stage.x).toBeGreaterThan(feed.x);
+  expect(stage.x + stage.width).toBeLessThan(feed.x + feed.width);
+  if (sideBySide) {
+    expect(Math.abs(feed.width - commands.width)).toBeLessThan(1);
+    expect(Math.abs(feedFooter.y - commandFooter.y)).toBeLessThan(1);
+  } else {
+    expect(commands.y).toBeGreaterThanOrEqual(feed.y + feed.height);
+  }
+}
 
 async function filamentRows(page) {
   const groups = page.locator('#chart-filament > section');
@@ -131,7 +143,7 @@ for (const style of styles) {
         }).toPass({timeout: 5000});
 
         await openSection(page, 'history');
-        const cards = page.locator('#tasks-list > li');
+        const cards = page.locator('#tasks-list > tr');
         await expect(cards).toHaveCount(15);
         expect(await cards.first().evaluate(card => card.scrollHeight - card.clientHeight)).toBeLessThanOrEqual(1);
         const lastTitle = cards.last().locator('.history-card-name');
@@ -141,17 +153,10 @@ for (const style of styles) {
         }).toPass({timeout: 5000});
 
         await openSection(page, 'camera');
-        const stage = await page.locator('#camera-wrapper').boundingBox();
-        const controls = await page.locator('.camera-controls').boundingBox();
-        const axes = await page.locator('.axis-card').boundingBox();
-        if (width > 400) {
-          expect(Math.abs(controls.width - stage.width)).toBeLessThan(3);
-          expect(axes.x - stage.x - stage.width).toBeLessThan(24);
-          expect(axes.x).toBeGreaterThanOrEqual(stage.x + stage.width - 1);
-        } else {
-          expect(axes.y).toBeGreaterThan(stage.y);
-          expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-        }
+        const sideBySide = await page.locator('.camera-workspace').evaluate(
+          element => getComputedStyle(element).gridTemplateColumns.split(' ').length > 1,
+        );
+        await expectCameraLayout(page, sideBySide);
       }
     });
   }

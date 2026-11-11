@@ -701,31 +701,56 @@ export function createHistory(request, command, selectedBox) {
   function taskSelectionState() {
     const rows = visibleTasks(),
       n = taskSelected.size;
-    set('tasks-selected-count', formatText('{0} sélection{1}', n, n > 1 ? 's' : ''));
+    set('tasks-selected-count', n ? formatText('{0} sélection{1}', n, n > 1 ? 's' : '') : tr('Aucune sélection'));
     $('tasks-delete').disabled = !n;
+    $('tasks-select-page').disabled = !rows.length;
     $('tasks-select-page').checked = !!rows.length && rows.every((t) => taskSelected.has(t.key));
     $('tasks-select-page').indeterminate =
       rows.some((t) => taskSelected.has(t.key)) && !$('tasks-select-page').checked;
   }
-  /** Les cartes affichent les dates connues sans fabriquer une fin ni une durée manquante. */
+  /** Indique une disponibilité réelle et conserve la confirmation existante de la réimpression. */
+  function canReprint(task) {
+    const printer = workshopState.snapshot?.printer;
+    return task.can_reprint && ![0, 1].includes(task.status_code) &&
+      task.printer_key === workshopState.selectedPrinter && printer?.printer_online && printer.is_available;
+  }
+  function prepareReprint(task) {
+    if (!canReprint(task)) return;
+    pastTaskKey = task.key;
+    set('reprint-task-name', task.name);
+    set('reprint-target', workshopState.snapshot?.printer?.name || task.printer);
+    const form = $('task-reprint-form');
+    form.reset();
+    form.elements.slots.required = !!selectedBox();
+    form.elements.slots.disabled = !selectedBox();
+    $('task-reprint-dialog').showModal();
+  }
+
+  /** Une ligne par impression, sans inventer une date ou une durée manquante. */
   function renderTasks() {
     taskPreviewObserver.disconnect();
     const rows = visibleTasks();
     $('tasks-list').replaceChildren(
       ...rows.map((t) => {
-        const li = node('li', null, 'task-history-item'),
+        const row = node('tr'),
+          selectCell = node('td', null, 'files-selection-cell'),
           select = node('input'),
-          label = node('label', null, 'history-card-select'),
-          body = node('div', null, 'history-card-body'),
+          file = node('td'),
+          identity = node('div', null, 'history-table-identity'),
+          copy = node('div', null, 'file-row-caption'),
           name = node('strong', t.name, 'history-card-name'),
-          state = node(
-            'span',
-            { 2: tr('Terminé'), 3: tr('Arrêté'), 1: tr('En cours'), 0: tr('En préparation') }[
-              t.status_code
-            ] || t.status,
-            'history-badge status-' + t.status_code,
+          status = node('td', null, 'history-table-status'),
+          state = node('span',
+            { 2: tr('Terminée'), 3: tr('Arrêtée'), 1: tr('En cours'), 0: tr('En préparation') }[t.status_code] || t.status,
+            'atelier-status history-status-' + t.status_code,
           ),
-          open = extraButton(tr('Voir le détail'), () => openPastTask(t), 'history-detail');
+          started = node('td', t.start ? date(t.start) : '—', 'history-table-start'),
+          duration = node('td', t.elapsed_minutes == null ? '—' : fmt(t.elapsed_minutes, ' min'), 'files-size history-table-duration'),
+          actionsCell = node('td', null, 'files-actions-cell'),
+          actions = node('div', null, 'files-row-actions'),
+          open = extraButton(tr('Détail'), () => openPastTask(t), 'atelier-control history-detail'),
+          reprint = extraButton(tr('Réimprimer'), () => prepareReprint(t), 'atelier-control');
+        if (t.status_code === 1 && Number.isFinite(t.progress)) state.append(' · ' + fmt(t.progress, ' %'));
         select.type = 'checkbox';
         select.checked = taskSelected.has(t.key);
         select.setAttribute('aria-label', tr('Sélectionner ') + t.name);
@@ -733,30 +758,18 @@ export function createHistory(request, command, selectedBox) {
           select.checked ? taskSelected.add(t.key) : taskSelected.delete(t.key);
           taskSelectionState();
         };
-        label.append(select, node('span', tr('Sélectionner'), 'sr-only'));
         name.title = t.name;
-        body.append(
-          state,
-          name,
-          node(
-            'p',
-            t.end ? `${date(t.start)} – ${date(t.end)}` : tr('Début : ') + date(t.start),
-            'muted history-card-period',
-          ),
-          node('p', t.printer || tr('Imprimante'), 'muted'),
-          node(
-            'p',
-            tr('Durée : ') +
-              (t.elapsed_minutes == null
-                ? tr('Non renseignée')
-                : Number(t.elapsed_minutes).toLocaleString(locale, { maximumFractionDigits: 1 }) +
-                  ' min'),
-            'muted',
-          ),
-          open,
-        );
-        li.append(label, taskThumbnail(t), body);
-        return li;
+        reprint.disabled = !canReprint(t);
+        open.setAttribute('aria-label', tr('Voir le détail'));
+        selectCell.append(select);
+        copy.append(name, node('span', t.printer || tr('Imprimante')));
+        identity.append(taskThumbnail(t), copy);
+        file.append(identity);
+        status.append(state);
+        actions.append(open, reprint);
+        actionsCell.append(actions);
+        row.append(selectCell, file, status, started, duration, actionsCell);
+        return row;
       }),
     );
     set(
@@ -773,7 +786,7 @@ export function createHistory(request, command, selectedBox) {
     $('tasks-state').className = rows.length ? 'muted' : 'empty-message';
     if (rows.length) delete $('tasks-state').dataset.visualState;
     else $('tasks-state').dataset.visualState = 'empty';
-    set('tasks-page', formatText('{0} fiche(s) chargée(s)', taskRows.length));
+    set('tasks-page', formatText(rows.length === 1 ? '{0} impression sur la période' : '{0} impressions sur la période', rows.length));
     $('tasks-next').hidden = !taskMore;
     taskSelectionState();
   }
@@ -881,9 +894,7 @@ export function createHistory(request, command, selectedBox) {
     rate.hidden = !selected || t.status_code !== 2;
     rate.disabled = t.evaluated === true;
     reprint.hidden = !selected || !t.can_reprint;
-    reprint.disabled =
-      !workshopState.snapshot?.printer?.printer_online ||
-      !workshopState.snapshot.printer.is_available;
+    reprint.disabled = !canReprint(t);
     set(
       'past-task-actions-state',
       !selected
@@ -900,13 +911,7 @@ export function createHistory(request, command, selectedBox) {
     };
     reprint.onclick = () => {
       dialog.close();
-      set('reprint-task-name', t.name);
-      set('reprint-target', workshopState.snapshot?.printer?.name || t.printer);
-      const form = $('task-reprint-form');
-      form.reset();
-      form.elements.slots.required = !!selectedBox();
-      form.elements.slots.disabled = !selectedBox();
-      $('task-reprint-dialog').showModal();
+      prepareReprint(t);
     };
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;

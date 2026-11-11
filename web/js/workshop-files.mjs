@@ -75,26 +75,40 @@ export function createFiles(request, command) {
       : null;
     const rows = Array.isArray(list) ? visibleFiles(list) : [];
     const folderView = source === 'cloud' && !!cloudFolder;
+    const isCloud = source === 'cloud';
     const parent = $('cloud-folder-parent');
-    parent.hidden = !folderView;
+    parent.hidden = !isCloud;
     parent.disabled = !currentFileContext(context) || !cloudParent();
-    for (const id of ['file-path-label', 'parent-folder'])
-      $(id).hidden = source === 'cloud';
-    for (const id of ['file-actions-column', 'file-mapping-form'])
-      $(id).hidden = folderView;
+    for (const id of ['file-path-label', 'parent-folder']) $(id).hidden = isCloud;
+    for (const id of ['cloud-folder-label', 'file-selection-column', 'files-footer'])
+      $(id).hidden = !isCloud;
+    $('file-actions-column').hidden = folderView;
+    set('files-title', tr({ local: 'Mémoire imprimante', usb: 'Clé USB', cloud: 'Cloud Anycubic' }[source]));
+    if (!isCloud) $('files-state').hidden = false;
     $('file-rows').replaceChildren(
       ...rows.map((f) => {
         const row = node('tr'),
           name = node('td'),
-          size = node('td', fmt(f.size_mb, tr(' Mo'))),
-          actions = node('td'),
-          wrap = node('div', null, 'actions');
+          size = node('td', fmt(f.size_mb, tr(' Mo')), 'files-size'),
+          actions = node('td', null, 'files-actions-cell'),
+          wrap = node('div', null, 'files-row-actions');
         const identity = node('span', null, 'file-row-identity');
         if (!f.is_dir && !context.folder) identity.append(fileThumbnails.create(f, context));
-        identity.append(node('span', f.name));
+        const caption = node('span', null, 'file-row-caption');
+        caption.append(node('strong', f.name));
+        // Les extensions et le statut imprimable restent distincts pour les modèles non tranchés.
+        const extension = f.name.match(/\.([^.]+)$/)?.[1]?.toLowerCase();
+        const format = f.is_dir ? tr('Dossier') : extension === 'gcode' ? 'G-code' : extension?.toUpperCase();
+        const printable = !f.is_dir && (listedSource === 'cloud' ? f.printable === true || (f.printable !== false && extension === 'gcode') : extension === 'gcode');
+        if (format) caption.append(node('span', printable ? formatText('{0} · imprimable', format) : format));
+        identity.append(caption);
         name.append(identity);
         const add = (label, fn, cls) => {
-          const b = node('button', null, cls);
+          const textButton = label === 'Imprimer' || label === 'Ouvrir';
+          const b = node('button', null, 'atelier-control');
+          if (cls === 'danger') b.classList.add('atelier-control-danger');
+          if (!textButton) b.classList.add('atelier-control-icon');
+          b.setAttribute('aria-label', tr(label));
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           svg.setAttribute('viewBox', '0 0 24 24');
           svg.setAttribute('class', 'ui-icon');
@@ -114,7 +128,8 @@ export function createFiles(request, command) {
             }[label] || '',
           );
           svg.append(path);
-          b.append(svg, node('span', tr(label)));
+          if (textButton) b.textContent = tr(label);
+          else b.append(svg);
           b.title =
             {
               Imprimer: tr('Préparer l’impression de ce fichier avec les bobines choisies.'),
@@ -137,7 +152,7 @@ export function createFiles(request, command) {
           b.onclick = fn;
           wrap.append(b);
         };
-        if (source === 'cloud') {
+        if (isCloud) {
           const check = node('input');
           check.type = 'checkbox';
           check.dataset.selection = f.handle;
@@ -149,8 +164,9 @@ export function createFiles(request, command) {
           };
           const gutter = node('span', null, 'file-selection-gutter');
           gutter.append(check);
-          name.prepend(gutter);
-          name.classList.add('cloud-file-name');
+          const selectCell = node('td', null, 'files-selection-cell');
+          selectCell.append(gutter);
+          row.append(selectCell);
           if (!context.folder) {
             add('Télécharger', () => downloadCloud([f.handle]));
             add('Renommer', () => renameCloud(f));
@@ -166,8 +182,12 @@ export function createFiles(request, command) {
             try {
               await command(
                 `print-${listedSource}`,
-                { ...f, path: listedPath, slots: slots($('file-slots').value) },
-                formatText('Imprimer « {0} » avec la sélection de bobines indiquée ?', f.name),
+                { ...f, path: listedPath },
+                formatText(
+                  'Imprimer « {0} » sur « {1} » ? Vérifiez que le plateau est libre.',
+                  f.name,
+                  workshopState.snapshot?.printer?.name || tr('Imprimante sélectionnée'),
+                ),
               );
             } catch (e) {
               message(e.message, true);
@@ -194,6 +214,8 @@ export function createFiles(request, command) {
             'danger',
           );
         }
+        const print = wrap.querySelector('button:not(.atelier-control-icon)');
+        if (print) wrap.prepend(print);
         actions.append(wrap);
         row.append(name, size);
         if (!folderView) row.append(actions);
@@ -214,7 +236,7 @@ export function createFiles(request, command) {
     else delete $('files-state').dataset.visualState;
     $('cloud-tools').hidden = source !== 'cloud';
     if (source === 'cloud') {
-      if (Array.isArray(list)) set('files-state', formatText('{0} fichier(s).', rows.length));
+      if (Array.isArray(list)) set('files-state', formatText(rows.length === 1 ? '{0} fichier' : '{0} fichiers', rows.length));
       cloudSelectionState();
       if (refreshQuota) loadCloudStorage();
     }
@@ -265,7 +287,7 @@ export function createFiles(request, command) {
             option.dataset.path = entry.path;
             return option;
           });
-          $('cloud-folder').replaceChildren(new Option(tr('Tous les fichiers'), ''), ...folders);
+          $('cloud-folder').replaceChildren(new Option('/', ''), ...folders);
           $('cloud-folder').value = cloudFolder;
           $('cloud-destination').replaceChildren(
             new Option(tr('Choisir un dossier'), ''),
@@ -461,6 +483,7 @@ export function createFiles(request, command) {
       uploadAttempt = null;
       set('upload-state', result.message);
       message(result.message);
+      void loadCloudStorage();
     } catch (err) {
       set('upload-state', err.message);
       message(err.message, true);
@@ -473,6 +496,8 @@ export function createFiles(request, command) {
   function updateUploadButton() {
     const form = $('upload-form'), mode = form.elements.mode;
     const filename = uploadInput.files[0]?.name;
+    set('upload-file-name', filename || tr('Aucun fichier choisi'));
+    $('upload-file-name').dataset.state = filename ? 'normal' : 'unknown';
     const storageOnly = filename != null && !/\.gcode$/i.test(filename);
     let formatNote = $('upload-format-note');
     if (!formatNote) {
@@ -512,13 +537,8 @@ export function createFiles(request, command) {
       input.checked = selected;
       input.closest('tr').classList.toggle('file-selected', selected);
     }
-    const tools = $('cloud-tools'), anchor = tools.querySelector('.cloud-selection-anchor');
-    // Réserver la place évite que les lignes remontent sous le doigt à la première sélection.
-    if (n > 0 && !tools.classList.contains('has-selection') && anchor) {
-      anchor.style.minHeight = `${anchor.getBoundingClientRect().height}px`;
-    }
-    tools.classList.toggle('has-selection', n > 0);
-    if (!n && anchor) anchor.style.minHeight = '';
+    $('cloud-tools').classList.toggle('has-selection', n > 0);
+    $('files-state').hidden = n > 0;
     let total = 0, known = true;
     for (const file of cloudRows.filter(f => cloudSelected.has(f.handle))) {
       if (!Number.isFinite(file.size_mb)) known = false;
@@ -549,18 +569,14 @@ export function createFiles(request, command) {
   async function loadCloudStorage() {
     try {
       const d = await request('/extras/storage');
-      set(
-        'cloud-quota',
-        formatText(
-          '{0} utilisés sur {1} · {2} disponibles',
-          bytes(d.used),
-          bytes(d.total),
-          bytes(d.free),
-        ),
-      );
-      $('cloud-quota-bar').value = d.total ? Math.min(100, (d.used / d.total) * 100) : 0;
+      const quota = formatText('{0} sur {1}', bytes(d.used), bytes(d.total));
+      const percentage = d.total && Number.isFinite(d.used) ? Math.min(100, (d.used / d.total) * 100) : 0;
+      for (const id of ['cloud-quota', 'upload-cloud-quota']) {
+        set(id, quota);
+        $(id + '-bar').value = percentage;
+      }
     } catch (e) {
-      set('cloud-quota', e.message);
+      for (const id of ['cloud-quota', 'upload-cloud-quota']) set(id, e.message);
     }
   }
   /** Demande des tickets de téléchargement serveur afin de garder les URL cloud privées côté navigateur. */
@@ -637,5 +653,5 @@ export function createFiles(request, command) {
     if (source !== 'cloud' && workshopState.currentTab === 'files') renderFiles();
   }
 
-  return { loadFiles, renderFiles, updateUploadButton, update };
+  return { loadFiles, loadCloudStorage, renderFiles, updateUploadButton, update };
 }

@@ -55,3 +55,12 @@
   --atelier-device-image: 128px;
   --atelier-job-thumbnail: 56px;
 }
+:root {
+  --atelier-axis-size: 64px;
+  --atelier-video-ratio: 16 / 9;
+  --atelier-video-max-height: 48dvh;
+}
+:root {
+  --atelier-file-thumbnail: 40px;
+  --atelier-quota-width: 360px;
+}

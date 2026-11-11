@@ -303,10 +303,11 @@ export function message(text, error = false) {
   $('message').classList.toggle('error', error);
 }
 /** Renvoie une promesse booléenne ; une fermeture du dialogue annule l’action physique proposée. */
-export function confirmAction(text) {
+export function confirmAction(text, showFileSlots = false) {
   return new Promise((resolve) => {
     const d = $('confirm-dialog');
     set('confirm-text', text);
+    $('file-mapping-form').hidden = !showFileSlots;
     d.showModal();
     let settled = false;
     const settle = (value) => {
