@@ -18,3 +18,7 @@ Les commandes mesurent 36 px de haut, ou 44 px au toucher. Le rayon des champs, 
 Les neuf rôles sont le fond, la surface, le texte, le texte secondaire, le trait, l’accent, l’état normal, l’attention et l’erreur. Le mode sombre redéfinit les mêmes rôles. Les couleurs de texte respectent un contraste de 4,5:1. L’accent identifie l’action principale et l’onglet actif. Les ombres sont réservées aux fenêtres et menus ouverts.
 
 Les styles redéfinissent les couleurs, la police et les deux rayons. Le Laboratoire peut utiliser une navigation latérale repliable. Les cartes s’empilent sur téléphone. La réduction des animations du système est respectée.
+
+## Maquettes de référence
+
+Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](design/maquette/resume.html) dans un navigateur à 1 440 px. Les onglets du Résumé ouvrent les autres maquettes. Les données de ces pages sont des exemples. Les fichiers utilisent la police Inter locale du projet.

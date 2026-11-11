@@ -88,14 +88,6 @@
 }
 
 /* Les libellés disposent de toute la largeur de leur tuile. */
-@media (min-width: 1191px) {
-  [data-style]:not([data-style="lab"], [data-style="aurora"]) #atelier-tabs .atelier-nav-group > button {
-    flex-direction: column;
-    justify-content: center;
-    min-height: 54px;
-    text-align: center;
-  }
-}
 
 /* Entre tablette et portable, les styles horizontaux gardent des intitulés entiers. */
 @media (min-width: 761px) and (max-width: 1190px) {
@@ -123,29 +115,8 @@
 }
 
 @media (min-width: 961px) {
-  [data-style="aurora"] #atelier-tabs:has(> .atelier-nav-group) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-
-  [data-style="aurora"] #atelier-tabs .atelier-nav-label {
-    display: none;
-  }
-
-  [data-style="aurora"] #atelier-tabs .atelier-nav-group > button {
-    justify-content: center;
-  }
 
   /* Le repère Aurore reste à l’intérieur de son rail arrondi. */
-  [data-style="aurora"] #atelier-tabs .atelier-nav-group > button {
-    width: calc(100% - 12px);
-    margin-inline: 6px;
-    border-radius: 16px;
-  }
-
-  [data-style="aurora"] #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
-  }
 }
 
 @media (min-width: 761px) {
@@ -154,18 +125,6 @@
   }
 
   [data-style="lab"] #atelier-tabs .atelier-nav-group + .atelier-nav-group {
-    padding: 7px 0 0;
-    border: 0;
-    border-top: 1px solid var(--line);
-  }
-}
-
-@media (min-width: 961px) {
-  [data-style="aurora"] #atelier-tabs .atelier-nav-group {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  [data-style="aurora"] #atelier-tabs .atelier-nav-group + .atelier-nav-group {
     padding: 7px 0 0;
     border: 0;
     border-top: 1px solid var(--line);

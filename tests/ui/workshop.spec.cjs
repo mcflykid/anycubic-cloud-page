@@ -13,12 +13,12 @@ test('un catalogue inaccessible laisse l’atelier fonctionner en français',asy
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('lang','fr');
  await expect(page.locator('#connection')).toHaveText('En ligne');
- await expect(page.locator('#printer-model')).toHaveText('Anycubic Kobra S1');
+ await expect(page.locator('#printer-model')).toHaveText('Kobra S1 · Démonstration');
  await expect(page.getByRole('combobox',{name:'Langue de l’interface'})).toHaveValue('fr');
  expect(failed.length).toBeGreaterThanOrEqual(1);
  const bell=await page.locator('#notifications-toggle').boundingBox();
  expect(bell.width).toBe(44);
- expect(bell.height).toBeGreaterThanOrEqual(44);
+ expect(bell.height).toBe(44);
  expect(await page.locator('.portal-nav').evaluate(nav=>nav.scrollWidth<=nav.clientWidth)).toBe(true);
 });
 
@@ -167,17 +167,17 @@ test('l’apparence suit le système ou garde le choix explicite après recharge
   await page.getByRole('button', {name: 'Réglages', exact: true}).click();
   const theme = page.getByLabel('Thème de l’interface');
   await expect(theme).toHaveValue('system');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
   await theme.selectOption('light');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 244, 246)');
   await page.reload();
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 244, 246)');
   await page.getByRole('button', {name: 'Réglages', exact: true}).click();
   await theme.selectOption('dark');
   await page.emulateMedia({colorScheme: 'light'});
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
   await theme.selectOption('system');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 244, 246)');
 });
 
 test('le style visuel se mémorise indépendamment du mode sombre', async ({page}) => {
@@ -220,5 +220,5 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   await expect(style).toHaveValue('glasshouse');
   await expect(theme).toHaveValue('dark');
   await style.selectOption({label: 'Par défaut'});
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
 });

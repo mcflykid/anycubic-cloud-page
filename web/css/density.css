@@ -1333,21 +1333,6 @@
 
   /* Aurore et Laboratoire gardent leur navigation propre. */
 
-  [data-style="aurora"] .printer-shell {
-    grid-template-rows: auto auto auto 1fr auto;
-    align-content: stretch;
-  }
-
-
-  [data-style="aurora"] .atelier-tabs {
-    padding: 5px;
-  }
-
-  [data-style="aurora"] #atelier-tabs > button {
-    min-height: 40px;
-    padding-block: 6px;
-  }
-
 }
 
 /* Aurore conserve sa composition sans pousser le pied hors écran. */
