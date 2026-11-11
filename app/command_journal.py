@@ -41,6 +41,7 @@ ACTIONS = frozenset(
         "task-reprint",
         "cloud-rename",
         "cloud-move",
+        "task-rate",
         "print-local",
         "print-usb",
         "print-cloud",
@@ -56,6 +57,17 @@ ACTIONS = frozenset(
         "save-print",
         "temp-print",
         "history-delete",
+    )
+)
+# Seules ces mutations de la route /command touchent le compte sans ordre machine.
+CLOUD_ONLY_ACTIONS = frozenset(
+    (
+        "delete-cloud",
+        "cloud-delete-many",
+        "task-delete-many",
+        "cloud-rename",
+        "cloud-move",
+        "task-rate",
     )
 )
 OUTCOMES = frozenset(("refusée", "expirée", "inconnue", "envoyée", "acceptée", "confirmée"))

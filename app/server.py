@@ -38,6 +38,7 @@ from web_host import (
 )
 from command_journal import (
     ACTIONS,
+    CLOUD_ONLY_ACTIONS,
     MQTT_CONFIRMATIONS,
     CommandJournal,
     JournalMQTT,
@@ -1245,15 +1246,16 @@ async def history_delete(req):
         ):
             raise ValueError("Notification invalide")
         async with engine.lock:
-            if not engine.api:
-                raise ValueError("Connexion en cours")
-            if audit:
-                audit["outcome"] = "inconnue"
-                await save_command_event(req, audit)
-            result = await engine.delete_history(data.get("key"), data.get("all") is True)
-            if audit:
-                audit["outcome"] = "acceptée"
-            return web.json_response(result, headers={"Cache-Control": "no-store"})
+            async with cloud_mutation_operation(engine):
+                if not engine.api:
+                    raise ValueError("Connexion en cours")
+                if audit:
+                    audit["outcome"] = "inconnue"
+                    await save_command_event(req, audit)
+                result = await engine.delete_history(data.get("key"), data.get("all") is True)
+                if audit:
+                    audit["outcome"] = "acceptée"
+                return web.json_response(result, headers={"Cache-Control": "no-store"})
 
 
 async def ai_settings(req):
@@ -1286,6 +1288,21 @@ COMMAND_MQTT_KEY = web.AppKey("command_mqtt", JournalMQTT)
 
 class CommandWaitExpired(ValueError):
     """Signale une attente expirée avant l’envoi d’une commande."""
+
+
+@contextlib.asynccontextmanager
+async def cloud_mutation_operation(engine):
+    """Réserve une mutation Cloud du compte sans immobiliser les ordres machine."""
+    transport = getattr(engine, "transport", None)
+    lock = getattr(transport, "cloud_mutation_lock", None)
+    if lock is None:
+        raise ValueError("Verrou partagé du compte Cloud indisponible")
+    if lock.locked():
+        raise ValueError(
+            "Une action Cloud est déjà en cours sur ce compte. Réessayez après sa fin."
+        )
+    async with lock:
+        yield
 
 
 async def save_command_event(request, entry):
@@ -1368,7 +1385,12 @@ async def audit_command(request, engine, action, request_id, parameters):
                 if entry.get("outcome") in {"inconnue", "refusée", "expirée"}
                 else logging.INFO,
                 "command_result",
-                message="Résultat de la demande ; une acceptation ne prouve pas l’exécution physique",
+                message=(
+                    "Résultat de la mutation Cloud ; une acceptation concerne le compte Anycubic"
+                    if entry.get("action") in CLOUD_ONLY_ACTIONS
+                    or entry.get("action") in {"history-delete", "upload"}
+                    else "Résultat de la demande ; une acceptation ne prouve pas l’exécution physique"
+                ),
                 action=entry.get("action"),
                 outcome=entry.get("outcome"),
                 printer=entry.get("printer"),
@@ -1407,8 +1429,8 @@ async def command_journal(request):
 
 
 @contextlib.asynccontextmanager
-async def command_operation(req, *, require_model=True, bypass_read_lock=False):
-    """Réserve une commande ordinaire puis sérialise l’envoi, après la lecture si nécessaire."""
+async def command_operation(req, *, require_model=True, bypass_read_lock=False, cloud_only=False):
+    """Réserve une requête et sa lecture ; seules les actions Cloud évitent le verrou machine."""
     engine = request_engine(req)
     if engine.command_lock.locked() or (
         not bypass_read_lock and engine.command_request_lock.locked()
@@ -1425,7 +1447,10 @@ async def command_operation(req, *, require_model=True, bypass_read_lock=False):
                     "La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes."
                 ) from None
             guards.callback(engine.lock.release)
-        await guards.enter_async_context(engine.command_lock)
+        if cloud_only:
+            await guards.enter_async_context(cloud_mutation_operation(engine))
+        else:
+            await guards.enter_async_context(engine.command_lock)
         if req.transport is None or req.transport.is_closing():
             raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
         verify_printer_target(req, engine, require_model=require_model)
@@ -1452,7 +1477,8 @@ async def storage_upload_operation(req, engine):
                 raise ValueError("Connexion en cours")
         finally:
             engine.lock.release()
-        yield
+        async with cloud_mutation_operation(engine):
+            yield
 
 
 async def command(req):
@@ -1477,6 +1503,7 @@ async def command(req):
             req,
             require_model=name != "presets",
             bypass_read_lock=name in {"pause", "cancel"},
+            cloud_only=name in CLOUD_ONLY_ACTIONS,
         ):
             if requestid in engine.commands:
                 audit.clear()
@@ -1494,9 +1521,14 @@ async def command(req):
                     },
                     status=403,
                 )
+            cloud_action = name in CLOUD_ONLY_ACTIONS
             uncertain = {
                 "ok": False,
-                "message": "Résultat de la commande inconnu. Vérifiez l’état de l’imprimante avant tout nouvel envoi.",
+                "message": (
+                    "Résultat Cloud inconnu. Actualisez les données du compte avant tout nouvel essai."
+                    if cloud_action
+                    else "Résultat de la commande inconnu. Vérifiez l’état de l’imprimante avant tout nouvel envoi."
+                ),
             }
             sent = False
 
@@ -1522,7 +1554,11 @@ async def command(req):
                     OPS_LOG,
                     logging.WARNING,
                     "command_uncertain",
-                    message="Commande transmise, résultat non confirmé; vérifiez l’état de l’imprimante avant tout nouvel envoi",
+                    message=(
+                        "Mutation Cloud transmise, résultat non confirmé ; actualisez les données du compte avant tout nouvel essai"
+                        if cloud_action
+                        else "Commande transmise, résultat non confirmé ; vérifiez l’état de l’imprimante avant tout nouvel envoi"
+                    ),
                     action=name,
                     outcome="inconnue",
                     error_type=type(error).__name__,

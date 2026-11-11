@@ -67,6 +67,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         app[COMMAND_JOURNAL_KEY] = CommandJournal(
             pathlib.Path(self.temp.name) / "command-journal.jsonl"
         )
+        cloud_transport = SimpleNamespace(cloud_mutation_lock=asyncio.Lock())
         self.engines = {
             printer_key(i): SimpleNamespace(
                 printer=SimpleNamespace(id=i, name=f"Machine {i}"),
@@ -76,6 +77,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
                 command_lock=asyncio.Lock(),
                 command_request_lock=asyncio.Lock(),
                 upload_lock=asyncio.Lock(),
+                transport=cloud_transport,
                 lock=asyncio.Lock(),
                 action=AsyncMock(return_value="Acceptée fictivement"),
                 event=lambda *args: None,

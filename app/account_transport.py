@@ -24,6 +24,8 @@ class AccountTransport:
     mqtt_auth_pending: bool = False
     mqtt_auth_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     cloud_budget: CloudRequestBudget = field(default_factory=CloudRequestBudget)
+    # Une seule mutation Cloud par compte évite les courses entre moteurs d’imprimante.
+    cloud_mutation_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     async def connect(self, account, api_factory, owner, session_renewed, updated, subscribed):
         """Ouvre le client authentifié et découvre les imprimantes du compte."""
