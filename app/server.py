@@ -697,11 +697,11 @@ async def temperatures(req):
 
 async def discord_report_history(start, end):
     """Consulte le compte actif et écarte un relevé traversant une reconnexion."""
-    api = engine.api
-    if not api or not engine.ok or engine.reconnect_required:
+    api, token = engine.api, engine.account_token
+    if not api or engine.reconnect_required:
         return [], False
     rows, complete = await collect_history(engine.extras, start, end)
-    if engine.api is not api or engine.reconnect_required:
+    if engine.api is not api or engine.account_token != token or engine.reconnect_required:
         return [], False
     return rows, complete
 

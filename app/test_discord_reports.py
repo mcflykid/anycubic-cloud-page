@@ -111,3 +111,20 @@ class ReportDeliveryTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(extras.task_rows.await_count, 3)
         extras.task_rows.side_effect = ValueError
         self.assertEqual(await collect_history(extras, start, end), ([], False))
+
+    async def test_reports_can_read_account_without_a_selected_printer(self):
+        from unittest.mock import patch
+
+        from server import discord_report_history
+
+        engine = SimpleNamespace(
+            api=object(),
+            account_token="fictif",
+            ok=False,
+            reconnect_required=False,
+            extras=object(),
+        )
+        reader = AsyncMock(return_value=([], True))
+        with patch("server.engine", engine), patch("server.collect_history", reader):
+            self.assertEqual(await discord_report_history(1, 2), ([], True))
+        reader.assert_awaited_once_with(engine.extras, 1, 2)

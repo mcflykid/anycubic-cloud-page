@@ -100,6 +100,7 @@
 #tab-settings .settings-discord-actions .settings-factor {
   flex: 1 1 var(--atelier-content-min);
   align-items: center;
+  justify-content: flex-start;
   margin: 0;
 }
 @container settings (min-width: 900px) {
