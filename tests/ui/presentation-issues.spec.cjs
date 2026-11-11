@@ -83,8 +83,11 @@ test('Aurore conserve la navigation commune et son onglet actif sur mobile',asyn
  const active=nav.locator('[aria-current=page]');
  await expect(active).toHaveText('Réglages');
  await expect(active).toHaveCSS('border-radius','0px');
- await expect(active).toHaveCSS('box-shadow',/inset/);
+ await expect(nav.locator('.atelier-navigation-marker')).toBeVisible();
  await page.setViewportSize({width:390,height:844});
- await expect(page.locator('#section-menu-toggle')).toBeVisible();
+ await page.locator('#section-menu-toggle').click();
+ await expect(active).toBeVisible();
+ await expect(active).toHaveCSS('box-shadow',/inset/);
+ await expect(nav.locator('.atelier-navigation-marker')).toBeHidden();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
