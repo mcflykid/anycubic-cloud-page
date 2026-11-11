@@ -22,6 +22,16 @@ ERROR_CATALOGUE = {
 }
 
 
+def notification_count(value):
+    """Accepte un compteur entier constructeur borné, y compris sa chaîne décimale historique."""
+    if type(value) is int:
+        return value if 0 <= value <= 2**31 - 1 else None
+    if isinstance(value, str) and len(value) <= 10 and re.fullmatch(r"\d+", value):
+        parsed = int(value)
+        return parsed if parsed <= 2**31 - 1 else None
+    return None
+
+
 def normalize_error_code(value):
     """Renvoie un code d’erreur numérique stable ; zéro, booléens et texte arbitraire restent absents."""
     if type(value) is int:
@@ -277,9 +287,12 @@ class AccountNotifications:
             or not isinstance(response.get("data"), list)
         ):
             raise ValueError("Le journal Anycubic est temporairement indisponible")
-        counts = await api._fetch_api_resp(
-            AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessageCount"), params={}
-        )
+        try:
+            counts = await api._fetch_api_resp(
+                AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessageCount"), params={}
+            )
+        except (AnycubicAPIError, TimeoutError, ValueError):
+            counts = None
         rows = []
         for raw in response["data"]:
             if not isinstance(raw, dict) or type(raw.get("id")) is not int:
@@ -288,14 +301,26 @@ class AccountNotifications:
             self.keys[entry["key"]] = raw["id"]
             self.rows[entry["key"]] = raw
             rows.append(entry)
-        count = next((r for r in counts.get("data") or [] if r.get("type") == 1), {})
+        count_data = (
+            counts.get("data")
+            if isinstance(counts, dict)
+            and counts.get("code") == 1
+            and isinstance(counts.get("data"), list)
+            else []
+        )
+        count = next(
+            (row for row in count_data if isinstance(row, dict) and row.get("type") == 1),
+            {},
+        )
+        total = notification_count(count.get("count"))
+        unread = notification_count(count.get("newcount"))
         return {
             "items": rows,
             "page": page,
             "source": "legacy",
-            "total": int(count.get("count", len(rows))),
-            "unread": int(count.get("newcount", 0)),
-            "has_more": page * 20 < int(count.get("count", 0)),
+            "total": total,
+            "unread": unread,
+            "has_more": page * 20 < total if total is not None else len(rows) == 20,
         }
 
     async def mark_read(self, api, key=None, all_items=False):
@@ -317,7 +342,7 @@ class AccountNotifications:
                 params=params,
                 query=params or None,
             )
-            if result.get("code") != 1:
+            if not isinstance(result, dict) or result.get("code") != 1:
                 raise ValueError("Anycubic n’a pas confirmé la mise à jour de lecture")
             self.cache = {}
             return {
@@ -337,7 +362,11 @@ class AccountNotifications:
                         AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/getMessages"),
                         params={"type": 1, "page": page, "limit": 20},
                     )
-                    if result.get("code") != 1 or not isinstance(result.get("data"), list):
+                    if (
+                        not isinstance(result, dict)
+                        or result.get("code") != 1
+                        or not isinstance(result.get("data"), list)
+                    ):
                         raise ValueError(
                             "Lecture de l’historique impossible ; aucun effacement envoyé"
                         )
@@ -345,7 +374,7 @@ class AccountNotifications:
                     ids.extend(
                         r["id"]
                         for r in rows
-                        if isinstance(r, dict) and isinstance(r.get("id"), int)
+                        if isinstance(r, dict) and type(r.get("id")) is int and r["id"] > 0
                     )
                     if len(rows) < 20:
                         break
@@ -361,7 +390,7 @@ class AccountNotifications:
                     AnycubicAPIEndpoint(HTTP_METHODS.POST, "/v2/message/delete"),
                     params={"ids": ids},
                 )
-                if result.get("code") != 1:
+                if not isinstance(result, dict) or result.get("code") != 1:
                     raise ValueError("Anycubic n’a pas confirmé l’effacement")
             self.cache = {}
             self.keys = {}
