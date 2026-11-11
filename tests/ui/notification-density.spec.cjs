@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { login } = require('./helpers.cjs');
 
-const styles = ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
+const styles = ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse', 'prism'];
 const palettes = ['light', 'dark'];
 
 /** Charge un message d'erreur fictif pour vérifier sa lecture sans appeler le Cloud. */
@@ -41,7 +41,7 @@ async function setAppearance(page, style, palette) {
   }, [style, palette]);
 }
 
-test('le panneau des notifications reste lisible dans les six styles et les deux palettes', async ({ page }) => {
+test('le panneau des notifications reste lisible dans les sept styles et les deux palettes', async ({ page }) => {
   test.setTimeout(120000);
   await page.setViewportSize({ width: 1366, height: 768 });
   await loadErrorNotice(page);

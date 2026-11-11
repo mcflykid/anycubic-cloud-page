@@ -114,3 +114,106 @@
     gap: 18px;
   }
 }
+
+/* Les surfaces restent assez opaques pour lire les mesures au-dessus des reflets. */
+:root[data-style="prism"] {
+  --bg: light-dark(#e9eee5, #0e1110);
+  --surface: light-dark(#fcfdf9, #242927);
+  --text: light-dark(#19241d, #f3f7ee);
+  --muted: light-dark(#46584c, #b6c2b9);
+  --line: light-dark(#b5c5b7, #4d5b53);
+  --accent: light-dark(#426418, #d2f36e);
+  --prism-cyan: light-dark(#12656c, #73e1e4);
+  --prism-amber: light-dark(#805016, #ffd475);
+  --panel-radius: 20px;
+  --prism-glass: linear-gradient(145deg,
+    color-mix(in srgb, var(--surface) 82%, transparent),
+    color-mix(in srgb, var(--surface) 62%, transparent));
+  --prism-shadow: 0 13px 34px rgb(0 0 0 / .16), inset 0 1px 0 rgb(255 255 255 / .15);
+}
+[data-style="prism"] body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 26% 0%, light-dark(#b8ce827d, #8dab2a47), transparent 34rem),
+    radial-gradient(ellipse at 48% 42%, light-dark(#9fd7d68a, #187f8a53), transparent 37rem),
+    radial-gradient(ellipse at 91% 80%, light-dark(#f3ca8d78, #8a4c2854), transparent 34rem),
+    radial-gradient(ellipse at 68% 95%, light-dark(#d7bbd570, #7c43604f), transparent 32rem);
+  background-repeat: no-repeat;
+  background-size: 100% max(100%, 52rem);
+}
+[data-style="prism"] :is(.summary-grid > section, #atelier-tabs, .printer-footer, .login-card) {
+  background: var(--prism-glass);
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--prism-shadow);
+  backdrop-filter: blur(14px);
+}
+[data-style="prism"] #atelier-tabs {
+  padding-inline: clamp(8px, 1.2vw, 16px);
+}
+[data-style="prism"] #atelier-tabs .atelier-nav-group > button {
+  border-radius: 100px;
+}
+[data-style="prism"] #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  background: linear-gradient(130deg, color-mix(in srgb, var(--accent) 24%, var(--surface)), var(--surface));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .19), 0 2px 10px rgb(0 0 0 / .13);
+}
+[data-style="prism"] .summary-grid > section {
+  padding: clamp(15px, 2.5vw, 29px);
+  gap: clamp(12px, 1.7vw, 20px);
+}
+[data-style="prism"] .summary-card-header {
+  padding-bottom: .55rem;
+  border-bottom: 1px solid var(--line);
+}
+[data-style="prism"] .summary-grid :is(.summary-current, .summary-box) {
+  padding: clamp(11px, 1.3vw, 17px);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+}
+[data-style="prism"] #summary-progress-wrap label { flex-direction: row; }
+[data-style="prism"] .summary-grid .summary-values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 75px), 1fr));
+  gap: 6px;
+}
+[data-style="prism"] .summary-values > div {
+  --metric-tone: var(--accent);
+  min-width: 0;
+  padding: .65rem .55rem;
+  border-radius: 12px;
+  border-block-start: 2px solid var(--metric-tone);
+  background: color-mix(in srgb, var(--metric-tone) 9%, var(--surface));
+  overflow-wrap: anywhere;
+}
+[data-style="prism"] .summary-values > div:nth-child(2) { --metric-tone: var(--prism-cyan); }
+[data-style="prism"] .summary-values > div:nth-child(3) { --metric-tone: var(--prism-amber); }
+[data-style="prism"] .summary-values dd {
+  color: var(--metric-tone);
+  font-size: clamp(1rem, 1.65vw, 1.45rem);
+  font-variant-numeric: tabular-nums;
+}
+[data-style="prism"] .summary-grid button[data-summary-open] {
+  border-radius: 100px;
+  transition: box-shadow var(--motion-fast) var(--motion-ease);
+}
+[data-style="prism"] .summary-grid button[data-summary-open]:is(:hover, :focus-visible) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+[data-style="prism"] :is(#tab-fleet .monitor-card, #tab-statistics .statistics-panel) {
+  background: var(--prism-glass);
+  border-color: var(--line);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--prism-shadow);
+}
+@media (min-width: 900px) {
+  /* La disposition d’origine laisse la place au nom de tâche. Le cadenas garde la priorité. */
+  [data-style="prism"] .summary-grid:not([data-layout-custom]) {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-style="prism"] .summary-grid button[data-summary-open] { transition: none; }
+}

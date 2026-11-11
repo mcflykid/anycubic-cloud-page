@@ -2,6 +2,10 @@
 
 ## À venir
 
+- Ajoute Prisme, un style aux panneaux de verre fumé et aux mesures en tuiles (#277).
+
+- Indique la source de fichiers active par un curseur à ressort. Ajoute un interrupteur en relief pour le relais des bobines et une pulsation pendant la préparation réelle du CSV. Anime les étoiles de l’évaluation et regroupe les liens du pied de page (#248).
+
 - Centre la vérification par code et les réglages de sécurité sur ordinateur et téléphone (#273).
 
 - Dans Parc et santé, ouvre le détail depuis la carte avec le ressort d’Instrumental et affiche la moyenne, le 95e centile et le nombre de relevés disponibles. L’interrupteur Canica accompagne la suspension locale des mesures (#248).
