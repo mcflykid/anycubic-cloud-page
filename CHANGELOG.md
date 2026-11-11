@@ -1,5 +1,12 @@
 # Changements
 
+## À venir
+
+- Retire la lecture des coordonnées dans Caméra → Déplacer. Les commandes de déplacement restent disponibles (#167).
+- Les statistiques affichent le nom de la machine et regroupent les courbes sous le nom de chaque ACE. Les commandes CSV et le résumé du parc tiennent sur une ligne.
+- Corrige l’alignement du menu Apple Design, les libellés Blueprint et le repère de sélection Océan. Le style se choisit dans la liste Apparence.
+- Anime les ouvertures de sections et de fenêtres selon le style et la préférence de mouvement. Corrige les marges du séchage dans Laboratoire.
+
 ## 1.8.0 — 2026-11-11
 
 - Six styles conservés et quatorze retirés, avec migration des préférences ; Blueprint et Aurore sont retravaillés. Aurore propose des cartes réordonnables et mémorisées ; Apple et Océan ont un repère de navigation animé. Un septième thème Laboratoire réorganise les neuf sections par usage et explore les compositions de toutes les pages (#162, #174).
@@ -12,7 +19,7 @@
 - Budget HTTP partagé du compte, conservé après reconnexion : départs espacés et pause sur HTTP 429/Retry-After, sans nouvelle authentification ni rejeu automatique. L’interface respecte aussi le délai annoncé (#169).
 - L’envoi reste désactivé tant qu’une imprimante explicite n’est pas sélectionnée. Une explication visible accompagne les modes d’impression grisés selon le format ; le stockage Cloud reste disponible (#176, #177).
 - L’export CSV ignore toute réponse devenue obsolète après changement de période ou de cible. Son état est séparé de celui des courbes afin qu’une lecture concurrente n’efface pas l’annulation (#159).
-- Les codes de notification ouvrent une fiche de diagnostic dans l’atelier. Neuf codes ont une explication et des vérifications ; les autres conservent le message constructeur. Le wiki officiel reste une source facultative.
+- Les codes de notification ouvrent une fiche de diagnostic dans l’atelier. Neuf codes ont une explication et des vérifications ; les autres conservent le message constructeur. Le wiki officiel reste une source facultative (#180).
 - La déconnexion attend la libération de la session caméra et ferme le flux local avant de révoquer la session web (#178).
 - Revue indépendante backend et frontend, tests de régression et comparaison des intégrations externes, dont MMM-Anycubic et les forks publics Wares. Les limites de couverture et les hypothèses matérielles sont documentées (#158, #170).
 - Diagnostics de lecture des coordonnées enrichis : phases Cloud/MQTT, durées, réponse manquante distincte et HTTP 504 sans relance. La cause des délais observés sur S1 reste suivie dans #167 ; aucune position n’est inventée.
@@ -148,7 +155,7 @@ La caméra et les miniatures de notifications ont été validées sur des répon
 - Sélecteur déroulant du pas de déplacement, croix XY et commandes Z séparées. Les boutons d’éclairage se trouvent dans l’onglet Caméra (#44).
 - Compteurs du constructeur, visuels adaptés aux modèles explicitement identifiés et pictogrammes sur les libellés (#37, #38, #41).
 - Motifs connus et regroupement des notifications qui partagent une machine, une tâche et un motif explicites (#45).
-- Version installée et liens Confidentialité, Conditions, Cookies et Crédits dans le pied de page. Boutons de connexion centrés (#35, #71 à #75).
+- Version installée et liens Confidentialité, Conditions, Cookies et Crédits dans le pied de page. Boutons de connexion centrés (#35, #71, #72, #73, #74, #75).
 - Recherche et pagination des timelapses lorsque le firmware fournit la liste. Les références de miniatures et les liens de téléchargement restent à confirmer (#30).
 - Choix français, anglais ou espagnol mémorisé. La connexion, la navigation et une partie des libellés et confirmations sont traduites. La couverture complète reste suivie dans #55.
 - Les dossiers cloud et les déplacements restent suivis dans #31. Le lien entre les références de fichiers et l’arborescence reste à confirmer.

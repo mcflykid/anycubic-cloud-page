@@ -210,6 +210,22 @@ class OperationalLoggingTests(unittest.TestCase):
         self.assertNotIn("private-message-id", stream.getvalue())
         self.assertNotIn("private-code-403", stream.getvalue())
 
+    def test_axis_reply_rejection_only_emits_known_categories(self):
+        """Un diagnostic d’échec ne peut pas contenir le rapport ni une référence brute."""
+        stream = self.capture(fmt="json")
+        for reason in ("identifier", "fixture-raw-reference", {"x": 12}):
+            log_event(
+                logging.getLogger("cloud_page.axes"),
+                logging.INFO,
+                "axis_query_mqtt_rejected",
+                message="Rapport MQTT de position écarté",
+                reply_rejection=reason,
+            )
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual(records[0]["reply_rejection"], "identifier")
+        self.assertTrue(all("reply_rejection" not in record for record in records[1:]))
+        self.assertNotIn("fixture-raw-reference", stream.getvalue())
+
     def test_axis_reply_code_ignores_unhashable_values_without_breaking_logging(self):
         """Une valeur inattendue non hachable est omise sans interrompre le journal."""
         stream = self.capture(fmt="json")

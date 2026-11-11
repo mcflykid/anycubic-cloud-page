@@ -43,3 +43,24 @@ serveur. Un historique commence à la collecte locale et reste borné en mémoir
 Les références OTP et paiement servent de repères visuels de saisie et de
 feedback. Elles n’ajoutent ni authentification Cloud à code, ni formulaire de
 paiement dans l’application. Toute animation a une variante sans mouvement.
+
+## Revue des sept styles
+
+| Référence | Mécanisme retenu | Emplacement | Usage |
+| --- | --- | --- | --- |
+| [Moxen Esqueleto](https://moxen.cl/recursos/esqueleto/) | Reprendre le rythme d’une liste dans ses formes d’attente | Fichiers et Historique | Inspiration |
+| [Moxen Demora](https://moxen.cl/recursos/demora/) | Différer l’indication pour les réponses rapides | Fichiers et Historique | Inspiration |
+| [Carbon Loading](https://carbondesignsystem.com/patterns/loading-pattern/) | Réserver la place du premier résultat et conserver les résultats pendant un rafraîchissement | Fichiers et Historique | Inspiration |
+| [Moxen Instrumental](https://moxen.cl/recursos/instrumental/) | Agrandir le détail depuis la carte actionnée | Parc et santé | Inspiration |
+| [Moxen Pulso](https://moxen.cl/recursos/pulso/) | Réagir à une évolution de la mesure | Mesure CPU de la supervision | Inspiration |
+| [Grafana Stat](https://grafana.com/docs/grafana/latest/visualizations/panels-visualizations/visualizations/stat/) | Maintenir la dernière valeur lisible et traiter l’historique à part | Détail de supervision | Inspiration |
+| [Moxen Insignia](https://moxen.cl/recursos/insignia/) | Signaler une augmentation du compteur | Cloche des notifications | Inspiration |
+| [Moxen Duermevela](https://moxen.cl/recursos/duermevela/) | Appliquer le mode mémorisé dès l’ouverture et faire une bascule sans flash | Réglages → Apparence | Inspiration |
+| [Apple HIG Motion](https://developer.apple.com/design/human-interface-guidelines/motion) | Donner une origine spatiale à un détail et respecter la réduction du mouvement | Navigation et fenêtres | Inspiration |
+| [Material Motion](https://m2.material.io/design/motion/the-motion-system.html) | Réserver le fondu aux contenus qui changent et garder une courbe partagée | Sections et changement explicite du mode clair ou sombre | Inspiration |
+| [MDN prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion) | Suivre la préférence système et appliquer immédiatement les états | Atelier entier | Inspiration |
+| [Chrome Motion](https://developer.chrome.com/docs/modern-web-guidance/guides/ui-behaviors/motion) | Faire du fondu de rendu une amélioration progressive | Réglages → Apparence | Inspiration |
+
+Esqueleto et Demora associent une forme stable à une attente différée. Un indicateur animé dès le clic ajoute un clignotement aux réponses rapides. La liste précédente reste visible pendant une actualisation du même contenu. Instrumental guide le regard vers le détail choisi. Pour la mesure elle-même, la valeur reste stable comme dans Grafana Stat. Une réaction discrète marque une valeur reçue qui change. Le fondu court pour le mode évite la grande révélation circulaire. Pour la navigation, le repère de section et le panneau de tuiles existant permettent de suivre la sélection en gardant toutes les destinations atteignables.
+
+Les conditions [Moxen](https://moxen.cl/terminos.html) encadrent la redistribution des ressources. [Apple](https://developer.apple.com/support/terms/), [Google](https://developers.google.com/terms/site-policies) et [MDN](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license) publient leurs propres conditions. [Carbon](https://github.com/carbon-design-system/carbon/blob/main/LICENSE) est sous Apache-2.0 et le dépôt [Grafana](https://github.com/grafana/grafana/blob/main/LICENSE) sous AGPL-3.0. Cette revue implémente ses mécanismes dans le projet avec du CSS et du JavaScript natifs.

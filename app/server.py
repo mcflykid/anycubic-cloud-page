@@ -226,7 +226,21 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
         try:
             with contextlib.suppress(Exception):
                 payload = json.loads(message.payload)
-                if payload.get("type") == "axis" and payload.get("action") == "query":
+                kind, action = payload.get("type"), payload.get("action")
+                target_matches = (
+                    owner
+                    and owner.printer
+                    and get_part_from_mqtt_topic(str(message.topic), 6) == str(owner.printer.key)
+                )
+                retained = getattr(message, "retain", False)
+                if action == "query" and (kind == "axis" or str(message.topic).endswith("/axis")):
+                    if not target_matches:
+                        printer_files.log_axis_rejection("target")
+                    elif retained:
+                        printer_files.log_axis_rejection("retained")
+                    elif kind != "axis":
+                        printer_files.log_axis_rejection("kind_action")
+                if kind == "axis" and action == "query":
                     data = payload.get("data")
                     coordinates = data.get("coordinates") if isinstance(data, dict) else None
                     code = payload.get("code")
@@ -257,28 +271,24 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                         ),
                         reply_code=reply_code,
                     )
-                if (
-                    owner
-                    and owner.printer
-                    and get_part_from_mqtt_topic(str(message.topic), 6) == str(owner.printer.key)
-                ):
+                if target_matches:
                     tracker = getattr(primary, "command_mqtt", None)
                     if (
                         tracker
                         and str(message.topic).startswith("anycubic/anycubicCloud/v1/printer/app/")
-                        and not getattr(message, "retain", False)
+                        and not retained
                     ):
                         tracker.receive(printer_key(owner.printer.id), payload)
-                    if not getattr(message, "retain", False):
+                    if not retained:
                         owner.receive_ai_reply(str(message.topic), payload)
                     owner.receive_video_reply(str(message.topic), payload)
-                    if not getattr(message, "retain", False) and payload.get("type") in (
+                    if not retained and kind in (
                         "file",
                         "light",
                         "axis",
                     ):
                         owner.mqtt_replies.receive(payload)
-                    if payload.get("type") == "axis" and payload.get("action") == "query":
+                    if kind == "axis" and action == "query":
                         # Les coordonnées relèvent de la consultation corrélée, pas de la fraîcheur globale.
                         return
             return super()._mqtt_message_router(message)

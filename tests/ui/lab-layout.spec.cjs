@@ -38,6 +38,15 @@ test('Laboratoire mobile ouvre les groupes et reste sans débordement',async({pa
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),key).toBe(true);
  }
  await page.screenshot({path:'test-results/lab-settings-mobile.png',fullPage:true});
+ await page.locator('#section-menu-toggle').click();
+ await page.locator('#atelier-tabs [data-tab=ace]').click();
+ await page.locator('#go-drying').click();
+ const form=page.locator('#dry-form');
+ await expect(form).toBeVisible();
+ const [outer,button]=await Promise.all([form.boundingBox(),form.locator('#auto-feed-save').boundingBox()]);
+ expect(button.x-outer.x).toBeGreaterThan(8);
+ expect(outer.x+outer.width-button.x-button.width).toBeGreaterThan(8);
+
 });
 
 /** Les ressources du thème doivent être accessibles avant authentification, sans publier celles de l’atelier. */

@@ -4,23 +4,27 @@
 .login-orbits i { position:absolute; width:clamp(180px,28vw,380px); aspect-ratio:1; border-radius:50%; background:linear-gradient(140deg,#43d9c7,#526cd6); opacity:.35; top:14%; left:12%; }
 .login-orbits i:nth-child(2) { top:55%; left:70%; width:240px; background:linear-gradient(140deg,#ffb587,#af70e9); }
 .login-orbits i:nth-child(3) { width:120px; left:65%; top:14%; background:#71bdf2; }
-.login-body .login-card { position:relative; width:min(100%,480px); padding:clamp(24px,6vw,42px); background:color-mix(in srgb,var(--surface) 84%,transparent); border:1px solid color-mix(in srgb,var(--line) 65%,transparent); box-shadow:0 24px 80px #0002,inset 0 1px 0 #ffffff50; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); animation:login-arrive .45s cubic-bezier(.2,.8,.2,1); }
+.login-body .login-card { position:relative; width:min(100%,480px); padding:clamp(24px,6vw,42px); background:color-mix(in srgb,var(--surface) 89%,transparent); border:1px solid color-mix(in srgb,var(--line) 75%,transparent); box-shadow:0 24px 80px #0002,inset 0 1px 0 #ffffff50; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); animation:login-arrive var(--motion-panel) var(--motion-ease); }
 .login-body .login-card input { min-height:48px; transition:border-color .18s,box-shadow .18s; }
 .login-body .login-card input:focus-visible { outline:2px solid var(--accent); outline-offset:3px; box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 12%,transparent); }
 .login-password { position:relative; }
 .login-body .login-password input { padding-right:100px; }
 .login-body .login-password button { position:absolute; right:5px; top:3px; margin:0; min-height:42px; border:0; background:transparent; padding:6px 12px; font-size:.85rem; color:var(--accent); }
 .login-body .login-submit { display:flex; justify-content:center; align-items:center; gap:12px; position:relative; overflow:hidden; }
-.login-submit svg { width:22px; height:22px; transition:transform .2s; }
+.login-submit svg { width:22px; height:22px; transition:transform var(--motion-fast) var(--motion-ease); }
 .login-submit:hover svg { transform:translateX(4px); }
 .login-body form[aria-busy=true] .login-submit svg { animation:login-wait 1s linear infinite; }
 #login-status { min-height:1.5em; margin:0; color:var(--muted); font-size:.875rem; }
 .login-body .login-error { animation:login-error .22s ease-out; }
-@keyframes login-arrive { from { opacity:0; transform:translateY(18px) scale(.98); } to { opacity:1; transform:none; } }
+@keyframes login-arrive { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 @keyframes login-wait { to { transform:rotate(360deg); } }
 @keyframes login-error { 30% { transform:translateX(-4px); } 70% { transform:translateX(4px); } }
-@media(prefers-reduced-motion:reduce) { .login-body .login-card,.login-body .login-error,.login-body form[aria-busy=true] .login-submit svg { animation:none; } .login-submit svg { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .login-body .login-card,.login-body .login-error,.login-body form[aria-busy=true] .login-submit svg { animation:none; } .login-submit svg,.login-body .login-card input { transition:none; } }
 :root {
+  /* La connexion charge cette feuille avant les styles de l’atelier. */
+  --motion-fast: 180ms;
+  --motion-panel: 240ms;
+  --motion-ease: cubic-bezier(.18,.72,.28,1);
   --bg: #f5f5f7;
   --surface: #ffffff;
   --text: #1d1d1f;

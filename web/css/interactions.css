@@ -18,3 +18,129 @@
 @keyframes selection-rise { from { opacity:0; translate:0 12px; } to { opacity:1; translate:0 0; } }
 @media(max-width:560px) { .quick-open { font-size:.8rem; } #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { gap:8px; padding:10px; justify-content:center; } }
 @media(prefers-reduced-motion:reduce) { #file-rows tr td { transition:none; } #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk,.quick-palette[open] { animation:none; } }
+
+/* Les entrées se déclenchent à l’ouverture d’un panneau ou d’une fenêtre.
+   Les relevés et rafraîchissements ne déplacent pas la surface de travail. */
+:root[data-style] {
+  --section-entry: section-fade;
+  --section-entry-duration: 220ms;
+  --heading-entry: heading-rise;
+  --dialog-entry: dialog-rise;
+}
+
+/* Le fondu du mode de couleur reste transparent aux clics et au clavier. */
+::view-transition { pointer-events: none; }
+::view-transition-group(root) {
+  animation-duration: var(--motion-panel);
+  animation-timing-function: var(--motion-ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
+:root[data-style="apple"] {
+  --section-entry-duration: 320ms;
+  --heading-entry: heading-spring;
+  --dialog-entry: dialog-pop;
+}
+:root[data-style="detailed"] {
+  --section-entry-duration: 200ms;
+  --heading-entry: heading-sweep;
+}
+:root[data-style="blueprint"] {
+  --section-entry: section-reveal;
+  --section-entry-duration: 290ms;
+  --heading-entry: heading-sweep;
+}
+:root[data-style="aurora"] {
+  --section-entry-duration: 340ms;
+  --heading-entry: heading-spring;
+  --dialog-entry: dialog-pop;
+}
+:root[data-style="ocean"] {
+  --section-entry-duration: 340ms;
+  --heading-entry: heading-drift;
+}
+:root[data-style="lab"] {
+  --section-entry-duration: 320ms;
+  --heading-entry: heading-deal;
+  --dialog-entry: dialog-pop;
+}
+
+@media (prefers-reduced-motion:no-preference) {
+  #atelier > .tab-panel:not([hidden]) {
+    animation: var(--section-entry) var(--section-entry-duration) ease-out;
+  }
+  #atelier > .tab-panel:not([hidden]) > :is(h2,.section-title,.camera-heading),
+  #atelier > .tab-panel:not([hidden]) > .temperature-section > .section-title {
+    animation: var(--heading-entry) var(--section-entry-duration) var(--motion-ease);
+  }
+  dialog[open]:not(#monitor-detail) {
+    animation: var(--dialog-entry) var(--motion-panel) var(--motion-ease);
+  }
+  #monitor-detail[open][data-card-origin] {
+    animation: monitor-expand 420ms cubic-bezier(.18,.76,.24,1);
+  }
+  dialog[open]::backdrop {
+    animation: backdrop-fade var(--motion-panel) ease-out;
+  }
+  [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section {
+    animation: heading-deal 320ms ease-out backwards;
+  }
+  [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section:nth-child(2) {
+    animation-delay: 45ms;
+  }
+  [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section:nth-child(3) {
+    animation-delay: 90ms;
+  }
+}
+
+@keyframes section-fade { from { opacity:.55; } }
+@keyframes section-reveal { from { opacity:.5; clip-path:inset(0 10% 0 0); } to { clip-path:inset(0); } }
+@keyframes heading-rise { from { translate:0 9px; } }
+@keyframes heading-spring {
+  0% { translate:0 12px; }
+  70% { translate:0 -2px; }
+  100% { translate:0 0; }
+}
+@keyframes heading-sweep { from { translate:-10px 0; } }
+@keyframes heading-drift { from { translate:12px 0; } }
+@keyframes heading-deal { from { opacity:.5; translate:0 13px; } }
+@keyframes dialog-rise { from { opacity:0; translate:0 10px; } }
+@keyframes dialog-pop { from { opacity:0; scale:.96; } }
+@keyframes backdrop-fade { from { opacity:0; } }
+@keyframes monitor-expand {
+  from { opacity:.35; transform:translate(var(--monitor-origin-x),var(--monitor-origin-y)) scale(.65); }
+  85% { opacity:1; transform:translate(0,0) scale(1.015); }
+  to { opacity:1; transform:none; }
+}
+
+/* L’attente ne remplace que des listes sans contenu affiché. */
+.list-loading:not([hidden]) { display:grid; gap:8px; margin-block:10px; }
+.list-loading > span {
+  min-height:48px;
+  border:1px solid var(--line);
+  border-radius:var(--panel-radius,12px);
+  background:
+    linear-gradient(var(--line) 0 0) 12px center / 30px 26px no-repeat,
+    linear-gradient(var(--line) 0 0) 56px 40% / min(38%,210px) 8px no-repeat,
+    linear-gradient(var(--line) 0 0) 56px 65% / min(25%,130px) 6px no-repeat,
+    var(--surface);
+}
+.list-loading-tasks > span { min-height:68px; }
+@media (prefers-reduced-motion:no-preference) {
+  .list-loading:not([hidden]) { animation: section-fade 220ms ease-out; }
+}
+
+/* Le texte affiche tout de suite la mesure reçue. Seule sa présentation bouge. */
+@media (prefers-reduced-motion:no-preference) {
+  .monitor-card-value[data-motion-change="a"] { animation: measure-in-a var(--motion-fast) ease-out; }
+  .monitor-card-value[data-motion-change="b"] { animation: measure-in-b var(--motion-fast) ease-out; }
+  #notifications-dot[data-motion-change="a"] { animation: badge-in-a var(--motion-panel) var(--motion-ease); }
+  #notifications-dot[data-motion-change="b"] { animation: badge-in-b var(--motion-panel) var(--motion-ease); }
+}
+@keyframes measure-in-a { from { opacity:.65; translate:0 4px; } }
+@keyframes measure-in-b { from { opacity:.65; translate:0 4px; } }
+@keyframes badge-in-a { 45% { scale:1.5; } }
+@keyframes badge-in-b { 45% { scale:1.5; } }
