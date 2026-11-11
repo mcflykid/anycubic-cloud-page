@@ -539,6 +539,62 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.x.notification_preview("a"), {"image": None})
         self.x.api.assert_not_called()
 
+    async def test_local_completion_matches_the_full_path_and_end_time(self):
+        path = ".3mf_temp/fixture.gcode"
+        self.e.notifications = SimpleNamespace(
+            rows={
+                "a": {
+                    "printer_id": 7,
+                    "project_name": path,
+                    "create_time": 1_760_000_001_500,
+                    "print_status": 2,
+                }
+            }
+        )
+        task = {
+            "printer_id": 7,
+            "gcode_name": path,
+            "end_time": 1_760_000_001,
+            "print_status": 2,
+            "task_id": 44,
+        }
+        self.x.api = AsyncMock(
+            return_value=[
+                {**task, "printer_id": 8},
+                {**task, "end_time": 1_760_000_000},
+                {**task, "gcode_name": "fixture.gcode"},
+                {**task, "print_status": 3},
+                task,
+            ]
+        )
+        image = {"image": "data:image/png;base64,eA=="}
+        self.x.preview_row = AsyncMock(side_effect=[{"image": None}, image])
+        self.assertEqual(await self.x.notification_preview("a"), image)
+        self.x.preview_row.assert_awaited_with("notification:a", {**task, "taskid": 44})
+
+    async def test_local_completion_rejects_ambiguous_matches(self):
+        path = ".3mf_temp/fixture.gcode"
+        self.e.notifications = SimpleNamespace(
+            rows={
+                "a": {
+                    "printer_id": 7,
+                    "project_name": path,
+                    "create_time": 1_760_000_001,
+                    "print_status": 2,
+                }
+            }
+        )
+        task = {
+            "printer_id": 7,
+            "task_name": path,
+            "end_time": 1_760_000_001,
+            "print_status": 2,
+        }
+        self.x.api = AsyncMock(return_value=[{**task, "taskid": 44}, {**task, "taskid": 45}])
+        self.x.preview_row = AsyncMock(return_value={"image": None})
+        self.assertEqual(await self.x.notification_preview("a"), {"image": None})
+        self.x.preview_row.assert_awaited_once()
+
     async def test_task_reference_requires_unique_project_on_current_printer(self):
         """Vérifie que la référence doit correspondre à un projet unique de la machine courante."""
         self.e.notifications = SimpleNamespace(rows={"a": {"id": 1, "project_id": 44}})

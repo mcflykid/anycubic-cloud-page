@@ -9,6 +9,17 @@ from notification_service import AccountNotifications, history_entry
 class NotificationErrorTests(unittest.IsolatedAsyncioTestCase):
     """Expose des codes fiables sans transformer une absence ou un lien arbitraire en diagnostic."""
 
+    def test_completed_notification_does_not_repeat_the_result(self):
+        for reason in ("Printing completed", "Print complete.", "Impression terminée"):
+            with self.subTest(reason=reason):
+                entry = history_entry({"print_status": 2, "reason_desc": reason})
+                self.assertEqual(entry["result"], "Impression terminée")
+                self.assertEqual(entry["reason"], "")
+        entry = history_entry(
+            {"print_status": 2, "reason_desc": "Printing completed", "reason": "Alerte distincte"}
+        )
+        self.assertEqual(entry["reason"], "Alerte distincte")
+
     def test_slicer_alarm_code_has_known_title_description_and_official_help(self):
         """Le code connu doit conserver un diagnostic compréhensible et une aide officielle explicite."""
         entry = history_entry(

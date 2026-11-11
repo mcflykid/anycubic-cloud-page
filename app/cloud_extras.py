@@ -41,6 +41,26 @@ def history_minutes(row):
     return (end - start) / 60 if start is not None and end is not None and end >= start else None
 
 
+def notification_timestamp(value):
+    """Normalise les horodatages Unix du Cloud, fournis en secondes ou millisecondes."""
+    stamp = number(value, 0)
+    if stamp >= 100_000_000_000:
+        stamp /= 1000
+    return stamp if 1_000_000_000 <= stamp < 100_000_000_000 else None
+
+
+def matching_completed_task(notice, task, printer_id):
+    """Reconnaît une fin d’impression locale par la machine, le chemin complet et la seconde de fin."""
+    stamp = notification_timestamp(notice.get("create_time"))
+    return (
+        stamp is not None
+        and int(stamp) == int(notification_timestamp(task.get("end_time")) or 0)
+        and str(task.get("printer_id")) == printer_id
+        and task.get("print_status") == notice.get("print_status") == 2
+        and notice["project_name"] in (task.get("task_name"), task.get("gcode_name"))
+    )
+
+
 def trusted_url(url):
     """Indique si une URL HTTPS appartient au stockage autorisé, sans identifiants ni port inhabituel."""
     try:
@@ -472,6 +492,7 @@ class CloudExtras:
         direct = await self.preview_row(cachekey, row, lookup_detail=False)
         if direct["image"]:
             return direct
+        explicit_printer = bool(printer_id)
         if not printer_id:
             # Une notification sans cible ne dépend jamais de l’imprimante choisie dans le navigateur.
             if len(allowed) != 1:
@@ -481,7 +502,18 @@ class CloudExtras:
         task_id = str(row.get("task_id") or row.get("taskid") or "")
         project_id = str(row.get("project_id") or "")
         if task_id in ("", "0") and project_id in ("", "0"):
-            return {"image": None}
+            # Un fichier relancé peut porter le même nom. Il faut un chemin et la fin exacte.
+            path = row.get("project_name")
+            if not (
+                explicit_printer
+                and isinstance(path, str)
+                and "/" in path
+                and path.lower().endswith((".gcode", ".gcode.3mf"))
+                and row.get("print_status") == 2
+                and notification_timestamp(row.get("create_time")) is not None
+            ):
+                return {"image": None}
+            return await self._local_notification_preview(cachekey, row, printer_id)
         task_id = task_id if task_id != "0" else ""
         project_id = project_id if project_id != "0" else ""
         # L’échec de l’image directe n’est pas définitif pendant la recherche du projet.
@@ -515,6 +547,32 @@ class CloudExtras:
             project = {**project, "taskid": task_reference}
             return await self.preview_row(cachekey, project)
         return await self.preview_row(cachekey, project, lookup_detail=False)
+
+    async def _local_notification_preview(self, cachekey, notice, printer_id):
+        # Réutiliser les données déjà lues pour l’historique. Le catalogue est partagé entre miniatures.
+        matches = [
+            task
+            for task in self.tasks.values()
+            if matching_completed_task(notice, task, printer_id)
+        ]
+        if not matches:
+            try:
+                projects = await self._notification_project_rows()
+            except (ValueError, aiohttp.ClientError, asyncio.TimeoutError):
+                return {"image": None}
+            matches = [
+                task
+                for task in projects
+                if isinstance(task, dict) and matching_completed_task(notice, task, printer_id)
+            ]
+        if len(matches) != 1:
+            return {"image": None}
+        task = matches[0]
+        task_id = task.get("taskid") or task.get("task_id")
+        self.previews.pop(cachekey, None)
+        if task_id not in (None, "", 0, "0"):
+            return await self.preview_row(cachekey, {**task, "taskid": task_id})
+        return await self.preview_row(cachekey, task, lookup_detail=False)
 
     async def _notification_project_rows(self):
         # L’observateur peut demander plusieurs vignettes visibles pendant la même lecture.

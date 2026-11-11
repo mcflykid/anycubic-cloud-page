@@ -107,6 +107,19 @@
   background: color-mix(in srgb, var(--text) 4%, var(--surface));
 }
 
+/* Le pictogramme seul occupe la miniature. Le nom accessible est porté par le bouton. */
+.notification-row .task-thumbnail > span:not([hidden]) {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  gap: 0;
+  font-size: 0;
+}
+.notification-row .task-thumbnail > span::before {
+  width: var(--atelier-space-5);
+  height: var(--atelier-space-5);
+}
+
 #notifications-panel .notification-row .task-thumbnail img {
   width: 100%;
   height: 100%;
