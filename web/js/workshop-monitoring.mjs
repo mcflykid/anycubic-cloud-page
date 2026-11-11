@@ -312,20 +312,54 @@ function revealFrames(origin, target) {
   return frames;
 }
 
+/** Produit le roulement du témoin uniquement après un changement local de suspension. */
+function pauseFrames(start, travel, direction, radius) {
+  // Adapté de Canica · Moxen (https://moxen.cl/recursos/canica/) : impulsion, frottement et rebond au bout du rail.
+  const step = 1 / 240;
+  const gravity = 800 + 20 * travel;
+  const rest = Math.sqrt(2 * gravity * travel) * .02;
+  const transform = x => ({ transform: `translateX(${x}px) rotate(${x / radius}rad)` });
+  let x = Math.max(0, Math.min(travel, start));
+  let speed = direction * 1.2 * travel;
+  const end = direction > 0 ? travel : 0;
+  const frames = [transform(x)];
+  for (let tick = 0; tick < 240; tick++) {
+    speed += (gravity * direction - 1.4 * speed) * step;
+    x += speed * step;
+    if ((x >= travel && speed > 0) || (x <= 0 && speed < 0)) {
+      x = speed > 0 ? travel : 0;
+      speed *= -.38;
+      if (x === end && Math.abs(speed) < rest) {
+        frames.push(transform(end));
+        return { frames, duration: (tick + 1) * step * 1000 };
+      }
+    }
+    frames.push(transform(x));
+  }
+  frames.push(transform(end));
+  return { frames, duration: 1000 };
+}
+
 /** Lie les cartes locales au point de lecture protégé; l’appelant décide quand le panneau est visible. */
 export function createMonitoring(request) {
   let pending = false, paused = false, selected = null, samples = 120, lastData = null;
   const grid = $('monitor-grid'), state = $('monitor-state'), dialog = $('monitor-detail'), windowSelect = $('monitor-window'), pauseButton = $('monitor-pause');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let reveal;
+  let reveal, roll;
+  const pauseLabel = $('monitor-pause-label');
+  const knob = pauseButton?.querySelector('.monitor-switch-knob');
+  const cancelVisualEffects = () => {
+    reveal?.cancel();
+    roll?.cancel();
+  };
   dialog.addEventListener('close', () => {
     if (!dialog.open) reveal?.cancel();
   });
   reduced.addEventListener('change', () => {
-    if (reduced.matches) reveal?.cancel();
+    if (reduced.matches) cancelVisualEffects();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) reveal?.cancel();
+    if (document.hidden) cancelVisualEffects();
   });
   const detail = setupDialog(dialog, windowSelect, (count) => {
     samples = count === 30 ? 30 : 120;
@@ -391,10 +425,18 @@ export function createMonitoring(request) {
 
   /** Suspend les chargements demandés par le minuteur parent ou les relance à la reprise. */
   function setPaused(value) {
+    if (paused === value) return;
+    const start = knob ? new DOMMatrixReadOnly(getComputedStyle(knob).transform).m41 : 0;
+    roll?.cancel();
     paused = value;
     if (pauseButton) {
       pauseButton.setAttribute('aria-pressed', String(paused));
-      pauseButton.textContent = tr(paused ? 'Reprendre les mesures' : 'Suspendre les mesures');
+      pauseLabel.textContent = tr(paused ? 'Reprendre les mesures' : 'Suspendre les mesures');
+    }
+    if (knob && !reduced.matches && !document.hidden) {
+      const travel = parseFloat(getComputedStyle(knob).getPropertyValue('--monitor-switch-travel'));
+      const { frames, duration } = pauseFrames(start, travel, paused ? 1 : -1, knob.offsetWidth / 2);
+      roll = knob.animate(frames, { duration });
     }
     if (!paused) void loadMonitoring();
   }

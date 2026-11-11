@@ -152,3 +152,21 @@ test('Instrumental ouvre la métrique avec un ressort et résume les points vali
   await expect.poll(() => dialog.evaluate(node => node.getAnimations().length)).toBe(0);
   await expect(dialog.locator('[data-monitor-summary]')).toContainText('39');
 });
+
+test('Canica roule seulement au changement de suspension et reste fixe en mouvement réduit', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.route('**/imprimante-api/monitoring', route => route.fulfill({json:fixture()}));
+  await login(page, 'fleet');
+  const pause = page.locator('#monitor-pause');
+  const knob = pause.locator('.monitor-switch-knob');
+  await expect(knob).toBeVisible();
+  await expect(pause).toHaveAttribute('aria-pressed','false');
+  await pause.press('Space');
+  await expect(pause).toHaveAttribute('aria-pressed','true');
+  const frames = await knob.evaluate(el => el.getAnimations().flatMap(animation => animation.effect.getKeyframes()));
+  expect(frames.some(frame => frame.transform?.includes('rotate('))).toBe(true);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await pause.press('Space');
+  await expect(pause).toHaveAttribute('aria-pressed','false');
+  await expect.poll(() => knob.evaluate(el => el.getAnimations().length)).toBe(0);
+});

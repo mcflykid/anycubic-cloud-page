@@ -2,7 +2,7 @@
 
 ## À venir
 
-- Dans Parc et santé, ouvre le détail depuis la carte avec le ressort d’Instrumental et affiche la moyenne, le 95e centile et le nombre de relevés disponibles (#248).
+- Dans Parc et santé, ouvre le détail depuis la carte avec le ressort d’Instrumental et affiche la moyenne, le 95e centile et le nombre de relevés disponibles. L’interrupteur Canica accompagne la suspension locale des mesures (#248).
 
 - Place le journal historique dans Historique. La cloche présente uniquement les messages Cloud et s’ouvre avec la découpe animée de Burbuja (#243, #248).
 
