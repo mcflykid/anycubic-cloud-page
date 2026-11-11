@@ -24,8 +24,9 @@ test('le code Slicer est expliqué au survol et au clavier, sa fiche reste indé
  await page.locator('#notifications-toggle').click();
  const row=page.locator('.notification-row'),codeLink=row.getByRole('button',{name:'Error code: 10115'});
  await expect(codeLink).toContainText('10115');
- await expect(row.locator('.notification-error-title')).toHaveText('The printer cannot parse the file');
+ await expect(row.locator('.notification-error-title')).toHaveCount(0);
  const tooltip=row.locator('[role=tooltip]');
+ await expect(tooltip).toContainText('The file may be damaged due to an interrupted slice');
  await expect(codeLink).toHaveAttribute('aria-describedby',await tooltip.getAttribute('id'));
  await codeLink.hover(); await expect(tooltip).toBeVisible();
  await codeLink.focus(); await expect(tooltip).toBeVisible();

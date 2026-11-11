@@ -1,12 +1,8 @@
-import { node, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { node, tr } from './workshop-ui.mjs';
 
 /** Une palette de navigation reste sans commandes physiques ; les raccourcis ne remplacent pas les champs natifs. */
 export function initializeInteractions() {
-  const header = document.querySelector('.nav-actions');
-  if (!header) return;
-  const open = node('button', tr('Accès rapide'));
-  open.type = 'button'; open.className = 'quick-open';
-  open.setAttribute('aria-keyshortcuts', 'Control+k Meta+k');
+  if (!document.getElementById('atelier-tabs')) return;
   const dialog = node('dialog', null, 'quick-palette');
   const title = node('h2', tr('Accès rapide')); title.id = 'quick-title';
   dialog.setAttribute('aria-labelledby', title.id);
@@ -33,7 +29,7 @@ export function initializeInteractions() {
   };
   /** Ouvre la palette modale, vide la recherche précédente et place le focus dans son champ. */
   const show = () => { if (dialog.open) return; input.value = ''; render(); dialog.showModal(); input.focus(); };
-  open.onclick = show; close.onclick = () => dialog.close(); input.oninput = render;
+  close.onclick = () => dialog.close(); input.oninput = render;
   input.onkeydown = event => {
     if (event.key === 'ArrowDown') { event.preventDefault(); results.querySelector('button')?.focus(); }
     if (event.key === 'Enter') { event.preventDefault(); results.querySelector('button')?.click(); }
@@ -50,7 +46,7 @@ export function initializeInteractions() {
     if (event.target.closest('input,textarea,[contenteditable=true]') || document.querySelector('dialog[open]')) return;
     event.preventDefault(); show();
   });
-  dialog.append(title, input, results, close); document.body.append(dialog); header.prepend(open);
+  dialog.append(title, input, results, close); document.body.append(dialog);
   document.querySelectorAll('textarea').forEach(area => {
     /** Ajuste la hauteur au contenu sans dépasser la limite visuelle de 320 pixels. */
     const grow = () => { area.style.height = 'auto'; area.style.height = `${Math.min(320, area.scrollHeight + 2)}px`; };

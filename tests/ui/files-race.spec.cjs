@@ -114,7 +114,8 @@ test('les miniatures précèdent les noms et se chargent une à la fois',async({
  }finally{release();}
  await expect(first.locator('img')).toBeVisible();
  await expect(first).not.toHaveAttribute('aria-busy');
- await expect(thumbnails.nth(1)).toHaveText('—');
+  await expect(thumbnails.nth(1)).toHaveAttribute('role','group');
+  await expect(thumbnails.nth(1)).toHaveAttribute('aria-label','Aperçu indisponible');
  await expect(thumbnails.nth(1)).toHaveAttribute('title','Aperçu indisponible');
  await expect(thumbnails.nth(1)).not.toHaveAttribute('aria-busy');
  await expect(rows.getByRole('button',{name:'Aperçu',exact:true})).toHaveCount(0);
