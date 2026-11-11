@@ -549,7 +549,8 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(waits, [1.0])
 
     async def test_global_throttle_serializes_concurrent_invalid_attempts(self):
-        """Trois demandes concurrentes n’occupent qu’une place de vérification à la fois."""
+        """Trois clients distincts n’occupent qu’une place de vérification à la fois."""
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
         state = self.app[ACCESS_KEY]
         clock = SimpleNamespace(now=100.0)
         waits = []
@@ -618,7 +619,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
 
         async def occupy_slot(name):
             """Emprunte la même file que la connexion pour vérifier sa libération."""
-            async with state.login_slot():
+            async with state.login_slot(name):
                 entered.append(name)
 
         first = asyncio.create_task(occupy_slot("première"))
@@ -631,6 +632,64 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
 
         await asyncio.wait_for(second, timeout=1)
         self.assertEqual(entered, ["suivante"])
+
+    async def test_settings_and_sensitive_actions_share_confirmation_quota(self):
+        """Les deux écrans partagent le quota de leur session, sans épuiser celui de connexion."""
+        self.assertEqual((await self.sign_in()).status, 303)
+        for _ in range(4):
+            self.assertEqual((await self.confirm_action(password="wrong")).status, 403)
+        invalid = await self.client.post(
+            "/imprimante-api/security",
+            data={"stage": "prepare", "password": "wrong"},
+            headers={"Origin": self.origin},
+        )
+        self.assertEqual(invalid.status, 403)
+        refusal = await self.confirm_action()
+        self.assertEqual(refusal.status, 429)
+        self.assertIn("Retry-After", refusal.headers)
+        self.assertFalse(self.app[ACCESS_KEY].failures)
+
+        self.app[ACCESS_KEY].sessions.clear()
+        expired = await self.confirm_action()
+        self.assertEqual(expired.status, 401)
+
+    async def test_login_queue_is_bounded_and_skips_a_closed_client(self):
+        """Une place abandonnée ne retarde pas le prochain client admis."""
+        state = self.app[ACCESS_KEY]
+        state.global_until = state.clock() + 60
+        release_first = asyncio.Event()
+        waits = []
+        entered = []
+
+        async def wait(seconds):
+            waits.append(seconds)
+            if len(waits) == 1:
+                await release_first.wait()
+
+        state.wait = wait
+        closed = False
+
+        async def attempt(client, connected=lambda: True):
+            async with state.login_slot(client, connected) as rejection:
+                if rejection:
+                    return rejection
+                entered.append(client)
+                return 200
+
+        first = asyncio.create_task(attempt("a"))
+        abandoned = asyncio.create_task(attempt("a", lambda: not closed))
+        await asyncio.sleep(0)
+        self.assertEqual(await attempt("a"), 429)
+        queued = [asyncio.create_task(attempt(str(index))) for index in range(6)]
+        await asyncio.sleep(0)
+        self.assertEqual(await attempt("surplus"), 429)
+        closed = True
+        release_first.set()
+        self.assertEqual(await first, 200)
+        self.assertEqual(await abandoned, 499)
+        self.assertEqual(await asyncio.gather(*queued), [200] * 6)
+        self.assertEqual(len(waits), 7)
+        self.assertEqual(await attempt("nouveau"), 200)
 
     async def test_health_stays_public_even_without_secret(self):
         """La supervision reste indépendante du secret ; les routes privées échouent fermées."""

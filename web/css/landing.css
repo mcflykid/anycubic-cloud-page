@@ -1,9 +1,95 @@
-/* Shared presentation styles; local images and system fonts. */
-.login-body { isolation:isolate; overflow-x:clip; }
-.login-orbits { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; background:radial-gradient(ellipse at 20% 20%,light-dark(#d8f3ef,#10363f),transparent 55%),radial-gradient(ellipse at 90% 80%,light-dark(#ece2ff,#302243),transparent 55%); }
-.login-orbits i { position:absolute; width:clamp(180px,28vw,380px); aspect-ratio:1; border-radius:50%; background:linear-gradient(140deg,#43d9c7,#526cd6); opacity:.35; top:14%; left:12%; }
-.login-orbits i:nth-child(2) { top:55%; left:70%; width:240px; background:linear-gradient(140deg,#ffb587,#af70e9); }
-.login-orbits i:nth-child(3) { width:120px; left:65%; top:14%; background:#71bdf2; }
+/* Socle de connexion : scène d’impression 3D et formulaire. */
+body.login-body {
+  isolation: isolate;
+  position: relative;
+  background:
+    radial-gradient(ellipse at 72% 42%, color-mix(in srgb,var(--accent) 15%,var(--bg)), transparent 61%),
+    var(--bg);
+}
+.login-print-scene {
+  --print-metal: color-mix(in srgb,var(--text) 28%,var(--line));
+  --print-fill: color-mix(in srgb,var(--accent) 26%,var(--surface));
+  --print-edge: color-mix(in srgb,var(--accent) 74%,var(--text));
+  --print-raster: color-mix(in srgb,var(--accent) 35%,transparent);
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  display: grid;
+  place-items: center end;
+  overflow: clip;
+  pointer-events: none;
+}
+.login-print-art {
+  display: block;
+  width: min(61vw,850px);
+  max-height: 95%;
+  margin-inline-end: max(0px,calc((100vw - 1450px) / 2));
+}
+.print-frame,.print-grid,.print-head-wire,.print-head-face {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.print-frame { stroke: var(--print-metal); stroke-width: 2; opacity: .7; }
+.print-bed { stroke: var(--print-metal); stroke-width: 2; }
+.print-bed-near { stop-color: var(--surface); }
+.print-bed-far { stop-color: var(--print-fill); }
+.print-bed-edge { fill: var(--line); stroke: var(--print-metal); stroke-width: 2; stroke-linejoin: round; }
+.print-grid { stroke: var(--print-raster); stroke-width: 1.2; }
+.print-layers use,.print-top {
+  fill: var(--print-fill);
+  stroke: var(--print-edge);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  animation: print-deposit 360ms ease-out both;
+  animation-delay: calc(280ms + var(--layer) * 400ms);
+}
+.print-top { stroke: var(--accent); fill: none; opacity: .65; }
+.print-head { animation: print-traverse 5.8s var(--motion-ease) both; }
+.print-head-wire,.print-head-face { stroke: var(--print-metal); stroke-width: 2.5; }
+.print-head-shell { fill: var(--surface); stroke: var(--print-metal); stroke-width: 2.5; stroke-linejoin: round; }
+.print-nozzle { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+
+@keyframes print-deposit {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes print-traverse {
+  0% { transform: translate(-42px,153px); }
+  15% { transform: translate(43px,145px); }
+  29% { transform: translate(-34px,121px); }
+  43% { transform: translate(47px,94px); }
+  57% { transform: translate(-39px,73px); }
+  72% { transform: translate(39px,58px); }
+  89% { transform: translate(-15px,37px); }
+  100% { transform: translate(0,23px); }
+}
+
+/* Les styles gardent leur accent et modulent le tracé du même objet. */
+[data-style="apple"] .login-print-scene { --print-metal: color-mix(in srgb,var(--accent) 26%,var(--line)); }
+[data-style="blueprint"] .login-print-scene { --print-fill: color-mix(in srgb,var(--accent) 16%,var(--surface)); }
+[data-style="aurora"] .login-print-scene { --print-fill: color-mix(in srgb,var(--accent) 32%,var(--surface)); }
+[data-style="lab"] .login-print-scene { --print-metal: color-mix(in srgb,var(--accent) 38%,var(--line)); }
+[data-style="glasshouse"] .login-print-scene { --print-edge: color-mix(in srgb,var(--accent) 62%,var(--text)); }
+[data-login-motion="paused"] .login-print-scene * { animation-play-state: paused; }
+
+@media (min-width: 900px) {
+  .login-body .login-card { justify-self: start; margin-inline-start: clamp(32px, 8vw, 160px); }
+}
+@media (max-width: 899px) {
+  .login-print-scene { place-items: center; opacity: .28; }
+  .login-print-art { width: min(140vw,680px); max-width: none; margin: 0; }
+}
+@media (max-width: 600px) {
+  .login-print-scene { place-items: start center; opacity: .82; }
+  .login-print-art { width: min(79vw,340px); margin-block-start: -46px; }
+  .login-body .login-card { margin-block-start: 96px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .print-layers use,.print-top,.print-head { animation: none; }
+  .print-head { transform: translate(0,23px); }
+}
+
+/* Formulaire de connexion et retours du serveur. */
 .login-body .login-card { position:relative; width:min(100%,480px); padding:clamp(24px,6vw,42px); background:color-mix(in srgb,var(--surface) 89%,transparent); border:1px solid color-mix(in srgb,var(--line) 75%,transparent); box-shadow:0 24px 80px #0002,inset 0 1px 0 #ffffff50; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); animation:login-arrive var(--motion-panel) var(--motion-ease); }
 .login-body .login-card input { min-height:48px; transition:border-color .18s,box-shadow .18s; }
 .login-body .login-card input:focus-visible { outline:2px solid var(--accent); outline-offset:3px; box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 12%,transparent); }

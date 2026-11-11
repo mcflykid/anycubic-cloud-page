@@ -11,6 +11,7 @@ CATALOGUE_MARKER = "__CATALOGUE_INTEGRITY__"
 REQUIRED = {
     "imprimante.html",
     "login.html",
+    "security.html",
     "privacy.html",
     "terms.html",
     "cookies.html",

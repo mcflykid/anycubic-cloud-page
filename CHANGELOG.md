@@ -4,17 +4,19 @@
 
 - Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).
 
-- Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
+- Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).
 
+- Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
 - Sépare les courbes Buse et Plateau dans les statistiques (#238).
 - Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
 - Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
 - Aligne les quatre courbes de filament sur une rangée par ACE sur ordinateur (#264).
-
 - Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
 - Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
 - Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
+- Ajoute la connexion facultative à deux facteurs, les codes de secours à usage unique et la récupération opérateur (#221).
+- Borne l’attente de connexion et applique des quotas distincts au mot de passe et aux codes temporaires. Les confirmations d’actions sensibles partagent un quota par session (#249, #250, #251).
 
 ## 1.9.0 — 2026-11-11
 
@@ -35,10 +37,13 @@
 - Suit les échecs de reconnexion MQTT, compare sans distinction de casse l’adresse du compte enregistré et épingle les actions GitHub externes par empreinte (#191, #192, #193).
 
 - Retire la lecture des coordonnées dans Caméra → Déplacer ainsi que sa route et son diagnostic. Les commandes de déplacement restent disponibles (#167).
+- Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - L’ouverture et la fermeture de la caméra laissent passer pause et annulation pendant l’attente d’une lecture. Le verrou d’envoi continue de sérialiser les ordres machine (#206).
+- Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
 - Le journal des commandes garde l’adresse IPv6 du client. Seul le quota de connexion regroupe les adresses par préfixe /64 (#207).
 - Les spectateurs caméra sans signal expirent en trois minutes, au plus tard à la fin de leur session web. Le navigateur renouvelle la présence localement pendant l’affichage de la vidéo (#208).
 - La chaîne des proxys est lue jusqu’au premier client identifié ou élément illisible. Un plafond temporaire s’applique aux refus de connexion répartis entre les adresses (#209).
+- Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
 - Les statistiques affichent le nom de la machine et regroupent les courbes sous le nom de chaque ACE. Les commandes CSV et le résumé du parc tiennent sur une ligne.
 - Corrige l’alignement du menu Apple Design, les libellés Blueprint et le repère de sélection Océan. Le style se choisit dans la liste Apparence.
 - Anime les ouvertures de sections et de fenêtres selon le style et la préférence de mouvement. Corrige les marges du séchage dans Laboratoire.

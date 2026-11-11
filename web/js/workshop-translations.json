@@ -4226,5 +4226,121 @@
   "Navigation en panneaux vitrés et cartes aérées.": [
     "Glass navigation panels and spacious cards.",
     "Paneles de navegación translúcidos y tarjetas espaciosas."
+  ],
+  "Sécurité": [
+    "Security",
+    "Seguridad"
+  ],
+  "Sécurité — Anycubic Cloud Page": [
+    "Security — Anycubic Cloud Page",
+    "Seguridad — Anycubic Cloud Page"
+  ],
+  "Configurer la connexion à deux facteurs": [
+    "Set up two-factor sign-in",
+    "Configurar el inicio de sesión en dos pasos"
+  ],
+  "Vérifier la connexion": [
+    "Verify sign-in",
+    "Verificar el inicio de sesión"
+  ],
+  "Saisissez un code de votre application d’authentification ou un code de secours.": [
+    "Enter a code from your authenticator app or a recovery code.",
+    "Introduce un código de tu aplicación de autenticación o un código de recuperación."
+  ],
+  "Code temporaire ou de secours": [
+    "Temporary or recovery code",
+    "Código temporal o de recuperación"
+  ],
+  "Vérifier le code": [
+    "Verify code",
+    "Verificar código"
+  ],
+  "Recommencer la connexion": [
+    "Start sign-in again",
+    "Reiniciar el inicio de sesión"
+  ],
+  "Vérification expirée. Saisissez de nouveau le mot de passe.": [
+    "Verification expired. Enter your password again.",
+    "La verificación ha caducado. Vuelve a introducir tu contraseña."
+  ],
+  "Code invalide, expiré ou déjà utilisé.": [
+    "Invalid, expired or already used code.",
+    "Código no válido, caducado o ya utilizado."
+  ],
+  "La récupération Compose est active. Retirez WEB_TOTP_RESET puis redémarrez pour configurer le facteur.": [
+    "Compose recovery is active. Remove WEB_TOTP_RESET and restart to set up the second factor.",
+    "La recuperación de Compose está activa. Elimina WEB_TOTP_RESET y reinicia para configurar el segundo factor."
+  ],
+  "La connexion à deux facteurs est active. Conservez ces codes de secours. Ils sont affichés une seule fois.": [
+    "Two-factor sign-in is active. Save these recovery codes. They are shown once.",
+    "El inicio de sesión en dos pasos está activo. Guarda estos códigos de recuperación. Solo se muestran una vez."
+  ],
+  "Scannez le QR ou saisissez la clé dans votre application d’authentification.": [
+    "Scan the QR code or enter the key in your authenticator app.",
+    "Escanea el código QR o introduce la clave en tu aplicación de autenticación."
+  ],
+  "QR d’activation du facteur temporaire": [
+    "QR code to set up the temporary code",
+    "Código QR para configurar el código temporal"
+  ],
+  "Clé manuelle": [
+    "Manual key",
+    "Clave manual"
+  ],
+  "Premier code temporaire": [
+    "First temporary code",
+    "Primer código temporal"
+  ],
+  "Activer le facteur": [
+    "Enable two-factor sign-in",
+    "Activar el inicio de sesión en dos pasos"
+  ],
+  "Désactiver le facteur": [
+    "Disable two-factor sign-in",
+    "Desactivar el inicio de sesión en dos pasos"
+  ],
+  "Préparer l’activation": [
+    "Set up two-factor sign-in",
+    "Preparar la activación"
+  ],
+  "La connexion à deux facteurs est activée.": [
+    "Two-factor sign-in is enabled.",
+    "El inicio de sesión en dos pasos está activado."
+  ],
+  "La connexion à deux facteurs est désactivée.": [
+    "Two-factor sign-in is disabled.",
+    "El inicio de sesión en dos pasos está desactivado."
+  ],
+  "Connexion à deux facteurs": [
+    "Two-factor sign-in",
+    "Inicio de sesión en dos pasos"
+  ],
+  "Préparation expirée. Recommencez l’activation.": [
+    "Setup expired. Start again.",
+    "La configuración ha caducado. Vuelve a iniciarla."
+  ],
+  "Code invalide. Recommencez la préparation.": [
+    "Invalid code. Restart setup.",
+    "Código no válido. Reinicia la configuración."
+  ],
+  "Le réglage a changé. Actualisez la page.": [
+    "The setting changed. Refresh the page.",
+    "La configuración ha cambiado. Actualiza la página."
+  ],
+  "Connexion occupée. Réessayez dans un instant.": [
+    "Sign-in is busy. Try again in a moment.",
+    "El inicio de sesión está ocupado. Vuelve a intentarlo en un momento."
+  ],
+  "Trop de tentatives. Réessayez dans un instant.": [
+    "Too many attempts. Try again in a moment.",
+    "Demasiados intentos. Vuelve a intentarlo en un momento."
+  ],
+  "Codes temporaires suspendus. Utilisez un code de secours ou attendez.": [
+    "Temporary codes are paused. Use a recovery code or wait.",
+    "Los códigos temporales están en pausa. Usa un código de recuperación o espera."
+  ],
+  "Trop de codes refusés. Recommencez la connexion.": [
+    "Too many rejected codes. Start signing in again.",
+    "Demasiados códigos rechazados. Vuelve a iniciar sesión."
   ]
 }

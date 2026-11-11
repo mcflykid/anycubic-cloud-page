@@ -4,6 +4,12 @@ import { tr } from './workshop-ui.mjs';
 export function initializeLogin() {
   const form = document.querySelector('.login-card form');
   if (!form) return;
+  const syncMotion = () => {
+    // Une scène de connexion masquée reprend au même point à son retour.
+    document.documentElement.dataset.loginMotion = document.hidden ? 'paused' : 'running';
+  };
+  syncMotion();
+  document.addEventListener('visibilitychange', syncMotion);
   const password = form.elements.password;
   const toggle = document.getElementById('password-visibility');
   const submit = form.querySelector('[type=submit]');

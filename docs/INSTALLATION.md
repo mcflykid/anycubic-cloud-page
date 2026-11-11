@@ -154,3 +154,13 @@ Une recréation interrompt brièvement HTTP et invalide les sessions web. Reconn
 ### Changer de compte Anycubic
 
 Un dossier appdata reste associé à son compte enregistré. Pour changer de compte, sauvegardez ce dossier, choisissez un nouvel `APPDATA_DIR` et renseignez les identifiants de ce compte. La préparation refuse de remplacer le compte d’un dossier existant.
+
+## Connexion à deux facteurs
+
+Dans **Réglages → Sécurité**, ouvrez la configuration de la connexion à deux facteurs. Saisissez le mot de passe web, scannez le QR dans une application d’authentification ou entrez la clé manuelle. Saisissez le premier code pour activer le facteur. Conservez les dix codes de secours hors de l’atelier. La page ne les affiche qu’une fois. Un code de secours remplace un code temporaire lors d’une connexion et ne peut servir qu’une fois.
+
+Sur une installation distante, effectuez cette configuration via HTTPS. Gardez l’horloge du serveur et celle du téléphone synchronisées. Le code d’activation est déjà utilisé. Attendez le code suivant si vous vous reconnectez immédiatement. Pour désactiver le facteur depuis les Réglages, confirmez avec le mot de passe web.
+
+Après trois codes refusés, ressaisissez le mot de passe pour ouvrir une nouvelle vérification. Après vingt échecs sur des codes temporaires en deux minutes, attendez la fin du délai affiché ou utilisez un code de secours avec votre mot de passe.
+
+Si le téléphone et les codes de secours sont perdus, ajoutez `WEB_TOTP_RESET=true` au fichier d’environnement utilisé par Compose et recréez le service avec `docker compose up -d`. Ce démarrage efface le facteur local et les anciens codes de secours. Retirez ensuite le réglage et recréez à nouveau le service avant de configurer une nouvelle clé. Cette procédure requiert un accès au déploiement et le mot de passe web. Elle n’agit pas sur le compte Anycubic.
