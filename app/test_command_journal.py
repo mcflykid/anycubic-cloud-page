@@ -2,15 +2,43 @@
 
 import json
 import asyncio
+import ipaddress
 import tempfile
 import time
 import unittest
 from pathlib import Path
 from command_journal import CommandJournal, make_entry
+from web_host import TRUSTED_PROXIES_KEY, client_address, rate_limit_client
 
 
 class CommandJournalTests(unittest.TestCase):
     """Construit des traces fictives pour tester les limites du fichier persistant."""
+
+    def test_journal_keeps_real_ipv6_address_with_and_without_trusted_proxy(self):
+        """Le journal garde l’hôte IPv6 tandis que le quota peut regrouper son /64."""
+        address = "2001:db8:42::7"
+        for remote, trusted, headers in (
+            (address, (), {}),
+            (
+                "127.0.0.1",
+                ("127.0.0.0/8",),
+                {"X-Forwarded-For": address},
+            ),
+        ):
+            request = type(
+                "RequestFixture",
+                (),
+                {
+                    "remote": remote,
+                    "app": {TRUSTED_PROXIES_KEY: tuple(map(ipaddress.ip_network, trusted))},
+                    "headers": headers,
+                },
+            )()
+            entry = make_entry(
+                "pause", "fixture-ipv6", "printer", None, None, client_address(request), {}
+            )
+            self.assertEqual(entry["client"], address)
+            self.assertEqual(rate_limit_client(request), "2001:db8:42::/64")
 
     def test_rotates_by_age_and_size(self):
         """Les entrées trop anciennes ou trop volumineuses cèdent la place à la dernière."""

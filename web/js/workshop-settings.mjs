@@ -13,7 +13,7 @@ import {
 } from './workshop-ui.mjs?v=9d97ce06364c';
 import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
 import { definition } from './workshop-overview.mjs?v=7af87df1caba';
-import { api } from './workshop-api.mjs?v=e96f98d0eb91';
+import { api } from './workshop-api.mjs?v=7d1c7225d9bd';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {

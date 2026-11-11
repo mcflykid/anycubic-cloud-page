@@ -73,6 +73,7 @@ export function createRequest(getPrinter) {
           : formatText('Erreur {0}', response.status)),
       );
       error.cameraReason = data.camera_error;
+      error.cameraPresenceExpired = path === '/camera-presence' && response.status === 400;
       error.diagnosticId = /^[a-f0-9]{32}$/.test(diagnosticId || '') ? diagnosticId : null;
       throw error;
     }

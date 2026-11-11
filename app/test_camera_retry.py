@@ -191,17 +191,75 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(engine.camera_close_task)
 
     def test_viewer_deadline_uses_the_authenticated_web_session_expiry(self):
-        """Un flux garde la durée permise par la session sans survivre à son expiration."""
+        """Le renouvellement court ne dépasse jamais l’expiration de la session web."""
         request = types.SimpleNamespace(
             get=lambda key, default=None: 10_000 if key == "session_expires" else default
         )
         with patch.object(adapter.time, "monotonic", return_value=100):
-            self.assertEqual(adapter.camera_viewer_deadline(request), 10_000)
+            self.assertEqual(
+                adapter.camera_viewer_deadline(request), 100 + adapter.CAMERA_VIEWER_TTL
+            )
         near_expiry = types.SimpleNamespace(
             get=lambda key, default=None: 110 if key == "session_expires" else default
         )
         with patch.object(adapter.time, "monotonic", return_value=100):
             self.assertEqual(adapter.camera_viewer_deadline(near_expiry), 110)
+            self.assertEqual(
+                adapter.camera_viewer_deadline(types.SimpleNamespace()),
+                100 + adapter.CAMERA_VIEWER_TTL,
+            )
+
+    async def test_camera_presence_renews_active_viewer_without_cloud_or_printer_order(self):
+        """La présence prolonge localement un onglet existant sans rouvrir ni fermer la caméra."""
+        viewer = "a" * 36
+        self.engine.printer = types.SimpleNamespace(id=42, get_camera_session=AsyncMock())
+        self.engine.api = types.SimpleNamespace(_send_anycubic_order=AsyncMock())
+        self.engine.camera_viewers.add(viewer)
+        self.engine.camera_viewer_expiries[viewer] = 150
+        request = types.SimpleNamespace(
+            headers={"X-Camera-Viewer": viewer},
+            get=lambda key, default=None: 10_000 if key == "session_expires" else default,
+        )
+        with patch.object(adapter.time, "monotonic", return_value=100):
+            response = await adapter.camera_presence(request)
+        self.assertEqual(
+            self.engine.camera_viewer_expiries[viewer], 100 + adapter.CAMERA_VIEWER_TTL
+        )
+        self.assertTrue(json.loads(response.body)["ok"])
+        self.engine.printer.get_camera_session.assert_not_awaited()
+        self.engine.api._send_anycubic_order.assert_not_awaited()
+        self.assertIsNotNone(self.engine.camera_expiry_task)
+
+    async def test_legacy_camera_viewer_uses_the_short_deadline(self):
+        """Un appel ancien sans identifiant ne reçoit pas la durée complète de la session web."""
+        request = types.SimpleNamespace(
+            headers={"Origin": "http://localhost:8080"},
+            get=lambda key, default=None: 10_000 if key == "session_expires" else default,
+        )
+        with (
+            patch.object(adapter.time, "monotonic", return_value=100),
+            patch.object(adapter.time, "time", return_value=100),
+            patch.object(adapter, "schedule_camera_expiry") as schedule,
+        ):
+            await adapter.camera(request)
+            schedule.assert_called_once_with(self.engine)
+        self.assertIn("legacy", self.engine.camera_viewers)
+        self.assertEqual(
+            self.engine.camera_viewer_expiries["legacy"],
+            100 + adapter.CAMERA_VIEWER_TTL,
+        )
+
+    async def test_expired_legacy_viewer_cannot_be_revived_by_presence(self):
+        """Un ancien spectateur expiré ne revient pas à la vie via un signal tardif."""
+        self.engine.printer = types.SimpleNamespace(id=42)
+        self.engine.camera_viewers.add("legacy")
+        self.engine.camera_viewer_expiries["legacy"] = 99
+        with patch.object(adapter.time, "monotonic", return_value=100):
+            with self.assertRaisesRegex(ValueError, "Session vidéo expirée"):
+                await adapter.camera_presence(types.SimpleNamespace(headers={}))
+        self.assertNotIn("legacy", self.engine.camera_viewers)
+        self.assertNotIn("legacy", self.engine.camera_viewer_expiries)
+        self.assertIsNotNone(self.engine.camera_close_task)
 
     async def test_abandoned_legacy_and_expired_viewers_are_pruned(self):
         """L’ancien client et un onglet abandonné cessent de compter à leur échéance."""

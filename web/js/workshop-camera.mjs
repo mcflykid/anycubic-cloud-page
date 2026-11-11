@@ -1,5 +1,7 @@
 import { $, serverText, set, tr } from './workshop-ui.mjs?v=9d97ce06364c';
 
+const CAMERA_PRESENCE_INTERVAL_MS = 45000;
+
 /** Possède le lecteur et ses générations sans partager ses identifiants avec les autres panneaux. */
 export function createCamera(request, getPrinter) {
   let client = null,
@@ -10,6 +12,51 @@ export function createCamera(request, getPrinter) {
     releasePending = Promise.resolve(),
     zoom = 1,
     wanted = false;
+  let presenceTimer = null,
+    presencePending = false;
+
+  function stopPresence() {
+    if (presenceTimer !== null) clearInterval(presenceTimer);
+    presenceTimer = null;
+  }
+
+  async function signalPresence(target) {
+    if (
+      presencePending ||
+      document.visibilityState !== 'visible' ||
+      viewer !== target ||
+      !client
+    )
+      return;
+    presencePending = true;
+    try {
+      // Ce battement local évite de redemander une session Cloud pour garder un spectateur actif.
+      await request('/camera-presence', {
+        method: 'POST',
+        printerKey: target.printer,
+        headers: { 'X-Camera-Viewer': target.id },
+        timeoutMs: 5000,
+      });
+    } catch (error) {
+      // Une panne réseau attend le prochain battement ; ce signal local n’a aucun ordre à rejouer.
+      if (error.cameraPresenceExpired && viewer === target) {
+        const closing = await close();
+        if (closing === generation) set('camera-state', tr('Session caméra expirée'));
+      }
+    } finally {
+      presencePending = false;
+    }
+  }
+
+  function startPresence(target) {
+    stopPresence();
+    presenceTimer = setInterval(() => void signalPresence(target), CAMERA_PRESENCE_INTERVAL_MS);
+  }
+
+  function refreshVisiblePresence() {
+    if (document.visibilityState === 'visible' && viewer && client)
+      void signalPresence(viewer);
+  }
 
   function loadSdk() {
     if (!sdkPromise)
@@ -32,6 +79,7 @@ export function createCamera(request, getPrinter) {
   async function close() {
     const previous = viewer;
     viewer = null;
+    stopPresence();
     const released = previous
       ? releaseViewer({
           method: 'POST',
@@ -145,6 +193,7 @@ export function createCamera(request, getPrinter) {
         await mine.leave();
         return;
       }
+      startPresence(viewer);
       await Promise.all(mine.remoteUsers.filter((user) => user.hasVideo).map(subscribe));
       if (current())
         set('camera-state', track ? tr('Caméra connectée') : tr('En attente de la vidéo'));
@@ -169,6 +218,7 @@ export function createCamera(request, getPrinter) {
 
   $('camera-start').onclick = open;
   $('camera-stop').onclick = close;
+  document.addEventListener('visibilitychange', refreshVisiblePresence);
   for (const [id, change] of [
     ['zoom-in', 0.25],
     ['zoom-out', -0.25],

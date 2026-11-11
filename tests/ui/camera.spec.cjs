@@ -91,6 +91,98 @@ test('Agora renouvelle uniquement le canal et la session déjà ouverts', async 
   expect(await page.evaluate(() => window.renewals)).toEqual(['fixture-renewed']);
 });
 
+test('la présence caméra renouvelle le viewer sans redemander une session Cloud', async ({page}) => {
+  const {login} = require('./helpers.cjs');
+  let sessions = 0;
+  const presences = [];
+  await page.addInitScript(() => {
+    const originalSet = window.setInterval.bind(window);
+    const originalClear = window.clearInterval.bind(window);
+    window.setInterval = (callback, delay, ...args) => {
+      if (delay === 45000) {
+        window.__cameraPresenceTick = () => callback(...args);
+        return 987654;
+      }
+      return originalSet(callback, delay, ...args);
+    };
+    window.clearInterval = id => {
+      if (id !== 987654) originalClear(id);
+      else window.__cameraPresenceTick = null;
+    };
+  });
+  await page.route('**/imprimante-api/ui/js/agora-rtc.js', route => route.fulfill({
+    contentType: 'application/javascript',
+    body: `window.AgoraRTC={setLogLevel(){},createClient(){return {
+      remoteUsers:[],on(){},setEncryptionConfig(){},async setClientRole(){},async join(){},async leave(){},
+    };}};`,
+  }));
+  await page.route('**/imprimante-api/camera-session', route => {
+    sessions++;
+    return route.fulfill({json:{
+      appid:'fixture-app',channel:'fixture-channel',rtc_token:'fixture-token',
+      encryption_mode:'aes-128-gcm2',encryption_key:'fixture-key',encryption_kdf_salt:'Zml4dHVyZQ=='
+    }});
+  });
+  await page.route('**/imprimante-api/camera-presence', route => {
+    presences.push(route.request().headers()['x-camera-viewer']);
+    return route.fulfill({json:{ok:true}});
+  });
+  await page.route('**/imprimante-api/camera-close', route => route.fulfill({json:{ok:true}}));
+  await login(page);
+  await page.getByRole('button',{name:'Caméra',exact:true}).click();
+  await page.locator('#camera-start').click();
+  await expect(page.locator('#camera-state')).toHaveText('En attente de la vidéo');
+  const viewer = await page.locator('#camera-start').evaluate(() => window.__cameraPresenceTick && true);
+  expect(viewer).toBe(true);
+  await page.evaluate(() => window.__cameraPresenceTick());
+  await expect.poll(() => presences.length).toBe(1);
+  expect(presences[0]).toMatch(/^[a-f0-9-]{36}$/);
+  expect(sessions).toBe(1);
+});
+
+test('un viewer expiré se ferme sans réabonnement automatique', async ({page}) => {
+  const {login} = require('./helpers.cjs');
+  let sessions = 0;
+  let releases = 0;
+  await page.addInitScript(() => {
+    const originalSet = window.setInterval.bind(window);
+    window.setInterval = (callback, delay, ...args) => {
+      if (delay === 45000) {
+        window.__cameraPresenceTick = () => callback(...args);
+        return 987654;
+      }
+      return originalSet(callback, delay, ...args);
+    };
+  });
+  await page.route('**/imprimante-api/ui/js/agora-rtc.js', route => route.fulfill({
+    contentType: 'application/javascript',
+    body: `window.AgoraRTC={setLogLevel(){},createClient(){return {
+      remoteUsers:[],on(){},setEncryptionConfig(){},async setClientRole(){},async join(){},async leave(){},
+    };}};`,
+  }));
+  await page.route('**/imprimante-api/camera-session', route => {
+    sessions++;
+    return route.fulfill({json:{
+      appid:'fixture-app',channel:'fixture-channel',rtc_token:'fixture-token',
+      encryption_mode:'aes-128-gcm2',encryption_key:'fixture-key',encryption_kdf_salt:'Zml4dHVyZQ=='
+    }});
+  });
+  await page.route('**/imprimante-api/camera-presence', route =>
+    route.fulfill({status:400,json:{ok:false,message:'Session vidéo expirée'}}));
+  await page.route('**/imprimante-api/camera-close', route => {
+    releases++;
+    return route.fulfill({json:{ok:true}});
+  });
+  await login(page);
+  await page.getByRole('button',{name:'Caméra',exact:true}).click();
+  await page.locator('#camera-start').click();
+  await expect(page.locator('#camera-state')).toHaveText('En attente de la vidéo');
+  await page.evaluate(() => window.__cameraPresenceTick());
+  await expect(page.locator('#camera-state')).toHaveText('Session caméra expirée');
+  expect(sessions).toBe(1);
+  expect(releases).toBe(1);
+});
+
 test('la déconnexion attend la confirmation de fermeture du viewer caméra',async({page})=>{
  // La réponse différée démontre l’ordre entre la libération du lecteur et la révocation.
  const {login}=require('./helpers.cjs');

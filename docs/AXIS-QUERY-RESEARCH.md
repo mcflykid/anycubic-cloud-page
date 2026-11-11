@@ -1,10 +1,12 @@
 # Recherche sur les réponses de coordonnées S1
 
+Archive de la 1.8.0. La consultation et ses diagnostics ont été retirés à la suite de #167.
+
 ## Périmètre et conclusion
 
 Cette note sépare l’examen hors ligne du flux local et de Slicer Next des deux essais sur l’installation 1.7.1. Aucun client MQTT supplémentaire n’a été créé.
 
-Les éléments consultés confirment la forme d’ordre `1214` actuellement implémentée et le chemin de corrélation des réponses. Ils ne permettent pas d’établir pourquoi la machine concernée n’a pas répondu. Aucun élément vérifiable dans les ressources statiques examinées ne confirme une variante du protocole attendue par Slicer Next. Il n’y a donc pas de base suffisante pour changer l’ordre ou assouplir la validation de réponse.
+Les éléments consultés confirment la forme d’ordre `1214` implémentée en 1.8.0 et le chemin de corrélation des réponses. Ils ne permettent pas d’établir pourquoi la machine concernée n’a pas répondu. Aucun élément vérifiable dans les ressources statiques examinées ne confirme une variante du protocole attendue par Slicer Next. Il n’y a donc pas de base suffisante pour changer l’ordre ou assouplir la validation de réponse.
 
 ## Contrat local et chemin de corrélation
 
@@ -37,14 +39,14 @@ Cette capture ne permet pas d’attribuer la ligne isolée à une imprimante S1 
 
 ## Suite sûre
 
-Sur la Kobra S1 observée (firmware 2.7.2.7), une lecture à l’arrêt, caméra fermée, puis une seule lecture avec un flux vidéo décodé ont toutes deux expiré sans coordonnées (HTTP 400 en 1.7.1). La caméra active ne suffit donc pas à obtenir la réponse. Aucun déplacement, chauffage ou démarrage d’impression n’a été demandé. La 1.8.0 expose des événements de phase et renvoie HTTP 504 lorsque l’attente MQTT expire ; le diagnostic de la cause reste ouvert dans #167.
+Sur la Kobra S1 observée (firmware 2.7.2.7), une lecture à l’arrêt, caméra fermée, puis une seule lecture avec un flux vidéo décodé ont toutes deux expiré sans coordonnées (HTTP 400 en 1.7.1). La caméra active ne suffit donc pas à obtenir la réponse. Aucun déplacement, chauffage ou démarrage d’impression n’a été demandé. La 1.8.0 journalisait les phases et renvoyait HTTP 504 à l’expiration de l’attente MQTT. La cause du délai n’a pas été confirmée avant le retrait suivi dans #167.
 
-Conserver l’ordre `1214` et la validation stricte tant qu’une capture de réponse documentée ou une observation autorisée ne contredit pas le contrat. Si un diagnostic ultérieur est mené, relever des horodatages de phase sans données sensibles et vérifier le routage par cible à partir des journaux expurgés. Toute nouvelle connexion MQTT, émission d’ordre, ou action physique nécessite une autorisation distincte; cette note n’en effectue aucune.
+La branche de diagnostic conservait l’ordre `1214` et la validation stricte faute de capture qui établisse un autre contrat. Si un diagnostic ultérieur est mené, relever des horodatages de phase sans données sensibles et vérifier le routage par cible à partir des journaux expurgés. Toute nouvelle connexion MQTT, émission d’ordre, ou action physique nécessite une autorisation distincte; cette note n’en effectue aucune.
 
-## Rejets distingués dans les journaux
+## Rejets distingués dans les essais hors ligne
 
-L’événement `axis_query_mqtt_rejected` émet une catégorie bornée dans
-`reply_rejection`. Il aide à lire les phases existantes sans afficher les
+Dans les essais hors ligne, l’événement `axis_query_mqtt_rejected` portait une catégorie bornée dans
+`reply_rejection`. Il facilitait la lecture des phases sans afficher les
 coordonnées, le sujet MQTT ou les identifiants du Cloud.
 
 | Catégorie | Observation |

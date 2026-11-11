@@ -22,7 +22,6 @@ from monitoring import Monitoring
 from cloud_budget import CloudRequestBudget
 from idle_controls import idle_limits
 from ace_telemetry import ace2_pro_telemetry
-from printer_axes import is_allowed as axis_query_allowed, query_axis_position
 from account_transport import AccountTransport
 from request_validation import json_object
 from printer_values import integer, now, safeget, serial
@@ -71,7 +70,7 @@ FIELDS = json.loads((ROOT / "fields.json").read_text())
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
-CAMERA_VIEWER_TTL = 120
+CAMERA_VIEWER_TTL = 180
 OPS_LOG = logging.getLogger("cloud_page.server")
 HTTP_LOG = logging.getLogger("cloud_page.http")
 MONITORING_KEY = web.AppKey("monitoring", Monitoring)
@@ -233,44 +232,9 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     and get_part_from_mqtt_topic(str(message.topic), 6) == str(owner.printer.key)
                 )
                 retained = getattr(message, "retain", False)
-                if action == "query" and (kind == "axis" or str(message.topic).endswith("/axis")):
-                    if not target_matches:
-                        printer_files.log_axis_rejection("target")
-                    elif retained:
-                        printer_files.log_axis_rejection("retained")
-                    elif kind != "axis":
-                        printer_files.log_axis_rejection("kind_action")
                 if kind == "axis" and action == "query":
-                    data = payload.get("data")
-                    coordinates = data.get("coordinates") if isinstance(data, dict) else None
-                    code = payload.get("code")
-                    reply_code = (
-                        "success"
-                        if type(code) is int and code == 200
-                        else "refused"
-                        if type(code) is int and code in {400, 401, 403, 404, 409}
-                        else "other"
-                        if type(code) is int
-                        else "missing"
-                        if code is None
-                        else "invalid"
-                    )
-                    log_event(
-                        logging.getLogger("cloud_page.axes"),
-                        logging.INFO,
-                        "axis_query_mqtt_observed",
-                        message="Réponse MQTT de consultation observée avant validation de la cible",
-                        owner_present=owner is not None,
-                        msgid_present=(
-                            type(payload.get("msgid")) in (int, str)
-                            and 0 < len(str(payload.get("msgid"))) <= 128
-                        ),
-                        coordinates_complete=(
-                            isinstance(coordinates, dict)
-                            and all(coordinates.get(axis) is not None for axis in ("x", "y", "z"))
-                        ),
-                        reply_code=reply_code,
-                    )
+                    # Un rapport de position hérité ne rafraîchit pas les mesures de la machine.
+                    return
                 if target_matches:
                     tracker = getattr(primary, "command_mqtt", None)
                     if (
@@ -285,12 +249,8 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     if not retained and kind in (
                         "file",
                         "light",
-                        "axis",
                     ):
                         owner.mqtt_replies.receive(payload)
-                    if kind == "axis" and action == "query":
-                        # Les coordonnées relèvent de la consultation corrélée, pas de la fraîcheur globale.
-                        return
             return super()._mqtt_message_router(message)
         finally:
             self.message_engine = None
@@ -343,6 +303,7 @@ class Engine:
         self.camera_owner = None
         self.camera_close_task = None
         self.command_lock = asyncio.Lock()
+        self.command_request_lock = asyncio.Lock()
         self.upload_lock = asyncio.Lock()
         self.mqtt_reconnect_task = None
         self.notifications = AccountNotifications()
@@ -877,7 +838,6 @@ class Engine:
                         )
         fields["task_details"] = task_details(safeget(p, "latest_project"))
         fields["axes_supported"] = 67 in (self.raw_info.get("type_function_ids") or [])
-        fields["axis_query_supported"] = axis_query_allowed(self)
         fields["idle_limits"] = idle_limits(self)
         features = {
             r.get("name"): r.get("value")
@@ -1144,26 +1104,6 @@ async def errors(request, handler):
 async def status(req):
     """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
     return web.json_response(request_engine(req).snapshot(), headers={"Cache-Control": "no-store"})
-
-
-async def axis_position(req):
-    """Consulte explicitement la position de la cible sans mouvement ni collecte périodique."""
-    selected = request_engine(req)
-    async with selected.lock:
-        verify_printer_target(req, selected)
-        try:
-            result = await query_axis_position(selected)
-        except printer_files.MQTTReplyTimeout:
-            return web.json_response(
-                {
-                    "ok": False,
-                    "message": "L’imprimante n’a pas répondu à la consultation des axes. Aucune relance automatique n’a été effectuée.",
-                },
-                status=504,
-                headers={"Cache-Control": "no-store"},
-            )
-        verify_printer_target(req, selected)
-    return web.json_response(result, headers={"Cache-Control": "no-store"})
 
 
 async def printers(req):
@@ -1468,31 +1408,28 @@ async def command_journal(request):
 
 @contextlib.asynccontextmanager
 async def command_operation(req, *, require_model=True, bypass_read_lock=False):
-    # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
-    """Cède le verrou API à une seule opération ; lève ValueError si attente trop longue ou client parti."""
+    """Réserve une commande ordinaire puis sérialise l’envoi, après la lecture si nécessaire."""
     engine = request_engine(req)
-    if engine.command_lock.locked():
+    if engine.command_lock.locked() or (
+        not bypass_read_lock and engine.command_request_lock.locked()
+    ):
         raise ValueError("Une opération est en cours. Réessayez après sa fin.")
-    async with engine.command_lock:
-        if bypass_read_lock:
-            if req.transport is None or req.transport.is_closing():
-                raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
-            verify_printer_target(req, engine, require_model=require_model)
-            yield
-            return
-        try:
-            await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
-        except asyncio.TimeoutError:
-            raise CommandWaitExpired(
-                "La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes."
-            ) from None
-        try:
-            if req.transport is None or req.transport.is_closing():
-                raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
-            verify_printer_target(req, engine, require_model=require_model)
-            yield
-        finally:
-            engine.lock.release()
+    async with contextlib.AsyncExitStack() as guards:
+        if not bypass_read_lock:
+            # Réserver la demande sans empêcher pause ou annulation d’atteindre l’envoi.
+            await guards.enter_async_context(engine.command_request_lock)
+            try:
+                await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
+            except asyncio.TimeoutError:
+                raise CommandWaitExpired(
+                    "La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes."
+                ) from None
+            guards.callback(engine.lock.release)
+        await guards.enter_async_context(engine.command_lock)
+        if req.transport is None or req.transport.is_closing():
+            raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
+        verify_printer_target(req, engine, require_model=require_model)
+        yield
 
 
 @contextlib.asynccontextmanager
@@ -1657,8 +1594,8 @@ async def camera(req):
         raise ValueError("Session vidéo invalide")
     if not engine.printer:
         raise ValueError("Connexion en cours")
-    async with engine.command_lock:
-        async with engine.lock:
+    async with engine.lock:
+        async with engine.command_lock:
             verify_printer_target(req, engine)
             prune_camera_viewers(engine)
             if viewer and engine.camera_departures.get(viewer, 0) > time.monotonic():
@@ -1700,12 +1637,46 @@ async def camera(req):
 
 
 def camera_viewer_deadline(request):
-    """Borne le spectateur à l’expiration fixe de sa session web authentifiée."""
+    """Renouvelle le spectateur pour trois minutes, sans dépasser sa session web."""
     now_monotonic = time.monotonic()
     expires = request.get("session_expires") if hasattr(request, "get") else None
     if isinstance(expires, (int, float)) and not isinstance(expires, bool):
-        return max(now_monotonic, expires)
+        return min(now_monotonic + CAMERA_VIEWER_TTL, expires)
     return now_monotonic + CAMERA_VIEWER_TTL
+
+
+async def camera_presence(req):
+    """Renouvelle localement un viewer actif sans demander de session ni envoyer d’ordre caméra."""
+    engine = request_engine(req)
+    viewer = req.headers.get("X-Camera-Viewer") or "legacy"
+    if viewer != "legacy" and not re.fullmatch(r"[a-f0-9-]{36}", viewer):
+        raise ValueError("Session vidéo invalide")
+    # La fermeture différée doit voir ce renouvellement avant de décider d’envoyer sa commande.
+    async with engine.lock:
+        verify_printer_target(req, engine)
+        deadline = engine.camera_viewer_expiries.get(viewer)
+        if viewer not in engine.camera_viewers or deadline is None:
+            raise ValueError("Session vidéo expirée")
+        if deadline <= time.monotonic():
+            engine.camera_viewers.discard(viewer)
+            engine.camera_viewer_expiries.pop(viewer, None)
+            expiry = engine.camera_expiry_task
+            if expiry and not expiry.done():
+                expiry.cancel()
+            engine.camera_expiry_task = None
+            if engine.camera_viewer_expiries:
+                schedule_camera_expiry(engine)
+            elif engine.printer:
+                previous = engine.camera_close_task
+                if previous and not previous.done():
+                    previous.cancel()
+                engine.camera_close_task = asyncio.create_task(
+                    close_idle_camera(engine, str(engine.printer.id))
+                )
+            raise ValueError("Session vidéo expirée")
+        engine.camera_viewer_expiries[viewer] = camera_viewer_deadline(req)
+        schedule_camera_expiry(engine)
+    return web.json_response({"ok": True})
 
 
 def prune_camera_viewers(engine):
@@ -1754,8 +1725,8 @@ async def expire_camera_viewers(engine):
 async def close_idle_camera(engine, target):
     """Envoie une fermeture unique après le départ du dernier spectateur de l’atelier."""
     await asyncio.sleep(3)
-    async with engine.command_lock:
-        async with engine.lock:
+    async with engine.lock:
+        async with engine.command_lock:
             if (
                 engine.camera_viewers
                 or not engine.api
@@ -1850,7 +1821,7 @@ async def upload_operation(req, engine, audit):
     """Inscrit le mode et les paramètres validés avant de solliciter le transport Anycubic."""
     if not engine.printer:
         raise ValueError("Connexion en cours")
-    if engine.command_lock.locked():
+    if engine.command_lock.locked() or engine.command_request_lock.locked():
         raise ValueError("Une opération est déjà en cours")
     if UPLOAD_STAGING.locked():
         raise ValueError("Un envoi de fichier est déjà en cours")
@@ -2226,7 +2197,6 @@ app.add_routes(
         web.get("/imprimante-api/health", health),
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
-        web.get("/imprimante-api/axis-position", axis_position),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),
@@ -2236,6 +2206,7 @@ app.add_routes(
         web.get("/imprimante-api/files/{source}", local_files),
         web.post("/imprimante-api/command", command),
         web.post("/imprimante-api/camera-session", camera),
+        web.post("/imprimante-api/camera-presence", camera_presence),
         web.post("/imprimante-api/camera-close", camera_close),
         web.post("/imprimante-api/upload", upload),
         web.post("/imprimante-api/preflight", print_preflight),

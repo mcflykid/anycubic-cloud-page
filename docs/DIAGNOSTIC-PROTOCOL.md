@@ -56,20 +56,11 @@ Cloud ne garantissent pas, seuls, le respect de cette condition.
 | Envoi de fichier 1.7.0, #166 | Erreur locale de mesure avant transfert | Mesurer un vrai fichier temporaire et tester le cycle de transfert simulé ; correctif 1.7.1 publié |
 | Essai d’envoi 1.7.1 | Requête refusée faute de cible explicite | Contrôler le contexte avant le formulaire et distinguer un refus local d’un échec Cloud |
 | Transfert et USB 1.7.1 | Après sélection de la cible, transfert accepté et fichier retrouvé dans la liste Cloud. Racine et sous-dossier USB lus séparément | Vérifier la destination dans son propre catalogue ; un transfert Cloud ne prouve pas l’écriture USB |
-| Lecture de coordonnées, #167 | Délai MQTT sans coordonnées exploitables | Séparer durée de l’accusé Cloud et durée de la réponse MQTT ; ne pas inventer une position |
+| Lecture de coordonnées en 1.8.0, #167 | Délai MQTT sans coordonnées exploitables | Séparer durée de l’accusé Cloud et durée de la réponse MQTT ; ne pas inventer une position |
 | Caméra 1.7.1 | Flux réel reçu en 1280 × 720 puis fermeture acceptée | Vérifier une image décodée, puis fermer la session ; une session HTTP seule ne prouve pas la vidéo |
 | Déconnexion avec caméra, #178 | Un second essai a décodé le flux mais la fermeture a reçu HTTP 401 pendant la déconnexion | Attendre la réponse de fermeture avant de révoquer la session web et vérifier cet ordre avec une réponse volontairement retardée |
 | Sélection tactile, #163 | La barre flottante faisait remonter les lignes sous le doigt | Vérifier le geste tactile réel et réserver la place de la barre, au-delà du clic isolé |
 | Version dans les logs, #173 | Les extraits hors démarrage manquaient de version | Ajouter la métadonnée embarquée à chaque ligne texte et JSON |
-
-Pour une consultation des axes, les événements `axis_query_started`,
-`axis_query_cloud_ack` et `axis_query_mqtt_reply` ou
-`axis_query_mqtt_timeout` partagent la référence HTTP et portent une durée
-cumulative. `axis_query_mqtt_observed` décrit uniquement si un propriétaire,
-un identifiant de corrélation et les trois coordonnées étaient présents, ainsi
-qu’une classe de code bornée. Ces événements ne prouvent ni la cause d’un
-timeout ni la validité matérielle d’une position. Un HTTP 504 MQTT n’ajoute pas
-de délai de quota et ne doit pas être rejoué automatiquement.
 
 Les observations de cette table sont bornées à leurs essais. Elles ne constituent
 ni une qualification de tous les firmwares, ni une garantie contre une limitation

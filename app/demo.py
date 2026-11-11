@@ -118,7 +118,6 @@ PRINTER = {
         "parameters": PARAMS,
     },
     "axes_supported": True,
-    "axis_query_supported": True,
     "idle_limits": {"target_nozzle_temp": [0, 320], "target_hotbed_temp": [0, 120]},
     "foreign_detection_supported": True,
     "speed_modes": [
@@ -208,6 +207,9 @@ async def api(request):
         data = await request.json()
         notices[:] = [x for x in notices if not data.get("all") and x["key"] != data.get("key")]
         return web.json_response({"ok": True, "message": "Messages fictifs supprimés"})
+    if path == "camera-presence" and request.method == "POST":
+        # Ce signal ne fait vivre que l’interface fictive ; aucune caméra ni commande n’existe ici.
+        return web.json_response({"ok": True})
     if path == "command" and request.method == "POST":
         data = await request.json()
         if data.get("action") == "task-delete-many":
@@ -232,8 +234,6 @@ async def api(request):
             "default": "demo-printer",
             "pending": False,
         }
-    elif path == "axis-position":
-        d = {"position": {"x": 47.0, "y": 250.0, "z": 3.815}, "updated_at": time.time()}
     elif path == "fleet":
         d = {
             "items": [

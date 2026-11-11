@@ -34,6 +34,31 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.e.printer = self.p
         self.e.api = SimpleNamespace()
 
+    async def test_retired_axis_query_cannot_update_printer_freshness(self):
+        """Un rapport tardif de l’ancienne consultation ne rafraîchit pas la machine."""
+        import json
+        from unittest.mock import Mock, patch
+
+        self.e.printer.key = "fixture-device"
+        self.e.printer.multi_color_box = []
+        self.e.mqtt_changed = Mock()
+        self.e.mqtt_replies.receive = Mock()
+        api = object.__new__(adapter.CloudPageAPI)
+        api.cloud_engine = self.e
+        message = SimpleNamespace(
+            topic="anycubic/anycubicCloud/v1/printer/app/20025/fixture-device/axis",
+            payload=json.dumps({"type": "axis", "action": "query"}).encode(),
+            retain=False,
+        )
+        with patch.object(adapter.AnycubicMQTTAPI, "_mqtt_message_router") as generic:
+            api._mqtt_message_router(message)
+        generic.assert_not_called()
+        self.e.mqtt_changed.assert_not_called()
+        self.e.mqtt_replies.receive.assert_not_called()
+        routes = {route.resource.canonical for route in adapter.app.router.routes()}
+        self.assertNotIn("/imprimante-api/axis-position", routes)
+        self.assertNotIn("axis_query_supported", self.e.snapshot()["printer"])
+
     async def test_snapshot_uses_firmware_box_name_by_id(self):
         """La détection suit le boîtier dans un rapport de micrologiciel dont l’ordre diffère."""
         self.p.id = 7
