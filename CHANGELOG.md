@@ -7,15 +7,16 @@
 - Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).
 
 - Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
-
 - Sépare les courbes Buse et Plateau dans les statistiques (#238).
 - Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
 - Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
-
+- Aligne les quatre courbes de filament sur une rangée par ACE sur ordinateur (#264).
 - Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
 - Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
 - Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
+- Ajoute la connexion facultative à deux facteurs, les codes de secours à usage unique et la récupération opérateur (#221).
+- Borne l’attente de connexion et applique des quotas distincts au mot de passe et aux codes temporaires. Les confirmations d’actions sensibles partagent un quota par session (#249, #250, #251).
 
 ## 1.9.0 — 2026-11-11
 
