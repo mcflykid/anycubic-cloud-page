@@ -88,7 +88,9 @@ export function initializeTileLayout() {
       toggle.setAttribute('aria-pressed', 'false');
       toggle.onclick = () => setEditing(editing === key ? null : key);
       toolbar.append(toggle);
-      panel.prepend(toolbar);
+      const heading = panel.querySelector(':scope > .section-title');
+      if (heading) heading.append(toolbar);
+      else panel.prepend(toolbar);
     }
   }
 

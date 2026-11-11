@@ -6,6 +6,11 @@
   grid-column: 1 / -1;
 }
 
+.section-title > .layout-toolbar {
+  margin-block: 0;
+  margin-inline-start: auto;
+}
+
 .layout-control {
   display: inline-grid;
   place-items: center;
