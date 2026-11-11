@@ -24,6 +24,7 @@ from idle_controls import idle_limits
 from ace_telemetry import ace2_pro_telemetry
 from printer_axes import is_allowed as axis_query_allowed, query_axis_position
 from account_transport import AccountTransport
+from request_validation import json_object
 from printer_values import integer, now, safeget, serial
 from printer_commands import execute_command, slot_indices
 import printer_files
@@ -1245,7 +1246,7 @@ async def history(req):
 async def history_read(req):
     """Renvoie la confirmation de lecture ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
-    data = await req.json()
+    data = await json_object(req)
     if data.get("all") is not True and not re.fullmatch(r"[a-f0-9]{20}", str(data.get("key", ""))):
         raise ValueError("Notification invalide")
     if not engine.api:
@@ -1260,7 +1261,7 @@ async def history_read(req):
 async def history_delete(req):
     """Renvoie la confirmation d’effacement ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
-    data = await req.json()
+    data = await json_object(req)
     async with audit_command(req, engine, "history-delete", None, {}) as audit:
         if data.get("all") is not True and not re.fullmatch(
             r"[a-f0-9]{20}", str(data.get("key", ""))
@@ -1483,10 +1484,12 @@ async def storage_upload_operation(req, engine):
 async def command(req):
     """Renvoie le résultat mémorisé par request_id ; rejette une demande invalide sans répéter une commande connue."""
     engine = request_engine(req)
-    d = await req.json()
+    d = await json_object(req)
     requestid = str(d.pop("request_id", ""))
     valid_id = re.fullmatch(r"[a-zA-Z0-9-]{16,80}", requestid)
     name = d.pop("action", None)
+    if not isinstance(name, str):
+        raise ValueError("Action invalide.")
     ticket = d.pop("confirmation", None)
     if requestid in engine.commands:
         previous = engine.commands[requestid]
@@ -1778,7 +1781,7 @@ async def camera_close(req):
 async def print_preflight(req):
     """Prépare les avertissements de bobines sans envoyer de commande à la machine."""
     engine = request_engine(req)
-    data = await req.json()
+    data = await json_object(req)
     if not isinstance(data, dict):
         raise ValueError("Métadonnées de filament invalides")
     ensure_firmware_ready(engine.printer)
@@ -2132,7 +2135,7 @@ async def cleanup(app):
 async def preview(req):
     """Renvoie une image validée ou None ; lève ValueError si la connexion manque."""
     engine = request_engine(req)
-    d = await req.json()
+    d = await json_object(req)
     url = None
     async with engine.lock:
         if not engine.api or not engine.printer:

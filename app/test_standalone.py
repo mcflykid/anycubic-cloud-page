@@ -315,6 +315,19 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rows[0]["parameters"], {"name": "fixture.gcode"})
         self.assertNotIn("fixture-secret-error", str(rows))
 
+    async def test_non_string_command_action_is_rejected_before_cloud(self):
+        """Une action JSON non textuelle reçoit 400 avant tout appel au moteur Cloud."""
+        await self.sign_in()
+        engine = self.engines[printer_key(1)]
+        response = await self.client.post(
+            "/imprimante-api/sensitive-fixture",
+            json={"request_id": str(uuid.uuid4()), "action": ["pause"]},
+            headers={"Origin": self.origin, "X-Printer-Key": printer_key(1)},
+        )
+        self.assertEqual(response.status, 400)
+        self.assertEqual((await response.json())["message"], "Action invalide.")
+        engine.action.assert_not_awaited()
+
     async def test_command_distinguishes_validation_from_failure_after_dispatch(self):
         """Un refus reste local et une panne après envoi conserve la déduplication."""
         await self.sign_in()
