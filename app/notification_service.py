@@ -6,6 +6,8 @@ import json
 import re
 import time
 from datetime import datetime, timezone
+from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
@@ -13,13 +15,29 @@ from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 
 
 ERROR_HELP = "https://wiki.anycubic.com/en/error-codes"
-ERROR_CATALOGUE = {
-    "10115": {
-        "title": "L’imprimante ne peut pas lire ce fichier",
-        "description": "Le fichier peut être endommagé à la suite d’un tranchage interrompu ou être dans un format incorrect.",
-        "help_url": ERROR_HELP,
-    },
-}
+# Le même fichier alimente les fiches du navigateur, avec ses propres liens rédigés et vérifiés.
+CATALOGUE_DIRECTORY = Path(__file__).resolve().parents[1] / "web" / "js"
+ERROR_CATALOGUE = json.loads(
+    (CATALOGUE_DIRECTORY / "workshop-error-catalogue.json").read_text(encoding="utf-8")
+)
+
+
+@lru_cache(maxsize=1)
+def _translations():
+    return json.loads(
+        (CATALOGUE_DIRECTORY / "workshop-translations.json").read_text(encoding="utf-8")
+    )
+
+
+def notification_error_title(code, language="fr"):
+    """Fournit au canal de notification le titre rédigé pour le code exact et la langue choisie."""
+    sheet = ERROR_CATALOGUE.get(normalize_error_code(code))
+    if not sheet:
+        return ""
+    title = sheet["title"]
+    if language not in ("en", "es"):
+        return title
+    return _translations().get(title, (title, title))[0 if language == "en" else 1]
 
 
 def notification_count(value):
@@ -112,11 +130,12 @@ def history_entry(row):
     }:
         reason = ""
     cloud_help = row.get("reason_help_url")
-    help_url = (
-        cloud_help
-        if notification_help_url(cloud_help)
-        else error.get("help_url") or (ERROR_HELP if reason_code else None)
-    )
+    if notification_help_url(cloud_help):
+        help_url = cloud_help
+    elif error:
+        help_url = error["source"].split("#", 1)[0]
+    else:
+        help_url = ERROR_HELP if reason_code else None
     printer = row.get("printer_id")
     task = next(
         (

@@ -23,3 +23,7 @@ Relevé du 11 novembre 2026 : le texte des 60 guides anglais du [sommaire Kobra 
 La fiche d’erreur s’ouvre dans l’atelier et contient un résumé original, les premiers contrôles et la source officielle facultative. La notification reste intacte. Un code inconnu conserve son numéro et le message reçu, sans inventer de diagnostic. Le catalogue local ne télécharge pas le wiki à l’ouverture et les URL de suivi ne sont pas conservées.
 
 Une prochaine étape possible : des conseils intégrés à la page qui en a besoin (Réseau, Fichiers, Caméra ou Calibrations), sans les mélanger aux alertes de la cloche. Les afficher à la demande ou dans un état pertinent, avec une option pour les masquer. Aucun conseil ne déclenche une commande.
+
+## Accès depuis l’atelier
+
+Les boutons **Aide** des fichiers, de la caméra, du module ACE et des événements de connexion ouvrent un conseil local. Le panneau Calibrations propose le guide de débit lorsque les réglages machine sont disponibles. Les liens ci-dessus permettent de consulter le document du constructeur séparément. Fermer le dialogue rend l’accès à la section en cours. Ces conseils ne sont pas des notifications et ne commandent pas la machine.

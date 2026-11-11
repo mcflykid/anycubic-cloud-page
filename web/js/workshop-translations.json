@@ -4886,5 +4886,153 @@
   "Désactivés": [
     "Disabled",
     "Desactivados"
+  ],
+  "Intégrité du fichier téléchargé non vérifiée": [
+    "Downloaded file integrity check failed",
+    "Falló la comprobación de integridad del archivo descargado"
+  ],
+  "L’empreinte du fichier reçu par l’imprimante ne correspond pas à celle annoncée par le Cloud.": [
+    "The printer received a file whose checksum differs from the one reported by the cloud.",
+    "La suma de comprobación del archivo recibido por la impresora no coincide con la indicada por la nube."
+  ],
+  "Vérifiez que le transfert du fichier s’est terminé et que la connexion de l’imprimante est stable.": [
+    "Check that the transfer finished and that the printer connection is stable.",
+    "Compruebe que la transferencia terminó y que la conexión de la impresora es estable."
+  ],
+  "Si le code revient avec le même fichier, relevez sa provenance et l’heure du transfert pour le diagnostic.": [
+    "If the same file triggers the code again, record its source and transfer time for troubleshooting.",
+    "Si el código vuelve con el mismo archivo, anote su origen y la hora de transferencia para el diagnóstico."
+  ],
+  "Erreur système signalée par l’imprimante": [
+    "Printer system error reported",
+    "Error del sistema de la impresora"
+  ],
+  "La Kobra S1 signale une erreur système. Le code seul ne désigne pas une pièce en panne.": [
+    "The Kobra S1 reports a system error. This code alone does not identify a faulty part.",
+    "La Kobra S1 indica un error del sistema. El código por sí solo no identifica una pieza averiada."
+  ],
+  "Relevez le code et l’état de l’imprimante avant toute intervention. Consultez la procédure officielle correspondant à votre équipement.": [
+    "Record the code and the printer state before taking action. Use the official procedure for your equipment.",
+    "Anote el código y el estado de la impresora antes de intervenir. Consulte el procedimiento oficial para su equipo."
+  ],
+  "Alimentation du filament anormale": [
+    "Filament feed problem",
+    "Problema de alimentación del filamento"
+  ],
+  "La tête d’impression n’a pas détecté l’arrivée attendue du filament pendant l’alimentation.": [
+    "The print head did not detect the expected arrival of filament during feeding.",
+    "El cabezal no detectó la llegada esperada del filamento durante la alimentación."
+  ],
+  "Identifiez l’emplacement utilisé et observez si la bobine ou le trajet du filament présente un blocage visible.": [
+    "Identify the active slot and look for a visible obstruction at the spool or along the filament path.",
+    "Identifique la ranura activa y busque un bloqueo visible en la bobina o en el recorrido del filamento."
+  ],
+  "Si le trajet semble libre, consultez la procédure du modèle concerné avant de reprendre.": [
+    "If the path looks clear, check the procedure for the affected model before resuming.",
+    "Si el recorrido parece libre, consulte el procedimiento del modelo afectado antes de reanudar."
+  ],
+  "Retrait du filament anormal": [
+    "Filament retraction problem",
+    "Problema de retracción del filamento"
+  ],
+  "La tête d’impression détecte toujours du filament alors que le retrait aurait dû se terminer.": [
+    "The print head still detects filament after retraction should have finished.",
+    "El cabezal sigue detectando filamento cuando la retracción ya debería haber terminado."
+  ],
+  "Repérez l’emplacement concerné et la partie du trajet où le filament est encore visible.": [
+    "Identify the affected slot and the part of the path where filament is still visible.",
+    "Identifique la ranura afectada y la parte del recorrido en la que aún se ve filamento."
+  ],
+  "Suivez les vérifications de votre modèle avant d’essayer de retirer le filament ou de reprendre l’impression.": [
+    "Follow the checks for your model before trying to remove the filament or resume the print.",
+    "Siga las comprobaciones de su modelo antes de intentar retirar el filamento o reanudar la impresión."
+  ],
+  "Blocage du filament détecté": [
+    "Filament jam detected",
+    "Atasco de filamento detectado"
+  ],
+  "La Kobra S1 signale une anomalie d’alimentation qui peut correspondre à un blocage ou à une résistance excessive.": [
+    "The Kobra S1 detected a feeding anomaly that can indicate a jam or excessive resistance.",
+    "La Kobra S1 detectó una anomalía de alimentación que puede indicar un atasco o una resistencia excesiva."
+  ],
+  "Notez le matériau et l’emplacement en cours, puis inspectez visuellement le trajet du filament.": [
+    "Record the current material and slot, then visually inspect the filament path.",
+    "Anote el material y la ranura activos y revise visualmente el recorrido del filamento."
+  ],
+  "Consultez le guide Kobra S1 si le filament reste bloqué ou si le code revient.": [
+    "Consult the Kobra S1 guide if the filament stays jammed or the code returns.",
+    "Consulte la guía de la Kobra S1 si el filamento sigue atascado o vuelve el código."
+  ],
+  "Anomalie du chauffage de l’ACE": [
+    "ACE heater problem",
+    "Problema con el calentador del ACE"
+  ],
+  "L’ACE 2 Pro signale une anomalie du chauffage PTC et a interrompu le séchage.": [
+    "The ACE 2 Pro reports a PTC heater fault and has stopped drying.",
+    "El ACE 2 Pro indica un fallo del calentador PTC y ha detenido el secado."
+  ],
+  "Vérifiez l’état affiché sur l’appareil et laissez le séchage arrêté.": [
+    "Check the state shown on the device and leave drying stopped.",
+    "Compruebe el estado en el dispositivo y mantenga el secado detenido."
+  ],
+  "Consultez la fiche officielle de l’ACE 2 Pro avant toute intervention sur le chauffage.": [
+    "Read the official ACE 2 Pro guide before working on the heater.",
+    "Consulte la guía oficial del ACE 2 Pro antes de intervenir en el calentador."
+  ],
+  "Modèles documentés": [
+    "Documented models",
+    "Modelos documentados"
+  ],
+  "Voir la fiche d’erreur": [
+    "View error details",
+    "Ver la ficha del error"
+  ],
+  "Ordre refusé par Anycubic.": [
+    "Order refused by Anycubic.",
+    "Orden rechazada por Anycubic."
+  ],
+  "Formats de fichiers": [
+    "File formats",
+    "Formatos de archivo"
+  ],
+  "Un STL ou un 3MF de projet doit être tranché pour cette imprimante. Un G-code refusé peut être incomplet ou incompatible. Vérifiez le profil de la machine et l’intégrité du fichier avant de le renvoyer.": [
+    "Slice an STL or project 3MF for this printer first. A rejected G-code file may be incomplete or incompatible. Check the printer profile and file integrity before resending it.",
+    "Primero lamina el STL o 3MF de proyecto para esta impresora. Un G-code rechazado puede estar incompleto o ser incompatible. Comprueba el perfil y la integridad del archivo antes de reenviarlo."
+  ],
+  "Connexion de la Kobra S1": [
+    "Kobra S1 connection",
+    "Conexión de la Kobra S1"
+  ],
+  "L’icône Wi-Fi indique la connexion au réseau local. Dans l’atelier, vérifiez aussi l’accès au Cloud et l’heure de la dernière mesure. Des données anciennes ne suffisent pas à identifier la cause de la coupure.": [
+    "The Wi-Fi icon indicates a local network connection. Also check Cloud access and the last reading time in the workshop. Stale readings alone cannot identify the cause of a connection loss.",
+    "El icono Wi-Fi indica conexión a la red local. Comprueba también el acceso a la nube y la hora de la última lectura. Las lecturas antiguas por sí solas no permiten identificar la causa de un corte."
+  ],
+  "Caméra et détection IA": [
+    "Camera and AI detection",
+    "Cámara y detección por IA"
+  ],
+  "Un flux vidéo disponible indique que la caméra transmet. L’état de la détection IA se vérifie dans Réglages. Une optique masquée ou un éclairage insuffisant peut limiter la détection sur la Kobra S1.": [
+    "A visible stream means the camera is transmitting. Check AI detection in Settings. An obstructed lens or poor lighting can limit detection on the Kobra S1.",
+    "Un vídeo visible indica que la cámara transmite. Comprueba la detección por IA en Ajustes. Una lente tapada o poca luz pueden limitar la detección en la Kobra S1."
+  ],
+  "Bobines et séchage ACE": [
+    "ACE spools and drying",
+    "Bobinas y secado ACE"
+  ],
+  "Vérifiez la matière et l’emplacement de chaque bobine. Les réglages de séchage dépendent du filament et du module ACE. Fiez-vous aux limites affichées pour le module reconnu et aux indications du fabricant du filament.": [
+    "Check each spool’s material and slot. Drying settings depend on the filament and ACE module. Follow the displayed limits for the detected module and the filament manufacturer’s guidance.",
+    "Comprueba el material y la ranura de cada bobina. El secado depende del filamento y del módulo ACE. Sigue los límites del módulo detectado y las indicaciones del fabricante del filamento."
+  ],
+  "Calibration du débit": [
+    "Flow calibration",
+    "Calibración del flujo"
+  ],
+  "Sur la Kobra S1, la compensation de pression agit sur l’extrusion lors des changements de vitesse. Utilisez une valeur adaptée au filament et à la buse. Une calibration demandée reste à confirmer par le résultat de la machine.": [
+    "On the Kobra S1, pressure advance adjusts extrusion during speed changes. Use a value suited to the filament and nozzle. Check the printer result to confirm a requested calibration.",
+    "En la Kobra S1, el avance de presión ajusta la extrusión al cambiar de velocidad. Usa un valor adecuado para el filamento y la boquilla. Comprueba el resultado de la impresora para confirmar la calibración."
+  ],
+  "Aide": [
+    "Help",
+    "Ayuda"
   ]
 }

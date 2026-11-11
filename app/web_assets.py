@@ -8,6 +8,8 @@ import re
 UI_PREFIX = "/imprimante-api/ui"
 CATALOGUE = "workshop-translations.json"
 CATALOGUE_MARKER = "__CATALOGUE_INTEGRITY__"
+ERROR_CATALOGUE = "workshop-error-catalogue.json"
+ERROR_CATALOGUE_MARKER = "__ERROR_CATALOGUE_INTEGRITY__"
 REQUIRED = {
     "imprimante.html",
     "login.html",
@@ -21,6 +23,7 @@ REQUIRED = {
     "js/workshop-ui.mjs",
     "js/workshop-login.mjs",
     f"js/{CATALOGUE}",
+    f"js/{ERROR_CATALOGUE}",
 }
 LOCAL_IMPORT = re.compile(r"""(['"])(\./[\w.-]+\.(?:mjs|json))\1""")
 ASSET_LINK = re.compile(rf'\b(?:src|href)="({UI_PREFIX}/((?:css|js|icons)/[\w.-]+))"')
@@ -71,6 +74,14 @@ def build_web_assets(root):
                 if source.count(CATALOGUE_MARKER) != 1:
                     raise ValueError("Marqueur d’intégrité du catalogue absent ou dupliqué.")
                 source = source.replace(CATALOGUE_MARKER, integrity(files[f"js/{CATALOGUE}"]))
+            if name == "js/workshop-error-catalogue.mjs":
+                if source.count(ERROR_CATALOGUE_MARKER) != 1:
+                    raise ValueError(
+                        "Marqueur d’intégrité du catalogue d’erreurs absent ou dupliqué."
+                    )
+                source = source.replace(
+                    ERROR_CATALOGUE_MARKER, integrity(files[f"js/{ERROR_CATALOGUE}"])
+                )
             scripts[name] = LOCAL_IMPORT.sub(local_import, source).encode()
 
     def asset_link(match):

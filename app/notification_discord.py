@@ -10,6 +10,8 @@ from urllib.parse import urlsplit
 
 import aiohttp
 
+from notification_service import notification_error_title
+
 _HOST = "discord.com"
 _PATH = re.compile(r"/api(?:/v10)?/webhooks/[0-9]{17,22}/[A-Za-z0-9_-]{30,150}")
 _SNOWFLAKE = re.compile(r"[0-9]{17,22}")
@@ -120,6 +122,8 @@ def format_message(event, config):
         content = f"**{complete if event.result == 'completed' else failed}**\n{name} · {at}"
         if event.code:
             content += f"\n{code} {event.code}"
+            if title := notification_error_title(event.code, config.language):
+                content += f" · {clean_label(title, 100)}"
         if config.include_filename and (filename := clean_label(event.filename, 140)):
             content += f"\n{filename}"
     return message_payload(content)

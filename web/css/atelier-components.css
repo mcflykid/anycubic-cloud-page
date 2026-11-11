@@ -182,3 +182,10 @@ body:has(.workshop-frame) > dialog :is(.dialog-close, #confirm-yes, #confirm-no)
     padding: var(--atelier-space-4);
   }
 }
+
+/* L’aide ne doit pas augmenter la hauteur des en-têtes de mesures. */
+.atelier-control.context-help-trigger {
+  --atelier-control: var(--atelier-space-5);
+  align-self: center;
+  flex-shrink: 0;
+}

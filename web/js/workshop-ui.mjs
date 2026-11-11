@@ -299,6 +299,11 @@ export function message(text, error = false) {
       ? `${new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone })} — ${text}`
       : '',
   );
+  const help = $('message-error-help');
+  if (help) {
+    help.hidden = true;
+    help.onclick = null;
+  }
   $('message').hidden = !text;
   $('message').classList.toggle('error', error);
 }

@@ -157,6 +157,17 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("@everyone", payload["content"])
         self.assertNotIn("fixture-private.gcode", payload["content"])
 
+    def test_failure_includes_the_localized_catalogue_title(self):
+        """Un échec connu conserve le code et son titre local, sans texte distant."""
+        item = cloud_events("scope", [], [fixture_row(title="Print failed", reason_id=10113)])[0]
+        config = DiscordConfig(url="fixture-webhook", enabled=True, language="es")
+        payload = format_message(item, config)
+        self.assertIn(
+            "10113 · Falló la comprobación de integridad del archivo descargado", payload["content"]
+        )
+        unknown = cloud_events("scope", [], [fixture_row(title="Print failed", reason_id=99999)])[0]
+        self.assertIn("Código de error 99999", format_message(unknown, config)["content"])
+
     async def test_retry_after_then_success(self):
         """Seul un refus temporaire établi réessaie et respecte la pause fournie."""
         sleeps = []
