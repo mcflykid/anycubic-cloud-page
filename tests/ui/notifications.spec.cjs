@@ -119,3 +119,28 @@ test('le panneau Burbuja supporte un changement d’avis et le mouvement réduit
  await expect(panel).toBeHidden();
  await expect.poll(animation).toBeUndefined();
 });
+
+test('le pictogramme sans aperçu reste au centre de la miniature de la cloche', async ({ page }) => {
+  await page.route('**/extras/notification-preview?*', (route) => route.fulfill({ json: { image: null } }));
+  await openWorkshop(page);
+  await page.locator('#notifications-toggle').click();
+  const miniature = page.locator('#notifications-panel .task-thumbnail').first();
+  await expect(miniature).toHaveAttribute('data-preview-state', 'unavailable');
+  await expect(miniature.locator('img')).toBeHidden();
+  await expect(miniature).toHaveAccessibleName(/Voir les détails de/);
+  const geometry = await miniature.evaluate((button) => {
+    const fallback = button.querySelector('span');
+    const outer = button.getBoundingClientRect();
+    const inner = fallback.getBoundingClientRect();
+    const icon = getComputedStyle(fallback, '::before');
+    return {
+      centerX: inner.x + inner.width / 2 - outer.x - outer.width / 2,
+      centerY: inner.y + inner.height / 2 - outer.y - outer.height / 2,
+      width: parseFloat(icon.width),
+      available: Math.min(inner.width, inner.height),
+    };
+  });
+  expect(Math.abs(geometry.centerX)).toBeLessThan(1);
+  expect(Math.abs(geometry.centerY)).toBeLessThan(1);
+  expect(geometry.width).toBeLessThan(geometry.available);
+});
