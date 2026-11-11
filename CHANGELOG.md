@@ -1,44 +1,26 @@
 # Changements
 
-## À venir
+## 1.10.0 — 2026-11-11
 
-- Garde l’état de chargement jusqu’à l’arrivée de l’aperçu. Prisme révèle alors l’image par une courte transition (#248).
+### Atelier
 
-- Ajoute Prisme, un style aux panneaux graphite, aux reflets bleus et aux mesures en tuiles. Sa navigation de bureau regroupe les onglets en capsules (#277, #281).
+- Ajoute **Prisme**, un style graphite avec une palette claire, des relevés en tuiles et des onglets regroupés en capsules sur ordinateur (#277, #281).
+- Affiche les aperçus après le chargement réel de l’image. Les listes de fichiers et l’historique montrent un état d’attente lorsque les données tardent (#248).
+- Réorganise les fichiers Cloud et ajoute un curseur entre mémoire, USB et Cloud. La sélection groupée fonctionne par glissement ou avec Maj + clic. Le formulaire d’envoi présente le fichier en premier et affiche l’ordre des bobines lors d’une demande d’impression (#241, #242, #248).
+- Affiche la grille et la cible pendant le déplacement des cartes. Les dispositions sont mémorisées dans le navigateur (#247, #248).
+- Place le journal des notifications dans **Historique**. La cloche présente les messages Cloud (#243, #248).
+- Corrige la sélection des onglets Apple Design et Aurore, agrandit l’image de l’imprimante et retire les styles Détaillé, Océan, Studio et Observatoire. Une préférence pour un style retiré revient à **Par défaut** (#244, #245, #246).
+- Sépare les courbes Buse et Plateau, aligne les quatre courbes de filament par ACE sur ordinateur, corrige les fiches d’historique sous Safari et rapproche la caméra de ses commandes (#238, #239, #240, #264).
+- Affiche la moyenne, le 95e centile et le nombre de relevés dans le détail de **Parc et santé**. L’export CSV indique l’attente de la requête. Le relais des bobines et l’évaluation d’une impression ont de nouveaux contrôles visuels (#248).
+- Illustre la connexion par une impression couche par couche. Les animations de l’atelier respectent la préférence de mouvement réduit (#215, #248).
 
-- Indique la source de fichiers active par un curseur à ressort. Ajoute un interrupteur en relief pour le relais des bobines et une pulsation pendant la préparation réelle du CSV. Anime les étoiles de l’évaluation et regroupe les liens du pied de page (#248).
+### Sécurité et exploitation
 
-- Centre la vérification par code et les réglages de sécurité sur ordinateur et téléphone (#273).
-
-- Dans Parc et santé, ouvre le détail depuis la carte avec le ressort d’Instrumental et affiche la moyenne, le 95e centile et le nombre de relevés disponibles. L’interrupteur Canica accompagne la suspension locale des mesures (#248).
-
-- Donne aux chargements des fichiers et de l’historique leur forme de liste ou de cartes. Un reflet Esqueleto accompagne uniquement l’attente réelle (#248).
-
-- Garde le bouton actif dans les bords arrondis du rail Aurore (#246).
-
-- Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
-
-- Place le journal historique dans Historique. La cloche présente uniquement les messages Cloud et s’ouvre avec la découpe animée de Burbuja (#243, #248).
-
-- Place le fichier en tête du formulaire d’envoi et montre l’ordre des bobines lors d’une demande d’impression. Le contour animé suit la requête en cours (#241, #248).
-
-- Réorganise la barre des fichiers Cloud et adapte le compteur à rouleaux et la cascade de sélection de Lote (#242, #248).
-
-- Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).
-
-- Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).
-
-- Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
-- Sépare les courbes Buse et Plateau dans les statistiques (#238).
-- Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
-- Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
-- Aligne les quatre courbes de filament sur une rangée par ACE sur ordinateur (#264).
-- Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
-- Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
-- Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
-- Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
-- Ajoute la connexion facultative à deux facteurs, les codes de secours à usage unique et la récupération opérateur (#221).
-- Borne l’attente de connexion et applique des quotas distincts au mot de passe et aux codes temporaires. Les confirmations d’actions sensibles partagent un quota par session (#249, #250, #251).
+- Ajoute la connexion facultative à deux facteurs par code temporaire, avec dix codes de secours à usage unique et une procédure de récupération. Centre les écrans de sécurité sur ordinateur et téléphone (#221, #273).
+- Applique des quotas distincts au mot de passe et aux codes temporaires. Lorsque le seuil global est atteint, les demandes de connexion attendent une vérification séquentielle (#212, #249, #250, #251).
+- Enrichit les journaux du conteneur avec les étapes de la caméra et des transferts, ainsi qu’une référence de requête pour le diagnostic (#218).
+- Sépare le moteur, les sessions caméra, les transferts et le journal HTTP. Documente l’ordre des verrous et vérifie que la pause et l’annulation restent disponibles pendant les opérations Cloud prévues (#213, #255, #256).
+- Calcule les empreintes des ressources web au démarrage et documente le cadre des essais manuels ainsi que le diagnostic historique de lecture des coordonnées (#211, #214, #237).
 
 ## 1.9.0 — 2026-11-11
 
