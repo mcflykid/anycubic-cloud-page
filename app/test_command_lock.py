@@ -107,6 +107,60 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
             multipart=AsyncMock(return_value=parts),
         )
 
+    async def test_operation_lock_order(self):
+        """Refuse une acquisition inversée ou un verrou de lecture conservé durant le stockage."""
+        events = []
+
+        class TracedLock(asyncio.Lock):
+            """Enregistre les acquisitions réelles, y compris celles faites avec wait_for."""
+
+            def __init__(self, name):
+                super().__init__()
+                self.name = name
+
+            async def acquire(self):
+                """Trace le verrou seulement après la réussite de son acquisition."""
+                acquired = await super().acquire()
+                events.append(("acquire", self.name))
+                return acquired
+
+            def release(self):
+                """Trace l’instant où le verrou redevient disponible."""
+                super().release()
+                events.append(("release", self.name))
+
+        for name in ("lock", "command_lock", "command_request_lock", "upload_lock"):
+            setattr(self.engine, name, TracedLock(name))
+        self.engine.transport.cloud_mutation_lock = TracedLock("cloud")
+        request = self.req()
+        for options, locks in (
+            ({}, ["command_request_lock", "lock", "command_lock"]),
+            ({"cloud_only": True}, ["command_request_lock", "lock", "cloud"]),
+            ({"bypass_read_lock": True}, ["command_lock"]),
+        ):
+            with self.subTest(options=options):
+                events.clear()
+                async with adapter.command_operation(request, **options):
+                    self.assertEqual(events, [("acquire", lock) for lock in locks])
+                self.assertEqual(
+                    events,
+                    [("acquire", lock) for lock in locks]
+                    + [("release", lock) for lock in reversed(locks)],
+                )
+
+        events.clear()
+        async with adapter.storage_upload_operation(request, self.engine):
+            self.assertEqual(
+                events,
+                [
+                    ("acquire", "upload_lock"),
+                    ("acquire", "lock"),
+                    ("release", "lock"),
+                    ("acquire", "cloud"),
+                ],
+            )
+        self.assertEqual(events[-2:], [("release", "cloud"), ("release", "upload_lock")])
+
     async def test_command_waits_for_read_then_sends_once(self):
         """Vérifie que une commande attend la lecture puis n’est envoyée qu’une fois."""
         await self.engine.lock.acquire()

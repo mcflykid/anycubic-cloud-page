@@ -4,6 +4,7 @@ import threading
 import asyncio, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
+import printer_engine
 import server
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError
 
@@ -40,7 +41,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
             list_my_printers=AsyncMock(return_value=[printer]),
             mqtt_add_subscribed_printer=Mock(),
         )
-        with patch.object(server, "CloudPageAPI", return_value=new):
+        with patch.object(printer_engine, "CloudPageAPI", return_value=new):
             await e.connect()
         self.assertIs(e.api, new)
         self.assertIs(e.printer, printer)
@@ -57,7 +58,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         e.api = old
         e.transport.mqtt_thread = Mock()
         e.transport.mqtt_thread.is_alive.return_value = True
-        with patch.object(server, "CloudPageAPI") as factory:
+        with patch.object(printer_engine, "CloudPageAPI") as factory:
             with self.assertRaisesRegex(RuntimeError, "en attente"):
                 await e.connect()
             factory.assert_not_called()
@@ -72,7 +73,7 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         e.api = api
         e.printer = SimpleNamespace(id=1)
         e.transport.restart = AsyncMock(side_effect=RuntimeError("fixture-only"))
-        with patch.object(server, "log_event") as log_event:
+        with patch.object(printer_engine, "log_event") as log_event:
             e.session_renewed(api)
             task = e.mqtt_reconnect_task
             self.assertIsNotNone(task)
