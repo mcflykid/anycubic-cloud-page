@@ -40,13 +40,15 @@ Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](desi
 
 Le test de mise en page ouvre les dix sections du jeu de démonstration à 1 366 × 768 et 1 920 × 1 080, dans les quatre styles et les deux modes de couleur. Il vérifie que la page tient dans la fenêtre. Les tests sur téléphone vérifient l’absence de débordement horizontal. Les [captures](../screenshots/README.md) sont produites à partir d’un serveur de démonstration.
 
-Le contrôle des valeurs s’applique aux feuilles `atelier-*.css`. Les feuilles historiques comportent encore des valeurs propres à leurs composants. L’inventaire ci-dessous compare les déclarations littérales de `web/css/` avant la refonte et après le retrait de la feuille de densité et des dispositions propres aux styles. Les références de variables, les seuils de média et les couleurs des SVG incorporés sont exclus.
+Le contrôle CI couvre toutes les feuilles CSS de l’atelier. Les tailles de texte de l’interface, les marges et écarts de l’échelle commune, les rayons fixes, les ombres et les palettes claire et sombre passent par le référentiel. Les composants peuvent garder leurs dimensions propres, par exemple pour les illustrations et les zones de tracé. Les nouvelles feuilles `atelier-*.css` ont aussi un contrôle de leurs autres longueurs et couleurs littérales.
+
+L’inventaire compare les déclarations de `web/css/` avant la refonte et après l’adoption du référentiel. Les références de variables, les seuils de média et les couleurs des SVG incorporés sont exclus.
 
 | Valeurs distinctes | Avant | Après |
 | --- | ---: | ---: |
-| Tailles et interlignes écrits dans les déclarations de texte | 75 | 64 |
-| Rayons | 28 | 25 |
-| Marges et écarts | 56 | 54 |
-| Marges intérieures | 58 | 47 |
-| Ombres | 50 | 28 |
-| Couleurs littérales | 301 | 246 |
+| Tailles et interlignes écrits dans les déclarations de texte | 75 | 26 |
+| Rayons | 28 | 3 |
+| Marges et écarts | 56 | 24 |
+| Marges intérieures | 58 | 15 |
+| Ombres | 50 | 11 |
+| Couleurs littérales | 301 | 78 |

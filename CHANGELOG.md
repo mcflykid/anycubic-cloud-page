@@ -1,5 +1,19 @@
 # Changements
 
+## 1.11.0 — 2026-11-11
+
+### Atelier
+
+- Recompose les dix onglets à partir des maquettes HTML de référence. Aligne les commandes, les cartes et les titres de navigation. Les quatre styles partagent la même mise en page et les mêmes règles de présentation en clair et en sombre. Le menu latéral de Laboratoire reste repliable (#287, #288, #293, #295, #296).
+- Retire le cadenas, les dispositions personnalisables et les styles Apple Design, Prisme et Blueprint. Les anciennes préférences de style reviennent à **Par défaut** (#284, #294).
+- Illustre le Résumé avec les modèles détectés, identifie les emplacements des bobines et place l’aperçu à droite de la progression dans **Imprimante** (#291, #292).
+- Centre les commandes d’axes et maintient le flux dans le cadre de **Caméra**. Aligne les cartes et les commandes de **Statistiques**, avec des courbes distinctes par appareil et par emplacement (#285, #286).
+
+### Notifications
+
+- Affiche une seule fois le résultat traduit de fin d’impression et conserve les diagnostics distincts (#289).
+- Retrouve les impressions locales dans l’historique par machine, chemin et seconde de fin. Cherche l’image dans le détail de la tâche et affiche le pictogramme centré quand aucune image exploitable n’est disponible (#290).
+
 ## 1.10.0 — 2026-11-11
 
 ### Atelier

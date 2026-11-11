@@ -572,6 +572,57 @@ class NotificationPreviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.x.notification_preview("a"), image)
         self.x.preview_row.assert_awaited_with("notification:a", {**task, "taskid": 44})
 
+    async def test_temporary_notices_share_history_and_request_the_exact_task_details(self):
+        """Les deux journaux peuvent désigner la même impression locale sans image de projet."""
+        path = ".3mf_temp/fixture.gcode"
+        first, second = 1_760_000_001, 1_760_000_020
+        self.e.notifications = SimpleNamespace(
+            rows={
+                "slicer": {
+                    "printer_id": 7,
+                    "project_name": path,
+                    "create_time": first,
+                    "print_status": 2,
+                    "task_id": 44,
+                },
+                "legacy": {
+                    "printer_id": 7,
+                    "project_name": path,
+                    "create_time": second,
+                    "print_status": 2,
+                },
+            }
+        )
+        self.e.session = object()
+        history = [
+            {"printer_id": 7, "task_name": path, "end_time": first, "print_status": 2, "id": 44},
+            {"printer_id": 7, "model": path, "end_time": second, "print_status": 2, "id": 45},
+        ]
+        expired = "https://anycubic.com/expired.png"
+        available = "https://anycubic.com/available.png"
+
+        async def api(endpoint, *, query, method):
+            if endpoint == "/v2/project/printHistory":
+                return [{**history[0], "img": expired}, history[1]]
+            self.assertEqual(endpoint, "/v5/project/printHistory/detail")
+            return {"img": available} if query["task_id"] == 44 else {}
+
+        async def download(session, url):
+            return "data:image/png;base64,eA==" if url == available else None
+
+        self.x.api = AsyncMock(side_effect=api)
+        with patch("cloud_extras.download_preview", side_effect=download) as fetch:
+            first_result, second_result = await asyncio.gather(
+                self.x.notification_preview("slicer"), self.x.notification_preview("legacy")
+            )
+        self.assertEqual(first_result, {"image": "data:image/png;base64,eA=="})
+        self.assertEqual(second_result, {"image": None})
+        self.assertEqual(
+            [call.args[0] for call in self.x.api.await_args_list].count("/v2/project/printHistory"),
+            1,
+        )
+        self.assertEqual({call.args[1] for call in fetch.await_args_list}, {expired, available})
+
     async def test_local_completion_rejects_ambiguous_matches(self):
         path = ".3mf_temp/fixture.gcode"
         self.e.notifications = SimpleNamespace(
