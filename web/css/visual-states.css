@@ -1,6 +1,6 @@
 /* Des traits neutres identifient l’état sans suggérer qu’une impression ou une lecture a réussi. */
 :root {
-  --visual-art: #6d8cad;
+  --visual-art: var(--atelier-accent);
   --visual-art-soft: color-mix(in srgb, var(--atelier-accent) 10%, var(--atelier-surface));
   --visual-wait: var(--atelier-accent);
   --visual-error: var(--atelier-error);
@@ -69,7 +69,7 @@
   height: 100%;
   padding: var(--atelier-space-2);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--atelier-micro-size);
   line-height: 1.35;
 }
 .task-thumbnail > span::before {

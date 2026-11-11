@@ -105,9 +105,9 @@ body.login-body {
 html { color-scheme: light dark; -webkit-text-size-adjust: 100%; }
 html[data-theme="light"] { color-scheme: light; }
 html[data-theme="dark"] { color-scheme: dark; }
-body { margin: 0; min-height: 100dvh; color: var(--text); background: var(--bg); font: 1rem/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+body { margin: 0; min-height: 100dvh; color: var(--text); background: var(--bg); font: var(--atelier-reading-font); -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-underline-offset: .22em; }
-a, summary { touch-action: manipulation; -webkit-tap-highlight-color: rgb(0 102 204 / .12); }
+a, summary { touch-action: manipulation; -webkit-tap-highlight-color: color-mix(in srgb, var(--atelier-accent) 12%, transparent); }
 a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: var(--atelier-control-radius); }
 ::selection { background: color-mix(in srgb, var(--atelier-accent) 22%, var(--atelier-surface)); color: var(--text); }
 .skip-link { position: absolute; left: -10000px; top: 12px; z-index: 10; padding: var(--atelier-space-3) var(--atelier-space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--atelier-control-radius); }
@@ -117,7 +117,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
 .document-brand { display: inline-flex; align-items: center; min-height: 44px; color: var(--text); font-size: var(--atelier-title-size); font-weight: 600; letter-spacing: -.035em; text-decoration: none; }
 .header-link, .back-link { display: inline-flex; align-items: center; gap: var(--atelier-space-2); min-height: 44px; color: var(--muted); font-size: var(--atelier-text-size); text-decoration: none; }
 .header { text-align: center; padding: 64px 0 48px; }
-.brand-title { margin: 0; font-size: clamp(2.25rem, 4.6vw, 3.5rem); font-weight: 600; letter-spacing: -.045em; line-height: 1.08; text-wrap: balance; }
+.brand-title { margin: 0; font-size: var(--atelier-brand-size); font-weight: 600; letter-spacing: -.045em; line-height: 1.08; text-wrap: balance; }
 .brand-tagline { margin: var(--atelier-space-4) 0 0; font-size: var(--atelier-card-title-size); color: var(--muted); }
 .grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 40px var(--atelier-space-5); width: min(100%,976px); margin: 0 auto; }
 .card { grid-column: auto; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; padding: var(--atelier-space-2); border-radius: var(--atelier-card-radius); color: var(--text); text-decoration: none; }
@@ -139,7 +139,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
 body:has(.legal-shell) { background: var(--surface); }
 .legal-shell { width: min(100%, 1120px); }
 .document-title { padding: 64px 0 var(--atelier-space-6); }
-.document-title h1 { margin: 0; max-width: 30ch; font-size: clamp(2rem,4.2vw,3.25rem); font-weight: 600; line-height: 1.1; letter-spacing: -.04em; text-wrap: balance; }
+.document-title h1 { margin: 0; max-width: 30ch; font-size: var(--atelier-document-title-size); font-weight: 600; line-height: 1.1; letter-spacing: -.04em; text-wrap: balance; }
 .legal-date { margin: var(--atelier-space-4) 0 0; color: var(--muted); font-size: var(--atelier-text-size); }
 .document-tabs { display: flex; flex-wrap: wrap; gap: var(--atelier-space-1); width: fit-content; max-width: 100%; border-radius: var(--atelier-card-radius); background: var(--bg); margin: 0 0 48px; padding: var(--atelier-space-1); }
 .document-tabs a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: var(--atelier-space-2) var(--atelier-space-4); color: var(--muted); font-size: var(--atelier-text-size); font-weight: 500; border-radius: var(--atelier-control-radius); text-decoration: none; transition: color .15s var(--ease), background-color .15s var(--ease); }
@@ -185,7 +185,7 @@ body:has(.legal-shell) { background: var(--surface); }
 }
 @media (max-width: 380px) {
   .shell { padding-right: max(var(--atelier-space-4), env(safe-area-inset-right)); padding-left: max(var(--atelier-space-4), env(safe-area-inset-left)); }
-  .brand-title { font-size: 2.125rem; }
+  .brand-title { font-size: var(--atelier-brand-mobile-size); }
   .card-desc { font-size: var(--atelier-label-size); }
   .document-tabs { width: 100%; gap: 0; }
   .document-tabs a { flex: 1 1 auto; padding: var(--atelier-space-2); font-size: var(--atelier-label-size); }

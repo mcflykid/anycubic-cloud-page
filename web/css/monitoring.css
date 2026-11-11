@@ -3,7 +3,7 @@
   padding: var(--atelier-space-4);
   border: 1px solid var(--line);
   border-radius: var(--atelier-card-radius);
-  background: color-mix(in srgb, var(--panel, Canvas) 94%, var(--accent, #5680a8));
+  background: color-mix(in srgb, var(--panel, Canvas) 94%, var(--atelier-accent));
 }
 
 #monitor-grid.monitor-grid {
@@ -41,20 +41,20 @@
 }
 
 .monitor-card-label {
-  color: var(--muted, #6e7781);
+  color: var(--atelier-muted);
   font-size: var(--atelier-text-size);
   font-weight: 650;
 }
 
 .monitor-card-value {
-  font-size: clamp(var(--atelier-title-size), 2vw, 1.8rem);
+  font-size: var(--atelier-monitor-value-size);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
 .monitor-card-context {
   align-self: end;
-  color: var(--muted, #6e7781);
+  color: var(--atelier-muted);
   font-size: var(--atelier-caption-size);
 }
 
@@ -65,7 +65,7 @@
   justify-self: end;
   width: 42%;
   height: 2.4rem;
-  color: var(--monitor-line, #357e78);
+  color: var(--monitor-line, var(--atelier-accent));
   pointer-events: none;
 }
 
@@ -136,7 +136,7 @@
 }
 
 .monitor-detail::backdrop {
-  background: #10182088;
+  background: var(--atelier-backdrop);
   backdrop-filter: blur(3px);
 }
 
@@ -161,7 +161,7 @@
 .monitor-detail-description,
 .monitor-detail-printers,
 .monitor-detail-range {
-  color: var(--muted, #6e7781);
+  color: var(--atelier-muted);
   line-height: 1.5;
 }
 
@@ -198,7 +198,7 @@
   padding: var(--atelier-space-2);
   border: 1px solid var(--line);
   border-radius: var(--atelier-card-radius);
-  color: var(--monitor-line, #357e78);
+  color: var(--monitor-line, var(--atelier-accent));
   background: color-mix(in srgb, var(--panel, Canvas) 94%, currentColor);
 }
 
@@ -215,8 +215,8 @@
 }
 
 .monitor-chart-axis {
-  fill: var(--muted, #6e7781);
-  font-size: 11px;
+  fill: var(--atelier-muted);
+  font-size: var(--atelier-micro-size);
 }
 
 .monitor-detail-range {

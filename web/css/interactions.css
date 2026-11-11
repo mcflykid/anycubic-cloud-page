@@ -281,7 +281,7 @@
   content: "";
   width: 10px;
   height: 10px;
-  background: radial-gradient(circle, #a5aab0 1px, transparent 1.35px) 0 0 / 3.33px 3.33px;
+  background: radial-gradient(circle, var(--atelier-relay-texture) 1px, transparent 1.35px) 0 0 / 3.33px 3.33px;
 }
 .ace-relay-control > input:checked + .ace-relay-track { background: var(--accent); }
 .ace-relay-control > input:checked + .ace-relay-track .ace-relay-thumb { transform: translateX(24px); }
