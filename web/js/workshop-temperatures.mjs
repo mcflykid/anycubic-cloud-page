@@ -204,7 +204,9 @@ export function createTemperatureLoader(request, getPrinter = () => '', getHardw
   let sequence = 0;
   const exportButton = $('temperature-export');
   if (exportButton) exportButton.onclick = async () => {
+    // Le bouton indique uniquement l’attente de l’export en cours.
     exportButton.disabled = true;
+    exportButton.setAttribute('aria-busy', 'true');
     const hours = Number($('temperature-hours').value), printer = getPrinter();
     const sameContext = () => !!printer && printer === getPrinter()
       && hours === Number($('temperature-hours').value)
@@ -226,6 +228,7 @@ export function createTemperatureLoader(request, getPrinter = () => '', getHardw
       else cancelled();
     } finally {
       exportButton.disabled = false;
+      exportButton.removeAttribute('aria-busy');
     }
   };
   return async function loadTemperatures() {

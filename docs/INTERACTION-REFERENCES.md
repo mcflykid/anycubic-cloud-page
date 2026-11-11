@@ -64,6 +64,11 @@ paiement dans l’application. Toute animation a une variante sans mouvement.
 | [Apple Human Interface Guidelines — Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars) | Libellés stables, repère de section active et destinations de premier niveau | Navigation de l’atelier | Inspiration |
 | [Moxen Parrilla](https://moxen.cl/recursos/parrilla/) | Grille de cartes qui suit les déplacements et mémorise l’ordre | Cadenas et disposition de l’atelier dans les dix styles | Inspiration |
 | [MDN Auto-placement in grid layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Auto-placement) | Placement adaptatif dans l’ordre de lecture, selon la largeur disponible | Cartes personnalisées de l’atelier | Inspiration |
+| [Uiverse · chase2k25](https://uiverse.io/chase2k25/slimy-chipmunk-97) | Curseur à ressort commun aux trois choix | Fichiers | Code repris sous licence MIT |
+| [Uiverse · njesenberger](https://uiverse.io/njesenberger/rude-stingray-22) | Interrupteur à glissière en relief | Relais des bobines ACE | Code repris sous licence MIT |
+| [Uiverse · nazar-gavrylyk](https://uiverse.io/nazar-gavrylyk/evil-dragon-24) | Pulsation de l’icône pendant la requête | Export CSV | Code repris sous licence MIT |
+| [Uiverse · SelfMadeSystem](https://uiverse.io/SelfMadeSystem/selfish-starfish-40) | Remplissage de la note et rebond de l’étoile choisie | Évaluation depuis Historique | Code repris sous licence MIT |
+| [Flowbite Footer](https://flowbite.com/docs/components/footer/) | Regroupement des liens et passage à la ligne sur téléphone | Pied de page de l’atelier | Inspiration |
 
 Esqueleto et Demora associent une forme stable à une attente différée. Un indicateur animé dès le clic ajoute un clignotement aux réponses rapides. La liste précédente reste visible pendant une actualisation du même contenu. Instrumental guide le regard vers le détail choisi. Pour la mesure elle-même, la valeur reste stable comme dans Grafana Stat. Une réaction discrète marque une valeur reçue qui change. Le fondu court pour le mode évite la grande révélation circulaire. Pour la navigation, le repère de section et le panneau de tuiles existant permettent de suivre la sélection en gardant toutes les destinations atteignables.
 
