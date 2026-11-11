@@ -49,7 +49,13 @@ from command_journal import (
     request_key,
 )
 from session_api import CloudSessionAuthError, SessionRecovery
-from operational_logging import configure_logging, log_event, request_context, safe_exception_frames
+from operational_logging import (
+    LoggingConfigurationError,
+    configure_logging,
+    log_event,
+    request_context,
+    safe_exception_frames,
+)
 from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized, AnycubicRateLimited
 from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
@@ -601,7 +607,8 @@ class Engine:
                         OPS_LOG,
                         logging.DEBUG,
                         "cloud_poll",
-                        message="État Cloud actualisé",
+                        message="Relevé Cloud actualisé avant la consultation du journal des notifications",
+                        outcome="reconnected" if reconnect else "refreshed",
                         duration_ms=round((time.monotonic() - poll_started) * 1000, 1),
                         count=len(self.known_printers or []),
                     )
@@ -1610,18 +1617,56 @@ async def camera(req):
                 engine.camera_message_id = None
                 engine.camera_diagnostic = None
                 engine.camera_stage = -1
+                started = time.monotonic()
+                attempt = 1
                 try:
-                    session = await engine.printer.get_camera_session()
+                    try:
+                        session = await engine.printer.get_camera_session()
+                    except Exception as error:
+                        # Seule une panne de transport temporaire justifie une seconde demande.
+                        if not camera_transport_failure(error):
+                            raise
+                        log_event(
+                            OPS_LOG,
+                            logging.DEBUG,
+                            "camera_session_retry",
+                            message="Transport vidéo indisponible ; une seule nouvelle demande",
+                            attempt=attempt,
+                            error_type=type(error).__name__,
+                        )
+                        attempt += 1
+                        session = await engine.printer.get_camera_session()
+                    if session is None:
+                        raise ValueError("Caméra indisponible")
                 except Exception as error:
-                    # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
-                    if not camera_transport_failure(error):
-                        raise
-                    session = await engine.printer.get_camera_session()
-                if session is None:
-                    raise ValueError("Caméra indisponible")
+                    log_event(
+                        OPS_LOG,
+                        logging.WARNING,
+                        "camera_session_failed",
+                        message="Session vidéo indisponible ; aucune image n’a été confirmée",
+                        attempt=attempt,
+                        error_type=type(error).__name__,
+                        duration_ms=(time.monotonic() - started) * 1000,
+                    )
+                    raise
+                log_event(
+                    OPS_LOG,
+                    logging.INFO,
+                    "camera_session_received",
+                    message="Session vidéo reçue ; le navigateur doit encore se connecter au flux",
+                    attempt=attempt,
+                    duration_ms=(time.monotonic() - started) * 1000,
+                )
                 engine.camera = session.data
                 engine.camera_message_id = getattr(session, "msg_id", None)
                 engine.last_session = time.time()
+            else:
+                log_event(
+                    OPS_LOG,
+                    logging.DEBUG,
+                    "camera_session_reused",
+                    message="Session vidéo récente réutilisée sans nouvel appel Cloud",
+                )
             if viewer:
                 engine.camera_owner = viewer
                 engine.camera_viewers.add(viewer)
@@ -1739,6 +1784,7 @@ async def close_idle_camera(engine, target):
                 return
             engine.camera = None
             engine.camera_owner = None
+            started = time.monotonic()
             try:
                 request = AnycubicBaseOrderRequest(
                     order_id=AnycubicOrderID.CAMERA_CLOSE, printer_id=target
@@ -1746,6 +1792,22 @@ async def close_idle_camera(engine, target):
                 await engine.api._send_anycubic_order(order_request=request)
             except Exception as error:
                 engine.event("Caméra", "Fermeture non confirmée (" + type(error).__name__ + ")")
+                log_event(
+                    OPS_LOG,
+                    logging.WARNING,
+                    "camera_close_uncertain",
+                    message="Fermeture du flux non confirmée par le Cloud",
+                    error_type=type(error).__name__,
+                    duration_ms=(time.monotonic() - started) * 1000,
+                )
+            else:
+                log_event(
+                    OPS_LOG,
+                    logging.INFO,
+                    "camera_close_submitted",
+                    message="Demande de fermeture du flux transmise au Cloud",
+                    duration_ms=(time.monotonic() - started) * 1000,
+                )
 
 
 async def camera_close(req):
@@ -1827,6 +1889,7 @@ async def upload_operation(req, engine, audit):
         raise ValueError("Un envoi de fichier est déjà en cours")
     # Le dossier d’état est sur le volume persistant, contrairement au /tmp en mémoire du conteneur.
     async with UPLOAD_STAGING:
+        staging_started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="upload-", dir=engine.state_dir) as directory:
             reader = await req.multipart()
             data = {}
@@ -1868,6 +1931,16 @@ async def upload_operation(req, engine, audit):
                 if mode != "upload":
                     raise ValueError("Seul un fichier .gcode peut être envoyé à l’impression.")
                 await asyncio.to_thread(validate_cloud_model, path, extension, size)
+            file_format = extension[1:]
+            log_event(
+                OPS_LOG,
+                logging.DEBUG,
+                "upload_staged",
+                message="Fichier reçu et contrôlé localement ; aucun transfert Cloud à ce stade",
+                action=mode,
+                file_format=file_format,
+                duration_ms=(time.monotonic() - staging_started) * 1000,
+            )
             if audit:
                 audit["action"] = mode
                 audit["request_id"] = request_key(rid)
@@ -1920,6 +1993,7 @@ async def upload_operation(req, engine, audit):
                     "upload_started",
                     message="Transfert Cloud engagé après validation ; un résultat inconnu ne déclenche pas de nouvel envoi",
                     action=mode,
+                    file_format=file_format,
                 )
                 try:
                     if mode == "upload":
@@ -1936,6 +2010,16 @@ async def upload_operation(req, engine, audit):
                             full_file_path=str(path), file_name=filename, slot_index_list=slots
                         )
                         if not response or not response.order_msg_id:
+                            log_event(
+                                OPS_LOG,
+                                logging.WARNING,
+                                "upload_uncertain",
+                                message="Demande sans accusé de réception ; vérifiez le Cloud et l’imprimante avant tout nouvel essai",
+                                action=mode,
+                                file_format=file_format,
+                                outcome="missing_ack",
+                                duration_ms=(time.monotonic() - transfer_started) * 1000,
+                            )
                             return web.json_response(engine.commands[rid], status=409)
                 except Exception as error:
                     # Après le transfert ou la demande d’impression, une erreur locale ne prouve aucun refus.
@@ -1945,6 +2029,8 @@ async def upload_operation(req, engine, audit):
                         "upload_uncertain",
                         message="Résultat du transfert ou du lancement non confirmé ; vérifiez les fichiers Cloud et l’imprimante avant tout nouvel essai",
                         action=mode,
+                        file_format=file_format,
+                        outcome="transport_error",
                         error_type=type(error).__name__,
                         frames=safe_exception_frames(error),
                         duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
@@ -1956,8 +2042,9 @@ async def upload_operation(req, engine, audit):
                     OPS_LOG,
                     logging.INFO,
                     "upload_accepted",
-                    message="Transfert accepté par le Cloud ; cela ne prouve pas la fin d’une impression",
+                    message="Transfert accepté par le Cloud",
                     action=mode,
+                    file_format=file_format,
                     duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
                 )
                 engine.event("Fichier", "Envoi accepté")
@@ -2227,13 +2314,18 @@ if __name__ == "__main__":
         raise SystemExit("Le serveur doit être lancé sans privilèges root.")
     if hasattr(time, "tzset"):
         time.tzset()
-    configure_logging()
+    try:
+        handler = configure_logging()
+    except LoggingConfigurationError as error:
+        raise SystemExit(str(error)) from None
     log_event(
         OPS_LOG,
         logging.INFO,
         "logging_ready",
-        message="Journaux du conteneur actifs ; le mode DEBUG ajoute les étapes sans exposer les échanges privés",
+        message="Journaux du conteneur configurés",
         version=APP_VERSION,
+        log_level=logging.getLevelName(logging.getLogger().level),
+        log_format=handler.formatter.output_format,
     )
     web.run_app(
         app,
