@@ -27,6 +27,7 @@ test('les paires de cartes partagent les mêmes largeurs, hauteurs et séparatio
   }
   const settings = await page.locator('#tab-settings .atelier-settings-row').first().boundingBox();
   expect([settings.x, settings.width]).toEqual([summary.x, summary.width]);
+  await expect(page.locator('#settings-totp-state')).toHaveAttribute('data-state', 'unknown');
   const buttons=await page.locator('.settings-follow-actions button').evaluateAll(items=>items.map(item=>{
     const {width,height,y}=item.getBoundingClientRect();
     return {width,height,y};

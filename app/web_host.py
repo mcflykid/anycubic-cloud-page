@@ -862,7 +862,7 @@ def render_page(destination, time_zone, *, totp_active=False):
     content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
         "<!-- APP_VERSION -->", html.escape(APP_VERSION)
     )
-    content = content.replace("<!-- TOTP_STATE_CLASS -->", "" if totp_active else "offline")
+    content = content.replace("<!-- TOTP_BADGE_STATE -->", "normal" if totp_active else "unknown")
     content = content.replace("<!-- TOTP_STATE -->", "Activée" if totp_active else "Désactivée")
     # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
     level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
