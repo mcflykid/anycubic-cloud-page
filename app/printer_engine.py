@@ -323,6 +323,7 @@ class Engine:
 
     @api.setter
     def api(self, value):
+        """Partage le client remplacé avec les cibles du compte."""
         self.transport.api = value
 
     @property
@@ -332,6 +333,7 @@ class Engine:
 
     @session.setter
     def session(self, value):
+        """Rattache la session HTTP au transport commun."""
         self.transport.session = value
 
     @property
@@ -341,6 +343,7 @@ class Engine:
 
     @account_token.setter
     def account_token(self, value):
+        """Associe le jeton au client qui l’a établi."""
         self.transport.token = value
 
     @property
@@ -350,6 +353,7 @@ class Engine:
 
     @reconnect_required.setter
     def reconnect_required(self, value):
+        """Transmet la demande de reconnexion aux cibles."""
         self.transport.reconnect_required = value
 
     def event(self, action, state):

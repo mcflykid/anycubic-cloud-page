@@ -160,6 +160,12 @@ async function main() {
       await photo(page, filename);
       if (tab === 'files') await captureCloudFolders(page);
     }
+    await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
+    await photo(page, '23-discord-alertes.png');
+    await page.getByRole('link',{name:'Configurer les bilans Discord'}).click();
+    await photo(page, '24-discord-bilans.png');
+    await page.goto(base + '/imprimante.html');
+    await openSection(page, 'settings');
     await page.locator('#ai-open').click();
     await page.locator('#ai-form').waitFor();
     await photo(page, '09-detection-ia.png');

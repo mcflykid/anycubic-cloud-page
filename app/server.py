@@ -508,6 +508,7 @@ async def command(req):
             sent = False
 
             async def before_send():
+                """Fige la preuve avant l’envoi, car le résultat peut rester incertain."""
                 nonlocal sent
                 if sent:
                     return

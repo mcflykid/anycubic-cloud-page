@@ -1,5 +1,19 @@
 # Changements
 
+## 1.12.0 — 2026-11-11
+
+- Ajoute dans **Réglages** les alertes Discord de fin et d’échec ainsi que des bilans à 08 h et 21 h, avec deux webhooks distincts (#205, #312).
+- Partage quinze fiches d’erreur entre les notifications, l’historique, les commandes et Discord. Ajoute l’aide contextuelle en français, anglais et espagnol (#181, #259).
+- Retire Verrière, stabilise la barre latérale Laboratoire et actualise les crédits (#314).
+- Uniformise les derniers styles, vérifie le cache des ressources et exclut les archives de référence de l’image (#309).
+- Actualise les annotations, les guides, les captures, le registre des sources et la feuille de route (#223, #260, #261, #263).
+- Consigne les limites et les preuves restantes pour la validation matérielle et les investigations (#30, #93, #103, #136, #142, #145, #194, #310).
+
+### À vérifier après mise à jour
+
+- Ouvrir **Réglages → Notifications Discord** et configurer deux webhooks distincts si ces canaux sont utilisés. Envoyer un test depuis chaque réglage et vérifier le fuseau du conteneur pour les bilans.
+- Consulter les journaux du conteneur et confirmer le retour de la télémétrie et des notifications après reconnexion.
+
 ## 1.11.0 — 2026-11-11
 
 ### Atelier

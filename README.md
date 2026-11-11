@@ -147,6 +147,12 @@ Le déploiement d’origine a permis de vérifier la connexion directe au compte
 
 La présence d’un bouton ne garantit pas sa validation physique : mouvements, chauffe, chargement, séchage, lancement d’impression, écriture IA et installation de firmware nécessitent des essais contrôlés sur chaque matériel. Le renouvellement OAuth est couvert par des tests simulés ; son succès réel à long terme n’est pas établi. Les aperçus de notifications ont été testés avec des données simulées, le journal réel étant vide au contrôle. Voir la [matrice complète](docs/COMPATIBILITY.md).
 
+## État du projet
+
+L’atelier passe en maintenance avec trois styles et dix onglets. Dans **Réglages → Notifications Discord**, les alertes et les bilans se configurent séparément. Le catalogue local explique les codes connus en français, anglais et espagnol.
+
+La validation réelle porte sur la Kobra S1 Combo dans les limites du [dossier de clôture](docs/CLOSURE.md). Le lancement des `.gcode.3mf`, l’export Cloud du maillage et la galerie de timelapses restent indisponibles. Les capacités des autres modèles se vérifient séparément. [Discord](docs/NOTIFICATIONS.md) · [Installation et variables Compose](docs/INSTALLATION.md)
+
 ## Développement
 
 ```sh
