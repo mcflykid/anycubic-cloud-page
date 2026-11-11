@@ -256,6 +256,8 @@ setInterval(() => {
   if (workshopState.currentTab === 'fleet' && !document.hidden) void loadMonitoring();
 }, 5000);
 refresh();
+// La cloche des réglages Discord rejoint le panneau qui existe déjà dans l’atelier.
+if (location.hash === '#notifications') $('notifications-toggle').click();
 setInterval(() => {
   if (!document.hidden) refresh();
 }, 3000);

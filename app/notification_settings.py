@@ -107,7 +107,7 @@ def discord_enabled(app, *, reports=False):
 
 
 def discord_page(delivery, message="", status=200, *, report=False):
-    """Affiche des options publiques et garde le champ du secret toujours vide."""
+    """Affiche les réglages sans inclure le webhook enregistré dans le HTML."""
     config = delivery.config
     selected = {"fr": "", "en": "", "es": ""}
     selected[config.language] = " selected"
@@ -117,31 +117,20 @@ def discord_page(delivery, message="", status=200, *, report=False):
         "uncertain": "Dernier envoi sans confirmation.",
         "unavailable": "État de livraison indisponible.",
     }
-    feedback = f'<p role="status">{html.escape(message)}</p>' if message else ""
-    configured = (
-        "Webhook enregistré. Son adresse est masquée."
-        if config.url
-        else "Aucun webhook enregistré."
-    )
-    state = "Canal actif" if config.enabled else "Canal désactivé"
-    state_name = "active" if config.enabled else "inactive"
-    url_hint = (
-        "Laissez ce champ vide pour garder l’adresse actuelle."
-        if config.url
-        else "Collez ici l’adresse du webhook du salon Discord."
-    )
+    configured = "Webhook enregistré" if config.url else "Aucun webhook"
+    header_text = message or configured
+    feedback_state = "neutral" if not message else "success" if status < 400 else "error"
     last = labels.get(delivery.last_outcome, "")
-    last_delivery = f"<p>{last}</p>" if last else ""
-    enabled = " checked" if config.enabled else ""
+    last_delivery = f" · {last}" if last else ""
     include_filename = " checked" if config.include_filename else ""
     title = "Bilans Discord" if report else "Notifications Discord"
     introduction = (
         "Recevez le bilan des impressions à 08 h et à 21 h dans le fuseau de l’atelier."
         if report
-        else "Recevez un message après une impression terminée ou échouée."
+        else "Un message après chaque impression terminée ou échouée."
     )
     action = REPORT_PATH if report else PATH
-    activation = "Activer les bilans Discord" if report else "Activer les notifications Discord"
+    activation = "Activer les bilans Discord" if report else "Activer les notifications"
     filename = (
         ""
         if report
@@ -154,35 +143,50 @@ def discord_page(delivery, message="", status=200, *, report=False):
     other_title = (
         "Configurer les notifications Discord" if report else "Configurer les bilans Discord"
     )
-    body = f"""<h1>{title}</h1>
-<p>{introduction}</p>
-<p><a href="{other_path}">{other_title}</a></p>
-<div class="discord-status">
-<p class="discord-state" data-state="{state_name}">{state}</p>
-<p>{configured}</p>
-{last_delivery}
-</div>
-{feedback}
-<form method="post" action="{action}">
-<label for="discord-url">Adresse du webhook Discord</label>
-<input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" aria-describedby="discord-url-hint">
-<p id="discord-url-hint" class="muted">{url_hint}</p>
-<label for="discord-language">Langue du message</label>
-<select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option></select>
-<div class="discord-options">
-<label class="check"><input type="checkbox" name="enabled"{enabled}> <span>{activation}</span></label>
-{filename}
-</div>
-<label for="discord-password">Mot de passe web</label>
-<input id="discord-password" type="password" name="password" maxlength="2048" required autocomplete="current-password" aria-describedby="discord-password-hint">
-<p id="discord-password-hint" class="muted">Requis uniquement pour modifier les réglages ou envoyer un test.</p>
-<div class="actions">
-<button class="primary" type="submit" name="operation" value="save">Enregistrer</button>
-<button type="submit" name="operation" value="test">Envoyer un test</button>
-<button type="submit" name="operation" value="delete">Supprimer le webhook</button>
-</div>
-</form>
-<p><a href="/imprimante.html">Retour à l’atelier</a></p>"""
+    hidden_placeholder = "•" * 60 if config.url else ""
+    channel_title = "Notifications Discord" if report else "Bilans Discord"
+    channel_description = (
+        "Un message après chaque impression terminée ou échouée."
+        if report
+        else "Bilan des impressions à 08 h et 21 h dans le fuseau de l’atelier."
+    )
+    line = (
+        f'<a class="discord-report-link" href="{other_path}" aria-label="{other_title}">'
+        f"<span><strong>{channel_title}</strong><span>{channel_description}</span></span>"
+        '<span class="atelier-control">Configurer</span></a>'
+    )
+    checked = " checked" if config.enabled else ""
+    heading = f"""<div class="discord-title"><h1>{title}</h1><p>{introduction}</p></div>"""
+    body = f"""{heading}
+<main class="discord-content">
+<section class="discord-panel" aria-labelledby="discord-panel-title">
+  <header class="discord-panel-header">
+    <h2 id="discord-panel-title">Webhook</h2>
+    <span class="discord-configured" data-configured="{"true" if config.url else "false"}" data-state="{feedback_state}" data-default="{configured}"><span aria-hidden="true"></span><span id="discord-feedback" role="status" aria-live="polite">{html.escape(header_text + (last_delivery if not message else ""))}</span></span>
+  </header>
+  <form id="discord-settings-form" method="post" action="{action}">
+    <div class="discord-panel-body">
+      <div class="discord-url-field"><label for="discord-url">Adresse du webhook Discord</label>
+        <span class="discord-secret-control"><input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" placeholder="{hidden_placeholder}"><button id="discord-reveal" class="atelier-control atelier-control-icon" type="button" aria-label="Afficher l’adresse du webhook" aria-pressed="false" {"disabled" if not config.url else ""}><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>
+      </div>
+      <div class="discord-form-row">
+        <label for="discord-language">Langue du message<select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option></select></label>
+        <label for="discord-password">Mot de passe web<input id="discord-password" type="password" name="password" maxlength="2048" required autocomplete="current-password"></label>
+      </div>
+      <div class="discord-form-row discord-check-row">
+        <label class="check"><input type="checkbox" name="enabled"{checked}> <span>{activation}</span></label>
+        {filename}
+      </div>
+      {line}
+    </div>
+    <footer class="discord-panel-footer">
+      <button class="atelier-control atelier-control-danger" type="submit" name="operation" value="delete">Supprimer le webhook</button>
+      <span class="discord-footer-actions"><button class="atelier-control" type="submit" name="operation" value="test">Envoyer un test</button><button class="atelier-control atelier-control-primary" type="submit" name="operation" value="save">Enregistrer</button></span>
+    </footer>
+  </form>
+</section>
+<a class="discord-back" href="/imprimante.html">Retour à l’atelier</a>
+</main>"""
     return web.Response(
         text=build_web_assets(ROOT)[0]["discord.html"]
         .replace("Notifications Discord — Anycubic Cloud Page", f"{title} — Anycubic Cloud Page")
@@ -218,17 +222,33 @@ async def discord_settings(request):
     other = request.app[DELIVERY_KEY if report else REPORT_KEY]
     config_path = request.app[REPORT_CONFIG_KEY if report else CONFIG_KEY]
 
+    operation = request.query.get("operation")
+
     def render(message="", status=200):
-        """Conserve la destination courante dans les réponses et les refus."""
+        """Retourne les refus JSON de révélation sans inclure la destination."""
+        if operation == "reveal":
+            return web.json_response(
+                {"message": message}, status=status, headers={"Cache-Control": "no-store"}
+            )
         return discord_page(delivery, message, status, report=report)
 
     if request.method in {"GET", "HEAD"}:
         return render()
     form = await read_discord_form(request)
+    operation = form.get("operation")
     _, refusal = confirm_web_password(request, form.get("password", ""), render=render)
     if refusal is not None:
         return refusal
-    operation = form.get("operation")
+    if operation == "reveal":
+        if not delivery.config.url:
+            return web.json_response(
+                {"message": "Aucun webhook enregistré."},
+                status=404,
+                headers={"Cache-Control": "no-store"},
+            )
+        return web.json_response(
+            {"url": delivery.config.url}, headers={"Cache-Control": "no-store"}
+        )
     if operation not in {"save", "test", "delete"}:
         raise web.HTTPBadRequest(text="Action Discord invalide.")
     async with request.app[SETTINGS_LOCK]:

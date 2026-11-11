@@ -5126,5 +5126,57 @@
   "Parois": [
     "Walls",
     "Paredes"
+  ],
+  "Retourner aux notifications de l’atelier": [
+    "Return to workshop notifications",
+    "Volver a las notificaciones del taller"
+  ],
+  "JavaScript est nécessaire pour cette page.": [
+    "JavaScript is required for this page.",
+    "Esta página requiere JavaScript."
+  ],
+  "Un message après chaque impression terminée ou échouée.": [
+    "One message after each completed or failed print.",
+    "Un mensaje después de cada impresión terminada o fallida."
+  ],
+  "Bilan des impressions à 08 h et 21 h dans le fuseau de l’atelier.": [
+    "Print reports at 08:00 and 21:00 in the workshop time zone.",
+    "Informes de impresión a las 08:00 y 21:00 en la zona horaria del taller."
+  ],
+  "Webhook enregistré": [
+    "Webhook saved",
+    "Webhook guardado"
+  ],
+  "Aucun webhook": [
+    "No webhook",
+    "Ningún webhook"
+  ],
+  "Activer les notifications": [
+    "Enable notifications",
+    "Activar las notificaciones"
+  ],
+  "Afficher l’adresse du webhook": [
+    "Show webhook address",
+    "Mostrar la dirección del webhook"
+  ],
+  "Masquer l’adresse du webhook": [
+    "Hide webhook address",
+    "Ocultar la dirección del webhook"
+  ],
+  "Saisissez le mot de passe web pour afficher le webhook.": [
+    "Enter the web password to show the webhook.",
+    "Introduce la contraseña web para mostrar el webhook."
+  ],
+  "Impossible d’afficher le webhook.": [
+    "Unable to show the webhook.",
+    "No se puede mostrar el webhook."
+  ],
+  "Webhook affiché. Masquez-le avant de quitter cette page.": [
+    "Webhook shown. Hide it before leaving this page.",
+    "Webhook visible. Ocúltalo antes de salir de esta página."
+  ],
+  "Impossible de joindre l’atelier. Réessayez.": [
+    "The workshop is unreachable. Try again.",
+    "No se puede contactar con el taller. Inténtalo de nuevo."
   ]
 }
