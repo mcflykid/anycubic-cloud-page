@@ -13,6 +13,7 @@ import {
 import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
 import { createFileThumbnails } from './workshop-file-previews.mjs';
+import { createUploadMotion } from './workshop-upload-motion.mjs';
 
 import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
 
@@ -379,6 +380,8 @@ export function createFiles(request, command) {
     }
   };
   const uploadInput = $('upload-form').elements.file;
+  const uploadDrop = uploadInput.closest('label');
+  const setUploadPending = createUploadMotion(uploadDrop);
   /** Le serveur contrôle aussi le format et la taille avant toute transmission. */
   function validateUpload(files) {
     if (files.length !== 1 || !/\.(gcode|stl|3mf)$/i.test(files[0].name) || !files[0].size) {
@@ -392,13 +395,12 @@ export function createFiles(request, command) {
     return true;
   }
 
-  const dropTarget = uploadInput.closest('label');
-  dropTarget.ondragover = (event) => {
+  uploadDrop.ondragover = (event) => {
     if (!event.dataTransfer.types.includes('Files')) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = workshopState.busy ? 'none' : 'copy';
   };
-  dropTarget.ondrop = (event) => {
+  uploadDrop.ondrop = (event) => {
     if (!event.dataTransfer.types.includes('Files')) return;
     event.preventDefault();
     if (workshopState.busy || !validateUpload(event.dataTransfer.files)) return;
@@ -448,6 +450,7 @@ export function createFiles(request, command) {
       uploadAttempt = { file: chosen, intent, id: crypto.randomUUID() };
     data.set('request_id', uploadAttempt.id);
     setBusy(true);
+    setUploadPending(true);
     set('upload-state', tr('Envoi en cours. Ne fermez pas cette page.'));
     try {
       const result = await request('/upload', {
@@ -462,6 +465,7 @@ export function createFiles(request, command) {
       set('upload-state', err.message);
       message(err.message, true);
     } finally {
+      setUploadPending(false);
       setBusy(false);
     }
   };
@@ -481,8 +485,9 @@ export function createFiles(request, command) {
     formatNote.textContent = storageOnly ? tr('Ce fichier peut être stocké dans le Cloud. Les options d’impression sont disponibles pour les fichiers .gcode.') : '';
     if (storageOnly) mode.value = 'upload';
     for (const option of mode.options) option.disabled = storageOnly && option.value !== 'upload';
-    form.elements.slots.disabled = storageOnly;
     const printing = mode.value !== 'upload', button = form.querySelector('[type=submit]');
+    form.elements.slots.disabled = !printing;
+    form.elements.slots.closest('label').hidden = !printing;
     const targetMissing = !workshopState.selectedPrinter,
       targetMessage = tr('Une imprimante explicite est requise. Actualisez la page.');
     button.textContent = printing ? tr('Envoyer et imprimer') : tr('Envoyer');

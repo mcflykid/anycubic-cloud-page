@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Place le fichier en tête du formulaire d’envoi et montre l’ordre des bobines lors d’une demande d’impression. Le contour animé suit la requête en cours (#241, #248).
+
 - Réorganise la barre des fichiers Cloud et adapte le compteur à rouleaux et la cascade de sélection de Lote (#242, #248).
 
 - Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).

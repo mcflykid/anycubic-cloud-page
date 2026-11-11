@@ -56,3 +56,56 @@ test('un modèle 3MF ne peut sélectionner que le stockage Cloud', async ({page}
   await expect(mode.locator('option[value=save-print]')).toHaveJSProperty('disabled', false);
   await expect(page.locator('#upload-format-note')).toBeHidden();
 });
+
+test('l’envoi présente le fichier en premier et limite le repère animé à la requête',async({page})=>{
+  await page.setViewportSize({width:1366,height:768});
+  let releaseUpload;
+  const pending=new Promise(resolve=>{releaseUpload=resolve;});
+  await page.route('**/imprimante-api/upload',async route=>{
+    await pending;
+    await route.fulfill({json:{message:'Envoi fictif terminé.'}});
+  });
+  await login(page);
+  await page.locator('[data-tab=upload]').click();
+  const form=page.locator('#upload-form');
+  const slots=form.locator('[name=slots]');
+  const file=form.locator('input[type=file]');
+  const mode=form.locator('[name=mode]');
+  await expect(slots).toBeHidden();
+  const fileBounds=await file.boundingBox();
+  const modeBounds=await mode.boundingBox();
+  expect(fileBounds.y+fileBounds.height).toBeLessThan(modeBounds.y);
+  await mode.selectOption('save-print');
+  await expect(slots).toBeVisible();
+  await mode.selectOption('upload');
+  await expect(slots).toBeHidden();
+  await file.setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('G28\n')});
+  await form.locator('button[type=submit]').click();
+  await expect(form.locator('.upload-progress-outline')).toBeHidden();
+  await page.locator('#confirm-yes').click();
+  try{
+    await expect(form.locator('.upload-file')).toHaveAttribute('aria-busy','true');
+    await expect(form.locator('.upload-progress-outline')).toBeVisible();
+  }finally{
+    releaseUpload();
+  }
+  await expect(page.locator('#upload-state')).toHaveText('Envoi fictif terminé.');
+  await expect(form.locator('.upload-file')).not.toHaveAttribute('aria-busy','true');
+  await expect(form.locator('.upload-progress-outline')).toBeHidden();
+});
+
+test('le relief Arrastre suit la souris et s’arrête avec le mouvement réduit',async({page})=>{
+  await login(page);
+  await page.locator('[data-tab=upload]').click();
+  const zone=page.locator('.upload-file');
+  const light=zone.locator('.upload-drop-light');
+  const {x,y,width,height}=await zone.boundingBox();
+  await page.mouse.move(x+width*.85,y+height*.2);
+  await expect.poll(()=>light.evaluate(element=>Number(getComputedStyle(element).opacity))).toBeGreaterThan(.5);
+  await expect(zone).not.toHaveCSS('transform','none');
+
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await expect(zone).toHaveCSS('transform','none');
+  await page.mouse.move(x+width*.4,y+height*.7);
+  await expect(light).toHaveCSS('opacity','0');
+});
