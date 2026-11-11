@@ -20,10 +20,10 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les sept styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
+test('les six styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
   await login(page);
   await openSettings(page);
-  const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab'];
+  const themes=['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
   for(const mode of ['light','dark']){
     await page.locator('#interface-theme').selectOption(mode);
     for(const style of themes){
@@ -89,7 +89,7 @@ test('les transitions suivent le style et la préférence de mouvement',async({p
   await expect(dialog).toHaveCSS('animation-name','none');
 });
 
-for (const theme of ['apple','ocean']) {
+for (const theme of ['apple']) {
   test(`${theme} garde le repère de sélection sur une rangée de navigation`,async({page})=>{
     await page.setViewportSize({width:1249,height:800});
     await page.emulateMedia({reducedMotion:'reduce'});
@@ -133,20 +133,17 @@ test('Aurore mémorise les cartes réordonnées et les réinitialise au clavier'
   await expect(bento.locator('.aurora-widget')).toHaveCount(4);
   const first=bento.locator('.aurora-widget').first();
   const firstName=await first.getAttribute('data-widget');
-  await first.getByRole('button',{name:/Déplacer .* vers le bas/}).click();
+  const lock = page.locator('#tab-overview [data-layout-action="lock"]');
+  await expect(lock).toHaveAttribute('aria-pressed', 'false');
+  await lock.click();
+  await first.getByRole('button',{name:'Déplacer après'}).press('Enter');
   await expect(bento.locator('.aurora-widget').nth(1)).toHaveAttribute('data-widget',firstName);
   await page.reload();
   await openSection(page,'overview');
+  await expect(lock).toHaveAttribute('aria-pressed','false');
   await expect(bento.locator('.aurora-widget').nth(1)).toHaveAttribute('data-widget',firstName);
-  await bento.getByRole('button',{name:'Réinitialiser la disposition'}).click();
-  await expect(bento.locator('.aurora-widget').first()).toHaveAttribute('data-widget',firstName);
-  const dragHandle=bento.locator(`.aurora-widget[data-widget="${firstName}"] .aurora-drag-handle`);
-  const firstCard=bento.locator('.aurora-widget').first();
-  await Promise.all([dragHandle.scrollIntoViewIfNeeded(),firstCard.scrollIntoViewIfNeeded()]);
-  const [handle,target]=await Promise.all([dragHandle.boundingBox(),firstCard.boundingBox()]);
-  await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);
-  await page.mouse.down();
-  await page.mouse.move(target.x+target.width/2,target.y+8,{steps:12});
-  await page.mouse.up();
+  await openSettings(page);
+  await page.locator('#layout-reset').click();
+  await openSection(page,'overview');
   await expect(bento.locator('.aurora-widget').first()).toHaveAttribute('data-widget',firstName);
 });

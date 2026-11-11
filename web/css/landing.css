@@ -66,11 +66,10 @@ body.login-body {
 
 /* Les styles gardent leur accent et modulent le tracé du même objet. */
 [data-style="apple"] .login-print-scene { --print-metal: color-mix(in srgb,var(--accent) 26%,var(--line)); }
-[data-style="detailed"] .login-print-scene { --print-raster: color-mix(in srgb,var(--accent) 48%,transparent); }
 [data-style="blueprint"] .login-print-scene { --print-fill: color-mix(in srgb,var(--accent) 16%,var(--surface)); }
 [data-style="aurora"] .login-print-scene { --print-fill: color-mix(in srgb,var(--accent) 32%,var(--surface)); }
-[data-style="ocean"] .login-print-scene { --print-edge: color-mix(in srgb,var(--accent) 67%,var(--text)); }
 [data-style="lab"] .login-print-scene { --print-metal: color-mix(in srgb,var(--accent) 38%,var(--line)); }
+[data-style="glasshouse"] .login-print-scene { --print-edge: color-mix(in srgb,var(--accent) 62%,var(--text)); }
 [data-login-motion="paused"] .login-print-scene * { animation-play-state: paused; }
 
 @media (min-width: 900px) {

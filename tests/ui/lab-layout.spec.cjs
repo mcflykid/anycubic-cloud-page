@@ -2,17 +2,17 @@ const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
 
 /** Le laboratoire doit déplacer les boutons réels et retrouver chaque parcours après changement de thème. */
-test('Laboratoire regroupe neuf sections et restitue la navigation standard',async({page})=>{
+test('Laboratoire regroupe dix sections et conserve les groupes en Standard',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('cloud-page-style','lab'));
  await login(page);
  await expect(page.locator('.lab-nav-group')).toHaveCount(5);
  // Le rail reste un bloc compact, indépendant de la hauteur du tableau de bord.
  await expect(page.locator('.atelier-navigation')).toHaveCSS('display','block');
  const menu=await page.locator('#atelier-tabs').boundingBox();
- expect(menu.height).toBeLessThan(650);
+ expect(menu.height).toBeLessThan(740);
  const tabs=page.locator('#atelier-tabs [data-tab]');
- await expect(tabs).toHaveCount(9);
- for(const key of ['overview','ace','files','upload','camera','history','statistics','fleet','settings']){
+ await expect(tabs).toHaveCount(10);
+ for(const key of ['summary','overview','ace','files','upload','camera','history','fleet','statistics','settings']){
   await page.locator(`#atelier-tabs [data-tab=${key}]`).click();
   await expect(page.locator(`#tab-${key}`)).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),key).toBe(true);
@@ -20,8 +20,8 @@ test('Laboratoire regroupe neuf sections et restitue la navigation standard',asy
   await page.screenshot({path:`test-results/lab-${key}-desktop.png`,fullPage:true});
  }
  await page.locator('#interface-style').selectOption('standard');
- await expect(page.locator('.lab-nav-group')).toHaveCount(0);
- await expect(page.locator('#atelier-tabs > [data-tab]')).toHaveCount(9);
+ await expect(page.locator('.atelier-nav-group')).toHaveCount(5);
+ await expect(page.locator('#atelier-tabs [data-tab]')).toHaveCount(10);
  await page.locator('[data-tab=camera]').click();await expect(page.locator('#tab-camera')).toBeVisible();
 });
 

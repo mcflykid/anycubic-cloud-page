@@ -44,10 +44,6 @@
   --heading-entry: heading-spring;
   --dialog-entry: dialog-pop;
 }
-:root[data-style="detailed"] {
-  --section-entry-duration: 200ms;
-  --heading-entry: heading-sweep;
-}
 :root[data-style="blueprint"] {
   --section-entry: section-reveal;
   --section-entry-duration: 290ms;
@@ -57,10 +53,6 @@
   --section-entry-duration: 340ms;
   --heading-entry: heading-spring;
   --dialog-entry: dialog-pop;
-}
-:root[data-style="ocean"] {
-  --section-entry-duration: 340ms;
-  --heading-entry: heading-drift;
 }
 :root[data-style="lab"] {
   --section-entry-duration: 320ms;

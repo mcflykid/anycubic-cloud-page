@@ -53,9 +53,20 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
             aiohttp.ClientConnectionError("fixture"),
             types.SimpleNamespace(data={"fixture": True}),
         ]
-        with patch.object(adapter.asyncio, "sleep", new_callable=AsyncMock) as sleep:
+        with (
+            patch.object(adapter.asyncio, "sleep", new_callable=AsyncMock) as sleep,
+            self.assertLogs(adapter.OPS_LOG, "DEBUG") as records,
+        ):
             response = await adapter.camera(self.request)
             sleep.assert_not_awaited()
+        self.assertEqual(
+            [
+                (record._operational_event, record._operational_fields["attempt"])
+                for record in records.records
+            ],
+            [("camera_session_retry", 1), ("camera_session_received", 2)],
+        )
+        self.assertNotIn("fixture", str(records.output))
         self.assertEqual(self.printer.get_camera_session.await_count, 2)
         self.assertTrue(json.loads(response.body)["fixture"])
 

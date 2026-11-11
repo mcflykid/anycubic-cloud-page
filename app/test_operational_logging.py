@@ -191,6 +191,40 @@ class OperationalLoggingTests(unittest.TestCase):
             with patch.dict("os.environ", environ, clear=True), self.assertRaises(ValueError):
                 configure_logging(stream=io.StringIO())
 
+    def test_new_diagnostic_fields_use_only_enumerated_values(self):
+        """Conserve la configuration et le type de fichier sans exposer une valeur libre."""
+        stream = self.capture()
+        logger = logging.getLogger("cloud_page.server")
+        log_event(
+            logger,
+            logging.DEBUG,
+            "diagnostic",
+            message="Étape fictive",
+            log_level="DEBUG",
+            log_format="json",
+            file_format="stl",
+        )
+        log_event(
+            logger,
+            logging.DEBUG,
+            "diagnostic",
+            message="Étape fictive",
+            log_level="fixture-secret-level",
+            log_format="fixture-secret-format",
+            file_format="fixture-private-name.stl",
+            viewer="fixture-private-viewer",
+            filename="fixture-private-name.stl",
+            account="fixture-private-account",
+        )
+        valid, invalid = map(json.loads, stream.getvalue().splitlines())
+        self.assertEqual(
+            [valid[key] for key in ("log_level", "log_format", "file_format")],
+            ["DEBUG", "json", "stl"],
+        )
+        for key in ("log_level", "log_format", "file_format", "viewer", "filename", "account"):
+            self.assertNotIn(key, invalid)
+        self.assertNotIn("fixture-", stream.getvalue())
+
     def test_request_context_is_added_only_after_whitelist_validation(self):
         """Le contexte HTTP corrèle les événements sans propager une route ou un identifiant brut."""
         stream = self.capture()

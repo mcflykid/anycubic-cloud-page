@@ -10,19 +10,19 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('data-style','standard');
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
- await expect(page.locator('#interface-style option')).toHaveCount(7);
+ await expect(page.locator('#interface-style option')).toHaveCount(6);
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 
-test('Apple Design garde neuf sections accessibles sans débordement horizontal',async({page})=>{
- await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page);
+test('Apple Design garde dix sections accessibles sans débordement horizontal',async({page})=>{
+ await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page, 'summary');
  const tabs=page.locator('#atelier-tabs');
  await expect(page.locator('#section-menu-toggle')).toBeVisible();
  await expect(tabs).toBeHidden();
  await page.locator('#section-menu-toggle').click();
  await expect(tabs).toHaveAttribute('data-open','true');
- await expect(tabs.locator('button')).toHaveCount(9);
- await expect(tabs.getByRole('button')).toHaveCount(9);
+ await expect(tabs.locator('button')).toHaveCount(10);
+ await expect(tabs.getByRole('button')).toHaveCount(10);
  expect(await tabs.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
  const settings=tabs.locator('[data-tab="settings"]');
@@ -43,25 +43,7 @@ test('les statistiques regroupent température, ACE et filaments en trois zones 
  expect(await page.locator('.statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 
-test('le thème détaillé place les mesures en trois rangées et centre les commandes',async({page})=>{
- await useStyle(page,'detailed'); await login(page);
- const metrics=page.locator('#temperatures');
- await expect(metrics.locator('div')).toHaveCount(5);
- await expect(metrics.locator('dd').first()).not.toHaveText('—');
- const tops=await metrics.locator('div').evaluateAll(items=>items.map(item=>Math.round(item.getBoundingClientRect().top)));
- expect(new Set(tops).size).toBe(3);
- const button=await page.locator('#controls-open').boundingBox(), card=await metrics.locator('..').boundingBox();
- expect(Math.abs(button.x+button.width/2-card.x-card.width/2)).toBeLessThan(2);
- const speedCards=await page.locator('#details>div').evaluateAll(items=>Object.fromEntries(items.map(item=>[item.querySelector('dt').textContent,{x:item.getBoundingClientRect().x,y:item.getBoundingClientRect().y,width:item.getBoundingClientRect().width}])));
- if(speedCards['Mode de vitesse']&&speedCards.Vitesse){
-  expect(Math.abs(speedCards['Mode de vitesse'].y-speedCards.Vitesse.y)).toBeLessThan(2);
-  expect(speedCards.Vitesse.x).toBeGreaterThan(speedCards['Mode de vitesse'].x);
-  expect(Math.abs(speedCards.Vitesse.width-speedCards['Mode de vitesse'].width)).toBeLessThan(2);
- }
-});
-
-test('les mesures absentes gardent les cartes et leur disposition détaillée',async({page})=>{
- await useStyle(page,'detailed');
+test('les mesures absentes gardent les cartes',async({page})=>{
  await page.route('**/imprimante-api/status',async route=>{
   const response=await route.fetch(),data=await response.json();
   for(const key of ['curr_nozzle_temp','target_nozzle_temp','curr_hotbed_temp','target_hotbed_temp','fan_speed_pct','aux_fan_speed_pct','box_fan_level'])delete data.printer[key];
@@ -71,8 +53,6 @@ test('les mesures absentes gardent les cartes et leur disposition détaillée',a
  const metrics=page.locator('#temperatures');
  await expect(metrics.locator('dd')).toHaveCount(5);
  await expect(metrics).toContainText('—');
- const rows=await metrics.locator('div').evaluateAll(items=>new Set(items.map(item=>Math.round(item.getBoundingClientRect().top))).size);
- expect(rows).toBe(3);
 });
 
 test('l’avertissement des axes reste en bas de la carte sur ordinateur et mobile',async({page})=>{
