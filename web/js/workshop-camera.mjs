@@ -1,4 +1,4 @@
-import { $, serverText, set, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { $, serverText, set, tr } from './workshop-ui.mjs?v=e3a401985858';
 
 const CAMERA_PRESENCE_INTERVAL_MS = 45000;
 
@@ -14,6 +14,12 @@ export function createCamera(request, getPrinter) {
     wanted = false;
   let presenceTimer = null,
     presencePending = false;
+
+  /** Accole un pictogramme neutre au texte déjà traduit sans modifier l’état du lecteur. */
+  function cameraState(text, state) {
+    set('camera-state', text);
+    $('camera-state').dataset.visualState = state;
+  }
 
   function stopPresence() {
     if (presenceTimer !== null) clearInterval(presenceTimer);
@@ -41,7 +47,7 @@ export function createCamera(request, getPrinter) {
       // Une panne réseau attend le prochain battement ; ce signal local n’a aucun ordre à rejouer.
       if (error.cameraPresenceExpired && viewer === target) {
         const closing = await close();
-        if (closing === generation) set('camera-state', tr('Session caméra expirée'));
+        if (closing === generation) cameraState(tr('Session caméra expirée'), 'error');
       }
     } finally {
       presencePending = false;
@@ -94,7 +100,7 @@ export function createCamera(request, getPrinter) {
     track?.stop();
     track = null;
     $('camera-video').replaceChildren();
-    set('camera-state', tr('Caméra éteinte'));
+    cameraState(tr('Caméra éteinte'), 'idle');
     const old = client;
     client = null;
     const left = old ? Promise.resolve().then(() => old.leave()).catch(() => {}) : Promise.resolve();
@@ -111,7 +117,7 @@ export function createCamera(request, getPrinter) {
       wanted = true;
       $('camera-start').disabled = true;
       $('camera-stop').disabled = false;
-      set('camera-state', tr('Connexion en cours…'));
+      cameraState(tr('Connexion en cours…'), 'loading');
       delete $('camera-state').dataset.tooltip;
       const sdk = await loadSdk();
       if (opening !== generation) return;
@@ -136,19 +142,19 @@ export function createCamera(request, getPrinter) {
         if (!current()) return;
         track = user.videoTrack;
         track.play('camera-video');
-        set('camera-state', tr('Caméra connectée'));
+        cameraState(tr('Caméra connectée'), 'ready');
       };
       mine.on('user-published', (user, type) => {
         if (type === 'video')
           subscribe(user).catch(() => {
-            if (current()) set('camera-state', tr('Flux vidéo indisponible'));
+            if (current()) cameraState(tr('Flux vidéo indisponible'), 'error');
           });
       });
       mine.on('user-unpublished', () => {
-        if (current()) set('camera-state', tr('Flux vidéo interrompu'));
+        if (current()) cameraState(tr('Flux vidéo interrompu'), 'error');
       });
       mine.on('user-left', () => {
-        if (current()) set('camera-state', tr('Caméra déconnectée'));
+        if (current()) cameraState(tr('Caméra déconnectée'), 'idle');
       });
       let renewing = false;
       mine.on('token-privilege-will-expire', async () => {
@@ -164,12 +170,12 @@ export function createCamera(request, getPrinter) {
           const sameSession = ['appid', 'channel', 'client_uid', 'encryption_mode', 'encryption_key', 'encryption_kdf_salt']
             .every((field) => updated[field] === session[field]);
           if (!sameSession || typeof updated.rtc_token !== 'string' || !updated.rtc_token) {
-            set('camera-state', tr('Session caméra expirée'));
+            cameraState(tr('Session caméra expirée'), 'error');
             return;
           }
           await mine.renewToken(updated.rtc_token);
         } catch {
-          if (current()) set('camera-state', tr('Session caméra expirée'));
+          if (current()) cameraState(tr('Session caméra expirée'), 'error');
         } finally {
           renewing = false;
         }
@@ -196,7 +202,7 @@ export function createCamera(request, getPrinter) {
       startPresence(viewer);
       await Promise.all(mine.remoteUsers.filter((user) => user.hasVideo).map(subscribe));
       if (current())
-        set('camera-state', track ? tr('Caméra connectée') : tr('En attente de la vidéo'));
+        cameraState(track ? tr('Caméra connectée') : tr('En attente de la vidéo'), track ? 'ready' : 'waiting');
     } catch (error) {
       if (opening !== generation) return;
       const closing = await close();
@@ -204,7 +210,7 @@ export function createCamera(request, getPrinter) {
       const known = ['missing_credentials', 'invalid_format', 'unsupported_transport'].includes(
         error.cameraReason,
       );
-      set('camera-state', known ? error.message : tr('Caméra indisponible'));
+      cameraState(known ? error.message : tr('Caméra indisponible'), 'error');
       $('camera-state').dataset.tooltip = known
         ? error.message
         : tr('La session vidéo ne peut pas être ouverte pour le moment.');
@@ -245,10 +251,7 @@ export function createCamera(request, getPrinter) {
     },
     updateDiagnostic(diagnostic) {
       if (wanted && !track && diagnostic)
-        set(
-          'camera-state',
-          serverText(diagnostic.message, 'Pas de diagnostic traduit pour cet événement.'),
-        );
+        cameraState(serverText(diagnostic.message, 'Pas de diagnostic traduit pour cet événement.'), 'error');
     },
   };
 }

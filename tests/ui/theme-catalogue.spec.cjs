@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
-const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab'];
+const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab','studio','observatory','glasshouse'];
 async function openSettings(page){
   const settings=page.locator('[data-tab=settings]');
   if(await settings.getAttribute('aria-current')==='page')return;
@@ -21,9 +21,9 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les sept styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
+test('les dix styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
   await login(page);await openSettings(page);
-  await expect(page.locator('#interface-style option')).toHaveCount(7);
+  await expect(page.locator('#interface-style option')).toHaveCount(themes.length);
   await page.locator('#interface-theme').selectOption('dark');
   await expect(page.locator('.theme-browser')).toHaveCount(0);
   for(const style of themes){
@@ -33,7 +33,7 @@ test('les sept styles se choisissent dans la liste, se mémorisent et gardent le
     await expect(page.locator('#theme-description')).not.toBeEmpty();
   }
   await page.reload();await openSettings(page);
-  await expect(page.locator('#interface-style')).toHaveValue('lab');
+  await expect(page.locator('#interface-style')).toHaveValue('glasshouse');
   await expect(page.locator('#interface-theme')).toHaveValue('dark');
 });
 
@@ -68,7 +68,7 @@ test('le changement de mode conserve le focus et respecte le mouvement réduit',
   await expect(theme).toBeFocused();
 });
 
-test('les sept styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
+test('les dix styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await login(page);
   for(const mode of ['light','dark']){
     await openSettings(page);await page.locator('#interface-theme').selectOption(mode);

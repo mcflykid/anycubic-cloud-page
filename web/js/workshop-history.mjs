@@ -15,10 +15,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
-import { slots, filamentAdvice } from './workshop-commands.mjs?v=05b621e58cf0';
-import { definition } from './workshop-overview.mjs?v=7af87df1caba';
+} from './workshop-ui.mjs?v=e3a401985858';
+import { workshopState } from './workshop-state.mjs?v=9c67b13bd97a';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=8457f5134585';
+import { definition } from './workshop-overview.mjs?v=1a4421e3ad30';
 import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs?v=b7032b1dcfc1';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
@@ -141,7 +141,10 @@ export function createHistory(request, command, selectedBox) {
         : 'Aucun message',
     ));
     set('history-state', state);
-    $('history-state').className = state && !noticeError ? 'empty-message' : '';
+    $('history-state').className = state ? 'empty-message' : '';
+    if (noticeError) $('history-state').dataset.visualState = 'error';
+    else if (state) $('history-state').dataset.visualState = 'empty';
+    else delete $('history-state').dataset.visualState;
     $('history-state').hidden = !state;
     $('notifications-more').hidden = !noticeMore;
     const fromSlicer = noticeSource === 'slicer';
@@ -422,12 +425,16 @@ export function createHistory(request, command, selectedBox) {
     dialog.dataset.notification = item.key;
     set('notification-preview-name', item.name);
     set('notification-preview-state', tr('Chargement de l’aperçu…'));
+    $('notification-preview-state').dataset.visualState = 'loading';
+    $('notification-preview-state').hidden = false;
     image.hidden = true;
     dialog.showModal();
     const src = await taskPreview({ ...item, key: 'notification:' + item.key, notification: true });
     if (!dialog.open || dialog.dataset.notification !== item.key) return;
-    const unavailable = () =>
+    const unavailable = () => {
       set('notification-preview-state', tr('Aperçu indisponible pour cette notification.'));
+      $('notification-preview-state').dataset.visualState = 'error';
+    };
     if (!src) {
       unavailable();
       return;
@@ -442,6 +449,7 @@ export function createHistory(request, command, selectedBox) {
     if (dialog.open && dialog.dataset.notification === item.key) {
       image.hidden = false;
       set('notification-preview-state', tr(item.result));
+      $('notification-preview-state').dataset.visualState = 'ready';
     }
   }
   /** Chaque liste possède son observateur pour que le rafraîchissement de l’historique préserve les notifications. */
@@ -471,6 +479,8 @@ export function createHistory(request, command, selectedBox) {
     image.alt = tr('Aperçu de ') + t.name;
     image.hidden = true;
     fallback.textContent = tr('Chargement…');
+    button.dataset.previewState = 'loading';
+    button.setAttribute('aria-busy', 'true');
     button.append(image, fallback);
     button.loadPreview = () =>
       taskPreview(t).then((src) => {
@@ -482,14 +492,22 @@ export function createHistory(request, command, selectedBox) {
           image.onload = () => {
             image.hidden = false;
             fallback.hidden = true;
+            button.dataset.previewState = 'ready';
+            button.removeAttribute('aria-busy');
           };
           image.onerror = () => {
             image.hidden = true;
             fallback.hidden = false;
             fallback.textContent = tr('Aperçu indisponible');
+            button.dataset.previewState = 'unavailable';
+            button.removeAttribute('aria-busy');
           };
           image.src = src;
-        } else fallback.textContent = tr('Aperçu indisponible');
+        } else {
+          fallback.textContent = tr('Aperçu indisponible');
+          button.dataset.previewState = 'unavailable';
+          button.removeAttribute('aria-busy');
+        }
       });
     (t.notification ? notificationPreviewObserver : taskPreviewObserver).observe(button);
     return button;
@@ -715,6 +733,8 @@ export function createHistory(request, command, selectedBox) {
     );
     $('tasks-state').hidden = !!rows.length;
     $('tasks-state').className = rows.length ? 'muted' : 'empty-message';
+    if (rows.length) delete $('tasks-state').dataset.visualState;
+    else $('tasks-state').dataset.visualState = 'empty';
     set('tasks-page', formatText('{0} fiche(s) chargée(s)', taskRows.length));
     $('tasks-next').hidden = !taskMore;
     taskSelectionState();
@@ -728,6 +748,7 @@ export function createHistory(request, command, selectedBox) {
     }
     const stopLoading = beginListLoading($('tasks-list'), $('tasks-loading'), () => {
       set('tasks-state', tr('Chargement des impressions…'));
+      $('tasks-state').dataset.visualState = 'loading';
       $('tasks-state').hidden = false;
     });
     try {
@@ -755,6 +776,8 @@ export function createHistory(request, command, selectedBox) {
     } catch (e) {
       if (generation !== tasksGeneration) return;
       set('tasks-state', e.message);
+      $('tasks-state').className = 'empty-message';
+      $('tasks-state').dataset.visualState = 'error';
       $('tasks-state').hidden = false;
     } finally {
       stopLoading();
@@ -807,6 +830,9 @@ export function createHistory(request, command, selectedBox) {
     set('past-task-state', tr('Chargement des détails…'));
     set('past-task-reason', '');
     $('past-task-preview').hidden = true;
+    set('past-task-preview-state', tr('Chargement de l’aperçu…'));
+    $('past-task-preview-state').dataset.previewState = 'loading';
+    $('past-task-preview-state').hidden = false;
     $('past-task-diagnostic').hidden = true;
     $('past-task-help').hidden = true;
     $('past-task-data').replaceChildren();
@@ -847,10 +873,26 @@ export function createHistory(request, command, selectedBox) {
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;
     taskPreview(t).then((src) => {
-      if (src && current()) {
-        $('past-task-preview').src = src;
-        $('past-task-preview').hidden = false;
+      const image = $('past-task-preview'), previewState = $('past-task-preview-state');
+      if (!current()) return;
+      if (!src) {
+        set('past-task-preview-state', tr('Aperçu indisponible'));
+        previewState.dataset.previewState = 'unavailable';
+        return;
       }
+      image.onload = () => {
+        if (!current()) return;
+        image.hidden = false;
+        previewState.hidden = true;
+      };
+      image.onerror = () => {
+        if (!current()) return;
+        image.hidden = true;
+        set('past-task-preview-state', tr('Aperçu indisponible'));
+        previewState.dataset.previewState = 'unavailable';
+        previewState.hidden = false;
+      };
+      image.src = src;
     });
     try {
       const d = await request('/extras/task?key=' + encodeURIComponent(t.key));

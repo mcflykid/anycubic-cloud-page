@@ -30,7 +30,8 @@ MODULES = (
     "workshop-login.mjs",
     "workshop-interactions.mjs",
     "workshop-monitoring.mjs",
-    "workshop-lab.mjs",
+    "workshop-summary.mjs",
+    "workshop-layout.mjs",
 )
 
 
@@ -103,6 +104,10 @@ def update(check=False):
             "interactions.css",
             "lab.css",
             "density.css",
+            "visual-states.css",
+            "workshop-navigation.css",
+            "workshop-layout.css",
+            "workshop-styles.css",
         ):
             digest, _ = signature((ROOT / "css" / style).read_bytes())
             path = f"{UI}/css/{style}"

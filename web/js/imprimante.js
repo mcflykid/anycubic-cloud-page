@@ -8,28 +8,29 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
-import { createRequest } from './workshop-api.mjs?v=7d1c7225d9bd';
-import { createCamera } from './workshop-camera.mjs?v=4ed743a29b30';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=77a3ed1c2bd9';
-import { createCommands } from './workshop-commands.mjs?v=05b621e58cf0';
-import { createOverview } from './workshop-overview.mjs?v=7af87df1caba';
-import { createAce } from './workshop-ace.mjs?v=309ba717a12c';
-import { createFiles } from './workshop-files.mjs?v=ed90e3627784';
-import { createHistory } from './workshop-history.mjs?v=46a0ff41aa27';
-import { createSettings } from './workshop-settings.mjs?v=ff858df6d005';
-import { createTimelapses } from './workshop-timelapses.mjs?v=77381a380f59';
-import './workshop-help.mjs?v=a2f129000309';
-import { createMonitoring } from './workshop-monitoring.mjs?v=02c5f75e21d8';
-import { createFleet } from './workshop-fleet.mjs?v=3a69dd0f32a5';
-import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=92b85c0cbfbc';
+} from './workshop-ui.mjs?v=e3a401985858';
+import { workshopState } from './workshop-state.mjs?v=9c67b13bd97a';
+import { createRequest } from './workshop-api.mjs?v=fb42aa5210d9';
+import { createCamera } from './workshop-camera.mjs?v=f2aef7dbb37f';
+import { createTemperatureLoader } from './workshop-temperatures.mjs?v=f1beec8a492d';
+import { createCommands } from './workshop-commands.mjs?v=8457f5134585';
+import { createOverview } from './workshop-overview.mjs?v=1a4421e3ad30';
+import { createAce } from './workshop-ace.mjs?v=2576cdc53be4';
+import { createFiles } from './workshop-files.mjs?v=3d221adfc126';
+import { createHistory } from './workshop-history.mjs?v=fffa022b71ec';
+import { createSettings } from './workshop-settings.mjs?v=6bb873dffa75';
+import { createTimelapses } from './workshop-timelapses.mjs?v=2a95bf9bfc0e';
+import './workshop-help.mjs?v=ac2474ecd3b0';
+import { createMonitoring } from './workshop-monitoring.mjs?v=1552dd27fe00';
+import { createFleet } from './workshop-fleet.mjs?v=bf407f3be755';
+import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=cf9fb6ddad03';
 initializeWorkshopNavigation();
-import { initializeInteractions } from './workshop-interactions.mjs?v=44d2be251f06';
+import { initializeInteractions } from './workshop-interactions.mjs?v=106d60d6b67c';
 initializeInteractions();
-import { initializeLabLayout } from './workshop-lab.mjs?v=b319ab844645';
-initializeLabLayout();
-export { previewJob } from './workshop-overview.mjs?v=7af87df1caba';
+import { initializeTileLayout } from './workshop-layout.mjs?v=5c8396d86790';
+initializeTileLayout();
+import { renderSummary } from './workshop-summary.mjs?v=55ac44107658';
+export { previewJob } from './workshop-overview.mjs?v=1a4421e3ad30';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
@@ -176,6 +177,7 @@ async function refreshState() {
         date(d.token_expires_at),
       );
     }
+    renderSummary(d);
     if (!p) {
       settings.disableQuickControls();
       return;
@@ -237,6 +239,15 @@ function showTab(name) {
 for (const button of document.querySelectorAll('[data-tab]')) {
   button.onclick = () => showTab(button.dataset.tab);
   button.disabled = false;
+}
+// Les liens du résumé ouvrent les sections déjà chargées sans émettre d’ordre.
+for (const button of document.querySelectorAll('[data-summary-open]')) {
+  button.onclick = () => {
+    showTab(button.dataset.summaryOpen);
+    const tab = document.querySelector(`#atelier-tabs [data-tab="${button.dataset.summaryOpen}"]`);
+    const compact = $('section-menu-toggle').getClientRects().length > 0;
+    (compact ? $('section-menu-toggle') : tab)?.focus();
+  };
 }
 document
   .querySelectorAll('[data-command]')

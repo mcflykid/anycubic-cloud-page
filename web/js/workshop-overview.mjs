@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
+} from './workshop-ui.mjs?v=e3a401985858';
+import { workshopState } from './workshop-state.mjs?v=9c67b13bd97a';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -190,22 +190,34 @@ export function createOverview(request) {
   /** Réessaie un aperçu indisponible avec un délai borné et ignore les réponses d’un ancien projet. */
   function renderJobPreview(printer) {
     const key = printer.job_name && JSON.stringify([workshopState.selectedPrinter, printer.command_project, printer.job_name]);
-    const image = $('job-preview');
+    const image = $('job-preview'), summaryImage = $('summary-preview'), status = $('job-preview-state');
+    const showStatus = (state, text) => {
+      status.dataset.previewState = state;
+      status.textContent = tr(text);
+      status.hidden = false;
+      if (state === 'loading') status.setAttribute('aria-busy', 'true');
+      else status.removeAttribute('aria-busy');
+    };
     if (!key || previewJob?.key !== key) {
       image.hidden = true;
+      summaryImage.hidden = true;
+      image.onerror = null;
+      status.hidden = true;
+      status.removeAttribute('aria-busy');
+      delete status.dataset.previewState;
       previewJob = key ? { key, attempts: 0, next: 0, pending: false, done: false } : null;
     }
     const current = previewJob;
-    if (
-      !current ||
-      current.done ||
-      current.pending ||
-      current.attempts >= 6 ||
-      Date.now() < current.next
-    )
+    if (!current) return;
+    if (current.done) return;
+    if (current.attempts >= 6) {
+      if (image.hidden) showStatus('unavailable', 'Aperçu indisponible');
       return;
+    }
+    if (current.pending || Date.now() < current.next) return;
     current.attempts++;
     current.pending = true;
+    showStatus('loading', 'Chargement de l’aperçu…');
     request('/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -213,15 +225,36 @@ export function createOverview(request) {
     })
       .then((result) => {
         if (previewJob === current && result.image) {
+          image.onerror = () => {
+            if (previewJob !== current) return;
+            image.hidden = true;
+            summaryImage.hidden = true;
+            current.done = true;
+            showStatus('unavailable', 'Aperçu indisponible');
+          };
+          image.onload = () => {
+            if (previewJob === current) {
+              status.hidden = true;
+              status.removeAttribute('aria-busy');
+            }
+          };
           image.src = result.image;
           image.hidden = false;
+          summaryImage.src = result.image;
+          summaryImage.hidden = false;
           current.done = true;
+          status.hidden = true;
+          status.removeAttribute('aria-busy');
         }
       })
       .catch(() => {})
       .finally(() => {
         current.pending = false;
         current.next = Date.now() + Math.min(30000, current.attempts * 5000);
+        if (previewJob === current && image.hidden) {
+          if (current.attempts >= 6) showStatus('unavailable', 'Aperçu indisponible');
+          else showStatus('waiting', 'Aperçu en attente');
+        }
       });
   }
   /** Affiche l’état courant et autorise les commandes selon le projet, sans assimiler l’absence de données à un succès. */
