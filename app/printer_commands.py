@@ -16,6 +16,7 @@ from idle_controls import set_idle
 from filament_catalog import editable_materials
 from print_preflight import ensure_firmware_ready
 from printer_values import filepath, integer, now, safeget
+from printer_files import invalidate_local_preview
 from operational_logging import log_event
 
 
@@ -298,4 +299,11 @@ async def execute_command(target, name, d):
         raise ValueError("Commande inconnue")
     if result is None or result is False:
         raise ValueError("Aucune commande acceptée par le moteur Anycubic")
+    if name in {"delete-local", "delete-usb"}:
+        invalidate_local_preview(
+            target,
+            "local" if name == "delete-local" else "usb",
+            filename,
+            kw["file_path"],
+        )
     return "Commande acceptée par Anycubic ; confirmation machine en attente"

@@ -14,6 +14,27 @@ from cloud_extras import key, number, download_preview
 from anycubic_cloud_api.data_models.files import AnycubicCloudFile
 from command_journal import dispatch_command
 
+LOCAL_PREVIEW_TTL = 60
+
+
+def local_preview_key(source, name, path):
+    """Renvoie la même clé source/chemin que la lecture pour invalider un fichier supprimé."""
+    return source, "/".join(x for x in [filepath(path).strip("/"), str(name)] if x)
+
+
+def invalidate_local_preview(target, source, name, path):
+    """Supprime l’aperçu après l’acquittement de l’effacement par le transport machine."""
+    target.preview_cache.pop(local_preview_key(source, name, path), None)
+
+
+def invalidate_folder_previews(target, source, folder):
+    """Invalide les aperçus du dossier lors d’une nouvelle lecture de ses métadonnées."""
+    prefix = folder.strip("/")
+    prefix = prefix + "/" if prefix else ""
+    stale = [key for key in target.preview_cache if key[0] == source and key[1].startswith(prefix)]
+    for stale_key in stale:
+        target.preview_cache.pop(stale_key, None)
+
 
 class MQTTReplies:
     """Corrèle les réponses MQTT sur la boucle de la cible, y compris avant l’acquittement HTTP."""
@@ -114,12 +135,18 @@ async def direct_request(target, kind, action, data):
 
 async def local_preview(target, source, name, path):
     """Renvoie une image locale en ligne ou None ; lève ValueError si le chemin ou la réponse est invalide."""
-    filename = "/".join(x for x in [filepath(path).strip("/"), str(name)] if x)
+    cachekey = local_preview_key(source, name, path)
+    filename = cachekey[1]
     if ".." in filename.split("/") or "\x00" in filename:
         raise ValueError("Nom de fichier invalide")
-    cachekey = (source, filename)
-    if cachekey in target.preview_cache:
-        return target.preview_cache[cachekey]
+    cached = target.preview_cache.get(cachekey)
+    if cached:
+        created, image = cached
+        if time.monotonic() - created < LOCAL_PREVIEW_TTL:
+            target.preview_cache.pop(cachekey)
+            target.preview_cache[cachekey] = cached
+            return image
+        target.preview_cache.pop(cachekey)
     # La consultation native Slicer 1239 reçoit son aperçu par MQTT, pas dans la réponse HTTP.
     from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest
 
@@ -152,7 +179,7 @@ async def local_preview(target, source, name, path):
                             + ";base64,"
                             + encoded
                         )
-                        target.preview_cache[cachekey] = image
+                        target.preview_cache[cachekey] = (time.monotonic(), image)
                         while len(target.preview_cache) > 20:
                             target.preview_cache.pop(next(iter(target.preview_cache)))
                         return image
@@ -245,6 +272,7 @@ async def read_files(target, source, path):
             ]
     setter = p._set_local_file_list if source == "local" else p._set_udisk_file_list
     setter(records, file_path=canonical)
+    invalidate_folder_previews(target, source, canonical)
     rows = p.local_file_list_object if source == "local" else p.udisk_file_list_object
     return {"files": rows, "path": canonical}
 
