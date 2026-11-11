@@ -73,7 +73,7 @@ body.login-body {
 [data-login-motion="paused"] .login-print-scene * { animation-play-state: paused; }
 
 @media (min-width: 900px) {
-  .login-body .login-card { justify-self: start; margin-inline-start: clamp(32px, 8vw, 160px); }
+  .login-body:has(.login-print-scene) .login-card { justify-self: start; margin-inline-start: clamp(32px, 8vw, 160px); }
 }
 @media (max-width: 899px) {
   .login-print-scene { place-items: center; opacity: .28; }
@@ -82,7 +82,7 @@ body.login-body {
 @media (max-width: 600px) {
   .login-print-scene { place-items: start center; opacity: .82; }
   .login-print-art { width: min(79vw,340px); margin-block-start: -46px; }
-  .login-body .login-card { margin-block-start: 96px; }
+  .login-body:has(.login-print-scene) .login-card { margin-block-start: 96px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .print-layers use,.print-top,.print-head { animation: none; }

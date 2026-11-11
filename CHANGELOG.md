@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Centre la vérification par code et les réglages de sécurité sur ordinateur et téléphone (#273).
+
 - Garde le bouton actif dans les bords arrondis du rail Aurore (#246).
 
 - Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
