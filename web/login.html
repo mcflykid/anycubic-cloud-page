@@ -8,9 +8,54 @@
 <link rel="icon" href="/imprimante-api/ui/icons/cloud-page.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/imprimante-api/ui/css/landing.css">
 <link rel="stylesheet" href="/imprimante-api/ui/css/imprimante.css">
-<link rel="stylesheet" href="/imprimante-api/ui/css/lab.css?v=ce09a14c795d"></head>
+<link rel="stylesheet" href="/imprimante-api/ui/css/lab.css?v=650748b54a1b"></head>
 <body class="login-body">
-<div class="login-orbits" aria-hidden="true"><i></i><i></i><i></i></div>
+<!-- La scène est décorative et laisse le formulaire premier dans l’ordre de lecture. -->
+<div class="login-print-scene" aria-hidden="true">
+  <svg class="login-print-art" viewBox="0 0 760 620" fill="none" focusable="false">
+    <defs>
+      <linearGradient id="print-bed-light" x1="164" y1="450" x2="629" y2="556" gradientUnits="userSpaceOnUse">
+        <stop class="print-bed-near"/>
+        <stop class="print-bed-far" offset="1"/>
+      </linearGradient>
+      <path id="print-layer-shape" d="M284 439 304 421 352 409 414 412 462 425 481 444 461 462 412 475 350 473 302 459Z"/>
+      <clipPath id="print-bed-clip"><path d="M115 476 374 382 663 476 402 571Z"/></clipPath>
+    </defs>
+    <g class="print-frame">
+      <path d="M187 450V192L374 122 587 192V450M187 192l187 73 213-73M374 122v260"/>
+      <path d="M187 250l187 73 213-73M187 448l187-66 213 66"/>
+      <path d="M179 450h16m384 0h16M179 192h16m384 0h16"/>
+    </g>
+    <path class="print-bed-edge" d="M115 476 402 571 663 476V492L402 587 115 492Z"/>
+    <path class="print-bed" fill="url(#print-bed-light)" d="M115 476 374 382 663 476 402 571Z"/>
+    <g class="print-grid" clip-path="url(#print-bed-clip)">
+      <path d="M89 472 423 587M119 460 453 575M149 448 483 563M179 436 513 551M209 424 543 539M239 412 573 527M269 400 603 515M299 388 633 503M329 376 663 491M359 364 693 479"/>
+      <path d="M117 500 451 376M147 510 481 386M177 520 511 396M207 530 541 406M237 540 571 416M267 550 601 426M297 560 631 436M327 570 661 446M357 580 691 456M387 590 721 466"/>
+    </g>
+    <g class="print-layers">
+      <use href="#print-layer-shape" transform="translate(0 0)" style="--layer:0"/>
+      <use href="#print-layer-shape" transform="translate(0 -11)" style="--layer:1"/>
+      <use href="#print-layer-shape" transform="translate(0 -22)" style="--layer:2"/>
+      <use href="#print-layer-shape" transform="translate(0 -33)" style="--layer:3"/>
+      <use href="#print-layer-shape" transform="translate(0 -44)" style="--layer:4"/>
+      <use href="#print-layer-shape" transform="translate(0 -55)" style="--layer:5"/>
+      <use href="#print-layer-shape" transform="translate(0 -66)" style="--layer:6"/>
+      <use href="#print-layer-shape" transform="translate(0 -77)" style="--layer:7"/>
+      <use href="#print-layer-shape" transform="translate(0 -88)" style="--layer:8"/>
+      <use href="#print-layer-shape" transform="translate(0 -99)" style="--layer:9"/>
+      <use href="#print-layer-shape" transform="translate(0 -110)" style="--layer:10"/>
+      <use href="#print-layer-shape" transform="translate(0 -121)" style="--layer:11"/>
+      <use href="#print-layer-shape" transform="translate(0 -132)" style="--layer:12"/>
+      <path class="print-top" style="--layer:13" d="m314 308 36-14 58 1 43 13-39 13-59-1Z"/>
+    </g>
+    <g class="print-head">
+      <path class="print-head-wire" d="M378 214V158q0-18 16-24l15-6"/>
+      <path class="print-head-shell" d="m352 211 26-10 31 10v28l-31 11-26-11Z"/>
+      <path class="print-head-face" d="m352 211 26 10 31-10m-31 10v29m-10-10v11l10 5 11-5v-11"/>
+      <path class="print-nozzle" d="M378 254v11"/>
+    </g>
+  </svg>
+</div>
 <main class="login-card">
 <img src="/imprimante-api/ui/icons/cloud-page.svg" width="52" height="52" alt="">
 <p class="login-brand">Anycubic Cloud Page</p>
@@ -27,5 +72,5 @@
 </form>
 <p class="login-note">Votre session reste ouverte pendant huit heures au maximum.</p>
 </main>
-<script id="workshop-language" type="module" src="/imprimante-api/ui/js/workshop-ui.mjs?v=9d97ce06364c" integrity="sha256-nZfOBjZMKTEH6btkB7c71yyG7xhoDKRoaIZswRa0pf0=" crossorigin="anonymous"></script><script id="login-interactions" type="module" src="/imprimante-api/ui/js/workshop-login.mjs?v=fdd64a6a7a16" integrity="sha256-/dZKanoWHkcj+JAO13gjUHicj9eZtE5JR8tP10Ow6T8=" crossorigin="anonymous"></script></body>
+<script id="workshop-language" type="module" src="/imprimante-api/ui/js/workshop-ui.mjs?v=9d97ce06364c" integrity="sha256-nZfOBjZMKTEH6btkB7c71yyG7xhoDKRoaIZswRa0pf0=" crossorigin="anonymous"></script><script id="login-interactions" type="module" src="/imprimante-api/ui/js/workshop-login.mjs?v=2403de636be0" integrity="sha256-JAPeY2vgdYo3eio82uyQNpMXKdW1iafcjIAG96KtwGU=" crossorigin="anonymous"></script></body>
 </html>
