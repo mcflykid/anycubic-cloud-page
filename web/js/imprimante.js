@@ -8,28 +8,28 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=6e32f535c683';
-import { workshopState } from './workshop-state.mjs?v=6f0c4b984abf';
-import { createRequest } from './workshop-api.mjs?v=6d9298d53ea6';
-import { createCamera } from './workshop-camera.mjs?v=b558668f6429';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=3d331a03fc6c';
-import { createCommands } from './workshop-commands.mjs?v=c3fdb64ac065';
-import { createOverview } from './workshop-overview.mjs?v=e74eab407465';
-import { createAce } from './workshop-ace.mjs?v=3859bf807a9c';
-import { createFiles } from './workshop-files.mjs?v=2175fdf96795';
-import { createHistory } from './workshop-history.mjs?v=e955a1ea19fa';
-import { createSettings } from './workshop-settings.mjs?v=8cd54489c87f';
-import { createTimelapses } from './workshop-timelapses.mjs?v=7798ebd27df7';
-import './workshop-help.mjs?v=f122f695dfa1';
-import { createMonitoring } from './workshop-monitoring.mjs?v=578e33163d51';
-import { createFleet } from './workshop-fleet.mjs?v=6beaa908c09e';
-import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=967025657746';
+} from './workshop-ui.mjs?v=f016ab469b8c';
+import { workshopState } from './workshop-state.mjs?v=d023298e5d0e';
+import { createRequest } from './workshop-api.mjs?v=e977ef8c01f7';
+import { createCamera } from './workshop-camera.mjs?v=db7ea1af1f82';
+import { createTemperatureLoader } from './workshop-temperatures.mjs?v=8a4832c9e2e5';
+import { createCommands } from './workshop-commands.mjs?v=6ffb7326b8fe';
+import { createOverview } from './workshop-overview.mjs?v=46a93c98af7f';
+import { createAce } from './workshop-ace.mjs?v=49b4926315fa';
+import { createFiles } from './workshop-files.mjs?v=fd7765dda82d';
+import { createHistory } from './workshop-history.mjs?v=1f68dfb5e245';
+import { createSettings } from './workshop-settings.mjs?v=4a75203fbe6f';
+import { createTimelapses } from './workshop-timelapses.mjs?v=a94d9db57d7c';
+import './workshop-help.mjs?v=7e97c7c5131b';
+import { createMonitoring } from './workshop-monitoring.mjs?v=39658c0d823f';
+import { createFleet } from './workshop-fleet.mjs?v=cf9905664fe6';
+import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=6fa9ddc07ad4';
 initializeWorkshopNavigation();
-import { initializeInteractions } from './workshop-interactions.mjs?v=edeb9712d336';
+import { initializeInteractions } from './workshop-interactions.mjs?v=0a7943d9b2dc';
 initializeInteractions();
-import { initializeLabLayout } from './workshop-lab.mjs?v=3a5e9d6eca5c';
+import { initializeLabLayout } from './workshop-lab.mjs?v=29872234247f';
 initializeLabLayout();
-export { previewJob } from './workshop-overview.mjs?v=e74eab407465';
+export { previewJob } from './workshop-overview.mjs?v=46a93c98af7f';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,

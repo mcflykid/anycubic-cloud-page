@@ -1,4 +1,24 @@
 {
+  "Comment reconnaître un fichier prêt à imprimer ?": [
+    "How do I identify a print-ready file?",
+    "¿Cómo reconozco un archivo listo para imprimir?"
+  ],
+  "STL et 3MF de conception": [
+    "STL and design 3MF",
+    "STL y 3MF de diseño"
+  ],
+  "Ouvrez le modèle dans le slicer, choisissez le profil de l’imprimante et tranchez le projet.": [
+    "Open the model in the slicer, select the printer profile and slice the project.",
+    "Abre el modelo en el laminador, elige el perfil de la impresora y lamina el proyecto."
+  ],
+  "G-code et 3MF tranché": [
+    "G-code and sliced 3MF",
+    "G-code y 3MF laminado"
+  ],
+  "Un fichier tranché contient les instructions d’impression. Vérifiez le modèle cible dans le slicer. Pour un paquet .gcode.3mf, la possibilité de lancer l’impression depuis cet atelier reste à vérifier.": [
+    "A sliced file contains printing instructions. Check the target model in the slicer. Starting a print from a .gcode.3mf package in this workshop still needs verification.",
+    "Un archivo laminado contiene las instrucciones de impresión. Comprueba el modelo de destino en el laminador. Aún falta verificar si este taller puede iniciar una impresión desde un paquete .gcode.3mf."
+  ],
   "Détaillé": [
     "Détaillé",
     "Détaillé"

@@ -760,3 +760,15 @@ dialog{background:var(--surface);color:var(--text)}
 #statistics-ace .temperature-card-title{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(2.4em,auto) auto;align-items:start;gap:4px 10px;min-height:4rem}
 #statistics-ace .temperature-card-title h4{align-self:start}
 #statistics-ace .temperature-card-title strong{grid-column:1/-1;justify-self:start}
+
+/* Le conseil peut rester fermé sans prendre la place des commandes de fichier. */
+.file-format-help {
+  margin: 0 0 16px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius);
+  background: var(--surface);
+}
+.file-format-help summary { color: var(--text); }
+.file-format-help p { max-width: 68ch; margin: 4px 0 16px; line-height: 1.5; }
+.file-format-help strong { display: block; margin-bottom: 4px; }
