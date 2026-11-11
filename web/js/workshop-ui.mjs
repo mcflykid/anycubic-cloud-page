@@ -1,7 +1,7 @@
 const preference = 'cloud-page-language';
 const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
-const catalogueURL = new URL('./workshop-translations.json?v=0a747afe4212', import.meta.url);
-const catalogueIntegrity = 'sha256-CnR6/kISHOBU36ArnLmJdy1mymDrK027swi+YCw7hK4=';
+const catalogueURL = new URL('./workshop-translations.json?v=3a3c934bbb38', import.meta.url);
+const catalogueIntegrity = 'sha256-OjyTS7s4hCN67RXiTRk5+oJYLZf3fpudS5agxf0E2aU=';
 let language = 'fr',
   catalogue = {};
 const serverFormats = [
@@ -154,6 +154,9 @@ const styleCatalogue = [
   ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
   ['ocean', 'Navigation fluide, repère actif glissant et cartes aux lignes souples.'],
   ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
+  ['studio', 'Aperçu agrandi et suivi du travail au premier plan.'],
+  ['observatory', 'Mesures alignées et supervision en grille.'],
+  ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */

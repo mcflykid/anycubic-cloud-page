@@ -1,4 +1,4 @@
-import { tr } from './workshop-ui.mjs?v=f51999168421';
+import { tr } from './workshop-ui.mjs?v=d730a15b9b57';
 
 /** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
 export function initializeWorkshopNavigation() {

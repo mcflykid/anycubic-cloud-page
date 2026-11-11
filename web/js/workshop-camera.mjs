@@ -1,4 +1,4 @@
-import { $, serverText, set, tr } from './workshop-ui.mjs?v=f51999168421';
+import { $, serverText, set, tr } from './workshop-ui.mjs?v=d730a15b9b57';
 
 const CAMERA_PRESENCE_INTERVAL_MS = 45000;
 

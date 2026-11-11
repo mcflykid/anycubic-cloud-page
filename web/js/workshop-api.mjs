@@ -1,4 +1,4 @@
-import { formatText, serverText, tr } from './workshop-ui.mjs?v=f51999168421';
+import { formatText, serverText, tr } from './workshop-ui.mjs?v=d730a15b9b57';
 export const api = '/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */

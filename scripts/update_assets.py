@@ -105,6 +105,7 @@ def update(check=False):
             "lab.css",
             "workshop-navigation.css",
             "workshop-layout.css",
+            "workshop-styles.css",
         ):
             digest, _ = signature((ROOT / "css" / style).read_bytes())
             path = f"{UI}/css/{style}"
