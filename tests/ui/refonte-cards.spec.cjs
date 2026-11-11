@@ -5,6 +5,7 @@ test('les paires de cartes partagent les mêmes largeurs, hauteurs et séparatio
   await page.setViewportSize({width:1440,height:900});
   await login(page,'summary');
   await expect(page.locator('#summary-ace-boxes .summary-ace-device')).toBeVisible();
+  const summary = await page.locator('#tab-summary .atelier-summary-grid').boundingBox();
   const pairs=[
     ['summary', '#tab-summary .atelier-summary-grid'],
     ['settings', '#tab-settings .atelier-settings-row'],
@@ -24,6 +25,8 @@ test('les paires de cartes partagent les mêmes largeurs, hauteurs et séparatio
       expect(cards[0]).toEqual(cards[1]);
     }
   }
+  const settings = await page.locator('#tab-settings .atelier-settings-row').first().boundingBox();
+  expect([settings.x, settings.width]).toEqual([summary.x, summary.width]);
   const buttons=await page.locator('.settings-follow-actions button').evaluateAll(items=>items.map(item=>{
     const {width,height,y}=item.getBoundingClientRect();
     return {width,height,y};
