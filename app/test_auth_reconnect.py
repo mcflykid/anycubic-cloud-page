@@ -65,6 +65,23 @@ class AuthReconnect(unittest.IsolatedAsyncioTestCase):
         old.disconnect_mqtt.assert_called_once()
         e.transport.mqtt_thread.join.assert_called_once_with(3)
 
+    async def test_session_renewal_retains_and_observes_reconnect_task(self):
+        """Le travail différé est conservé puis libéré après journalisation d’un échec simulé."""
+        e = server.Engine()
+        api = object()
+        e.api = api
+        e.printer = SimpleNamespace(id=1)
+        e.transport.restart = AsyncMock(side_effect=RuntimeError("fixture-only"))
+        with patch.object(server, "log_event") as log_event:
+            e.session_renewed(api)
+            task = e.mqtt_reconnect_task
+            self.assertIsNotNone(task)
+            await task
+        self.assertIsNone(e.mqtt_reconnect_task)
+        self.assertTrue(e.transport.mqtt_auth_pending)
+        self.assertEqual(e.events[0]["state"], "Reconnexion indisponible (RuntimeError)")
+        self.assertEqual(log_event.call_args_list[-1].args[2], "mqtt_reconnect_failed")
+
     async def test_failed_catalogue_does_not_prevent_required_reconnect(self):
         """Un catalogue servi par l’ancien client ne doit pas précéder la reconnexion exigée."""
         e = server.Engine()

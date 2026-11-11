@@ -334,6 +334,7 @@ class Engine:
         self.camera_close_task = None
         self.command_lock = asyncio.Lock()
         self.upload_lock = asyncio.Lock()
+        self.mqtt_reconnect_task = None
         self.notifications = AccountNotifications()
         self.extras = None
         self.notifications_error = None
@@ -480,11 +481,37 @@ class Engine:
         self.event("Cloud", "Session renouvelée automatiquement")
         if self.api is api and self.printer and not self.reconnect_required:
             self.transport.mqtt_auth_pending = True
-            asyncio.create_task(self.restart_mqtt_auth(api))
+            previous = self.mqtt_reconnect_task
+            if previous is None or previous.done():
+                self.mqtt_reconnect_task = asyncio.create_task(self.restart_mqtt_auth(api))
 
     async def restart_mqtt_auth(self, api):
         """Relance le suivi du compte après le renouvellement de session."""
-        await self.transport.restart(api, self.mqtt_start)
+        try:
+            restarted = await self.transport.restart(api, self.mqtt_start)
+            if not restarted and self.api is api and self.transport.mqtt_auth_pending:
+                self.event("MQTT", "Reconnexion différée, le suivi précédent reste actif")
+                log_event(
+                    OPS_LOG,
+                    logging.WARNING,
+                    "mqtt_reconnect_deferred",
+                    message="Le suivi MQTT précédent ne s’est pas arrêté avant la reconnexion",
+                    reason="previous_thread_active",
+                )
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            self.event("MQTT", "Reconnexion indisponible (" + type(error).__name__ + ")")
+            log_event(
+                OPS_LOG,
+                logging.WARNING,
+                "mqtt_reconnect_failed",
+                message="La reconnexion MQTT après renouvellement a échoué",
+                error_type=type(error).__name__,
+            )
+        finally:
+            if self.mqtt_reconnect_task is asyncio.current_task():
+                self.mqtt_reconnect_task = None
 
     async def refresh_printer_details(self):
         """Partage un relevé HTTP entre le modèle et les capacités pour éviter deux états divergents."""
@@ -1499,7 +1526,6 @@ async def command(req):
     async with audit_command(req, engine, name, requestid if valid_id else None, d) as audit:
         if not valid_id:
             raise ValueError("Identifiant de commande manquant")
-
         async with command_operation(
             req,
             require_model=name != "presets",
@@ -2111,6 +2137,11 @@ async def cleanup(app):
     )
     registry = app["printer_registry"]
     for selected in [engine, *registry.entries.values()]:
+        reconnect = selected.mqtt_reconnect_task
+        if reconnect and not reconnect.done():
+            reconnect.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reconnect
         for task in (selected.camera_expiry_task, selected.camera_close_task):
             if task and not task.done():
                 task.cancel()
