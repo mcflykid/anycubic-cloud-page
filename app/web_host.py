@@ -81,6 +81,8 @@ FAILURE_SECONDS = 5 * 60
 FAILURE_LIMIT = 5
 GLOBAL_FAILURE_LIMIT = 100
 GLOBAL_FAILURE_DELAY = 1.0
+LOGIN_QUEUE_LIMIT = 8
+LOGIN_QUEUE_PER_CLIENT = 2
 REAUTH_SECONDS = 120
 LOGIN_CHALLENGE_SECONDS = 180
 ENROLLMENT_SECONDS = 300
@@ -133,6 +135,7 @@ class AccessState:
         self.clock = clock
         self.wait = wait
         self.login_lock = asyncio.Lock()
+        self.login_pending = {}
         self.sessions = {}
         self.challenges = {}
         self.enrollments = {}
@@ -160,13 +163,28 @@ class AccessState:
             self.global_until = 0
 
     @asynccontextmanager
-    async def login_slot(self):
-        """Sérialise les comparaisons ; après le seuil global, chaque tentative attend une seconde."""
-        async with self.login_lock:
-            # Une file FIFO ralentie laisse entrer le propriétaire après les essais déjà admis.
-            if self.global_until > self.clock():
-                await self.wait(GLOBAL_FAILURE_DELAY)
-            yield
+    async def login_slot(self, client, connected=lambda: True):
+        """Borne les demandes admises et libère leur place même après une annulation."""
+        pending = self.login_pending.get(client, 0)
+        if pending >= LOGIN_QUEUE_PER_CLIENT or sum(self.login_pending.values()) >= LOGIN_QUEUE_LIMIT:
+            yield 429
+            return
+        self.login_pending[client] = pending + 1
+        try:
+            async with self.login_lock:
+                # Une connexion fermée dans la file ne déclenche ni attente ni vérification.
+                if not connected():
+                    yield 499
+                    return
+                if self.global_until > self.clock():
+                    await self.wait(GLOBAL_FAILURE_DELAY)
+                yield None if connected() else 499
+        finally:
+            remaining = self.login_pending[client] - 1
+            if remaining:
+                self.login_pending[client] = remaining
+            else:
+                del self.login_pending[client]
 
     def record_failure(self, client, failures, until):
         """Consomme un essai dans le quota individuel et le compteur agrégé."""
@@ -400,9 +418,9 @@ async def read_login_form(request):
     return {key: values[0] for key, values in form.items()}
 
 
-def limited_response(render, until, now):
+def limited_response(render, until, now, message="Trop de tentatives. Réessayez dans quelques minutes."):
     """Indique la durée restante du quota sans révéler les identifiants présentés."""
-    response = render("Trop de tentatives. Réessayez dans quelques minutes.", 429)
+    response = render(message, 429)
     response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
     return response
 
@@ -460,6 +478,12 @@ def current_totp(request):
         ) from None
 
 
+def request_connected(request):
+    """Contrôle le transport actuel avant de consommer un créneau de connexion."""
+    transport = request.transport
+    return transport is not None and not transport.is_closing()
+
+
 async def login(request):
     """Valide le mot de passe puis, si configuré, le facteur à usage unique."""
     state = request.app[ACCESS_KEY]
@@ -486,16 +510,17 @@ async def login(request):
     if failures >= FAILURE_LIMIT:
         return limited_response(render, until, state.clock())
     form = await read_login_form(request)
-    async with state.login_slot():
+    async with state.login_slot(client, lambda: request_connected(request)) as rejection:
+        if rejection == 429:
+            now = state.clock()
+            return limited_response(render, now, now, "Connexion occupée. Réessayez dans un instant.")
+        if rejection:
+            return web.Response(status=rejection)
         state.prune()
         now = state.clock()
         failures, until = state.failures.get(client, (0, now + FAILURE_SECONDS))
         if failures >= FAILURE_LIMIT:
             return limited_response(render, until, now)
-        transport = request.transport
-        if transport is None or transport.is_closing():
-            # Une requête abandonnée dans la file ne doit pas consommer d’essai.
-            return web.Response(status=499)
         username, password, fingerprint = credentials()
         config = current_totp(request)
         if form.get("stage") == "totp":
@@ -624,7 +649,13 @@ async def totp_settings(request):
     state = request.app[ACCESS_KEY]
     client = rate_limit_client(request)
     key = request.get(SESSION_DIGEST_KEY)
-    async with state.login_slot():
+    async with state.login_slot(client, lambda: request_connected(request)) as rejection:
+        if rejection == 429:
+            response = totp_settings_page(store, config, "Trop de tentatives. Réessayez dans un instant.", 429)
+            response.headers["Retry-After"] = "1"
+            return response
+        if rejection:
+            return web.Response(status=rejection)
         state.prune()
         config = current_totp(request)
         _, expected, fingerprint = credentials()
