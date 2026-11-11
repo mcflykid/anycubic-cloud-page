@@ -202,10 +202,80 @@ class PrinterAxesTests(unittest.IsolatedAsyncioTestCase):
         async def accepted():
             return "fixture-timeout-cleanup"
 
-        with self.assertRaisesRegex(ValueError, "n’a pas confirmé"):
-            await replies.ask("axis", "query", accepted, 0.001)
+        from printer_files import MQTTReplyTimeout
+
+        phases = []
+
+        with self.assertRaisesRegex(MQTTReplyTimeout, "n’a pas confirmé"):
+            await replies.ask(
+                "axis",
+                "query",
+                accepted,
+                0.001,
+                on_phase=lambda phase, duration: phases.append((phase, duration)),
+            )
 
         self.assertEqual(replies.pending, {})
+        self.assertEqual([phase for phase, _ in phases], ["cloud_ack", "mqtt_timeout"])
+        self.assertTrue(all(duration >= 0 for _, duration in phases))
+
+    async def test_axis_query_logs_correlated_cloud_and_mqtt_phases(self):
+        """Les phases gardent la même référence et ne journalisent pas la réponse brute."""
+        from unittest.mock import patch
+
+        target = self.make_target()
+
+        async def send(order):
+            target.mqtt_replies.receive(
+                {
+                    "type": "axis",
+                    "action": "query",
+                    "state": "done",
+                    "code": 200,
+                    "msgid": "private-msgid-fixture",
+                    "data": {"coordinates": {"x": 1, "y": 2, "z": 3}},
+                }
+            )
+            return "private-msgid-fixture"
+
+        target.api._send_anycubic_order = send
+        with patch("printer_axes.log_event") as log:
+            await query_axis_position(target)
+
+        self.assertEqual(
+            [call.args[2] for call in log.call_args_list],
+            ["axis_query_started", "axis_query_cloud_ack", "axis_query_mqtt_reply"],
+        )
+        refs = [call.kwargs["request_id"] for call in log.call_args_list]
+        self.assertEqual(len(set(refs)), 1)
+        for call in log.call_args_list:
+            self.assertEqual(call.args[1], 20)
+            self.assertGreaterEqual(call.kwargs["duration_ms"], 0)
+            self.assertNotIn("private-msgid-fixture", repr(call))
+
+    async def test_axis_reply_timeout_has_distinct_phase_and_error_type(self):
+        """Le délai de réponse produit un type dédié et un signal corrélé sans données MQTT."""
+        from unittest.mock import patch
+        from printer_files import MQTTReplyTimeout
+
+        target = self.make_target()
+
+        async def timeout(*args, **kwargs):
+            kwargs["on_phase"]("cloud_ack", 0.3)
+            kwargs["on_phase"]("mqtt_timeout", 2.5)
+            raise MQTTReplyTimeout("timeout fixture")
+
+        target.mqtt_replies.ask = AsyncMock(side_effect=timeout)
+        with patch("printer_axes.log_event") as log:
+            with self.assertRaises(MQTTReplyTimeout):
+                await query_axis_position(target)
+
+        self.assertEqual(
+            [call.args[2] for call in log.call_args_list],
+            ["axis_query_started", "axis_query_cloud_ack", "axis_query_mqtt_timeout"],
+        )
+        self.assertEqual(len({call.kwargs["request_id"] for call in log.call_args_list}), 1)
+        self.assertNotIn("private-timeout-msgid", repr(log.call_args_list))
 
 
 if __name__ == "__main__":
@@ -247,7 +317,76 @@ class AxisRouterTests(unittest.TestCase):
             retain=False,
         )
         with patch.object(AnycubicMQTTAPI, "_mqtt_message_router") as generic:
-            api._mqtt_message_router(message)
+            with patch("server.log_event") as log:
+                api._mqtt_message_router(message)
         owner.mqtt_replies.receive.assert_called_once_with(payload)
         generic.assert_not_called()
         owner.mqtt_changed.assert_not_called()
+        self.assertEqual(log.call_args.args[2], "axis_query_mqtt_observed")
+        self.assertEqual(log.call_args.kwargs["owner_present"], True)
+        self.assertEqual(log.call_args.kwargs["msgid_present"], True)
+        self.assertEqual(log.call_args.kwargs["coordinates_complete"], True)
+        self.assertEqual(log.call_args.kwargs["reply_code"], "success")
+
+    def test_axis_query_is_logged_before_unknown_owner_is_discarded(self):
+        """Une réponse axis/query sans propriétaire est diagnostiquée sans transmettre son contenu."""
+        import json
+        from unittest.mock import Mock, patch
+        from server import CloudPageAPI
+        from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
+
+        primary = SimpleNamespace(
+            fleet_registry=SimpleNamespace(owner=Mock(return_value=None)),
+            command_mqtt=None,
+        )
+        api = object.__new__(CloudPageAPI)
+        api.cloud_engine = primary
+        message = SimpleNamespace(
+            topic="anycubic/anycubicCloud/v1/printer/app/20025/orphan-device/axis",
+            payload=json.dumps(
+                {
+                    "type": "axis",
+                    "action": "query",
+                    "state": "done",
+                    "code": 403,
+                    "msgid": "private-orphan-msgid",
+                    "data": {"coordinates": {"x": 1, "y": 2, "z": 3}},
+                }
+            ).encode(),
+            retain=False,
+        )
+        with patch.object(AnycubicMQTTAPI, "_mqtt_message_router") as generic:
+            with patch("server.log_event") as log:
+                api._mqtt_message_router(message)
+
+        self.assertEqual(log.call_args.args[2], "axis_query_mqtt_observed")
+        self.assertFalse(log.call_args.kwargs["owner_present"])
+        self.assertTrue(log.call_args.kwargs["msgid_present"])
+        self.assertTrue(log.call_args.kwargs["coordinates_complete"])
+        self.assertEqual(log.call_args.kwargs["reply_code"], "refused")
+        self.assertNotIn("private-orphan-msgid", repr(log.call_args))
+        generic.assert_called_once_with(message)
+
+
+class AxisHTTPTimeoutTests(unittest.IsolatedAsyncioTestCase):
+    """Un délai de réponse de lecture reste distinct d’une limite de quota."""
+
+    async def test_axis_mqtt_timeout_returns_504_without_retry_after(self):
+        from unittest.mock import AsyncMock, patch
+        from printer_files import MQTTReplyTimeout
+        from server import axis_position
+
+        selected = SimpleNamespace(lock=asyncio.Lock())
+        request = SimpleNamespace()
+        with (
+            patch("server.request_engine", return_value=selected),
+            patch("server.verify_printer_target"),
+            patch(
+                "server.query_axis_position", new=AsyncMock(side_effect=MQTTReplyTimeout("timeout"))
+            ),
+        ):
+            response = await axis_position(request)
+
+        self.assertEqual(response.status, 504)
+        self.assertNotIn("Retry-After", response.headers)
+        self.assertIn("Aucune relance automatique", response.text)

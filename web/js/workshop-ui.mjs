@@ -1,7 +1,7 @@
 const preference = 'cloud-page-language';
 const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
-const catalogueURL = new URL('./workshop-translations.json?v=1e1d74d37037', import.meta.url);
-const catalogueIntegrity = 'sha256-Hh1003A39THWyg2USmSRsytzfMg9l7b7eKspPqOfiDw=';
+const catalogueURL = new URL('./workshop-translations.json?v=8c46a7fe3382', import.meta.url);
+const catalogueIntegrity = 'sha256-jEan/jOCtBHWbCGSFaaL5gYUvx5WlPyK6d3eRSywpDk=';
 let language = 'fr',
   catalogue = {};
 const serverFormats = [
@@ -130,106 +130,13 @@ function initializeTheme() {
 initializeTheme();
 
 const styleCatalogue = [
-  [
-    "standard",
-    "Par défaut",
-    "Une présentation sobre et équilibrée pour le suivi quotidien."
-  ],
-  [
-    "apple",
-    "Apple Design",
-    "Verre translucide, halos de couleur et commandes en pilule."
-  ],
-  [
-    "detailed",
-    "Détaillé",
-    "Des mesures denses, des séparations nettes et des informations groupées."
-  ],
-  [
-    "halloween",
-    "Halloween",
-    "Une ambiance prune et citrouille avec des cartes chaleureuses."
-  ],
-  [
-    "christmas",
-    "Noël",
-    "Vert sapin, accents dorés et surfaces douces."
-  ],
-  [
-    "anchor",
-    "Anchor Pop",
-    "Corail et crème, cartes ancrées et apparition avec rebond."
-  ],
-  [
-    "turnover",
-    "Turn Over",
-    "Un carnet éditorial et des panneaux qui se retournent légèrement."
-  ],
-  [
-    "cards",
-    "Card Deal",
-    "Vert profond, liserés dorés et cartes distribuées en cascade."
-  ],
-  [
-    "drum",
-    "Drum Roll",
-    "Indigo et violet, chiffres nets et panneaux qui déroulent."
-  ],
-  [
-    "outline",
-    "Outline Trace",
-    "Des contours dessinés, un fond clair et des accents bleu électrique."
-  ],
-  [
-    "tiles",
-    "Tile Build",
-    "Une grille bento modulable et des blocs qui se construisent par étapes."
-  ],
-  [
-    "brutalist",
-    "Brutaliste",
-    "Des cadres francs, des ombres décalées et des contrastes affirmés."
-  ],
-  [
-    "neon",
-    "Néon",
-    "Des accents cyan et magenta, des halos et une navigation lumineuse."
-  ],
-  [
-    "blueprint",
-    "Blueprint",
-    "Une trame de plan technique et des repères précis."
-  ],
-  [
-    "paper",
-    "Papier",
-    "Des cartes de carnet, des tons ivoire et une navigation éditoriale."
-  ],
-  [
-    "terminal",
-    "Terminal",
-    "Un poste de contrôle à typographie fixe et repères phosphorescents."
-  ],
-  [
-    "aurora",
-    "Aurore",
-    "Des voiles colorés, des cartes givrées et une navigation flottante."
-  ],
-  [
-    "ocean",
-    "Océan",
-    "Des surfaces turquoise, des lignes fluides et une profondeur légère."
-  ],
-  [
-    "solar",
-    "Solaire",
-    "Des teintes miel et terracotta avec un éclairage radial."
-  ],
-  [
-    "mono",
-    "Monochrome",
-    "Des nuances de gris, une hiérarchie typographique et des détails précis."
-  ]
+  ['standard', 'Par défaut', 'Repères clairs et disposition directe pour le suivi quotidien.'],
+  ['apple', 'Apple Design', 'Navigation flottante, verre doux et curseur actif qui accompagne le choix.'],
+  ['detailed', 'Détaillé', 'Mesures groupées, grille compacte et séparations nettes.'],
+  ['blueprint', 'Blueprint', 'Plan quadrillé, index de sections et panneau latéral repliable.'],
+  ['aurora', 'Aurore', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
+  ['ocean', 'Océan', 'Navigation fluide, repère actif glissant et cartes aux lignes souples.'],
+  ['lab', 'Laboratoire', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */
@@ -240,8 +147,9 @@ function initializeStyle() {
     try {
       const saved = localStorage.getItem(storageKey);
       const known = saved === 'minimal' ? 'standard' : saved;
-      if (styleCatalogue.some(([id]) => id === known)) document.documentElement.dataset.style = known;
-      if (saved === 'minimal') localStorage.setItem(storageKey, 'standard');
+      const valid = styleCatalogue.some(([id]) => id === known);
+      document.documentElement.dataset.style = valid ? known : 'standard';
+      if (!valid || saved !== known) localStorage.setItem(storageKey, valid ? known : 'standard');
     } catch {}
     return;
   }
@@ -283,7 +191,7 @@ function initializeStyle() {
   }
   try {
     const saved = localStorage.getItem(storageKey);
-    if (saved === 'minimal') {
+    if (saved === 'minimal' || !styleCatalogue.some(([id]) => id === saved)) {
       choice.value = 'standard';
       localStorage.setItem(storageKey, 'standard');
     } else if (Array.from(choice.options).some((option) => option.value === saved)) {

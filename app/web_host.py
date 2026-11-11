@@ -13,6 +13,7 @@ UI_PREFIX = "/imprimante-api/ui"
 PUBLIC_ASSETS = {
     "/css/landing.css",
     "/css/imprimante.css",
+    "/css/lab.css",
     "/icons/cloud-page.svg",
     # Ces visuels sont des fichiers publics du dépôt ; une session expirée ne doit pas servir une page de connexion à leur place.
     "/icons/kobra-s1-ace2pro.png",
@@ -21,6 +22,7 @@ PUBLIC_ASSETS = {
     "/icons/ace.svg",
     "/icons/printer.svg",
     "/js/workshop-ui.mjs",
+    "/js/workshop-login.mjs",
     "/js/workshop-translations.json",
 }
 INFORMATION_PAGES = {

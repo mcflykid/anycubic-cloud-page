@@ -685,7 +685,7 @@
   ],
   "Cloud Anycubic": [
     "Anycubic Cloud",
-    "Nube de Anycubic"
+    "Cloud Anycubic"
   ],
   "Cloud indisponible": [
     "Cloud unavailable",
@@ -3634,5 +3634,377 @@
   "Le lancement direct de ce format attend une validation de compatibilité.": [
     "Direct printing of this format awaits compatibility validation.",
     "La impresión directa de este formato requiere validar la compatibilidad."
+  ],
+  "Export annulé : la période ou l’imprimante a changé.": [
+    "Export cancelled: the time range or printer changed.",
+    "Exportación cancelada: cambió el período o la impresora."
+  ],
+  "Sections": [
+    "Sections",
+    "Secciones"
+  ],
+  "Bobine identifiée par RFID. Les matériaux ne peuvent pas être modifiés.": [
+    "RFID-identified spool. Materials cannot be changed.",
+    "Bobina identificada por RFID. No se pueden modificar los materiales."
+  ],
+  "Réglage manuel de la bobine. Matériau et couleur modifiables.": [
+    "Manually configured spool. Material and color can be edited.",
+    "Bobina configurada manualmente. Se pueden editar el material y el color."
+  ],
+  "Statut RFID inconnu. Les champs restent modifiables.": [
+    "RFID status unknown. Fields remain editable.",
+    "Estado RFID desconocido. Los campos siguen siendo editables."
+  ],
+  "Taille inconnue": [
+    "Unknown size",
+    "Tamaño desconocido"
+  ],
+  "Afficher": [
+    "Show",
+    "Mostrar"
+  ],
+  "Masquer": [
+    "Hide",
+    "Ocultar"
+  ],
+  "Vérification de la connexion…": [
+    "Checking connection…",
+    "Verificando la conexión…"
+  ],
+  "Accès rapide": [
+    "Quick access",
+    "Acceso rápido"
+  ],
+  "Rechercher une section": [
+    "Search sections",
+    "Buscar una sección"
+  ],
+  "Aucune section trouvée.": [
+    "No sections found.",
+    "No se encontró ninguna sección."
+  ],
+  "Replier le plan": [
+    "Collapse the plan",
+    "Contraer el plano"
+  ],
+  "Déplier le plan": [
+    "Expand the plan",
+    "Expandir el plano"
+  ],
+  "Réinitialiser la disposition": [
+    "Reset layout",
+    "Restablecer la disposición"
+  ],
+  "Déplacer {0} par glisser-déposer": [
+    "Drag to move {0}",
+    "Arrastrar para mover {0}"
+  ],
+  "Déplacer cette tuile": [
+    "Move this tile",
+    "Mover este bloque"
+  ],
+  "Déplacer {0} vers le haut": [
+    "Move {0} up",
+    "Subir {0}"
+  ],
+  "Déplacer {0} vers le bas": [
+    "Move {0} down",
+    "Bajar {0}"
+  ],
+  "{0} · {1}/{2}": [
+    "{0} · {1}/{2}",
+    "{0} · {1}/{2}"
+  ],
+  "Disposition d’origine restaurée.": [
+    "Original layout restored.",
+    "Disposición original restaurada."
+  ],
+  "Monitoring de l’application": [
+    "Application monitoring",
+    "Supervisión de la aplicación"
+  ],
+  "Chargement des mesures locales…": [
+    "Loading local measurements…",
+    "Cargando las mediciones locales…"
+  ],
+  "120 relevés": [
+    "120 samples",
+    "120 muestras"
+  ],
+  "30 relevés": [
+    "30 samples",
+    "30 muestras"
+  ],
+  "Suspendre les mesures": [
+    "Pause measurements",
+    "Pausar las mediciones"
+  ],
+  "Explorer les 6 styles": [
+    "Explore the 6 styles",
+    "Explorar los 6 estilos"
+  ],
+  "Requêtes par seconde": [
+    "Requests per second",
+    "Solicitudes por segundo"
+  ],
+  "req/s": [
+    "req/s",
+    "sol/s"
+  ],
+  "Débit moyen calculé sur la fenêtre HTTP, raccourcie pendant les premières minutes.": [
+    "Average rate over the HTTP window, shortened during the first minutes.",
+    "Tasa media en la ventana HTTP, reducida durante los primeros minutos."
+  ],
+  "Latence HTTP moyenne": [
+    "Average HTTP latency",
+    "Latencia HTTP media"
+  ],
+  "ms": [
+    "ms",
+    "ms"
+  ],
+  "Durée moyenne des requêtes observées dans la fenêtre HTTP.": [
+    "Average request duration in the HTTP window.",
+    "Duración media de las solicitudes en la ventana HTTP."
+  ],
+  "Erreurs HTTP": [
+    "HTTP errors",
+    "Errores HTTP"
+  ],
+  "Nombre cumulé de réponses HTTP en erreur depuis le démarrage du serveur.": [
+    "Total HTTP error responses since server startup.",
+    "Total de respuestas HTTP de error desde el inicio del servidor."
+  ],
+  "CPU du processus": [
+    "Process CPU",
+    "CPU del proceso"
+  ],
+  "Temps CPU du processus entre deux relevés; peut dépasser 100 % sur plusieurs cœurs.": [
+    "Process CPU time between samples; may exceed 100% across multiple cores.",
+    "Tiempo CPU del proceso entre muestras; puede superar el 100 % en varios núcleos."
+  ],
+  "Mémoire locale": [
+    "Local memory",
+    "Memoria local"
+  ],
+  "Mio": [
+    "MiB",
+    "MiB"
+  ],
+  "Usage courant du conteneur si disponible, sinon RSS courant du processus; jamais le maximum historique.": [
+    "Current container usage if available, otherwise current process RSS; never the historical peak.",
+    "Uso actual del contenedor si está disponible; en su defecto RSS actual del proceso, nunca el máximo histórico."
+  ],
+  "Espace libre des données": [
+    "Free data volume space",
+    "Espacio libre del volumen de datos"
+  ],
+  "Gio": [
+    "GiB",
+    "GiB"
+  ],
+  "Espace libre actuellement disponible sur le volume de données de l’application.": [
+    "Space currently available on the application data volume.",
+    "Espacio disponible actualmente en el volumen de datos de la aplicación."
+  ],
+  "Durée de fonctionnement": [
+    "Uptime",
+    "Tiempo de actividad"
+  ],
+  "Temps écoulé depuis le démarrage de ce processus serveur.": [
+    "Time since this server process started.",
+    "Tiempo desde el inicio de este proceso del servidor."
+  ],
+  "État de session déjà connu du moteur; cette vue ne déclenche aucune requête Cloud.": [
+    "Session state already known by the engine; this view makes no Cloud requests.",
+    "Estado de sesión ya conocido por el motor; esta vista no realiza solicitudes Cloud."
+  ],
+  "Connexion MQTT": [
+    "MQTT connection",
+    "Conexión MQTT"
+  ],
+  "État MQTT déjà connu du moteur; cette vue ne démarre aucune connexion.": [
+    "MQTT state already known by the engine; this view starts no connection.",
+    "Estado MQTT ya conocido por el motor; esta vista no inicia conexiones."
+  ],
+  "Indisponible": [
+    "Unavailable",
+    "No disponible"
+  ],
+  "Inconnu": [
+    "Unknown",
+    "Desconocido"
+  ],
+  "Requêtes": [
+    "Requests",
+    "Solicitudes"
+  ],
+  "Mesure locale": [
+    "Local measurement",
+    "Medición local"
+  ],
+  "Ouvrir le détail.": [
+    "Open details.",
+    "Abrir detalles."
+  ],
+  "Fermer le détail de la métrique": [
+    "Close metric details",
+    "Cerrar detalles de la métrica"
+  ],
+  "Derniers {0} relevés": [
+    "Last {0} samples",
+    "Últimas {0} muestras"
+  ],
+  "{0} j": [
+    "{0} d",
+    "{0} d"
+  ],
+  "{0} h": [
+    "{0} h",
+    "{0} h"
+  ],
+  "{0} min": [
+    "{0} min",
+    "{0} min"
+  ],
+  "{0} requêtes sur {1} s": [
+    "{0} requests over {1} s",
+    "{0} solicitudes en {1} s"
+  ],
+  "{0} requêtes dans la fenêtre": [
+    "{0} requests in window",
+    "{0} solicitudes en la ventana"
+  ],
+  "{0} erreurs sur {1} s": [
+    "{0} errors over {1} s",
+    "{0} errores en {1} s"
+  ],
+  "Imprimantes : {0} / {1} en ligne": [
+    "Printers: {0} / {1} online",
+    "Impresoras: {0} / {1} en línea"
+  ],
+  "Imprimantes suivies : {0} · en ligne : {1} · hors ligne : {2} · inconnues : {3}": [
+    "Tracked printers: {0} · online: {1} · offline: {2} · unknown: {3}",
+    "Impresoras supervisadas: {0} · en línea: {1} · desconectadas: {2} · desconocidas: {3}"
+  ],
+  "Valeur actuelle : {0}": [
+    "Current value: {0}",
+    "Valor actual: {0}"
+  ],
+  "Minimum : {0} · maximum : {1} · unité : {2} · source : {3}": [
+    "Minimum: {0} · maximum: {1} · unit: {2} · source: {3}",
+    "Mínimo: {0} · máximo: {1} · unidad: {2} · fuente: {3}"
+  ],
+  "minimum {0}, maximum {1} {2}": [
+    "minimum {0}, maximum {1} {2}",
+    "mínimo {0}, máximo {1} {2}"
+  ],
+  "Valeurs fictives pour démonstration; elles ne décrivent pas le Mac, le serveur ou une imprimante.": [
+    "Fictitious demonstration values; they do not describe the Mac, server or any printer.",
+    "Valores ficticios de demostración; no describen el Mac, el servidor ni una impresora."
+  ],
+  "Données fictives de démonstration.": [
+    "Fictitious demonstration data.",
+    "Datos ficticios de demostración."
+  ],
+  "Données locales · relevé à {0}": [
+    "Local data · sampled at {0}",
+    "Datos locales · muestra a las {0}"
+  ],
+  "métrique locale": [
+    "local metric",
+    "métrica local"
+  ],
+  "démonstration": [
+    "demonstration",
+    "demostración"
+  ],
+  "état": [
+    "state",
+    "estado"
+  ],
+  "heure inconnue": [
+    "unknown time",
+    "hora desconocida"
+  ],
+  "Aucun historique disponible.": [
+    "No history available.",
+    "No hay historial disponible."
+  ],
+  "Cette métrique est un état courant et son historique n’est pas fourni.": [
+    "This metric is a current state and no history is supplied.",
+    "Esta métrica es un estado actual y no proporciona historial."
+  ],
+  "La supervision locale est temporairement indisponible.": [
+    "Local monitoring is temporarily unavailable.",
+    "La supervisión local no está disponible temporalmente."
+  ],
+  "Reprendre les mesures": [
+    "Resume measurements",
+    "Reanudar las mediciones"
+  ],
+  "Laboratoire": [
+    "Laboratory",
+    "Laboratorio"
+  ],
+  "Navigation par usage et compositions expérimentales pour comparer les parcours.": [
+    "Navigation by use and experimental layouts for comparing workflows.",
+    "Navegación por uso y diseños experimentales para comparar los recorridos."
+  ],
+  "Atelier": [
+    "Workshop",
+    "Taller"
+  ],
+  "Préparer": [
+    "Prepare",
+    "Preparar"
+  ],
+  "Observer": [
+    "Observe",
+    "Observar"
+  ],
+  "Analyser": [
+    "Analyze",
+    "Analizar"
+  ],
+  "Configurer": [
+    "Configure",
+    "Configurar"
+  ],
+  "Explorer les 7 styles": [
+    "Explore the 7 styles",
+    "Explorar los 7 estilos"
+  ],
+  "Ce fichier peut être stocké dans le Cloud. Les options d’impression sont disponibles pour les fichiers .gcode.": [
+    "This file can be stored in the Cloud. Printing options are available for .gcode files.",
+    "Este archivo puede almacenarse en el Cloud. Las opciones de impresión están disponibles para archivos .gcode."
+  ],
+  "Repères clairs et disposition directe pour le suivi quotidien.": [
+    "Clear landmarks and a direct layout for daily monitoring.",
+    "Referencias claras y disposición directa para el seguimiento diario."
+  ],
+  "Navigation flottante, verre doux et curseur actif qui accompagne le choix.": [
+    "Floating navigation, soft glass and an active marker that follows the selection.",
+    "Navegación flotante, cristal suave e indicador activo que sigue la selección."
+  ],
+  "Mesures groupées, grille compacte et séparations nettes.": [
+    "Grouped measurements, a compact grid and clear separators.",
+    "Mediciones agrupadas, cuadrícula compacta y separaciones claras."
+  ],
+  "Plan quadrillé, index de sections et panneau latéral repliable.": [
+    "Grid plan, section index and a collapsible sidebar.",
+    "Plano cuadriculado, índice de secciones y panel lateral plegable."
+  ],
+  "Tableau de bord en tuiles déplaçables et surfaces lumineuses.": [
+    "Dashboard with movable tiles and luminous surfaces.",
+    "Panel con bloques móviles y superficies luminosas."
+  ],
+  "Navigation fluide, repère actif glissant et cartes aux lignes souples.": [
+    "Fluid navigation, a sliding active marker and softly shaped cards.",
+    "Navegación fluida, indicador activo deslizante y tarjetas de líneas suaves."
+  ],
+  "La lecture des coordonnées a été interrompue. Relancez-la explicitement si nécessaire.": [
+    "The coordinate query was interrupted. Start a new query explicitly if needed.",
+    "Se interrumpió la consulta de coordenadas. Inicie otra consulta explícitamente si es necesario."
   ]
 }

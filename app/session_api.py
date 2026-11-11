@@ -6,6 +6,7 @@ import logging
 from anycubic_cloud_api.exceptions.exceptions import AnycubicAuthError
 from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized
 from operational_logging import log_event
+from cloud_budget import CloudRequestBudget
 
 _log = logging.getLogger("cloud_page.session")
 
@@ -19,8 +20,11 @@ class CloudSessionAuthError(AnycubicAuthError):
 class SessionRecovery:
     """Renouvelle une session refusée une seule fois entre requêtes concurrentes, sans rejouer les échecs ambigus."""
 
-    def __init__(self, *args, refresh_access=None, session_renewed=None, **kwargs):
-        """Configure les rappels de renouvellement et le verrou partagé des échanges de session."""
+    def __init__(
+        self, *args, refresh_access=None, session_renewed=None, cloud_request_budget=None, **kwargs
+    ):
+        """Partage le budget HTTP et configure le renouvellement sérialisé de la session."""
+        self._cloud_request_budget = cloud_request_budget or CloudRequestBudget()
         self._session_lock = asyncio.Lock()
         self._session_generation = 0
         self._session_retry_after = 0

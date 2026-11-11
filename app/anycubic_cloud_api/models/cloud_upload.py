@@ -6,6 +6,7 @@ from os.path import basename as path_basename
 from typing import TYPE_CHECKING, Any
 
 from aiofiles.os import path as aio_path
+from aiofiles.os import stat as aio_stat
 
 from ..exceptions.error_strings import ErrorsCloudUpload
 from ..exceptions.exceptions import AnycubicAPIError
@@ -199,7 +200,7 @@ class AnycubicCloudUpload:
     async def async_measure_file(self) -> None:
         """Déduit la taille avant réservation sans charger les fichiers locaux."""
         if self.full_file_path:
-            self.set_file_size((await aio_path.stat(self.full_file_path)).st_size)
+            self.set_file_size((await aio_stat(self.full_file_path)).st_size)
         elif self.file_bytes is not None:
             self.set_file_size(len(self.file_bytes))
 

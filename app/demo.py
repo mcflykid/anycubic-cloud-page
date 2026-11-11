@@ -259,6 +259,43 @@ async def api(request):
             "stale_seconds": 120,
             "alert_seconds": 180,
         }
+    elif path == "monitoring":
+        # Ces valeurs sont des fixtures affichées comme telles, jamais des mesures du Mac.
+        points = [
+            {
+                "at": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime(T - 33 + i * 3)),
+                "uptime_seconds": 267 + i * 3,
+                "cpu_percent": 2.0 + i / 10,
+                "memory_bytes": 80_000_000 + i * 100_000,
+                "data_free_bytes": 5_000_000_000 - i * 1000,
+                "requests_total": 100 + i * 3,
+                "errors_total": 1,
+                "average_latency_ms": 12 + i / 2,
+            }
+            for i in range(12)
+        ]
+        d = {
+            "data_mode": "demo",
+            "collected_at": points[-1]["at"],
+            "system": {
+                key: points[-1][key]
+                for key in ("uptime_seconds", "cpu_percent", "memory_bytes", "data_free_bytes")
+            },
+            "http": {
+                "requests_total": 133,
+                "errors_total": 1,
+                "window_seconds": 300,
+                "requests_window": 133,
+                "errors_window": 1,
+                "average_latency_ms": 17.5,
+            },
+            "services": {
+                "cloud": "connected",
+                "mqtt": "connected",
+                "printers": {"monitored": 1, "online": 1, "offline": 0, "unknown": 0},
+            },
+            "history": points,
+        }
     elif path == "status":
         d = {
             "ok": True,

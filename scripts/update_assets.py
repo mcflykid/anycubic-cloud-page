@@ -18,12 +18,18 @@ MODULES = (
     "workshop-commands.mjs",
     "workshop-overview.mjs",
     "workshop-ace.mjs",
+    "workshop-selection.mjs",
     "workshop-files.mjs",
     "workshop-history.mjs",
     "workshop-settings.mjs",
     "workshop-timelapses.mjs",
     "workshop-help.mjs",
     "workshop-fleet.mjs",
+    "workshop-navigation.mjs",
+    "workshop-login.mjs",
+    "workshop-interactions.mjs",
+    "workshop-monitoring.mjs",
+    "workshop-lab.mjs",
 )
 
 
@@ -89,7 +95,13 @@ def update(check=False):
     ):
         page = ROOT / name
         html = page.read_text()
-        for style in ("imprimante.css", "landing.css"):
+        for style in (
+            "imprimante.css",
+            "landing.css",
+            "monitoring.css",
+            "interactions.css",
+            "lab.css",
+        ):
             digest, _ = signature((ROOT / "css" / style).read_bytes())
             path = f"{UI}/css/{style}"
             html = re.sub(re.escape(path) + r'\?v=[^"\s]+', f"{path}?v={digest}", html)
@@ -108,6 +120,13 @@ def update(check=False):
                     '<link rel="modulepreload" href=',
                     '<script id="workshop-language" type="module" src=',
                 ),
+                html,
+            )
+        if name == "login.html":
+            login_version, login_integrity = signature((js_dir / "workshop-login.mjs").read_bytes())
+            html = re.sub(
+                r'<script id="login-interactions"[^>]+>',
+                f'<script id="login-interactions" type="module" src="{UI}/js/workshop-login.mjs?v={login_version}" integrity="{login_integrity}" crossorigin="anonymous">',
                 html,
             )
         apply(page, html)

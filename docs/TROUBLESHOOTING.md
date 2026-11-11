@@ -2,6 +2,8 @@
 
 ## Journaux du conteneur
 
+Chaque ligne de diagnostic inclut la version embarquée, en texte comme en JSON. Le [protocole de diagnostic](DIAGNOSTIC-PROTOCOL.md) relie hypothèses, journaux et observations.
+
 Les diagnostics de l’application partent sur stderr et sont accessibles avec Docker. Le format texte est prévu pour une lecture directe; `LOG_FORMAT=json` produit une ligne JSON par événement pour un collecteur. `LOG_LEVEL=INFO` garde les erreurs et les changements utiles sans répéter les consultations périodiques. `LOG_LEVEL=DEBUG` ajoute les étapes et durées de traitement. Les valeurs sont transmises au conteneur par Compose et prennent effet après sa recréation.
 
 Depuis le dossier de déploiement, afficher les dernières lignes puis suivre les nouveaux événements:

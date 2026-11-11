@@ -1,36 +1,23 @@
-# Comparer les vingt styles
+# Les sept styles de l’atelier
 
-Suivi : #143.
+Suivi : #162.
 
-Les styles constituent un catalogue de directions visuelles pour choisir ensuite les éléments à conserver. Ils partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style et du navigateur utilisé.
+Les sept styles partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style. Le choix est mémorisé dans ce navigateur; une ancienne préférence pour un style retiré revient à **Par défaut**.
 
-Dans **Réglages → Apparence**, choisir le style dans la liste ou ouvrir **Explorer les 20 styles**. La galerie montre la palette et l’intention de chaque proposition. Les flèches et les touches Début/Fin permettent de parcourir les cartes au clavier ; Entrée applique le choix. La sélection est mémorisée dans ce navigateur.
+Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste ou ouvrir **Explorer les 7 styles**. La galerie décrit la disposition et les interactions de chaque proposition. Les flèches et les touches Début/Fin parcourent la galerie au clavier; Entrée applique le choix.
 
-| Style | Direction à comparer |
-|---|---|
-| Par défaut | Référence sobre pour le suivi quotidien. |
-| Apple Design | Verre translucide, couches de couleur, halos et commandes en pilule. |
-| Détaillé | Mesures regroupées, forte densité d’information et séparations nettes. |
-| Halloween | Palette prune et citrouille, cartes chaleureuses. |
-| Noël | Vert sapin, reflets dorés et surfaces douces. |
-| Anchor Pop | Cartes ancrées et entrée avec rebond, corail et crème. |
-| Turn Over | Panneaux de carnet et retournement léger. |
-| Card Deal | Distribution de cartes en cascade, vert profond et liserés dorés. |
-| Drum Roll | Déroulement vertical et palette indigo/violet. |
-| Outline Trace | Contours animés et accents bleu électrique. |
-| Tile Build | Construction par étapes et grille bento recomposée selon la largeur. |
-| Brutaliste | Bordures franches, ombres décalées et contraste marqué. |
-| Néon | Accents cyan/magenta et navigation lumineuse. |
-| Blueprint | Trame de plan technique et repères précis. |
-| Papier | Carnet, tons ivoire et hiérarchie éditoriale. |
-| Terminal | Typographie fixe et repères phosphorescents. |
-| Aurore | Voiles colorés, cartes givrées et navigation flottante. |
-| Océan | Surfaces turquoise et profondeur légère. |
-| Solaire | Miel, terracotta et lumière radiale. |
-| Monochrome | Nuances de gris et hiérarchie typographique. |
+| Style | Disposition | Interaction caractéristique |
+|---|---|---|
+| Par défaut | Vue directe, cartes de suivi équilibrées. | Navigation discrète, sans réorganisation automatique. |
+| Apple Design | Navigation en pilules et surfaces translucides. | Un repère de verre glisse sous la section active. |
+| Détaillé | Mesures groupées dans une grille dense. | Les sections compactes gardent les libellés et les séparations. |
+| Blueprint | Index vertical numéroté, quadrillage et colonne de travail. | Le panneau latéral se replie en rail d’icônes; le nom complet reste accessible au focus et au pointeur. |
+| Aurore | Tableau bento avec machine, travail, températures et détails. | Les cartes se déplacent par glissement ou par commandes haut/bas; l’ordre est mémorisé localement et peut être réinitialisé. |
+| Océan | Cartes espacées et surfaces turquoise. | Le repère actif suit les sections avec un mouvement fluide. |
+| Laboratoire | Les groupes d’onglets et les compositions expérimentales permettent de comparer plusieurs parcours. | Navigation par usage, avec variantes à explorer. |
 
-Les mouvements interviennent sur la présentation, sans modifier les ordres, les délais de confirmation ou la cible sélectionnée. Le réglage système de réduction des animations coupe les animations, transitions et transformations des propositions animées. Les surfaces disposent d’un repli lorsque le navigateur ne gère pas le flou.
+Sur téléphone, les neuf sections s’ouvrent depuis un bouton **Sections** dans une grille de neuf tuiles. Elles entrent en vague puis se replient dans l’ordre inverse; le nom de la section choisie reste près du bouton. Le réglage système de réduction des animations retire ces effets et les déplacements de cartes.
 
-Les références visuelles fournies ont inspiré les palettes, les navigations flottantes ou latérales, les entrées de cartes, les contours et les grilles adaptatives. Aucun code, capture ou composant propriétaire n’a été copié et aucune bibliothèque d’animation n’est ajoutée.
+Le tableau Aurore n’enregistre que l’ordre des quatre cartes de la page atelier, dans le stockage local du navigateur. Le bouton **Réinitialiser la disposition** restaure leur ordre d’origine. Le glissement fonctionne au pointeur ou au toucher; les boutons de déplacement permettent aussi la réorganisation au clavier.
 
-Pour la sélection finale, comparer en priorité la lisibilité des mesures, l’accès aux huit onglets, les boîtiers ACE et les notifications, sur ordinateur puis téléphone. Les effets peuvent ensuite être retenus séparément de la palette ou de la disposition qui les accompagne.
+Les comportements de grille réarrangeable s’inspirent de motifs d’interface comme les widgets qui se dégagent puis se replacent, décrits dans [Parrilla chez Moxen](https://moxen.cl/recursos/parrilla/). Aucun code ni composant du site n’a été repris; sa page indique que les téléchargements comprennent une licence propre à chaque animation.

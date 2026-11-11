@@ -1,88 +1,108 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
+async function openSettings(page){
+  const settings=page.locator('[data-tab=settings]');
+  if(await settings.getAttribute('aria-current')==='page')return;
+  if(!(await settings.isVisible())){
+    await page.getByRole('button',{name:'Sections'}).click();
+    await expect(page.locator('#atelier-tabs')).toHaveAttribute('data-open','true');
+    await expect(settings).toBeVisible();
+  }
+  await settings.click();
+}
+async function openSection(page,name){
+  const target=page.locator(`[data-tab=${name}]`);
+  if(!(await target.isVisible())){
+    await page.getByRole('button',{name:'Sections'}).click();
+    await expect(page.locator('#atelier-tabs')).toHaveAttribute('data-open','true');
+    await expect(target).toBeVisible();
+  }
+  await target.click();
+}
 
-test('les six styles d’interaction ont leur effet propre et le mouvement réduit le neutralise',async({page})=>{
- await login(page);
- const cases=[
-  ['anchor','button[data-tab="overview"][aria-current]',''],
-  ['cards','.printer-lower-grid>section',''],
-  ['drum','button[data-tab="overview"][aria-current]',''],
-  ['outline','button[data-tab="overview"][aria-current]',''],
-  ['tiles','.statistics-panel',''],
- ];
- for(const [style,selector] of cases){
-  await page.locator('html').evaluate((el,value)=>el.setAttribute('data-style',value),style);
-  const element=page.locator(selector).first();
-  const name=await element.evaluate((el,style)=>getComputedStyle(el,style==='outline'?'::after':null).animationName,style);
-  const expected={anchor:'anchor-pop',cards:'card-deal',drum:'drum-roll',outline:'outline-trace',tiles:'tile-build'}[style];
-  expect(name,style).toContain(expected);
- }
- await page.locator('html').evaluate(el=>el.setAttribute('data-style','turnover'));
- const card=page.locator('.printer-lower-grid>section').first(); await card.hover();
- await expect.poll(()=>card.evaluate(el=>getComputedStyle(el).animationName)).toContain('turnover');
- await page.emulateMedia({reducedMotion:'reduce'});
- for(const style of ['anchor','turnover','cards','drum','outline','tiles']){
-  await page.locator('html').evaluate((el,value)=>el.setAttribute('data-style',value),style);
-  const name=await page.locator('.atelier-tabs button[aria-current]').evaluate(el=>getComputedStyle(el).animationName);
-  expect(name,style).toBe('none');
- }
+test('les sept styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
+  await login(page);
+  await openSettings(page);
+  const themes=['standard','apple','detailed','blueprint','aurora','ocean','lab'];
+  for(const mode of ['light','dark']){
+    await page.locator('#interface-theme').selectOption(mode);
+    for(const style of themes){
+      await page.evaluate(value=>document.documentElement.dataset.style=value,style);
+      await expect(page.locator('#printer-model')).toBeVisible();
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    }
+  }
+  await page.setViewportSize({width:390,height:844});
+  for(const style of themes){
+    await page.evaluate(value=>document.documentElement.dataset.style=value,style);
+    await expect(page.getByRole('button',{name:'Sections'})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  }
 });
 
-test('Tile Build recompose le tableau bento sans débordement sur mobile, tablette et bureau',async({page})=>{
- await page.addInitScript(()=>localStorage.setItem('cloud-page-style','tiles'));
- await login(page);
- const overview=page.locator('#tab-overview');
- for(const [width,height] of [[390,844],[820,1024],[1440,900]]){
-  await page.setViewportSize({width,height});
-  const layout=await overview.evaluate(el=>{
-   const positions=Object.fromEntries(['.overview-content','.product','.printer-lower-grid>section:first-child','.printer-lower-grid>section:last-child'].map(selector=>{
-    const rect=el.querySelector(selector).getBoundingClientRect();return [selector,{x:rect.x,y:rect.y,width:rect.width,height:rect.height}];
-   }));
-   return {overflow:el.scrollWidth>el.clientWidth,positions};
-  });
-  expect(layout.overflow,`${width}px overflow`).toBe(false);
-  expect(layout.positions['.overview-content'].width).toBeGreaterThan(0);
-  expect(layout.positions['.printer-lower-grid>section:first-child'].height).toBeGreaterThan(0);
-  if(width===1440) expect(layout.positions['.product'].width).toBeGreaterThan(layout.positions['.overview-content'].width*.35);
- }
- await page.getByRole('button',{name:'Statistiques',exact:true}).click();
- await expect(page.locator('.statistics-grid>section')).toHaveCount(3);
+test('Tile Build opens as a staggered tile wave and assembles in reverse on close',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await login(page);
+  const toggle=page.getByRole('button',{name:'Sections'}), navigation=page.locator('#atelier-tabs');
+  await toggle.click();
+  await expect(navigation).toHaveAttribute('data-phase','opening');
+  expect(await navigation.locator('[data-tab]').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('tile-enter');
+  await expect(navigation).toHaveAttribute('data-phase','');
+  await toggle.click();
+  await expect(navigation).toHaveAttribute('data-phase','closing');
+  expect(await navigation.locator('[data-tab]').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('tile-exit');
+  await expect(navigation).toHaveAttribute('data-open','false');
+  await expect(navigation).toBeHidden();
 });
 
-test('Blueprint et Terminal réservent une vraie colonne de navigation de chaque côté',async({page})=>{
- await login(page);
- for(const [style,side] of [['blueprint','left'],['terminal','right']]){
-  await page.locator('html').evaluate((el,value)=>el.setAttribute('data-style',value),style);
-  const nav=await page.locator('.atelier-tabs').boundingBox(),main=await page.locator('#atelier').boundingBox();
-  expect(nav.width).toBeGreaterThan(150); expect(nav.height).toBeGreaterThan(main.height*.35);
-  if(side==='left') expect(nav.x+nav.width).toBeLessThan(main.x+20);
-  else expect(nav.x).toBeGreaterThan(main.x+main.width*.7);
- }
- await page.setViewportSize({width:390,height:844});
- for(const style of ['blueprint','terminal']){
-  await page.locator('html').evaluate((el,value)=>el.setAttribute('data-style',value),style);
-  const nav=page.locator('.atelier-tabs');
-  await expect(nav.locator('button')).toHaveCount(9);
-  expect(await nav.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
- }
+test('la vague de tuiles suit la préférence de mouvement réduit',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await login(page);
+  const toggle=page.getByRole('button',{name:'Sections'}), navigation=page.locator('#atelier-tabs');
+  await toggle.click();
+  expect(await navigation.locator('[data-tab]').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+  await toggle.click();
+  await expect(navigation).toBeHidden();
+  await expect(toggle).toBeFocused();
 });
 
-test('Aurora garde le nom accessible des icônes et Anchor centre son dock sans recouvrir le bas',async({page})=>{
- await login(page); await page.setViewportSize({width:1440,height:900});
- await page.locator('html').evaluate(el=>el.setAttribute('data-style','aurora'));
- const nav=page.locator('.atelier-tabs'),main=page.locator('#atelier');
- expect((await nav.boundingBox()).x+(await nav.boundingBox()).width).toBeLessThan((await main.boundingBox()).x+20);
- await expect(page.getByRole('button',{name:'Réglages',exact:true})).toBeAttached();
- await page.getByRole('button',{name:'Réglages',exact:true}).focus();
- await expect(page.locator('.atelier-tabs button[data-tab="settings"] span')).toBeVisible();
- await page.emulateMedia({reducedMotion:'reduce'});
- await page.locator('html').evaluate(el=>el.setAttribute('data-style','anchor'));
- const dock=page.locator('.atelier-tabs'),dockBox=await dock.boundingBox();
- expect(dockBox.y+dockBox.height).toBeLessThanOrEqual(900-16);
- expect(await dock.evaluate(el=>getComputedStyle(el).transform)).not.toBe('none');
- const reserve=await page.locator('.printer-shell').evaluate(el=>parseFloat(getComputedStyle(el).paddingBottom));
- expect(reserve).toBeGreaterThanOrEqual(100);
- await page.setViewportSize({width:390,height:844});
- expect(await dock.evaluate(el=>getComputedStyle(el).position)).toBe('static');
- expect(await dock.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
+test('Blueprint replie son panneau sans perdre les noms accessibles',async({page})=>{
+  await login(page);
+  await openSettings(page);
+  await page.locator('#interface-style').selectOption('blueprint');
+  const toggle=page.getByRole('button',{name:'Replier le plan'});
+  await expect(toggle).toBeVisible();
+  await expect(page.locator('#atelier-tabs').getByRole('button',{name:'Fichiers'})).toBeVisible();
+  await toggle.click();
+  await expect(page.locator('.printer-shell')).toHaveClass(/blueprint-sidebar-collapsed/);
+  await expect(page.getByRole('button',{name:'Déplier le plan'})).toHaveAttribute('aria-expanded','false');
+  await expect(page.locator('#atelier-tabs').getByRole('button',{name:'Fichiers'})).toBeAttached();
+});
+
+test('Aurore mémorise les cartes réordonnées et les réinitialise au clavier',async({page})=>{
+  await login(page);
+  await openSettings(page);
+  await page.locator('#interface-style').selectOption('aurora');
+  await openSection(page,'overview');
+  const bento=page.locator('#aurora-bento');
+  await expect(bento.locator('.aurora-widget')).toHaveCount(4);
+  const first=bento.locator('.aurora-widget').first();
+  const firstName=await first.getAttribute('data-widget');
+  await first.getByRole('button',{name:/Déplacer .* vers le bas/}).click();
+  await expect(bento.locator('.aurora-widget').nth(1)).toHaveAttribute('data-widget',firstName);
+  await page.reload();
+  await openSection(page,'overview');
+  await expect(bento.locator('.aurora-widget').nth(1)).toHaveAttribute('data-widget',firstName);
+  await bento.getByRole('button',{name:'Réinitialiser la disposition'}).click();
+  await expect(bento.locator('.aurora-widget').first()).toHaveAttribute('data-widget',firstName);
+  const dragHandle=bento.locator(`.aurora-widget[data-widget="${firstName}"] .aurora-drag-handle`);
+  const firstCard=bento.locator('.aurora-widget').first();
+  await Promise.all([dragHandle.scrollIntoViewIfNeeded(),firstCard.scrollIntoViewIfNeeded()]);
+  const [handle,target]=await Promise.all([dragHandle.boundingBox(),firstCard.boundingBox()]);
+  await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);
+  await page.mouse.down();
+  await page.mouse.move(target.x+target.width/2,target.y+8,{steps:12});
+  await page.mouse.up();
+  await expect(bento.locator('.aurora-widget').first()).toHaveAttribute('data-widget',firstName);
 });

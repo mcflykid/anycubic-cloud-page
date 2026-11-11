@@ -3,6 +3,7 @@
 import io
 import json
 import logging
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -23,6 +24,30 @@ class OperationalLoggingTests(unittest.TestCase):
         """Retire les handlers mémoire afin de ne pas conserver le flux entre tests."""
         logging.shutdown()
         logging.getLogger().handlers.clear()
+
+    def test_every_line_uses_embedded_version_in_both_formats(self):
+        """Les extraits restent attribuables même hors démarrage et le champ d’appel ne falsifie pas la version."""
+        expected = json.loads((Path(__file__).resolve().parents[1] / "package.json").read_text())[
+            "version"
+        ]
+        for fmt in ["text", "json"]:
+            stream = self.capture(fmt=fmt)
+            log_event(
+                logging.getLogger("cloud_page.http"),
+                logging.INFO,
+                "http_request",
+                message="Requête terminée",
+                version="0.0.0",
+            )
+            logging.getLogger("server").warning("Relevé de température ignoré (%s)", "fixture")
+            lines = stream.getvalue().splitlines()
+            self.assertEqual(len(lines), 2)
+            for line in lines:
+                if fmt == "json":
+                    self.assertEqual(json.loads(line)["version"], expected)
+                else:
+                    self.assertIn("version=" + expected, line)
+                self.assertNotIn("0.0.0", line)
 
     def test_json_event_has_utc_level_component_and_only_whitelisted_fields(self):
         """Un événement structuré expose uniquement le contexte opérationnel autorisé."""
@@ -149,6 +174,57 @@ class OperationalLoggingTests(unittest.TestCase):
         self.assertNotIn("endpoint", lines[1])
         self.assertNotIn("cloud_code", lines[1])
         self.assertNotIn("/private/customer/path", stream.getvalue())
+
+    def test_axis_reply_diagnostics_accept_only_boolean_and_known_code_fields(self):
+        """Les phases MQTT ne peuvent exposer que des booléens et une classe de code bornée."""
+        stream = self.capture(fmt="json")
+        log_event(
+            logging.getLogger("cloud_page.axes"),
+            logging.INFO,
+            "axis_query_mqtt_observed",
+            message="Réponse MQTT observée",
+            owner_present=True,
+            msgid_present=True,
+            coordinates_complete=False,
+            reply_code="refused",
+            raw_code=403,
+            msgid="private-message-id",
+        )
+        log_event(
+            logging.getLogger("cloud_page.axes"),
+            logging.INFO,
+            "axis_query_mqtt_observed",
+            message="Réponse MQTT observée",
+            owner_present="yes",
+            msgid_present=1,
+            coordinates_complete=True,
+            reply_code="private-code-403",
+        )
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertTrue(records[0]["owner_present"])
+        self.assertTrue(records[0]["msgid_present"])
+        self.assertFalse(records[0]["coordinates_complete"])
+        self.assertEqual(records[0]["reply_code"], "refused")
+        for field in ("owner_present", "msgid_present", "reply_code"):
+            self.assertNotIn(field, records[1])
+        self.assertNotIn("private-message-id", stream.getvalue())
+        self.assertNotIn("private-code-403", stream.getvalue())
+
+    def test_axis_reply_code_ignores_unhashable_values_without_breaking_logging(self):
+        """Une valeur inattendue non hachable est omise sans interrompre le journal."""
+        stream = self.capture(fmt="json")
+        for invalid in ([], {}, {"unexpected": "value"}):
+            with self.subTest(invalid=type(invalid).__name__):
+                log_event(
+                    logging.getLogger("cloud_page.axes"),
+                    logging.INFO,
+                    "axis_query_mqtt_observed",
+                    message="Réponse MQTT observée",
+                    reply_code=invalid,
+                )
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual(len(records), 3)
+        self.assertTrue(all("reply_code" not in record for record in records))
 
     def test_safe_traceback_keeps_only_basename_line_and_function(self):
         """Les repères de pile aident au diagnostic sans chemin ni ligne source."""

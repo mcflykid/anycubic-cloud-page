@@ -8,10 +8,12 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=4fb911698e53';
-import { workshopState, setBusy } from './workshop-state.mjs?v=f086eb175834';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=e2015bb986a1';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=696df618f651';
+} from './workshop-ui.mjs?v=0557e9df0fbf';
+import { workshopState, setBusy } from './workshop-state.mjs?v=9561b0639f9d';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=953d5e4a1028';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=ea5c5af172fd';
+
+import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -24,6 +26,7 @@ export function createFiles(request, command) {
     cloudHasMore = false,
     renameHandle = null;
   const cloudSelected = new Set();
+  initializePaintSelection($('file-rows'), () => cloudSelectionState());
   let fileContext = null,
     fileGeneration = 0,
     fileReload = false,
@@ -133,13 +136,16 @@ export function createFiles(request, command) {
         if (source === 'cloud') {
           const check = node('input');
           check.type = 'checkbox';
+          check.dataset.selection = f.handle;
           check.checked = cloudSelected.has(f.handle);
           check.setAttribute('aria-label', tr('Sélectionner ') + f.name);
           check.onchange = () => {
             check.checked ? cloudSelected.add(f.handle) : cloudSelected.delete(f.handle);
             cloudSelectionState();
           };
-          name.prepend(check);
+          const gutter = node('span', null, 'file-selection-gutter');
+          gutter.append(check);
+          name.prepend(gutter);
           name.classList.add('cloud-file-name');
           if (!context.folder) {
             add('Télécharger', () => downloadCloud([f.handle]));
@@ -392,11 +398,13 @@ export function createFiles(request, command) {
     updateUploadButton();
   };
 
+  /** Refuse confirmation et transfert tant que la requête ne peut pas viser une imprimante explicite. */
   $('upload-form').onsubmit = async (e) => {
     e.preventDefault();
     if (workshopState.busy) return;
     if (!validateUpload(uploadInput.files)) return;
     updateUploadButton();
+    if (!workshopState.selectedPrinter) return;
     const data = new FormData(e.target),
       file = data.get('file');
     try {
@@ -449,27 +457,61 @@ export function createFiles(request, command) {
       setBusy(false);
     }
   };
-  /** Distingue un simple stockage cloud d’un lancement d’impression, bloqué si la machine est occupée. */
+  /** Attend une clé imprimante : le serveur refuse toute mutation sans cible explicite. */
   function updateUploadButton() {
     const form = $('upload-form'), mode = form.elements.mode;
     const filename = uploadInput.files[0]?.name;
     const storageOnly = filename != null && !/\.gcode$/i.test(filename);
+    let formatNote = $('upload-format-note');
+    if (!formatNote) {
+      formatNote = node('p', '', 'settings-help');
+      formatNote.id = 'upload-format-note';
+      (mode.closest('.upload-options') || mode.closest('label')).after(formatNote);
+      mode.setAttribute('aria-describedby', formatNote.id);
+    }
+    formatNote.hidden = !storageOnly;
+    formatNote.textContent = storageOnly ? tr('Ce fichier peut être stocké dans le Cloud. Les options d’impression sont disponibles pour les fichiers .gcode.') : '';
     if (storageOnly) mode.value = 'upload';
     for (const option of mode.options) option.disabled = storageOnly && option.value !== 'upload';
     form.elements.slots.disabled = storageOnly;
     const printing = mode.value !== 'upload', button = form.querySelector('[type=submit]');
+    const targetMissing = !workshopState.selectedPrinter,
+      targetMessage = tr('Une imprimante explicite est requise. Actualisez la page.');
     button.textContent = printing ? tr('Envoyer et imprimer') : tr('Envoyer');
-    button.disabled = printing && workshopState.snapshot?.printer?.is_available === false;
-    button.title = button.disabled
-      ? tr('Une impression est déjà en cours.')
+    button.disabled = targetMissing || (printing && workshopState.snapshot?.printer?.is_available === false);
+    if (targetMissing) set('upload-state', targetMessage);
+    else if ($('upload-state').textContent === targetMessage) set('upload-state', '');
+    button.title = targetMissing
+      ? targetMessage
+      : button.disabled
+        ? tr('Une impression est déjà en cours.')
       : printing
         ? tr('Envoyer le G-code et demander son impression après confirmation.')
         : tr('Conserver le fichier dans votre espace cloud sans lancer d’impression.');
   }
   $('upload-form').elements.mode.onchange = uploadInput.onchange = updateUploadButton;
+  updateUploadButton();
   /** Synchronise la sélection cloud et l’état indéterminé de la case de page. */
   function cloudSelectionState() {
     const n = cloudSelected.size;
+    for (const input of $('file-rows').querySelectorAll('input[data-selection]')) {
+      const selected = cloudSelected.has(input.dataset.selection);
+      input.checked = selected;
+      input.closest('tr').classList.toggle('file-selected', selected);
+    }
+    const tools = $('cloud-tools'), anchor = tools.querySelector('.cloud-selection-anchor');
+    // Réserver la place évite que les lignes remontent sous le doigt à la première sélection.
+    if (n > 0 && !tools.classList.contains('has-selection') && anchor) {
+      anchor.style.minHeight = `${anchor.getBoundingClientRect().height}px`;
+    }
+    tools.classList.toggle('has-selection', n > 0);
+    if (!n && anchor) anchor.style.minHeight = '';
+    let total = 0, known = true;
+    for (const file of cloudRows.filter(f => cloudSelected.has(f.handle))) {
+      if (!Number.isFinite(file.size_mb)) known = false;
+      else total += file.size_mb;
+    }
+    set('cloud-selected-size', n ? known ? fmt(total, tr(' Mo')) : tr('Taille inconnue') : '');
     set('cloud-selected-count', formatText('{0} sélection{1}', n, n > 1 ? 's' : ''));
     for (const id of ['cloud-download-selected', 'cloud-delete-selected']) {
       $(id).hidden = !!cloudFolder;
