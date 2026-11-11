@@ -30,7 +30,7 @@ MODULES = (
     "workshop-login.mjs",
     "workshop-interactions.mjs",
     "workshop-monitoring.mjs",
-    "workshop-lab.mjs",
+    "workshop-summary.mjs",
 )
 
 

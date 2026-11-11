@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=9d97ce06364c';
-import { workshopState } from './workshop-state.mjs?v=81b1204c8b64';
+} from './workshop-ui.mjs?v=544c79feee4e';
+import { workshopState } from './workshop-state.mjs?v=1df7d1b5102f';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -190,9 +190,9 @@ export function createOverview(request) {
   /** Réessaie un aperçu indisponible avec un délai borné et ignore les réponses d’un ancien projet. */
   function renderJobPreview(printer) {
     const key = printer.job_name && JSON.stringify([workshopState.selectedPrinter, printer.command_project, printer.job_name]);
-    const image = $('job-preview');
+    const images = [$('job-preview'), $('summary-preview')];
     if (!key || previewJob?.key !== key) {
-      image.hidden = true;
+      for (const image of images) image.hidden = true;
       previewJob = key ? { key, attempts: 0, next: 0, pending: false, done: false } : null;
     }
     const current = previewJob;
@@ -213,8 +213,10 @@ export function createOverview(request) {
     })
       .then((result) => {
         if (previewJob === current && result.image) {
-          image.src = result.image;
-          image.hidden = false;
+          for (const image of images) {
+            image.src = result.image;
+            image.hidden = false;
+          }
           current.done = true;
         }
       })
