@@ -104,3 +104,39 @@ test('une fermeture externe de confirmation annule une seule fois',async({page})
  });
  await expect.poll(()=>page.evaluate(()=>window.confirmOutcome)).toBe(false);
 });
+
+test('Apple Design utilise un seul repère et agrandit le visuel de l’imprimante',async({page})=>{
+ await useStyle(page,'apple');
+ await page.setViewportSize({width:1366,height:768});
+ await login(page);
+ const product=page.locator('#tab-overview .overview-grid > .product');
+ const image=product.locator('#printer-illustration');
+ await expect(image).toBeVisible();
+ expect((await product.boundingBox()).height).toBeGreaterThanOrEqual(200);
+ expect((await image.boundingBox()).height).toBeGreaterThanOrEqual(175);
+ await openSection(page,'settings');
+ const active=page.locator('#atelier-tabs [aria-current=page]');
+ const indicator=page.locator('.atelier-active-indicator');
+ await expect(active).toHaveCSS('border-top-color','rgba(0, 0, 0, 0)');
+ await expect(active).toHaveCSS('box-shadow','none');
+ await expect(indicator).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('Aurore maintient la sélection à l’intérieur du rail',async({page})=>{
+ await useStyle(page,'aurora');
+ await page.setViewportSize({width:1366,height:768});
+ await login(page,'settings');
+ const nav=page.locator('#atelier-tabs');
+ const active=nav.locator('[aria-current=page]');
+ const group=nav.locator('.atelier-nav-group').filter({has:page.locator('button[aria-current=page]')});
+ const [button,rail]=await Promise.all([active.boundingBox(),group.boundingBox()]);
+ expect(button.x-rail.x).toBeGreaterThanOrEqual(5);
+ expect(rail.x+rail.width-button.x-button.width).toBeGreaterThanOrEqual(5);
+ await expect(active).toHaveCSS('border-radius','16px');
+ await expect(active).toHaveCSS('box-shadow',/inset/);
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.locator('#section-menu-toggle')).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

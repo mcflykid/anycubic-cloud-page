@@ -4,6 +4,10 @@
 
 - Donne aux chargements des fichiers et de l’historique leur forme de liste ou de cartes. Un reflet Esqueleto accompagne uniquement l’attente réelle (#248).
 
+- Garde le bouton actif dans les bords arrondis du rail Aurore (#246).
+
+- Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
+
 - Place le journal historique dans Historique. La cloche présente uniquement les messages Cloud et s’ouvre avec la découpe animée de Burbuja (#243, #248).
 
 - Place le fichier en tête du formulaire d’envoi et montre l’ordre des bobines lors d’une demande d’impression. Le contour animé suit la requête en cours (#241, #248).

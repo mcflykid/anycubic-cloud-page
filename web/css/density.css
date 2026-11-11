@@ -2148,3 +2148,21 @@
   box-shadow: none;
   padding-inline: 0;
 }
+
+/* L’illustration et la fiche gardent le même bord supérieur malgré leurs hauteurs différentes. */
+@media (min-width: 961px) {
+  [data-style="apple"] #tab-overview > .overview-grid {
+    align-items: start;
+  }
+
+  [data-style="apple"] #tab-overview .overview-grid > .product {
+    height: clamp(200px, 21vw, 240px);
+    padding: 12px;
+  }
+
+  [data-style="apple"] #tab-overview .overview-grid > .product img {
+    width: 100%;
+    height: 100%;
+    max-width: 300px;
+  }
+}
