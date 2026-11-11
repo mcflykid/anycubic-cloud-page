@@ -117,14 +117,12 @@
 
 /* Les surfaces restent assez opaques pour lire les mesures au-dessus des reflets. */
 :root[data-style="prism"] {
-  --bg: light-dark(#e9eee5, #0e1110);
-  --surface: light-dark(#fcfdf9, #242927);
-  --text: light-dark(#19241d, #f3f7ee);
-  --muted: light-dark(#46584c, #b6c2b9);
-  --line: light-dark(#b5c5b7, #4d5b53);
-  --accent: light-dark(#426418, #d2f36e);
-  --prism-cyan: light-dark(#12656c, #73e1e4);
-  --prism-amber: light-dark(#805016, #ffd475);
+  --bg: light-dark(#eef1f6, #101217);
+  --surface: light-dark(#fcfdff, #20242c);
+  --text: light-dark(#1a2333, #f1f4f9);
+  --muted: light-dark(#4c596c, #bcc5d4);
+  --line: light-dark(#c5cfdd, #485261);
+  --accent: light-dark(#2857a0, #a4c4ff);
   --panel-radius: 20px;
   --prism-glass: linear-gradient(145deg,
     color-mix(in srgb, var(--surface) 82%, transparent),
@@ -134,10 +132,8 @@
 [data-style="prism"] body {
   background-color: var(--bg);
   background-image:
-    radial-gradient(ellipse at 26% 0%, light-dark(#b8ce827d, #8dab2a47), transparent 34rem),
-    radial-gradient(ellipse at 48% 42%, light-dark(#9fd7d68a, #187f8a53), transparent 37rem),
-    radial-gradient(ellipse at 91% 80%, light-dark(#f3ca8d78, #8a4c2854), transparent 34rem),
-    radial-gradient(ellipse at 68% 95%, light-dark(#d7bbd570, #7c43604f), transparent 32rem);
+    radial-gradient(ellipse at 36% 0%, light-dark(#a6c4ee44, #5076b035), transparent 42rem),
+    radial-gradient(ellipse at 90% 62%, light-dark(#fff9, #a9b8cc0e), transparent 38rem);
   background-repeat: no-repeat;
   background-size: 100% max(100%, 52rem);
 }
@@ -159,6 +155,54 @@
   background: linear-gradient(130deg, color-mix(in srgb, var(--accent) 24%, var(--surface)), var(--surface));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .19), 0 2px 10px rgb(0 0 0 / .13);
 }
+/* Les groupes restent nommés pour les lecteurs d’écran et occupent une seule rangée au bureau. */
+@media (min-width: 1191px) {
+  [data-style="prism"] #atelier-tabs:has(> .atelier-nav-group) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 8px auto 14px;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  [data-style="prism"] #atelier-tabs .atelier-nav-label { display: none; }
+  [data-style="prism"] #atelier-tabs .atelier-nav-group,
+  [data-style="prism"] #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    background: var(--prism-glass);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .1);
+  }
+  [data-style="prism"] #atelier-tabs:has(> .atelier-nav-group) .atelier-nav-group > button {
+    width: auto;
+    min-height: 44px;
+    flex-direction: row;
+    justify-content: center;
+    padding-inline: clamp(8px, .85vw, 16px);
+    white-space: nowrap;
+  }
+  [data-style="prism"] #atelier-tabs .atelier-nav-group > button > span { white-space: nowrap; }
+  [data-style="prism"] #atelier-tabs .atelier-nav-group:has(> button:only-of-type) {
+    padding: 0;
+    border-color: transparent;
+    background: none;
+    box-shadow: none;
+  }
+  [data-style="prism"] #atelier-tabs .atelier-nav-group > button:only-of-type:not([aria-current="page"]) {
+    border-color: var(--line);
+    background: var(--prism-glass);
+  }
+}
 [data-style="prism"] .summary-grid > section {
   padding: clamp(15px, 2.5vw, 29px);
   gap: clamp(12px, 1.7vw, 20px);
@@ -179,18 +223,15 @@
   gap: 6px;
 }
 [data-style="prism"] .summary-values > div {
-  --metric-tone: var(--accent);
   min-width: 0;
   padding: .65rem .55rem;
   border-radius: 12px;
-  border-block-start: 2px solid var(--metric-tone);
-  background: color-mix(in srgb, var(--metric-tone) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 90%, var(--bg));
   overflow-wrap: anywhere;
 }
-[data-style="prism"] .summary-values > div:nth-child(2) { --metric-tone: var(--prism-cyan); }
-[data-style="prism"] .summary-values > div:nth-child(3) { --metric-tone: var(--prism-amber); }
 [data-style="prism"] .summary-values dd {
-  color: var(--metric-tone);
+  color: var(--text);
   font-size: clamp(1rem, 1.65vw, 1.45rem);
   font-variant-numeric: tabular-nums;
 }

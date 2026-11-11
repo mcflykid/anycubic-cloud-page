@@ -27,12 +27,12 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [20-supervision-sombre.png](20-supervision-sombre.png) | Supervision en mode sombre. |
 | [21-resume-mobile.png](21-resume-mobile.png) | Résumé sur téléphone. |
 | [22-detail-supervision.png](22-detail-supervision.png) | Détail des relevés dans Parc et santé. |
-| [23-prisme-sombre.png](23-prisme-sombre.png) | Prisme sur ordinateur, en mode sombre. |
+| [23-prisme-sombre.png](23-prisme-sombre.png) | Prisme sur ordinateur à 1 920 × 1 080 px, en mode sombre. |
 | [24-prisme-mobile.png](24-prisme-mobile.png) | Prisme sur téléphone, en mode sombre. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
-La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les captures de bureau mesurent 1 440 × 1 000 px. La vue mobile mesure 390 × 844 px. Ne jamais utiliser un compte réel pour produire les images publiques.
+La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les captures de bureau mesurent 1 440 × 1 000 px, avec une vue de Prisme à 1 920 × 1 080 px. La vue mobile mesure 390 × 844 px. Ne jamais utiliser un compte réel pour produire les images publiques.
 
 ## Comparaison historique des styles conservés
 
