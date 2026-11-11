@@ -67,7 +67,14 @@ test('les bilans et les alertes ont des réglages et des webhooks distincts', as
   expect(duplicate.status()).toBe(400);
   expect(await duplicate.text()).toContain('Choisissez deux webhooks Discord distincts.');
   expect((await save(endpoint+'/reports',reports)).ok()).toBeTruthy();
-  await page.goto(endpoint);
+  await page.goto('/imprimante.html');
+  await page.locator('[data-tab=settings]').click();
+  const card=page.getByRole('region',{name:'Notifications Discord'});
+  await expect(card.getByText('Activées',{exact:true})).toBeVisible();
+  await expect(card.getByText('Activés',{exact:true})).toBeVisible();
+  await card.getByRole('link',{name:'Configurer les bilans Discord'}).click();
+  await expect(page.getByRole('heading',{name:'Bilans Discord'})).toBeVisible();
+  await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
   await expect(page.getByRole('checkbox',{name:'Activer les notifications Discord'})).toBeChecked();
   await page.getByRole('link',{name:'Configurer les bilans Discord'}).click();
   await expect(page.getByRole('heading',{name:'Bilans Discord'})).toBeVisible();

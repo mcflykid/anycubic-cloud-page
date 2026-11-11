@@ -99,9 +99,9 @@ def install_discord(app, state_dir, *, fake_sender=None, history_reader=None):
         app.router.add_post(path, discord_settings)
 
 
-def discord_enabled(app):
+def discord_enabled(app, *, reports=False):
     """Indique si le canal est actif, ou absent de cette variante de l’atelier."""
-    delivery = app.get(DELIVERY_KEY)
+    delivery = app.get(REPORT_KEY if reports else DELIVERY_KEY)
     return delivery.config.enabled if delivery is not None else None
 
 
