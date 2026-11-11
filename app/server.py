@@ -22,7 +22,6 @@ from monitoring import Monitoring
 from cloud_budget import CloudRequestBudget
 from idle_controls import idle_limits
 from ace_telemetry import ace2_pro_telemetry
-from printer_axes import is_allowed as axis_query_allowed, query_axis_position
 from account_transport import AccountTransport
 from request_validation import json_object
 from printer_values import integer, now, safeget, serial
@@ -233,44 +232,9 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     and get_part_from_mqtt_topic(str(message.topic), 6) == str(owner.printer.key)
                 )
                 retained = getattr(message, "retain", False)
-                if action == "query" and (kind == "axis" or str(message.topic).endswith("/axis")):
-                    if not target_matches:
-                        printer_files.log_axis_rejection("target")
-                    elif retained:
-                        printer_files.log_axis_rejection("retained")
-                    elif kind != "axis":
-                        printer_files.log_axis_rejection("kind_action")
                 if kind == "axis" and action == "query":
-                    data = payload.get("data")
-                    coordinates = data.get("coordinates") if isinstance(data, dict) else None
-                    code = payload.get("code")
-                    reply_code = (
-                        "success"
-                        if type(code) is int and code == 200
-                        else "refused"
-                        if type(code) is int and code in {400, 401, 403, 404, 409}
-                        else "other"
-                        if type(code) is int
-                        else "missing"
-                        if code is None
-                        else "invalid"
-                    )
-                    log_event(
-                        logging.getLogger("cloud_page.axes"),
-                        logging.INFO,
-                        "axis_query_mqtt_observed",
-                        message="Réponse MQTT de consultation observée avant validation de la cible",
-                        owner_present=owner is not None,
-                        msgid_present=(
-                            type(payload.get("msgid")) in (int, str)
-                            and 0 < len(str(payload.get("msgid"))) <= 128
-                        ),
-                        coordinates_complete=(
-                            isinstance(coordinates, dict)
-                            and all(coordinates.get(axis) is not None for axis in ("x", "y", "z"))
-                        ),
-                        reply_code=reply_code,
-                    )
+                    # Un rapport de position hérité ne rafraîchit pas les mesures de la machine.
+                    return
                 if target_matches:
                     tracker = getattr(primary, "command_mqtt", None)
                     if (
@@ -285,12 +249,8 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     if not retained and kind in (
                         "file",
                         "light",
-                        "axis",
                     ):
                         owner.mqtt_replies.receive(payload)
-                    if kind == "axis" and action == "query":
-                        # Les coordonnées relèvent de la consultation corrélée, pas de la fraîcheur globale.
-                        return
             return super()._mqtt_message_router(message)
         finally:
             self.message_engine = None
@@ -878,7 +838,6 @@ class Engine:
                         )
         fields["task_details"] = task_details(safeget(p, "latest_project"))
         fields["axes_supported"] = 67 in (self.raw_info.get("type_function_ids") or [])
-        fields["axis_query_supported"] = axis_query_allowed(self)
         fields["idle_limits"] = idle_limits(self)
         features = {
             r.get("name"): r.get("value")
@@ -1145,26 +1104,6 @@ async def errors(request, handler):
 async def status(req):
     """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
     return web.json_response(request_engine(req).snapshot(), headers={"Cache-Control": "no-store"})
-
-
-async def axis_position(req):
-    """Consulte explicitement la position de la cible sans mouvement ni collecte périodique."""
-    selected = request_engine(req)
-    async with selected.lock:
-        verify_printer_target(req, selected)
-        try:
-            result = await query_axis_position(selected)
-        except printer_files.MQTTReplyTimeout:
-            return web.json_response(
-                {
-                    "ok": False,
-                    "message": "L’imprimante n’a pas répondu à la consultation des axes. Aucune relance automatique n’a été effectuée.",
-                },
-                status=504,
-                headers={"Cache-Control": "no-store"},
-            )
-        verify_printer_target(req, selected)
-    return web.json_response(result, headers={"Cache-Control": "no-store"})
 
 
 async def printers(req):
@@ -2258,7 +2197,6 @@ app.add_routes(
         web.get("/imprimante-api/health", health),
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
-        web.get("/imprimante-api/axis-position", axis_position),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),

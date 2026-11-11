@@ -39,11 +39,6 @@ _FIELD_NAMES = frozenset(
         "nested",
         "endpoint",
         "cloud_code",
-        "owner_present",
-        "msgid_present",
-        "coordinates_complete",
-        "reply_code",
-        "reply_rejection",
     }
 )
 _TOKEN = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
@@ -166,22 +161,6 @@ def _safe_value(name, value):
         return value if type(value) is int and 0 <= value <= 2**31 - 1 else None
     if name == "connected":
         return value if type(value) is bool else None
-    if name in {"owner_present", "msgid_present", "coordinates_complete"}:
-        return value if type(value) is bool else None
-    if name == "reply_rejection":
-        return (
-            value
-            if isinstance(value, str)
-            and value in {"target", "retained", "kind_action", "identifier", "outside_window"}
-            else None
-        )
-    if name == "reply_code":
-        return (
-            value
-            if isinstance(value, str)
-            and value in {"success", "refused", "other", "missing", "invalid"}
-            else None
-        )
     if name == "nested":
         return value if type(value) is bool else None
     if name == "file_format":
