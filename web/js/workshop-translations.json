@@ -4342,5 +4342,17 @@
   "Trop de codes refusés. Recommencez la connexion.": [
     "Too many rejected codes. Start signing in again.",
     "Demasiados códigos rechazados. Vuelve a iniciar sesión."
+  ],
+  "Animations de l’atelier": [
+    "Workshop animations",
+    "Animaciones del taller"
+  ],
+  "Compteur et sélection par glissement d’après": [
+    "Counter and drag selection based on",
+    "Contador y selección por arrastre basados en"
+  ],
+  "Lote · Moxen": [
+    "Lote · Moxen",
+    "Lote · Moxen"
   ]
 }
