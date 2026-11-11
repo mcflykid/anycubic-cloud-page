@@ -4,12 +4,14 @@ async function login(page,landing='overview'){await page.goto('/login');await pa
 /** Ouvre une section via le menu mobile quand la barre de bureau est masquée. */
 async function openSection(page, key){
  const toggle=page.locator('#section-menu-toggle');
+ // Le document peut déjà avoir changé d’URL avant la fin de son initialisation.
+ await expect(toggle).toBeEnabled();
  if(await toggle.isVisible()){
   await toggle.click();
   await expect(page.locator('#atelier-tabs')).toHaveAttribute('data-open','true');
  }
  const tab=page.locator(`#atelier-tabs [data-tab="${key}"]`);
  await expect(tab).toBeVisible();
- await tab.click();
+ await tab.click({timeout:5000});
 }
 module.exports={login,openSection};
