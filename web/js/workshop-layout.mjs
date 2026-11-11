@@ -74,6 +74,7 @@ export function initializeTileLayout() {
   let preferences = read();
   let editing = null;
   let pointer = null;
+  let scrollFrame = 0;
   const groups = new Map();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const panelKey = key => key === 'overview-aurora' ? 'overview' : key;
@@ -195,12 +196,21 @@ export function initializeTileLayout() {
       pointer.changed = next !== span;
       return;
     }
-    const target = document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-layout-card]');
+    pointer.lastX = event.clientX;
+    pointer.lastY = event.clientY;
+    reorderAtPointer();
+    if (!scrollFrame) scrollFrame = requestAnimationFrame(scrollWhileDragging);
+  }
+
+  /** Déplace la tuile en suivant la position visible du pointeur, même pendant le défilement. */
+  function reorderAtPointer() {
+    const {group, card, lastX, lastY} = pointer;
+    const target = document.elementFromPoint(lastX,lastY)?.closest('[data-layout-card]');
     if (!target || target === card || target.parentElement !== group) return;
     const rect = target.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
     const sameRow = Math.abs(cardRect.top - rect.top) < 8;
-    const before = sameRow ? event.clientX < rect.left + rect.width/2 : event.clientY < rect.top + rect.height/2;
+    const before = sameRow ? lastX < rect.left + rect.width/2 : lastY < rect.top + rect.height/2;
     const cards = groupCards(group), original = cards.indexOf(card);
     const order = cards.filter(item=>item!==card).map(item=>item.dataset.layoutCard);
     const index = order.indexOf(target.dataset.layoutCard) + (before ? 0 : 1);
@@ -210,11 +220,30 @@ export function initializeTileLayout() {
     pointer.changed = true;
   }
 
+  /** Fait défiler les cartes hors écran quand la poignée atteint un bord de la fenêtre. */
+  function scrollWhileDragging() {
+    scrollFrame = 0;
+    if (!pointer) return;
+    const edge = 72;
+    const bottom = document.documentElement.clientHeight - edge;
+    const y = pointer.lastY;
+    const offset = y < edge ? y - edge : Math.max(0, y - bottom);
+    if (!offset) return;
+    const previous = window.scrollY;
+    const step = Math.sign(offset) * Math.min(14, Math.ceil(Math.abs(offset) / 4));
+    window.scrollBy({top: step, behavior: 'instant'});
+    if (window.scrollY === previous) return;
+    reorderAtPointer();
+    scrollFrame = requestAnimationFrame(scrollWhileDragging);
+  }
+
   /** Une annulation restitue l’ordre initial du geste, une fin valide la modification. */
   function endPointer(event, cancelled) {
     if (!pointer || event && event.pointerId !== pointer.id) return;
     const {group,card,order,span,changed} = pointer;
     pointer = null;
+    cancelAnimationFrame(scrollFrame);
+    scrollFrame = 0;
     delete card.dataset.layoutDragging;
     if (cancelled) { arrange(group,order); card.dataset.layoutSpan = span; }
     else if (changed) save(group);
