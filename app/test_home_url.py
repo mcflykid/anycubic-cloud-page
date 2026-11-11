@@ -4,7 +4,7 @@ import base64, hashlib, os, pathlib, re, shutil, tempfile, unittest
 from unittest.mock import patch
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
-from web_host import home_url, install_static
+from web_host import access_control, home_url, install_static
 from web_assets import build_web_assets
 
 
@@ -63,6 +63,38 @@ class Navigation(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 200)
             self.assertIn("auto-hébergée", await response.text())
 
+    async def test_only_current_asset_fingerprints_receive_immutable_cache(self):
+        """Le cache des octets figés reste privé et les pages gardent no-store."""
+        with tempfile.TemporaryDirectory() as directory:
+            password = pathlib.Path(directory) / "web-password"
+            password.write_text("mot-de-passe-fictif")
+            with patch.dict(os.environ, {"WEB_PASSWORD_FILE": str(password)}):
+                app = web.Application(middlewares=[access_control])
+                install_static(app)
+                async with TestClient(TestServer(app)) as client:
+                    page = await client.get("/login")
+                    self.assertEqual(page.headers["Cache-Control"], "no-store")
+                    content = await page.text()
+                    for kind in ("css/landing.css", "js/workshop-ui.mjs"):
+                        url = re.search(rf'"([^"]+{re.escape(kind)}\?v=[0-9a-f]{{12}})"', content)[
+                            1
+                        ]
+                        current = await client.get(url)
+                        self.assertEqual(current.status, 200)
+                        self.assertEqual(
+                            current.headers["Cache-Control"], "private, max-age=31536000, immutable"
+                        )
+                        plain = url.split("?")[0]
+                        for previous in (plain, plain + "?v=ancienne"):
+                            stale = await client.get(previous)
+                            self.assertEqual(stale.headers["Cache-Control"], "no-store")
+                    forbidden = await client.get(
+                        "/imprimante-api/ui/css/atelier-summary.css?v=ancienne",
+                        allow_redirects=False,
+                    )
+                    self.assertEqual(forbidden.status, 303)
+                    self.assertEqual(forbidden.headers["Cache-Control"], "no-store")
+
     async def test_empty_url_removes_links_and_default_stays_in_workshop(self):
         """Une valeur vide retire les liens ; une variable absente ne renvoie pas vers un autre site."""
         for value in ["", None]:
@@ -87,11 +119,11 @@ class AssetRevision(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory) / "web"
             shutil.copytree(source, root)
-            pages, scripts = build_web_assets(root)
+            pages, scripts, _, _ = build_web_assets(root)
             stylesheet = root / "css/landing.css"
             stylesheet.write_bytes(stylesheet.read_bytes() + b"\n")
             build_web_assets.cache_clear()
-            changed_pages, changed_scripts = build_web_assets(root)
+            changed_pages, changed_scripts, _, _ = build_web_assets(root)
             self.assertNotEqual(pages["login.html"], changed_pages["login.html"])
             self.assertNotEqual(scripts["js/imprimante.js"], changed_scripts["js/imprimante.js"])
 

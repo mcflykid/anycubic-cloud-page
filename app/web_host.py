@@ -1,6 +1,6 @@
 """Ressources de l’interface et contrôle d’accès de la distribution autonome."""
 
-import asyncio, hashlib, hmac, html, ipaddress, json, os, pathlib, re, secrets, time
+import asyncio, hashlib, hmac, html, ipaddress, json, mimetypes, os, pathlib, re, secrets, time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from urllib.parse import urlsplit, parse_qs
@@ -401,7 +401,7 @@ async def access_control(request, handler):
     # no-referrer rend Origin nul sur les formulaires ; same-origin le conserve sans fuite vers les sites externes.
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "same-origin"
-    response.headers["Cache-Control"] = "no-store"
+    response.headers.setdefault("Cache-Control", "no-store")
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.agora.io https://*.sd-rtn.com https://*.agoraio.cn wss://*.agora.io wss://*.sd-rtn.com wss://*.agoraio.cn; media-src blob: https:; worker-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
     )
@@ -918,18 +918,28 @@ async def about(request):
     )
 
 
-async def versioned_script(request):
-    """Sert les octets qui ont servi au calcul de l’intégrité dans les pages."""
+async def versioned_asset(request):
+    """Sert l’instantané lié à l’empreinte et réserve le cache long à son URL exacte."""
     name = request.path.removeprefix(UI_PREFIX).lstrip("/")
-    return web.Response(body=build_web_assets(ROOT)[1][name], content_type="text/javascript")
+    _, scripts, revision, assets = build_web_assets(ROOT)
+    content_type = (
+        "text/javascript"
+        if name in scripts or name.endswith(".js")
+        else mimetypes.guess_type(name)[0] or "application/octet-stream"
+    )
+    headers = {}
+    if request.query_string == f"v={revision}":
+        # Le cache navigateur conserve l’instantané, sans autoriser un cache partagé.
+        headers["Cache-Control"] = "private, max-age=31536000, immutable"
+    return web.Response(body=assets[name], content_type=content_type, headers=headers)
 
 
 def install_ui_resources(app):
     """Sert les ressources via le préfixe déjà routé et conserve les anciennes adresses."""
-    _, scripts = build_web_assets(ROOT)
+    _, _, _, assets = build_web_assets(ROOT)
     for prefix in ("", UI_PREFIX):
-        for name in scripts:
-            app.router.add_get(f"{prefix}/{name}", versioned_script)
+        for name in assets:
+            app.router.add_get(f"{prefix}/{name}", versioned_asset)
         for path in INFORMATION_PAGES:
             app.router.add_get(prefix + path, about)
         for folder in ("css", "js", "icons"):
