@@ -865,7 +865,9 @@ def render_page(destination, time_zone, *, totp_active=False, discord_active=Non
     content = content.replace("<!-- TOTP_BADGE_STATE -->", "normal" if totp_active else "unknown")
     content = content.replace("<!-- TOTP_STATE -->", "Activée" if totp_active else "Désactivée")
     content = (
-        content.replace("<!-- DISCORD_CARD_VISIBILITY -->", "hidden" if discord_active is None else "")
+        content.replace(
+            "<!-- DISCORD_CARD_VISIBILITY -->", "hidden" if discord_active is None else ""
+        )
         .replace("<!-- DISCORD_BADGE_STATE -->", "normal" if discord_active else "unknown")
         .replace("<!-- DISCORD_STATE -->", "Activées" if discord_active else "Désactivées")
     )

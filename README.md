@@ -14,7 +14,7 @@ Version **1.11.0**. [Changements](CHANGELOG.md).
 [![Prochaine livraison](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/9)](https://github.com/mcflykid/anycubic-cloud-page/milestone/9)
 [![Dernier commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
 
-[English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md)
+[English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md) · [Notifications Discord](docs/NOTIFICATIONS.md)
 
 Ce projet transforme les fonctions d’atelier du cloud Anycubic en une interface web indépendante : suivi d’impression, ACE et bobines, fichiers, envoi de G-code, caméra, historique et réglages. Le serveur Python dialogue avec Anycubic par HTTP et MQTT ; le navigateur n’a pas besoin de lancer le slicer. Aucun Home Assistant requis. Avec plusieurs imprimantes, un sélecteur dans la barre du haut retrouve le dernier choix du navigateur ; les commandes portent une cible explicite.
 
