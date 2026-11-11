@@ -2149,10 +2149,14 @@
   padding-inline: 0;
 }
 
-/* Apple Design : le visuel produit accompagne la fiche d’impression sur ordinateur. */
+/* L’illustration et la fiche gardent le même bord supérieur malgré leurs hauteurs différentes. */
 @media (min-width: 961px) {
+  [data-style="apple"] #tab-overview > .overview-grid {
+    align-items: start;
+  }
+
   [data-style="apple"] #tab-overview .overview-grid > .product {
-    height: clamp(200px, 23vw, 260px);
+    height: clamp(200px, 21vw, 240px);
     padding: 12px;
   }
 
