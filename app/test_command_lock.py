@@ -67,6 +67,7 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
             state_dir=pathlib.Path(staging.name),
             lock=asyncio.Lock(),
             command_lock=asyncio.Lock(),
+            command_request_lock=asyncio.Lock(),
             upload_lock=asyncio.Lock(),
             commands={},
             action=AsyncMock(return_value="accepted"),
@@ -110,7 +111,8 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
         await self.engine.lock.acquire()
         task = asyncio.create_task(adapter.command(self.req()))
         await asyncio.sleep(0)
-        self.assertTrue(self.engine.command_lock.locked())
+        self.assertTrue(self.engine.command_request_lock.locked())
+        self.assertFalse(self.engine.command_lock.locked())
         self.engine.action.assert_not_awaited()
         self.engine.lock.release()
         result = await task
@@ -195,6 +197,59 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(self.engine.commands)
                 self.assertFalse(self.engine.lock.locked())
                 self.assertFalse(self.engine.command_lock.locked())
+
+    async def test_camera_waiting_for_read_leaves_pause_and_cancel_available(self):
+        """La caméra attend la lecture puis l’ordre prioritaire, sans les chevaucher."""
+        real_sleep = asyncio.sleep
+        for opening in (True, False):
+            for action in ("pause", "cancel"):
+                with self.subTest(opening=opening, action=action):
+                    engine = adapter.Engine()
+                    started = asyncio.Event()
+                    finish = asyncio.Event()
+                    transport = AsyncMock(return_value=SimpleNamespace(data={"fixture": True}))
+                    engine.printer = SimpleNamespace(id=42, get_camera_session=transport)
+                    engine.api = SimpleNamespace(_send_anycubic_order=transport)
+
+                    async def priority(*args, started=started, finish=finish):
+                        started.set()
+                        await finish.wait()
+                        return "accepted"
+
+                    engine.action = AsyncMock(side_effect=priority)
+                    with (
+                        patch.object(adapter, "engine", engine),
+                        patch.object(adapter.asyncio, "sleep", new_callable=AsyncMock),
+                    ):
+                        await engine.lock.acquire()
+                        camera = asyncio.create_task(
+                            adapter.camera(self.req())
+                            if opening
+                            else adapter.close_idle_camera(engine, "42")
+                        )
+                        await real_sleep(0)
+                        self.assertFalse(engine.command_lock.locked())
+                        command = asyncio.create_task(adapter.command(self.req(action=action)))
+                        try:
+                            await asyncio.wait_for(started.wait(), 1)
+                            engine.lock.release()
+                            await real_sleep(0)
+                            transport.assert_not_awaited()
+                            finish.set()
+                            self.assertTrue(json.loads((await command).body)["ok"])
+                            await camera
+                            engine.action.assert_awaited_once_with(action, {"enabled": True})
+                            transport.assert_awaited_once()
+                        finally:
+                            if engine.lock.locked() and not started.is_set():
+                                engine.lock.release()
+                            tasks = (command, camera, engine.camera_expiry_task)
+                            for task in tasks:
+                                if task and not task.done():
+                                    task.cancel()
+                            await asyncio.gather(
+                                *(task for task in tasks if task), return_exceptions=True
+                            )
 
     async def test_unknown_physical_result_is_not_automatically_retried(self):
         """Vérifie qu’un délai dépassé au transport garde un résultat inconnu sans nouvel envoi."""

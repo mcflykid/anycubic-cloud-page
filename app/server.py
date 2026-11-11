@@ -343,6 +343,7 @@ class Engine:
         self.camera_owner = None
         self.camera_close_task = None
         self.command_lock = asyncio.Lock()
+        self.command_request_lock = asyncio.Lock()
         self.upload_lock = asyncio.Lock()
         self.mqtt_reconnect_task = None
         self.notifications = AccountNotifications()
@@ -1468,31 +1469,28 @@ async def command_journal(request):
 
 @contextlib.asynccontextmanager
 async def command_operation(req, *, require_model=True, bypass_read_lock=False):
-    # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
-    """Cède le verrou API à une seule opération ; lève ValueError si attente trop longue ou client parti."""
+    """Réserve une commande ordinaire puis sérialise l’envoi, après la lecture si nécessaire."""
     engine = request_engine(req)
-    if engine.command_lock.locked():
+    if engine.command_lock.locked() or (
+        not bypass_read_lock and engine.command_request_lock.locked()
+    ):
         raise ValueError("Une opération est en cours. Réessayez après sa fin.")
-    async with engine.command_lock:
-        if bypass_read_lock:
-            if req.transport is None or req.transport.is_closing():
-                raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
-            verify_printer_target(req, engine, require_model=require_model)
-            yield
-            return
-        try:
-            await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
-        except asyncio.TimeoutError:
-            raise CommandWaitExpired(
-                "La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes."
-            ) from None
-        try:
-            if req.transport is None or req.transport.is_closing():
-                raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
-            verify_printer_target(req, engine, require_model=require_model)
-            yield
-        finally:
-            engine.lock.release()
+    async with contextlib.AsyncExitStack() as guards:
+        if not bypass_read_lock:
+            # Réserver la demande sans empêcher pause ou annulation d’atteindre l’envoi.
+            await guards.enter_async_context(engine.command_request_lock)
+            try:
+                await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
+            except asyncio.TimeoutError:
+                raise CommandWaitExpired(
+                    "La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes."
+                ) from None
+            guards.callback(engine.lock.release)
+        await guards.enter_async_context(engine.command_lock)
+        if req.transport is None or req.transport.is_closing():
+            raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
+        verify_printer_target(req, engine, require_model=require_model)
+        yield
 
 
 @contextlib.asynccontextmanager
@@ -1657,8 +1655,8 @@ async def camera(req):
         raise ValueError("Session vidéo invalide")
     if not engine.printer:
         raise ValueError("Connexion en cours")
-    async with engine.command_lock:
-        async with engine.lock:
+    async with engine.lock:
+        async with engine.command_lock:
             verify_printer_target(req, engine)
             prune_camera_viewers(engine)
             if viewer and engine.camera_departures.get(viewer, 0) > time.monotonic():
@@ -1754,8 +1752,8 @@ async def expire_camera_viewers(engine):
 async def close_idle_camera(engine, target):
     """Envoie une fermeture unique après le départ du dernier spectateur de l’atelier."""
     await asyncio.sleep(3)
-    async with engine.command_lock:
-        async with engine.lock:
+    async with engine.lock:
+        async with engine.command_lock:
             if (
                 engine.camera_viewers
                 or not engine.api
@@ -1850,7 +1848,7 @@ async def upload_operation(req, engine, audit):
     """Inscrit le mode et les paramètres validés avant de solliciter le transport Anycubic."""
     if not engine.printer:
         raise ValueError("Connexion en cours")
-    if engine.command_lock.locked():
+    if engine.command_lock.locked() or engine.command_request_lock.locked():
         raise ValueError("Une opération est déjà en cours")
     if UPLOAD_STAGING.locked():
         raise ValueError("Un envoi de fichier est déjà en cours")
