@@ -191,11 +191,15 @@ async function main() {
     await openSection(page, 'fleet');
     await page.locator('#monitor-grid .monitor-card').first().waitFor();
     await photo(page, '20-supervision-sombre.png');
+    await page.locator('[data-monitor-key="cpu"]').click();
+    await page.locator('#monitor-detail [data-monitor-summary]').waitFor();
+    await photo(page, '22-detail-supervision.png');
+    await page.keyboard.press('Escape');
     await page.setViewportSize(mobile);
     await openSection(page, 'summary');
     await photo(page, '21-resume-mobile.png');
     await captureTotp(page, browser, base);
-    console.log('22 captures de démonstration produites, sans compte réel.');
+    console.log('23 captures de démonstration produites, sans compte réel.');
   } finally {
     if (browser) await browser.close();
     server.kill('SIGTERM');
