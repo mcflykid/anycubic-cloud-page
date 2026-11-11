@@ -2,6 +2,16 @@
 
 Le serveur aiohttp exécute les requêtes sur une boucle asyncio. Un compte partage son client HTTP, son budget de requêtes et son fil MQTT. Chaque imprimante a un moteur distinct avec son état, ses attentes de réponse et ses verrous. Le navigateur envoie une cible explicite. Le serveur la vérifie à nouveau après toute attente qui pourrait la rendre caduque.
 
+## Répartition du code
+
+- `app/server.py` raccorde les routes, contrôle la cible et organise le cycle de vie de l’application.
+- `app/printer_engine.py` maintient l’état des imprimantes, le transport Cloud et le routage MQTT.
+- `app/camera_sessions.py` gère l’ouverture, la présence et la fermeture différée de la vidéo.
+- `app/file_uploads.py` reçoit et contrôle les fichiers, puis choisit le parcours de stockage ou de lancement.
+- `app/command_journal_web.py` relie la requête, les références de diagnostic et le journal privé.
+
+Les lectures du journal et la validation d’archives partent hors de la boucle HTTP. Le fichier multipart est écrit par blocs avec des appels asynchrones. La préparation et le nettoyage des fichiers temporaires restent au niveau du système de fichiers. Le nettoyage des reliquats au démarrage et l’attente du fil MQTT sont délégués à un travail hors boucle.
+
 ## Verrous
 
 | Verrou | Portée | Rôle |
