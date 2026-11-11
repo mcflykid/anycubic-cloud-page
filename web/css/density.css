@@ -69,14 +69,6 @@
     flex-basis: 17px;
   }
 
-  /* Le repère n'existe visuellement que dans Apple et Océan ; le retirer ailleurs évite un vieux transform hors cadre. */
-  [data-style]:not([data-style="apple"]) #atelier-tabs .atelier-active-indicator {
-    display: none;
-  }
-
-  [data-style="apple"] #atelier-tabs .atelier-active-indicator{
-    display: block;
-  }
 
   .atelier-navigation,
   [data-style="lab"] .atelier-navigation {
@@ -1339,21 +1331,16 @@
     line-height: 1.25;
   }
 
-  /* Les styles Blueprint, Aurore et Laboratoire gardent leur navigation propre. */
-  [data-style="blueprint"] .printer-shell,
+  /* Aurore et Laboratoire gardent leur navigation propre. */
+
   [data-style="aurora"] .printer-shell {
     grid-template-rows: auto auto auto 1fr auto;
     align-content: stretch;
   }
 
-  [data-style="blueprint"] .atelier-tabs,
+
   [data-style="aurora"] .atelier-tabs {
     padding: 5px;
-  }
-
-  [data-style="blueprint"] #atelier-tabs > button {
-    min-height: 39px;
-    padding-block: 5px;
   }
 
   [data-style="aurora"] #atelier-tabs > button {
@@ -1361,22 +1348,6 @@
     padding-block: 6px;
   }
 
-  /* Apple garde ses formes, avec moins de hauteur sur ordinateur portable. */
-  [data-style="apple"] .portal-nav {
-    margin-top: 0;
-  }
-
-  [data-style="apple"] #tab-overview > .overview-grid,
-  [data-style="apple"] #tab-overview > .printer-lower-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
-  }
-
-  [data-style="apple"] #tab-overview .overview-content,
-  [data-style="apple"] #tab-overview .product,
-  [data-style="apple"] #tab-ace .overview-content,
-  [data-style="apple"] #tab-ace .product {
-    padding-block: 6px;
-  }
 }
 
 /* Aurore conserve sa composition sans pousser le pied hors écran. */
@@ -2131,22 +2102,4 @@
   border-radius: 0;
   box-shadow: none;
   padding-inline: 0;
-}
-
-/* L’illustration et la fiche gardent le même bord supérieur malgré leurs hauteurs différentes. */
-@media (min-width: 961px) {
-  [data-style="apple"] #tab-overview > .overview-grid {
-    align-items: start;
-  }
-
-  [data-style="apple"] #tab-overview .overview-grid > .product {
-    height: clamp(200px, 21vw, 240px);
-    padding: 12px;
-  }
-
-  [data-style="apple"] #tab-overview .overview-grid > .product img {
-    width: 100%;
-    height: 100%;
-    max-width: 300px;
-  }
 }

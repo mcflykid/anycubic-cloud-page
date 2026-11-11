@@ -27,8 +27,6 @@ import { initializeWorkshopNavigation } from './workshop-navigation.mjs';
 initializeWorkshopNavigation();
 import { initializeInteractions } from './workshop-interactions.mjs';
 initializeInteractions();
-import { initializeTileLayout } from './workshop-layout.mjs';
-initializeTileLayout();
 import { renderSummary } from './workshop-summary.mjs';
 export { previewJob } from './workshop-overview.mjs';
 

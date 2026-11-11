@@ -39,16 +39,6 @@
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none; }
 }
-:root[data-style="apple"] {
-  --section-entry-duration: 320ms;
-  --heading-entry: heading-spring;
-  --dialog-entry: dialog-pop;
-}
-:root[data-style="blueprint"] {
-  --section-entry: section-reveal;
-  --section-entry-duration: 290ms;
-  --heading-entry: heading-sweep;
-}
 :root[data-style="aurora"] {
   --section-entry-duration: 340ms;
   --heading-entry: heading-spring;

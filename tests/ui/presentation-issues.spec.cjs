@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const {login,openSection}=require('./helpers.cjs');
+const {login}=require('./helpers.cjs');
 
 async function useStyle(page,style){
  await page.addInitScript(value=>localStorage.setItem('cloud-page-style',value),style);
@@ -10,12 +10,12 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('data-style','standard');
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
- await expect(page.locator('#interface-style option')).toHaveCount(7);
+ await expect(page.locator('#interface-style option')).toHaveCount(4);
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 
-test('Apple Design garde dix sections accessibles sans débordement horizontal',async({page})=>{
- await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page, 'summary');
+test('Le menu mobile garde dix sections accessibles sans débordement horizontal',async({page})=>{
+ await page.setViewportSize({width:390,height:800}); await login(page, 'summary');
  const tabs=page.locator('#atelier-tabs');
  await expect(page.locator('#section-menu-toggle')).toBeVisible();
  await expect(tabs).toBeHidden();
@@ -64,36 +64,6 @@ test('l’avertissement des axes reste en bas de la carte sur ordinateur et mobi
  expect(Math.abs(result.bottom-result.card.bottom)).toBeLessThan(40);
 });
 
-test('Apple Design aligne les cartes et garde les quatre commandes sur une rangée',async({page})=>{
- await useStyle(page,'apple'); await page.setViewportSize({width:1440,height:900}); await login(page);
- const [buttons,top,bottom]=await Promise.all([
-  page.locator('#tab-overview .actions button').evaluateAll(items=>items.map(item=>({y:item.getBoundingClientRect().top,disabled:item.disabled}))),
-  page.locator('#tab-overview .overview-grid').boundingBox(),
-  page.locator('#tab-overview .printer-lower-grid').boundingBox(),
- ]);
- expect(new Set(buttons.map(button=>Math.round(button.y))).size).toBe(1);
- const topSplit=await page.locator('#tab-overview .overview-grid').evaluate(el=>el.children[0].getBoundingClientRect().right);
- const lowerSplit=await page.locator('#tab-overview .printer-lower-grid').evaluate(el=>el.children[0].getBoundingClientRect().right);
- expect(Math.abs(topSplit-lowerSplit)).toBeLessThan(3);
- expect(Math.abs(top.x-bottom.x)).toBeLessThan(2);
-});
-
-test('Apple Design applique fond profond, verre discret et respect des animations réduites',async({page})=>{
- await useStyle(page,'apple'); await login(page);
- // Le changement d’URL précède parfois l’application du thème et de ses styles.
- await expect(page.locator('html')).toHaveAttribute('data-style','apple');
- await expect(page.locator('body')).toHaveCSS('background-image',/radial-gradient/);
- await expect(page.locator('.atelier-tabs')).toHaveCSS('backdrop-filter',/blur/);
- await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
- const [seeButton,configureButton]=await Promise.all([
-  page.getByRole('button',{name:'Voir',exact:true}).first().evaluate(el=>getComputedStyle(el).borderRadius),
-  page.getByRole('button',{name:'Configurer une bobine',exact:true}).evaluate(el=>getComputedStyle(el).borderRadius),
- ]);
- expect(seeButton).toBe(configureButton);
- await page.emulateMedia({reducedMotion:'reduce'});
- await expect(page.locator('body')).toHaveCSS('background-attachment','scroll, scroll, scroll');
-});
-
 test('une fermeture externe de confirmation annule une seule fois',async({page})=>{
  await login(page);
  await page.evaluate(async()=>{
@@ -103,25 +73,6 @@ test('une fermeture externe de confirmation annule une seule fois',async({page})
   window.confirmOutcome=await result;
  });
  await expect.poll(()=>page.evaluate(()=>window.confirmOutcome)).toBe(false);
-});
-
-test('Apple Design utilise un seul repère et agrandit le visuel de l’imprimante',async({page})=>{
- await useStyle(page,'apple');
- await page.setViewportSize({width:1366,height:768});
- await login(page);
- const product=page.locator('#tab-overview .overview-grid > .product');
- const image=product.locator('#printer-illustration');
- await expect(image).toBeVisible();
- expect((await product.boundingBox()).height).toBeGreaterThanOrEqual(200);
- expect((await image.boundingBox()).height).toBeGreaterThanOrEqual(175);
- await openSection(page,'settings');
- const active=page.locator('#atelier-tabs [aria-current=page]');
- const indicator=page.locator('.atelier-active-indicator');
- await expect(active).toHaveCSS('border-top-color','rgba(0, 0, 0, 0)');
- await expect(active).toHaveCSS('box-shadow','none');
- await expect(indicator).toBeVisible();
- await page.setViewportSize({width:390,height:844});
- expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test('Aurore maintient la sélection à l’intérieur du rail',async({page})=>{
