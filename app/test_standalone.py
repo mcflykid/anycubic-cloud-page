@@ -447,6 +447,29 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual((await self.sign_in(headers={"X-Forwarded-For": "invalid"})).status, 303)
 
+    async def test_ipv6_proxy_quota_groups_the_same_subnet(self):
+        """Des adresses distinctes du même /64 partagent le quota du client derrière proxy."""
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        for index in range(5):
+            response = await self.sign_in(
+                password="wrong",
+                headers={"X-Forwarded-For": f"2001:db8:42::{index + 1}"},
+            )
+            self.assertEqual(response.status, 401)
+        response = await self.sign_in(headers={"X-Forwarded-For": "2001:db8:42::abcd"})
+        self.assertEqual(response.status, 429)
+
+    async def test_partially_invalid_forwarded_chain_uses_http_peer(self):
+        """Une chaîne incomplète ne laisse pas le proxy choisir le compteur d’une autre adresse."""
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        for _ in range(5):
+            response = await self.sign_in(
+                password="wrong",
+                headers={"X-Forwarded-For": "2001:db8:42::1, invalid"},
+            )
+            self.assertEqual(response.status, 401)
+        self.assertEqual((await self.sign_in()).status, 429)
+
     async def test_health_stays_public_even_without_secret(self):
         """La supervision reste indépendante du secret ; les routes privées échouent fermées."""
         self.path.unlink()
