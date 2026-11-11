@@ -196,9 +196,6 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   expect((await style.boundingBox()).y).toBeGreaterThan((await theme.boundingBox()).y);
   await page.setViewportSize({width:1280,height:900});
   await theme.selectOption('dark');
-  await style.selectOption({label: 'Apple Design'});
-  await expect(page.locator('.atelier-tabs')).toHaveCSS('border-radius', '999px');
-  await expect(page.locator('.portal-nav')).toHaveCSS('backdrop-filter', 'saturate(1.45) blur(18px)');
   for (const width of [1280, 800]) {
     await page.setViewportSize({width,height:900});
     const tabs = page.locator('#atelier-tabs');
@@ -215,20 +212,12 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   await page.setViewportSize({width:1280,height:900});
-  await openSection(page,'overview');
-  await expect(page.locator('#tab-overview .product')).toHaveCSS('border-radius', '26px');
-  const product = await page.locator('#tab-overview .product').boundingBox();
-  const job = await page.locator('#tab-overview .overview-content').boundingBox();
-  expect(product.y).toBeCloseTo(job.y);
-  expect(product.height).toBeLessThan(job.height);
-  expect(product.height).toBeGreaterThan(48);
-  await expect(page.locator('#controls-open')).toHaveCSS('border-radius', '999px');
   await settings.click();
-  await style.selectOption({label: 'Blueprint'});
-  await expect(page.locator('html')).toHaveAttribute('data-style', 'blueprint');
+  await style.selectOption({label: 'Verrière'});
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'glasshouse');
   await page.reload();
   await settings.click();
-  await expect(style).toHaveValue('blueprint');
+  await expect(style).toHaveValue('glasshouse');
   await expect(theme).toHaveValue('dark');
   await style.selectOption({label: 'Par défaut'});
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');

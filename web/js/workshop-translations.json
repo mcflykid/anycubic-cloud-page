@@ -75,10 +75,6 @@
     "Halloween",
     "Halloween"
   ],
-  "Apple Design": [
-    "Apple Design",
-    "Apple Design"
-  ],
   "Appliquer": [
     "Apply",
     "Aplicar"
@@ -3415,10 +3411,6 @@
     "A technical drawing grid with precise guides.",
     "Una trama de plano técnico con guías precisas."
   ],
-  "Blueprint": [
-    "Blueprint",
-    "Blueprint"
-  ],
   "Des cartes de carnet, des tons ivoire et une navigation éditoriale.": [
     "Notebook cards, ivory tones and editorial navigation.",
     "Tarjetas de cuaderno, tonos marfil y navegación editorial."
@@ -3654,14 +3646,6 @@
   "Aucune section trouvée.": [
     "No sections found.",
     "No se encontró ninguna sección."
-  ],
-  "Replier le plan": [
-    "Collapse the plan",
-    "Contraer el plano"
-  ],
-  "Déplier le plan": [
-    "Expand the plan",
-    "Expandir el plano"
   ],
   "Réinitialiser la disposition": [
     "Reset layout",
@@ -3947,17 +3931,9 @@
     "Clear landmarks and a direct layout for daily monitoring.",
     "Referencias claras y disposición directa para el seguimiento diario."
   ],
-  "Navigation flottante, verre doux et curseur actif qui accompagne le choix.": [
-    "Floating navigation, soft glass and an active marker that follows the selection.",
-    "Navegación flotante, cristal suave e indicador activo que sigue la selección."
-  ],
   "Mesures groupées, grille compacte et séparations nettes.": [
     "Grouped measurements, a compact grid and clear separators.",
     "Mediciones agrupadas, cuadrícula compacta y separaciones claras."
-  ],
-  "Plan quadrillé, index de sections et panneau latéral repliable.": [
-    "Grid plan, section index and a collapsible sidebar.",
-    "Plano cuadriculado, índice de secciones y panel lateral plegable."
   ],
   "Tableau de bord en tuiles déplaçables et surfaces lumineuses.": [
     "Dashboard with movable tiles and luminous surfaces.",
@@ -4155,54 +4131,6 @@
     "Workshop sections",
     "Secciones del taller"
   ],
-  "Déverrouiller la disposition": [
-    "Unlock layout",
-    "Desbloquear la disposición"
-  ],
-  "Verrouiller la disposition": [
-    "Lock layout",
-    "Bloquear la disposición"
-  ],
-  "Déplacer avant": [
-    "Move earlier",
-    "Mover antes"
-  ],
-  "Déplacer après": [
-    "Move later",
-    "Mover después"
-  ],
-  "Redimensionner cette tuile": [
-    "Resize this tile",
-    "Cambiar tamaño de la tarjeta"
-  ],
-  "Disposition restaurée.": [
-    "Layout restored.",
-    "Disposición restaurada."
-  ],
-  "Sauvegarde de disposition invalide.": [
-    "Invalid layout backup.",
-    "Copia de disposición no válida."
-  ],
-  "Sauvegarde des dispositions": [
-    "Layout backup",
-    "Copia de las disposiciones"
-  ],
-  "Les positions et tailles des tuiles sont enregistrées dans ce navigateur.": [
-    "Tile positions and sizes are saved in this browser.",
-    "Las posiciones y tamaños de las tarjetas se guardan en este navegador."
-  ],
-  "Exporter la disposition": [
-    "Export layout",
-    "Exportar disposición"
-  ],
-  "Restaurer les dispositions d’origine": [
-    "Restore default layouts",
-    "Restaurar disposiciones originales"
-  ],
-  "Importer une disposition": [
-    "Import a layout",
-    "Importar una disposición"
-  ],
   "Studio": [
     "Studio",
     "Studio"
@@ -4218,14 +4146,6 @@
   "Mesures alignées et supervision en grille.": [
     "Aligned readings and a monitoring grid.",
     "Mediciones alineadas y supervisión en cuadrícula."
-  ],
-  "Prisme": [
-    "Prism",
-    "Prisma"
-  ],
-  "Verre graphite, reflets bleus et relevés en tuiles.": [
-    "Graphite glass, blue highlights, and readings grouped into tiles.",
-    "Vidrio grafito, reflejos azules y mediciones en mosaicos."
   ],
   "Verrière": [
     "Glasshouse",

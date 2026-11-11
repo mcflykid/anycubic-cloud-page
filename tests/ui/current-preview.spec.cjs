@@ -18,10 +18,9 @@ test('l’aperçu courant utilise sa référence de projet pour un lancement dep
   expect(requests[0]).toEqual({source:'active',project_key:'a'.repeat(20)});
 });
 
-test('Prisme révèle l’aperçu seulement après le chargement de l’image',async({page})=>{
+test('La fiche révèle l’aperçu seulement après le chargement de l’image',async({page})=>{
   let release;
   const gate=new Promise(resolve=>{release=resolve;});
-  await page.addInitScript(()=>localStorage.setItem('cloud-page-style','prism'));
   await page.emulateMedia({reducedMotion:'no-preference'});
   await page.route('**/imprimante-api/preview', route=>route.fulfill({
     json:{image:'/imprimante-api/ui/icons/fixture-current-preview.svg'},
@@ -40,7 +39,6 @@ test('Prisme révèle l’aperçu seulement après le chargement de l’image',a
     release();
   }
   await expect(preview).toBeVisible();
-  await expect(preview).toHaveCSS('animation-name','prism-preview-reveal');
   await expect(state).toBeHidden();
   await page.emulateMedia({reducedMotion:'reduce'});
   await expect(preview).toHaveCSS('animation-name','none');

@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
-const themes=['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse', 'prism'];
+const themes=['standard', 'aurora', 'lab', 'glasshouse'];
 async function openSettings(page){
   const settings=page.locator('[data-tab=settings]');
   if(await settings.getAttribute('aria-current')==='page')return;
@@ -21,7 +21,7 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les sept styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
+test('les quatre styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
   await login(page);await openSettings(page);
   await expect(page.locator('#interface-style option')).toHaveCount(themes.length);
   await page.locator('#interface-theme').selectOption('dark');
@@ -33,11 +33,11 @@ test('les sept styles se choisissent dans la liste, se mémorisent et gardent le
     await expect(page.locator('#theme-description')).not.toBeEmpty();
   }
   await page.reload();await openSettings(page);
-  await expect(page.locator('#interface-style')).toHaveValue('prism');
+  await expect(page.locator('#interface-style')).toHaveValue('glasshouse');
   await expect(page.locator('#interface-theme')).toHaveValue('dark');
 });
 
-for (const previous of ['terminal', 'detailed', 'ocean', 'studio', 'observatory']) {
+for (const previous of ['terminal', 'detailed', 'ocean', 'studio', 'observatory', 'apple', 'blueprint', 'prism']) {
   test(`le style retiré ${previous} revient à Par défaut et garde le mode sombre`, async ({page}) => {
     await page.addInitScript(value => {
       localStorage.setItem('cloud-page-style', value);
@@ -73,7 +73,7 @@ test('le changement de mode conserve le focus et respecte le mouvement réduit',
   await expect(theme).toBeFocused();
 });
 
-test('les sept styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
+test('les quatre styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await login(page);
   for(const mode of ['light','dark']){
     await openSettings(page);await page.locator('#interface-theme').selectOption(mode);
@@ -107,33 +107,4 @@ test('le style choisi accompagne aussi la connexion et les pages d’information
   await expect(page.getByLabel('Identifiant')).toBeVisible();
   await page.goto('/imprimante-api/ui/privacy');
   await expect(page.locator('html')).toHaveAttribute('data-style','aurora');
-});
-
-test('Prisme montre les relevés en tuiles et replie les deux appareils sur téléphone',async({page})=>{
-  await page.setViewportSize({width:1440,height:900});
-  await page.emulateMedia({reducedMotion:'reduce'});
-  await login(page);
-  await openSettings(page);
-  await page.locator('#interface-style').selectOption('prism');
-  await page.locator('#interface-theme').selectOption('dark');
-  await openSection(page,'summary');
-  await page.setViewportSize({width:1920,height:1080});
-  const navigation=page.locator('#atelier-tabs');
-  await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
-  await expect(navigation.locator('[data-tab]')).toHaveCount(10);
-  const bounds=await navigation.boundingBox();
-  expect(bounds.height).toBeLessThan(60);
-  expect(bounds.width).toBeLessThan(1440);
-  const printer=page.locator('.summary-printer');
-  const ace=page.locator('.summary-ace');
-  await expect(printer.locator('.summary-values')).toHaveCSS('display','grid');
-  await expect(printer.locator('dt')).toHaveText(['Temps restant','Buse','Plateau']);
-  await expect(ace.locator('dt')).toHaveText(['Température','Humidité']);
-  await expect(printer.locator('[data-summary-open]')).toHaveCSS('transition-duration','0s');
-  const desktop=[await printer.boundingBox(),await ace.boundingBox()];
-  expect(desktop[0].x+desktop[0].width).toBeLessThan(desktop[1].x);
-  await page.setViewportSize({width:390,height:844});
-  const mobile=[await printer.boundingBox(),await ace.boundingBox()];
-  expect(mobile[0].y+mobile[0].height).toBeLessThan(mobile[1].y);
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

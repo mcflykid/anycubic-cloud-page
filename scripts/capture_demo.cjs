@@ -8,7 +8,7 @@ const desktop = {width: 1440, height: 1000};
 const mobile = {width: 390, height: 844};
 const password = 'ui-fixture-password';
 const styles = [
-  ['standard', 'Par défaut'], ['apple', 'Apple Design'], ['blueprint', 'Blueprint'],
+  ['standard', 'Par défaut'],
   ['aurora', 'Aurore'], ['lab', 'Laboratoire'], ['glasshouse', 'Verrière'],
 ];
 
@@ -198,14 +198,8 @@ async function main() {
     await page.setViewportSize(mobile);
     await openSection(page, 'summary');
     await photo(page, '21-resume-mobile.png');
-    await page.evaluate(() => localStorage.setItem('cloud-page-style', 'prism'));
-    await page.reload();
-    await openSection(page, 'summary');
-    await photo(page, '24-prisme-mobile.png');
-    await page.setViewportSize({width:1920, height:1080});
-    await photo(page, '23-prisme-sombre.png');
     await captureTotp(page, browser, base);
-    console.log('25 captures de démonstration produites, sans compte réel.');
+    console.log('Captures de démonstration produites, sans compte réel.');
   } finally {
     if (browser) await browser.close();
     server.kill('SIGTERM');

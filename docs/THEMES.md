@@ -1,28 +1,19 @@
-# Les sept styles de l’atelier
+# Les quatre styles de l’atelier
 
 Suivi #162, #229 et #230.
 
-Les sept styles partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style. Le choix est mémorisé dans ce navigateur; une ancienne préférence pour un style retiré revient à **Par défaut**.
+Les quatre styles partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style. Le choix est mémorisé dans ce navigateur; une ancienne préférence pour un style retiré revient à **Par défaut**.
 
-Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste. La description sous la liste présente le style sélectionné. Les transitions signalent l’ouverture des sections et des fenêtres. Le Laboratoire anime aussi l’arrivée des cartes de statistiques en cascade. Dans le monitoring, la fenêtre de détail part de la carte ouverte. L’atelier s’inspire du détail animé d’[Instrumental](https://moxen.cl/recursos/instrumental/) et du réagencement des cartes de [Parrilla](https://moxen.cl/recursos/parrilla/).
+Dans **Réglages → Apparence**, choisir l’un des quatre styles dans la liste. La description sous la liste présente le style sélectionné. Les transitions signalent l’ouverture des sections et des fenêtres. Le Laboratoire anime aussi l’arrivée des cartes de statistiques en cascade. Dans le monitoring, la fenêtre de détail part de la carte ouverte. L’atelier s’inspire du détail animé d’[Instrumental](https://moxen.cl/recursos/instrumental/).
 
 | Style | Disposition | Interaction caractéristique |
 |---|---|---|
 | Par défaut | Vue directe, cartes de suivi équilibrées. | Navigation discrète, sans réorganisation automatique. |
-| Apple Design | Navigation en pilules et surfaces translucides. | Un repère de verre glisse sous la section active. |
-| Blueprint | Index vertical numéroté, quadrillage et colonne de travail. | Le panneau latéral se replie en rail d’icônes; le nom complet reste accessible au focus et au pointeur. |
-| Aurore | Tableau bento avec machine, travail, températures et détails. | Les cartes se déplacent par glissement ou par commandes haut/bas; l’ordre est mémorisé localement et peut être réinitialisé. |
+| Aurore | Tableau bento avec machine, travail, températures et détails. | Les cartes de l’imprimante sont présentées dans un ordre fixe. |
 | Laboratoire | Cartes de supervision plus espacées sur grand écran. | Les graphiques s’adaptent à la largeur disponible. |
 | Verrière | Panneaux translucides et cartes aérées. | Les commandes de navigation restent regroupées par usage. |
-| Prisme | Surfaces graphite, reflets bleus et mesures en tuiles dans le Résumé. | Les onglets se regroupent en capsules sur ordinateur et la section active reste visible. Les cartes suivent la disposition enregistrée et se replient sur une colonne sur téléphone. |
 
-[Prisme sur ordinateur](../screenshots/23-prisme-sombre.png) · [Prisme sur téléphone](../screenshots/24-prisme-mobile.png).
-
-Sur téléphone, les dix sections s’ouvrent depuis un bouton **Sections** dans une grille de tuiles. Elles entrent en vague puis se replient dans l’ordre inverse; le nom de la section choisie reste près du bouton. Le réglage système de réduction des animations retire ces effets et les déplacements de cartes.
-
-Ouvrez le cadenas d’un onglet à cartes pour modifier l’ordre et la largeur de ses cartes au pointeur, au toucher ou au clavier. La disposition est mémorisée dans ce navigateur et suit les cartes communes lorsque vous changez de style. Sur téléphone, la grille tient sur une colonne. Dans **Réglages → Sauvegarde des dispositions**, vous pouvez exporter ou importer la disposition et restaurer les dispositions d’origine.
-
-Les comportements de grille réarrangeable s’inspirent de motifs d’interface comme les widgets qui se dégagent puis se replacent, décrits dans [Parrilla chez Moxen](https://moxen.cl/recursos/parrilla/). Aucun code ni composant du site n’a été repris; sa page indique que les téléchargements comprennent une licence propre à chaque animation.
+Sur téléphone, les dix sections s’ouvrent depuis un bouton **Sections** dans une grille de tuiles. Elles entrent en vague puis se replient dans l’ordre inverse; le nom de la section choisie reste près du bouton. Le réglage système de réduction des animations retire ces effets.
 
 ## Comparaison avec la version 1.8.0
 

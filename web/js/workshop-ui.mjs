@@ -148,12 +148,9 @@ initializeTheme();
 
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
-  ['apple', 'Navigation flottante, verre doux et curseur actif qui accompagne le choix.'],
-  ['blueprint', 'Plan quadrillé, index de sections et panneau latéral repliable.'],
   ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
   ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
   ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
-  ['prism', 'Verre graphite, reflets bleus et relevés en tuiles.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */

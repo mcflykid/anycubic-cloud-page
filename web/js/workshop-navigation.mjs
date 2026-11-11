@@ -1,6 +1,6 @@
 import { tr } from './workshop-ui.mjs';
 
-/** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
+/** Gère la navigation responsive et la composition Aurore. */
 export function initializeWorkshopNavigation() {
   const toggle = document.getElementById('section-menu-toggle');
   const navigation = document.getElementById('atelier-tabs');
@@ -18,7 +18,7 @@ export function initializeWorkshopNavigation() {
     tab.style.setProperty('--tile-index', index);
     tab.style.setProperty('--tile-exit-index', tabs.length - index - 1);
   });
-  let phase = 0, closeTimer = 0, bento = null, bentoItems = [], indicator = null;
+  let phase = 0, closeTimer = 0, bento = null, bentoItems = [];
   let mobileLabel = document.getElementById('section-menu-current');
   if (!mobileLabel) {
     mobileLabel = document.createElement('span');
@@ -59,7 +59,7 @@ export function initializeWorkshopNavigation() {
     closeTimer = window.setTimeout(() => finishClose(token), 900);
   };
   const open = () => {
-    const token = ++phase;
+    ++phase;
     clearTimeout(closeTimer);
     navigation.dataset.open = 'true';
     navigation.dataset.phase = '';
@@ -71,9 +71,6 @@ export function initializeWorkshopNavigation() {
       navigation.dataset.phase = 'opening';
     }
     (currentButton() || navigation.querySelector('[data-tab]:not(:disabled)'))?.focus();
-    requestAnimationFrame(() => {
-      if (token === phase) updateIndicator();
-    });
   };
   toggle.onclick = () => {
     if (toggle.getAttribute('aria-expanded') === 'true') close(true);
@@ -84,7 +81,6 @@ export function initializeWorkshopNavigation() {
     const tab = event.target.closest('[data-tab]');
     if (!tab) return;
     updateCurrentLabel();
-    requestAnimationFrame(updateIndicator);
     if (compact.matches) close(true);
   });
   navigation.addEventListener('animationend', event => {
@@ -115,35 +111,9 @@ export function initializeWorkshopNavigation() {
     if (navigation.dataset.phase === 'closing') finishClose(phase);
   });
 
-  indicator = document.createElement('span');
-  indicator.className = 'atelier-active-indicator';
-  indicator.setAttribute('aria-hidden', 'true');
-  navigation.append(indicator);
-  const blueprintToggle = document.createElement('button');
-  blueprintToggle.id = 'blueprint-nav-toggle';
-  blueprintToggle.type = 'button';
-  blueprintToggle.setAttribute('aria-expanded', String(!shell.classList.contains('blueprint-sidebar-collapsed')));
-  const blueprintIcon = document.createElement('span'), blueprintLabel = document.createElement('span');
-  blueprintIcon.setAttribute('aria-hidden', 'true');
-  blueprintIcon.textContent = '⌗';
-  blueprintLabel.className = 'blueprint-toggle-label';
-  blueprintLabel.textContent = tr('Replier le plan');
-  blueprintToggle.setAttribute('aria-label', blueprintLabel.textContent);
-  blueprintToggle.append(blueprintIcon, blueprintLabel);
-  document.querySelector('.atelier-navigation').insertBefore(blueprintToggle, navigation);
-  blueprintToggle.onclick = () => {
-    const expanded = blueprintToggle.getAttribute('aria-expanded') === 'true';
-    shell.classList.toggle('blueprint-sidebar-collapsed', expanded);
-    blueprintToggle.setAttribute('aria-expanded', String(!expanded));
-    const label = tr(expanded ? 'Déplier le plan' : 'Replier le plan');
-    blueprintToggle.setAttribute('aria-label', label);
-    blueprintToggle.querySelector('.blueprint-toggle-label').textContent = label;
-    requestAnimationFrame(updateIndicator);
-  };
   const styleObserver = new MutationObserver(() => {
     const style = document.documentElement.dataset.style;
     updateCurrentLabel();
-    requestAnimationFrame(updateIndicator);
     if (style === 'aurora') buildAuroraBento();
     else restoreAuroraBento();
   });
@@ -186,18 +156,6 @@ export function initializeWorkshopNavigation() {
     bento = null;
     bentoItems = [];
   }
-  // Le repère est positionné en coordonnées de la barre pour suivre le bouton actif.
-  function updateIndicator() {
-    if (!indicator || document.documentElement.dataset.style !== 'apple') return;
-    const active = currentButton();
-    if (!active) return;
-    const parent = navigation.getBoundingClientRect(), rect = active.getBoundingClientRect();
-    indicator.style.width = `${rect.width}px`;
-    indicator.style.height = `${rect.height}px`;
-    indicator.style.transform = `translate(${rect.left - parent.left - navigation.clientLeft}px,${rect.top - parent.top - navigation.clientTop}px)`;
-  }
   updateCurrentLabel();
-  const resizeObserver = new ResizeObserver(updateIndicator);
-  resizeObserver.observe(navigation);
   if (document.documentElement.dataset.style === 'aurora') buildAuroraBento();
 }

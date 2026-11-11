@@ -25,7 +25,7 @@ test('les groupes restent lisibles en clair, sombre et sur téléphone',async({p
   await login(page,'summary');
   for (const width of [1366,900,390]) {
     await page.setViewportSize({width,height:844});
-    for (const style of ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse', 'prism']) {
+    for (const style of ['standard', 'aurora', 'lab', 'glasshouse']) {
       for (const theme of ['light','dark']) {
         await page.evaluate(({style,theme})=>Object.assign(document.documentElement.dataset,{style,theme}),{style,theme});
         const toggle=page.locator('#section-menu-toggle');
