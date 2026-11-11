@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Donne aux chargements des fichiers et de l’historique leur forme de liste ou de cartes. Un reflet Esqueleto accompagne uniquement l’attente réelle (#248).
+
 - Réorganise la barre des fichiers Cloud et adapte le compteur à rouleaux et la cascade de sélection de Lote (#242, #248).
 
 - Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).

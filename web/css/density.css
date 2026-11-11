@@ -790,7 +790,7 @@
     line-height: 1.2;
   }
 
-  #tab-history #tasks-list {
+  #tab-history :is(#tasks-list, #tasks-loading:not([hidden])) {
     flex: 1 1 auto;
     min-height: 110px;
     max-height: clamp(240px, 48dvh, 650px);
@@ -1496,7 +1496,7 @@
     flex-wrap: wrap;
   }
 
-  #tab-history #tasks-list {
+  #tab-history :is(#tasks-list, #tasks-loading:not([hidden])) {
     flex: 1 1 auto;
     min-height: 180px;
     max-height: min(46dvh, 360px);
@@ -1736,7 +1736,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   #tab-files .table-scroll,
-  #tab-history #tasks-list {
+  #tab-history :is(#tasks-list, #tasks-loading:not([hidden])) {
     scroll-behavior: auto;
   }
 }

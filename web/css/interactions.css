@@ -108,23 +108,6 @@
   to { opacity:1; transform:none; }
 }
 
-/* L’attente ne remplace que des listes sans contenu affiché. */
-.list-loading:not([hidden]) { display:grid; gap:8px; margin-block:10px; }
-.list-loading > span {
-  min-height:48px;
-  border:1px solid var(--line);
-  border-radius:var(--panel-radius,12px);
-  background:
-    linear-gradient(var(--line) 0 0) 12px center / 30px 26px no-repeat,
-    linear-gradient(var(--line) 0 0) 56px 40% / min(38%,210px) 8px no-repeat,
-    linear-gradient(var(--line) 0 0) 56px 65% / min(25%,130px) 6px no-repeat,
-    var(--surface);
-}
-.list-loading-tasks > span { min-height:68px; }
-@media (prefers-reduced-motion:no-preference) {
-  .list-loading:not([hidden]) { animation: section-fade 220ms ease-out; }
-}
-
 /* Le texte affiche tout de suite la mesure reçue. Seule sa présentation bouge. */
 @media (prefers-reduced-motion:no-preference) {
   .monitor-card-value[data-motion-change="a"] { animation: measure-in-a var(--motion-fast) ease-out; }

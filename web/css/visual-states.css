@@ -180,23 +180,55 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm13 3 5-3v10l-5-3M8 10l4 4m0-4-4 4' fill='none' stroke='%239e4542' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Le squelette n’imite pas le contenu : un reflet doux marque seulement la lecture en cours. */
-.list-loading > span {
+/* Adapté d’Esqueleto · Moxen (https://moxen.cl/recursos/esqueleto/) : chaque forme découpe la même bande lumineuse. */
+.list-loading {
+  --skeleton-band: 340px;
+  --skeleton-light: light-dark(rgba(255,255,255,.75), rgba(255,255,255,.13));
+}
+.list-loading:not([hidden]) { display: grid; margin-block: 10px; }
+.list-loading-files { gap: 8px; }
+#tasks-loading:not([hidden]) + #tasks-list:empty { display: none; }
+.skeleton-file {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 210px) minmax(30px, 80px);
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius, 12px);
+  background: var(--surface);
+}
+.skeleton-file-icon { height: 26px; }
+.list-loading .history-card-select { display: grid; place-items: center; }
+.skeleton-check { width: 18px; height: 18px; }
+.skeleton-badge { align-self: center; width: 64px; height: 26px; }
+.skeleton-detail { align-self: center; width: 88px; height: 34px; margin-top: 6px; }
+.list-loading-tasks .skeleton-meta { margin-block: 4px; }
+.skeleton-label { width: 74%; height: 12px; }
+.skeleton-meta { width: 42%; height: 8px; }
+.list-loading .skeleton-piece {
   position: relative;
+  display: block;
   overflow: hidden;
-  background-color: var(--surface);
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--muted) 13%, var(--surface));
 }
-.list-loading > span::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  translate: -100% 0;
-  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--visual-wait) 9%, transparent) 50%, transparent 65%);
-  animation: visual-skeleton-sweep 1.8s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-piece::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--skeleton-band);
+    background: linear-gradient(100deg, transparent, var(--skeleton-light) 50%, transparent);
+    animation: visual-skeleton-sweep 1.7s cubic-bezier(.45, 0, .55, 1) infinite;
+  }
 }
-
+@keyframes visual-skeleton-sweep {
+  from { transform: translateX(calc(-1 * var(--skeleton-band) - var(--skeleton-offset, 0px))); }
+  to { transform: translateX(calc(var(--skeleton-width, 0px) - var(--skeleton-offset, 0px))); }
+}
 @keyframes visual-wait-pulse { to { opacity: .48; transform: translateY(-2px); } }
-@keyframes visual-skeleton-sweep { to { translate: 100% 0; } }
 
 @media (max-width: 560px) {
   .empty-message { min-height: 116px; padding: 22px 14px; }
@@ -206,6 +238,5 @@
   .task-thumbnail[data-preview-state="loading"] > span::before,
   .preview-state[data-preview-state="loading"]::before,
   #files-state[data-visual-state="loading"]::before,
-  #camera-state[data-visual-state="loading"]::before,
-  .list-loading > span::after { animation: none; }
+  #camera-state[data-visual-state="loading"]::before { animation: none; }
 }

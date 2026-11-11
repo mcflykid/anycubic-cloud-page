@@ -208,12 +208,27 @@ const pendingLists = new WeakMap();
 export function beginListLoading(list, skeleton, announce) {
   pendingLists.get(list)?.();
   list.setAttribute('aria-busy', 'true');
+  const pieces = [...skeleton.querySelectorAll('.skeleton-piece')];
+  // Adapté d’Esqueleto · Moxen (https://moxen.cl/recursos/esqueleto/) : les décalages synchronisent le reflet après chaque changement de grille.
+  const alignSweep = () => {
+    const {left, width} = skeleton.getBoundingClientRect();
+    skeleton.style.setProperty('--skeleton-width', `${width}px`);
+    for (const piece of pieces) {
+      const offset = piece.getBoundingClientRect().left - left;
+      piece.style.setProperty('--skeleton-offset', `${offset}px`);
+    }
+  };
+  const observer = new ResizeObserver(alignSweep);
   const timer = setTimeout(() => {
-    if (announce() !== false) skeleton.hidden = list.childElementCount !== 0;
+    if (announce() === false || list.childElementCount !== 0) return;
+    skeleton.hidden = false;
+    alignSweep();
+    observer.observe(skeleton);
   }, 240);
   const stop = () => {
     if (pendingLists.get(list) !== stop) return;
     clearTimeout(timer);
+    observer.disconnect();
     skeleton.hidden = true;
     list.removeAttribute('aria-busy');
     pendingLists.delete(list);
