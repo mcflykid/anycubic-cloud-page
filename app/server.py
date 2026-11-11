@@ -71,7 +71,7 @@ FIELDS = json.loads((ROOT / "fields.json").read_text())
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
-CAMERA_VIEWER_TTL = 120
+CAMERA_VIEWER_TTL = 180
 OPS_LOG = logging.getLogger("cloud_page.server")
 HTTP_LOG = logging.getLogger("cloud_page.http")
 MONITORING_KEY = web.AppKey("monitoring", Monitoring)
@@ -1698,12 +1698,46 @@ async def camera(req):
 
 
 def camera_viewer_deadline(request):
-    """Borne le spectateur à l’expiration fixe de sa session web authentifiée."""
+    """Renouvelle le spectateur pour trois minutes, sans dépasser sa session web."""
     now_monotonic = time.monotonic()
     expires = request.get("session_expires") if hasattr(request, "get") else None
     if isinstance(expires, (int, float)) and not isinstance(expires, bool):
-        return max(now_monotonic, expires)
+        return min(now_monotonic + CAMERA_VIEWER_TTL, expires)
     return now_monotonic + CAMERA_VIEWER_TTL
+
+
+async def camera_presence(req):
+    """Renouvelle localement un viewer actif sans demander de session ni envoyer d’ordre caméra."""
+    engine = request_engine(req)
+    viewer = req.headers.get("X-Camera-Viewer") or "legacy"
+    if viewer != "legacy" and not re.fullmatch(r"[a-f0-9-]{36}", viewer):
+        raise ValueError("Session vidéo invalide")
+    # La fermeture différée doit voir ce renouvellement avant de décider d’envoyer sa commande.
+    async with engine.lock:
+        verify_printer_target(req, engine)
+        deadline = engine.camera_viewer_expiries.get(viewer)
+        if viewer not in engine.camera_viewers or deadline is None:
+            raise ValueError("Session vidéo expirée")
+        if deadline <= time.monotonic():
+            engine.camera_viewers.discard(viewer)
+            engine.camera_viewer_expiries.pop(viewer, None)
+            expiry = engine.camera_expiry_task
+            if expiry and not expiry.done():
+                expiry.cancel()
+            engine.camera_expiry_task = None
+            if engine.camera_viewer_expiries:
+                schedule_camera_expiry(engine)
+            elif engine.printer:
+                previous = engine.camera_close_task
+                if previous and not previous.done():
+                    previous.cancel()
+                engine.camera_close_task = asyncio.create_task(
+                    close_idle_camera(engine, str(engine.printer.id))
+                )
+            raise ValueError("Session vidéo expirée")
+        engine.camera_viewer_expiries[viewer] = camera_viewer_deadline(req)
+        schedule_camera_expiry(engine)
+    return web.json_response({"ok": True})
 
 
 def prune_camera_viewers(engine):
@@ -2234,6 +2268,7 @@ app.add_routes(
         web.get("/imprimante-api/files/{source}", local_files),
         web.post("/imprimante-api/command", command),
         web.post("/imprimante-api/camera-session", camera),
+        web.post("/imprimante-api/camera-presence", camera_presence),
         web.post("/imprimante-api/camera-close", camera_close),
         web.post("/imprimante-api/upload", upload),
         web.post("/imprimante-api/preflight", print_preflight),

@@ -208,6 +208,9 @@ async def api(request):
         data = await request.json()
         notices[:] = [x for x in notices if not data.get("all") and x["key"] != data.get("key")]
         return web.json_response({"ok": True, "message": "Messages fictifs supprimés"})
+    if path == "camera-presence" and request.method == "POST":
+        # Ce signal ne fait vivre que l’interface fictive ; aucune caméra ni commande n’existe ici.
+        return web.json_response({"ok": True})
     if path == "command" and request.method == "POST":
         data = await request.json()
         if data.get("action") == "task-delete-many":

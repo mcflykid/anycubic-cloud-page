@@ -504,6 +504,13 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
 class OfflineDemo(unittest.IsolatedAsyncioTestCase):
     """La démonstration conserve l’interdiction des commandes physiques."""
 
+    async def test_demo_camera_presence_is_local_and_non_physical(self):
+        """Le mode démonstration accepte le battement de présence sans activer de machine."""
+        async with TestClient(TestServer(create_demo())) as client:
+            response = await client.post("/imprimante-api/camera-presence")
+            self.assertEqual(response.status, 200)
+            self.assertTrue((await response.json())["ok"])
+
     async def test_demo_never_accepts_real_actions(self):
         """Le mode visuel n’envoie rien au cloud, même lorsqu’une commande est demandée."""
         async with TestClient(TestServer(create_demo())) as client:
