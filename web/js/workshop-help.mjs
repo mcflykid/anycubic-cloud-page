@@ -120,3 +120,41 @@ document.addEventListener(
   },
   true,
 );
+
+// Les conseils restent consultables hors ligne ; les sources ne s’ouvrent qu’à la demande.
+const contextualTopics = {
+  files: [
+    "Formats de fichiers",
+    "Un STL ou un 3MF de projet doit être tranché pour cette imprimante. Un G-code refusé peut être incomplet ou incompatible. Vérifiez le profil de la machine et l’intégrité du fichier avant de le renvoyer.",
+    "https://wiki.anycubic.com/en/error-codes/10115-code/s1",
+  ],
+  network: [
+    "Connexion de la Kobra S1",
+    "L’icône Wi-Fi indique la connexion au réseau local. Dans l’atelier, vérifiez aussi l’accès au Cloud et l’heure de la dernière mesure. Des données anciennes ne suffisent pas à identifier la cause de la coupure.",
+    "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/network-connection-guide-and-troubleshooting",
+  ],
+  camera: [
+    "Caméra et détection IA",
+    "Un flux vidéo disponible indique que la caméra transmet. L’état de la détection IA se vérifie dans Réglages. Une optique masquée ou un éclairage insuffisant peut limiter la détection sur la Kobra S1.",
+    "https://wiki.anycubic.com/en/home/knowledge-sharing/ai-detection",
+  ],
+  ace: [
+    "Bobines et séchage ACE",
+    "Vérifiez la matière et l’emplacement de chaque bobine. Les réglages de séchage dépendent du filament et du module ACE. Fiez-vous aux limites affichées pour le module reconnu et aux indications du fabricant du filament.",
+    "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/ace-pro-loading-steps-and-configuration-information",
+  ],
+  calibration: [
+    "Calibration du débit",
+    "Sur la Kobra S1, la compensation de pression agit sur l’extrusion lors des changements de vitesse. Utilisez une valeur adaptée au filament et à la buse. Une calibration demandée reste à confirmer par le résultat de la machine.",
+    "https://wiki.anycubic.com/en/home/knowledge-sharing/pressure-advance",
+  ],
+};
+for (const trigger of document.querySelectorAll('[data-context-help]')) {
+  trigger.addEventListener('click', () => {
+    const [title, paragraph, url] = contextualTopics[trigger.dataset.contextHelp];
+    $('context-help-title').textContent = tr(title);
+    $('context-help-text').textContent = tr(paragraph);
+    $('context-help-source').href = url;
+    $('context-help-dialog').showModal();
+  });
+}

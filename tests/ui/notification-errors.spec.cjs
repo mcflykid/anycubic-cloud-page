@@ -147,3 +147,14 @@ test('un refus de commande codé reçoit son libellé sans nouvelle tentative', 
   expect(message).toContain('Intégrité du fichier téléchargé non vérifiée');
   expect(attempts).toBe(1);
 });
+
+test('un refus de commande codé ouvre la même fiche sur demande',async({page})=>{
+ await page.route('**/imprimante-api/command',route=>route.fulfill({
+  status:409,json:{ok:false,reason_code:'10115',message:'Ordre refusé par Anycubic.'},
+ }));
+ await login(page,'settings');
+ await page.locator('[data-command=query]').click();
+ await expect(page.locator('#message-text')).toContainText('10115');
+ await page.locator('#message-error-help').click();
+ await expect(page.getByRole('dialog',{name:'Code d’erreur : 10115'})).toBeVisible();
+});

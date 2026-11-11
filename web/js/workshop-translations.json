@@ -4887,90 +4887,6 @@
     "Disabled",
     "Desactivados"
   ],
-  "Apple Design": [
-    "Apple Design",
-    "Apple Design"
-  ],
-  "Blueprint": [
-    "Blueprint",
-    "Blueprint"
-  ],
-  "Replier le plan": [
-    "Collapse the plan",
-    "Contraer el plano"
-  ],
-  "Déplier le plan": [
-    "Expand the plan",
-    "Expandir el plano"
-  ],
-  "Navigation par usage et compositions expérimentales pour comparer les parcours.": [
-    "Navigation by use and experimental layouts for comparing workflows.",
-    "Navegación por uso y diseños experimentales para comparar los recorridos."
-  ],
-  "Navigation flottante, verre doux et curseur actif qui accompagne le choix.": [
-    "Floating navigation, soft glass and an active marker that follows the selection.",
-    "Navegación flotante, cristal suave e indicador activo que sigue la selección."
-  ],
-  "Plan quadrillé, index de sections et panneau latéral repliable.": [
-    "Grid plan, section index and a collapsible sidebar.",
-    "Plano cuadriculado, índice de secciones y panel lateral plegable."
-  ],
-  "Déverrouiller la disposition": [
-    "Unlock layout",
-    "Desbloquear la disposición"
-  ],
-  "Verrouiller la disposition": [
-    "Lock layout",
-    "Bloquear la disposición"
-  ],
-  "Déplacer avant": [
-    "Move earlier",
-    "Mover antes"
-  ],
-  "Déplacer après": [
-    "Move later",
-    "Mover después"
-  ],
-  "Redimensionner cette tuile": [
-    "Resize this tile",
-    "Cambiar tamaño de la tarjeta"
-  ],
-  "Disposition restaurée.": [
-    "Layout restored.",
-    "Disposición restaurada."
-  ],
-  "Sauvegarde de disposition invalide.": [
-    "Invalid layout backup.",
-    "Copia de disposición no válida."
-  ],
-  "Sauvegarde des dispositions": [
-    "Layout backup",
-    "Copia de las disposiciones"
-  ],
-  "Les positions et tailles des tuiles sont enregistrées dans ce navigateur.": [
-    "Tile positions and sizes are saved in this browser.",
-    "Las posiciones y tamaños de las tarjetas se guardan en este navegador."
-  ],
-  "Exporter la disposition": [
-    "Export layout",
-    "Exportar disposición"
-  ],
-  "Restaurer les dispositions d’origine": [
-    "Restore default layouts",
-    "Restaurar disposiciones originales"
-  ],
-  "Importer une disposition": [
-    "Import a layout",
-    "Importar una disposición"
-  ],
-  "Verrière": [
-    "Glasshouse",
-    "Invernadero"
-  ],
-  "Navigation en panneaux vitrés et cartes aérées.": [
-    "Glass navigation panels and spacious cards.",
-    "Paneles de navegación translúcidos y tarjetas espaciosas."
-  ],
   "Intégrité du fichier téléchargé non vérifiée": [
     "Downloaded file integrity check failed",
     "Falló la comprobación de integridad del archivo descargado"
@@ -5074,5 +4990,49 @@
   "Ordre refusé par Anycubic.": [
     "Order refused by Anycubic.",
     "Orden rechazada por Anycubic."
+  ],
+  "Formats de fichiers": [
+    "File formats",
+    "Formatos de archivo"
+  ],
+  "Un STL ou un 3MF de projet doit être tranché pour cette imprimante. Un G-code refusé peut être incomplet ou incompatible. Vérifiez le profil de la machine et l’intégrité du fichier avant de le renvoyer.": [
+    "Slice an STL or project 3MF for this printer first. A rejected G-code file may be incomplete or incompatible. Check the printer profile and file integrity before resending it.",
+    "Primero lamina el STL o 3MF de proyecto para esta impresora. Un G-code rechazado puede estar incompleto o ser incompatible. Comprueba el perfil y la integridad del archivo antes de reenviarlo."
+  ],
+  "Connexion de la Kobra S1": [
+    "Kobra S1 connection",
+    "Conexión de la Kobra S1"
+  ],
+  "L’icône Wi-Fi indique la connexion au réseau local. Dans l’atelier, vérifiez aussi l’accès au Cloud et l’heure de la dernière mesure. Des données anciennes ne suffisent pas à identifier la cause de la coupure.": [
+    "The Wi-Fi icon indicates a local network connection. Also check Cloud access and the last reading time in the workshop. Stale readings alone cannot identify the cause of a connection loss.",
+    "El icono Wi-Fi indica conexión a la red local. Comprueba también el acceso a la nube y la hora de la última lectura. Las lecturas antiguas por sí solas no permiten identificar la causa de un corte."
+  ],
+  "Caméra et détection IA": [
+    "Camera and AI detection",
+    "Cámara y detección por IA"
+  ],
+  "Un flux vidéo disponible indique que la caméra transmet. L’état de la détection IA se vérifie dans Réglages. Une optique masquée ou un éclairage insuffisant peut limiter la détection sur la Kobra S1.": [
+    "A visible stream means the camera is transmitting. Check AI detection in Settings. An obstructed lens or poor lighting can limit detection on the Kobra S1.",
+    "Un vídeo visible indica que la cámara transmite. Comprueba la detección por IA en Ajustes. Una lente tapada o poca luz pueden limitar la detección en la Kobra S1."
+  ],
+  "Bobines et séchage ACE": [
+    "ACE spools and drying",
+    "Bobinas y secado ACE"
+  ],
+  "Vérifiez la matière et l’emplacement de chaque bobine. Les réglages de séchage dépendent du filament et du module ACE. Fiez-vous aux limites affichées pour le module reconnu et aux indications du fabricant du filament.": [
+    "Check each spool’s material and slot. Drying settings depend on the filament and ACE module. Follow the displayed limits for the detected module and the filament manufacturer’s guidance.",
+    "Comprueba el material y la ranura de cada bobina. El secado depende del filamento y del módulo ACE. Sigue los límites del módulo detectado y las indicaciones del fabricante del filamento."
+  ],
+  "Calibration du débit": [
+    "Flow calibration",
+    "Calibración del flujo"
+  ],
+  "Sur la Kobra S1, la compensation de pression agit sur l’extrusion lors des changements de vitesse. Utilisez une valeur adaptée au filament et à la buse. Une calibration demandée reste à confirmer par le résultat de la machine.": [
+    "On the Kobra S1, pressure advance adjusts extrusion during speed changes. Use a value suited to the filament and nozzle. Check the printer result to confirm a requested calibration.",
+    "En la Kobra S1, el avance de presión ajusta la extrusión al cambiar de velocidad. Usa un valor adecuado para el filamento y la boquilla. Comprueba el resultado de la impresora para confirmar la calibración."
+  ],
+  "Aide": [
+    "Help",
+    "Ayuda"
   ]
 }

@@ -77,6 +77,7 @@ export function createRequest(getPrinter) {
         ? [detail, formatText('Code d’erreur : {0}', code), sheet && tr(sheet.title)].filter(Boolean).join(' · ')
         : detail;
       const error = new Error(diagnosticText(description));
+      if (isDeviceErrorCode(code)) error.errorSheet = { reason_code: code, reason: detail };
       error.cameraReason = data.camera_error;
       error.cameraPresenceExpired = path === '/camera-presence' && response.status === 400;
       error.diagnosticId = /^[a-f0-9]{32}$/.test(diagnosticId || '') ? diagnosticId : null;
