@@ -171,10 +171,10 @@ function renderHardware(printer) {
   const printerImage = s1Combo ? 'kobra-s1-ace2pro.png' : illustration || 'printer.svg';
   const printerFallback = s1Combo ? illustration : illustration ? 'printer.svg' : null;
   setImage('printer-illustration', printerImage, printerFallback);
+  setImage('summary-printer-image', printerImage, printerFallback);
   set('ace-model', aceName);
   set('firmware-printer-model', model);
   set('firmware-ace-model', aceName);
-  setImage('settings-printer-illustration', printerImage, printerFallback);
   $('ace-illustration').hidden = !box;
   setImage(
     'ace-illustration',
@@ -440,9 +440,8 @@ export function createOverview(request) {
             ? tr('À jour')
             : tr('À vérifier'),
       );
-      $(`firmware-${id}-status`).className =
-        'firmware-status ' +
-        (available === true ? 'available' : available === false ? 'current' : 'unknown');
+      $(`firmware-${id}-status`).dataset.state =
+        updating === true ? 'running' : available === true ? 'warning' : available === false ? 'normal' : 'unknown';
     }
     printerButton.dataset.confirm = formatText(
       tr(

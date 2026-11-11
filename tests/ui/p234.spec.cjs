@@ -18,7 +18,7 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
   await expect(page.getByRole('heading',{level:1})).toHaveText(title);
   await page.getByRole('link',{name:'Retour à l’atelier'}).click();
  }
- expect(await page.locator('footer').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ expect(await page.locator('.printer-footer').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  const offset=await page.locator('.printer-footer').evaluate(footer=>{
   const legal=footer.querySelector('nav a').getBoundingClientRect();
   const credit=footer.querySelector('.footer-credits').getBoundingClientRect();
@@ -96,7 +96,7 @@ test('la Kobra S1 garde un visuel dédié et un ACE générique si la générati
  await expect(page.locator('#ace-model')).toHaveText('Module ACE');
  await expect(page.locator('#ace-display-model')).toHaveCount(0);
  await openSection(page,'settings');
- await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1.svg');
+ await expect(page.locator('#summary-printer-image')).toHaveAttribute('src','/imprimante-api/ui/icons/kobra-s1.svg');
 });
 
 test('les axes conservent leurs directions et les pictogrammes restent sur les libellés',async({page})=>{
@@ -221,7 +221,7 @@ test('un proxy qui conserve ses anciens chemins sert toute l’interface',async(
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  await expect.poll(()=>page.locator('#ace-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
  await openSection(page,'settings');
- await expect.poll(()=>page.locator('#settings-printer-illustration').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
+ await expect.poll(()=>page.locator('#summary-printer-image').evaluate(image=>image.naturalWidth)).toBeGreaterThan(0);
  for (const name of ['kobra-s1-ace2pro.png','ace2pro.png']) {
   const asset=await page.request.get('/imprimante-api/ui/icons/'+name);
   expect(asset.status()).toBe(200);
@@ -263,7 +263,7 @@ test('les visuels suivent le modèle constructeur et la présence réelle de l�
  await expect(page.locator('#camera-video img')).toHaveAttribute('src',new RegExp(icons+'kobra-x.svg$'));
  model='Modèle inconnu';
  await page.evaluate(async()=> (await import(document.querySelector('#workshop-script').src)).refresh());
- await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'printer.svg');
+ await expect(page.locator('#summary-printer-image')).toHaveAttribute('src',icons+'printer.svg');
 });
 
 test('les illustrations de secours restent visibles si les images du matériel échouent',async({page})=>{
@@ -271,7 +271,7 @@ test('les illustrations de secours restent visibles si les images du matériel �
  await login(page);
  const icons='/imprimante-api/ui/icons/';
  await expect(page.locator('#printer-illustration')).toHaveAttribute('src',icons+'kobra-s1.svg');
- await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',icons+'kobra-s1.svg');
+ await expect(page.locator('#summary-printer-image')).toHaveAttribute('src',icons+'kobra-s1.svg');
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  const ace=page.locator('#ace-illustration');
  await expect(ace).toHaveAttribute('src',icons+'ace.svg');
@@ -484,20 +484,23 @@ test('les réglages équilibrent les cartes sur ordinateur et les empilent sur m
   await page.setViewportSize({width: 1280, height: 900});
   await login(page);
   await openSection(page,'settings');
-  const connection = page.locator('.settings-connection');
-  const printer = page.locator('.settings-device');
+  const connection = page.getByRole('region',{name:'Connexion et suivi'});
+  const printer = page.getByRole('region',{name:'Imprimante',exact:true});
   const before = await connection.boundingBox();
   const after = await printer.boundingBox();
-  const appearance = await page.locator('.settings-appearance').boundingBox();
+  const appearance = await page.getByRole('region',{name:'Apparence'}).boundingBox();
   expect(after.x).toBeGreaterThanOrEqual(before.x + before.width);
   expect(after.y).toBe(before.y);
   expect(appearance.x).toBe(before.x);
   expect(appearance.y).toBeGreaterThanOrEqual(before.y + before.height);
   const save = printer.getByRole('button', {name: 'Enregistrer le nom'});
   const detection = printer.getByRole('button', {name: 'Détection IA'});
-  const [desktopSave, desktopDetection] = await Promise.all([save.boundingBox(), detection.boundingBox()]);
-  expect(desktopDetection.x).toBeGreaterThanOrEqual(desktopSave.x + desktopSave.width);
-  expect(desktopDetection.y).toBeCloseTo(desktopSave.y);
+  const diagnostic = connection.getByRole('link', {name: 'Télécharger le diagnostic'});
+  const [desktopSave, desktopDetection, desktopDiagnostic] = await Promise.all(
+    [save,detection,diagnostic].map(control=>control.boundingBox()),
+  );
+  expect(desktopDetection.y).toBeGreaterThan(desktopSave.y);
+  expect(desktopDetection.y).toBeCloseTo(desktopDiagnostic.y);
   await page.setViewportSize({width: 390, height: 800});
   const [mobileConnection, mobilePrinter] = await Promise.all([connection.boundingBox(), printer.boundingBox()]);
   expect(mobilePrinter.x).toBe(mobileConnection.x);

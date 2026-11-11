@@ -14,6 +14,8 @@ from web_host import (
     access_control,
     install_access,
     ACCESS_KEY,
+    TOTP_KEY,
+    current_totp,
 )
 
 T = time.time()
@@ -172,7 +174,9 @@ FILES = [
 async def demo_index(request):
     """Renvoie l’interface marquée comme démonstration, avec une caméra purement illustrative."""
     html = render_page(
-        home_url(os.environ.get("HOME_URL", "/imprimante.html")), display_timezone()
+        home_url(os.environ.get("HOME_URL", "/imprimante.html")),
+        display_timezone(),
+        totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
     ).replace(
         "<body>",
         '<body><div class="demo-banner">Démonstration · Données fictives · Aucune imprimante connectée</div>',

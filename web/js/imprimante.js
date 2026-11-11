@@ -147,6 +147,9 @@ async function refreshState() {
       !d.ok ? tr('Cloud indisponible') : p?.printer_online ? tr('En ligne') : tr('Hors ligne'),
     );
     $('connection').classList.toggle('offline', !d.ok || !p?.printer_online);
+    const following = d.ok && d.mqtt_connected === true;
+    set('settings-follow-state', tr(following ? 'Suivi en direct' : d.mqtt_connected === false ? 'Suivi suspendu' : 'État inconnu'));
+    $('settings-follow-state').classList.toggle('offline', !following);
     set(
       'updated',
       `${tr('Dernière actualisation')} : ${date([d.updated_at, d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`,

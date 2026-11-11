@@ -341,6 +341,7 @@ export function createSettings(request, command, camera) {
       set('journal-state', error.message);
     }
   }
+  $('settings-logs-open').onclick = () => $('settings-logs-dialog').showModal();
   $('journal-panel').ontoggle = () => {
     if ($('journal-panel').open) void loadCommandJournal();
   };
