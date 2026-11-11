@@ -835,8 +835,7 @@ from cloud_extras import install as install_extras
 install_extras(app, engine)
 app.router.add_get("/imprimante-api/journal", command_journal)
 app.on_startup.append(startup)
-# Arrêter le moteur avant le contexte de livraison Discord lors du nettoyage.
-app.on_cleanup.insert(0, cleanup)
+app.on_cleanup.append(cleanup)
 install_discord(app, engine.state_dir)
 from web_host import install_static
 
