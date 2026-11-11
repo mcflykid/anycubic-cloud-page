@@ -96,6 +96,29 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
         for call in offload.await_args_list:
             self.assertIs(call.args[0], private_json)
 
+    async def test_unobserved_intervals_are_logged_and_expired_results_stay_silent(self):
+        """Les lectures de reprise rendent visibles les coupures sans rejouer l’historique."""
+        legacy = AsyncMock(return_value=[])
+        old = fixture_row("1", 99, alarm_code=200)
+        with self.assertLogs("cloud_page.notifications", level="INFO") as output:
+            await self.delivery.observe_cloud("scope", "slicer", [old], legacy)
+            self.clock = 750
+            expired = fixture_row("2", 110, alarm_code=200)
+            await self.delivery.observe_cloud("scope", "slicer", [expired], legacy)
+            await self.delivery.observe_cloud("scope", "slicer", [expired], legacy)
+            self.delivery.configure(DiscordConfig(url="autre-webhook", enabled=True))
+            await self.delivery.observe_cloud("scope", "slicer", [expired], legacy)
+
+        outcomes = [
+            record._operational_fields["outcome"]
+            for record in output.records
+            if record._operational_event == "notification_observation_gap"
+        ]
+        self.assertEqual(
+            outcomes, ["startup", "cloud_gap", "expired", "settings_discarded", "settings"]
+        )
+        self.send.assert_not_awaited()
+
     async def test_ambiguous_delivery_is_never_retried(self):
         """Un résultat incertain est conservé et ne déclenche aucun nouvel essai."""
         await self.delivery.observe([])
@@ -105,6 +128,18 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
         await self.delivery.join()
         self.send.assert_awaited_once()
         self.assertEqual(self.delivery.last_outcome, "uncertain")
+
+    def test_legacy_url_is_canonicalized_without_redirects(self):
+        """Les anciennes adresses restent compatibles avec la destination HTTPS actuelle."""
+        path = "/api/webhooks/12345678901234567/" + "a" * 64
+        self.assertEqual(discord_url("https://discordapp.com" + path), "https://discord.com" + path)
+        for host in (
+            "discordapp.com.evil.invalid",
+            "discordapp.com:444",
+            "discordapp.com@localhost",
+        ):
+            with self.assertRaises(ValueError):
+                discord_url("https://" + host + path)
 
     def test_host_and_message_are_bounded(self):
         """N’accepte qu’un webhook Discord et neutralise les mentions des libellés."""

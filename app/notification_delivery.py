@@ -192,6 +192,8 @@ class Delivery:
         self.config = DiscordConfig()
         self.ready = False
         self.baseline = 0
+        self.baseline_reason = "startup"
+        self.last_cloud_at = None
         self.scope = None
         self.lookup_after = 0
         self.revision = 0
@@ -218,6 +220,7 @@ class Delivery:
             return
         if not isinstance(rows, dict) or len(rows) > _MAX_ROWS:
             raise ValueError("État de livraison invalide.")
+        interrupted = 0
         for key, row in rows.items():
             if (
                 not re.fullmatch("[0-9a-f]{64}", key)
@@ -228,6 +231,7 @@ class Delivery:
             ):
                 raise ValueError("État de livraison invalide.")
             status, stamp = row
+            interrupted += status in {"pending", "sending"}
             self.rows[key] = [
                 "uncertain"
                 if status == "sending"
@@ -236,17 +240,35 @@ class Delivery:
                 else status,
                 stamp,
             ]
+        if interrupted:
+            self.note_gap("interrupted", interrupted)
 
     def configure(self, config):
         """Écarte les livraisons de la destination précédente et attend une référence fraîche."""
         if config != self.config:
+            if self.revision:
+                self.baseline_reason = "settings"
+                self.note_gap("settings_discarded", len(self.queue))
             self.config = config
             self.revision += 1
             self.ready = False
+            self.last_cloud_at = None
             self.queue.clear()
+
+    def note_gap(self, outcome, count=None):
+        """Expose une fenêtre sans livraison garantie sans publier de donnée de compte."""
+        log_event(
+            _LOG,
+            logging.INFO,
+            "notification_observation_gap",
+            message="Discord : période ou résultats sans notification garantie",
+            outcome=outcome,
+            count=count,
+        )
 
     async def save_config(self, path, config):
         """Sérialise le remplacement privé et son application en mémoire."""
+
         async def commit():
             async with self.settings_lock:
                 try:
@@ -261,6 +283,7 @@ class Delivery:
 
     async def persist(self, changes):
         """Écrit l’état hors de la boucle tout en sérialisant les transactions de livraison."""
+
         async def commit():
             async with self.storage_lock:
                 if self.last_outcome == "unavailable":
@@ -291,16 +314,22 @@ class Delivery:
         if not self.config.enabled or not scope or self.last_outcome == "unavailable":
             return
         if self.scope != scope:
+            if self.scope is not None:
+                self.baseline_reason = "account"
             self.scope = scope
             self.revision += 1
             self.ready = False
+            self.last_cloud_at = None
             self.queue.clear()
+        now = self.clock()
+        if self.last_cloud_at is not None and now - self.last_cloud_at >= _TTL:
+            self.note_gap("cloud_gap")
+        self.last_cloud_at = now
         revision = self.revision
         if page == "legacy":
             await self.observe(cloud_events(scope, [], rows), revision)
             return
         legacy = []
-        now = self.clock()
         if (
             self.ready
             and now >= self.lookup_after
@@ -332,21 +361,39 @@ class Delivery:
         if revision is None:
             revision = self.revision
         async with self.observe_lock:
-            if revision != self.revision or not self.config.enabled or self.last_outcome == "unavailable":
+            if (
+                revision != self.revision
+                or not self.config.enabled
+                or self.last_outcome == "unavailable"
+            ):
                 return
             now = int(self.clock())
             if not self.ready:
                 self.baseline = max(
-                    (event.timestamp for event in events if event.timestamp <= now + 60), default=now
+                    (event.timestamp for event in events if event.timestamp <= now + 60),
+                    default=now,
                 )
                 self.baseline = max(now, self.baseline)
                 self.ready = True
+                self.note_gap(
+                    self.baseline_reason,
+                    sum(now - _TTL < event.timestamp <= now + 60 for event in events),
+                )
                 seen = {
                     event.key: ["suppressed", now] for event in events if event.key not in self.rows
                 }
                 if seen:
                     await self.persist(seen)
                 return
+            expired = {
+                event.key: ["suppressed", now]
+                for event in events
+                if event.key not in self.rows and self.baseline < event.timestamp <= now - _TTL
+            }
+            if expired:
+                self.note_gap("expired", len(expired))
+                if not await self.persist(expired) or revision != self.revision:
+                    return
             entries = [
                 event
                 for event in events
@@ -354,7 +401,9 @@ class Delivery:
                 and self.baseline < event.timestamp <= now + 60
                 and now - event.timestamp < _TTL
             ][: max(0, _MAX_QUEUE - len(self.queue))]
-            if not entries or not await self.persist({event.key: ["pending", now] for event in entries}):
+            if not entries or not await self.persist(
+                {event.key: ["pending", now] for event in entries}
+            ):
                 return
             if revision != self.revision:
                 return

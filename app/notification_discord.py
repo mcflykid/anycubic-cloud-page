@@ -88,12 +88,13 @@ def discord_url(value):
         url = urlsplit(value)
         if (
             url.scheme == "https"
-            and url.netloc in {_HOST, _HOST + ":443"}
+            and url.netloc in {_HOST, _HOST + ":443", "discordapp.com", "discordapp.com:443"}
             and _PATH.fullmatch(url.path)
             and not url.query
             and not url.fragment
             and value == f"https://{url.netloc}{url.path}"
         ):
+            # Les anciennes adresses sont réécrites avant l’envoi. Aucun suivi de redirection.
             return f"https://{_HOST}{url.path}"
     except ValueError:
         pass

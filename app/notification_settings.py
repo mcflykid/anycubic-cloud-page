@@ -126,6 +126,7 @@ async def discord_settings(request):
     if request.method in {"GET", "HEAD"}:
         return discord_page(delivery)
     form = await read_discord_form(request)
+
     def render_refusal(message, status):
         return discord_page(delivery, message, status)
 
