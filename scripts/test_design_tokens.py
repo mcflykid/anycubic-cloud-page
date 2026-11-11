@@ -1,4 +1,4 @@
-"""Vérifie les déclarations des composants du nouveau cadre de l’atelier."""
+"""Protège le référentiel de présentation des feuilles de l’atelier."""
 
 import re
 import unittest
@@ -7,7 +7,7 @@ from pathlib import Path
 
 CSS = Path(__file__).resolve().parents[1] / "web" / "css"
 TOKENS = CSS / "atelier-tokens.css"
-DECLARATION = re.compile(r"(?:[;{]|^)\s*(?:--)?[-a-z][\w-]*\s*:\s*([^;{}]+)", re.M)
+DECLARATION = re.compile(r"(?:[;{]|^)\s*((?:--)?[-a-z][\w-]*)\s*:\s*([^;{}]+)", re.M)
 LITERAL = re.compile(
     r"#[0-9a-f]{3,8}\b|\b(?:rgb|hsl|oklch|oklab)\w*\s*\("
     r"|(?<![\w-])\d+(?:\.\d+)?(?:px|rem|em|ms)\b",
@@ -25,10 +25,35 @@ class DesignTokensTests(unittest.TestCase):
                 css = re.sub(r"/\*.*?\*/", "", path.read_text(), flags=re.S)
                 literals = [
                     match.group()
-                    for declaration in DECLARATION.findall(css)
+                    for _, declaration in DECLARATION.findall(css)
                     for match in LITERAL.finditer(declaration)
                 ]
                 self.assertEqual(literals, [])
+
+    def test_shared_rules_apply_to_all_stylesheets(self):
+        """Réserve les longueurs hors échelle aux géométries propres aux composants."""
+        spacing = re.compile(r"^(?:gap|(?:row|column)-gap|margin(?:-|$)|padding(?:-|$))")
+        size = re.compile(r"(?<![\w.])(?:\d+(?:\.\d+)?|\.\d+)(px|rem)\b")
+        for path in sorted(CSS.glob("*.css")):
+            if path == TOKENS:
+                continue
+            with self.subTest(stylesheet=path.name):
+                css = re.sub(r"/\*.*?\*/", "", path.read_text(), flags=re.S)
+                invalid = []
+                for name, value in DECLARATION.findall(css):
+                    lengths = [
+                        float(match[0][: -len(match[1])]) * (16 if match[1] == "rem" else 1)
+                        for match in size.finditer(value)
+                    ]
+                    if (
+                        (spacing.match(name) and any(4 <= n <= 32 for n in lengths))
+                        or (name == "font-size" and any(11.5 <= n <= 28 for n in lengths))
+                        or (name.endswith("radius") and any(n > 0 for n in lengths))
+                        or (name == "box-shadow" and LITERAL.search(value))
+                        or ("light-dark(" in value and LITERAL.search(value))
+                    ):
+                        invalid.append(f"{name}: {value.strip()}")
+                self.assertEqual(invalid, [])
 
     def test_palette_text_has_sufficient_contrast(self):
         """Contrôle le texte courant, l’accent et les états sur les deux surfaces."""

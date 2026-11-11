@@ -1,17 +1,17 @@
 /* Des traits neutres identifient l’état sans suggérer qu’une impression ou une lecture a réussi. */
 :root {
   --visual-art: #6d8cad;
-  --visual-art-soft: light-dark(#eef4fa, #273747);
-  --visual-wait: light-dark(#3978ae, #9cc8f1);
-  --visual-error: light-dark(#9e4542, #ffb3ad);
+  --visual-art-soft: color-mix(in srgb, var(--atelier-accent) 10%, var(--atelier-surface));
+  --visual-wait: var(--atelier-accent);
+  --visual-error: var(--atelier-error);
 }
 
 .empty-message {
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: var(--atelier-space-2);
   min-height: 128px;
-  padding: 26px 18px;
+  padding: var(--atelier-space-5) var(--atelier-space-4);
   border-style: solid;
   border-color: color-mix(in srgb, var(--line) 78%, var(--visual-art));
   background: linear-gradient(145deg, var(--visual-art-soft), var(--surface) 70%);
@@ -37,7 +37,7 @@
 #files-state[data-visual-state] {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--atelier-space-2);
   min-height: 34px;
   padding-inline: 2px;
 }
@@ -64,10 +64,10 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 7px;
+  gap: var(--atelier-space-2);
   width: 100%;
   height: 100%;
-  padding: 8px;
+  padding: var(--atelier-space-2);
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
@@ -110,16 +110,16 @@
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 8px;
+  gap: var(--atelier-space-2);
   width: min(100%, 290px);
   min-height: 132px;
   margin: 0;
-  padding: 16px;
+  padding: var(--atelier-space-4);
   border: 1px dashed color-mix(in srgb, var(--visual-wait) 48%, var(--line));
-  border-radius: var(--panel-radius, 14px);
+  border-radius: var(--panel-radius, var(--atelier-card-radius));
   background: linear-gradient(145deg, var(--visual-art-soft), var(--surface));
   color: var(--muted);
-  font-size: .84rem;
+  font-size: var(--atelier-label-size);
   text-align: center;
 }
 .preview-state::before {
@@ -138,16 +138,16 @@
 #camera-state[data-visual-state] {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--atelier-space-2);
   width: fit-content;
   max-width: 100%;
   min-height: 36px;
-  padding: 6px 11px;
+  padding: var(--atelier-space-1) var(--atelier-space-3);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--atelier-pill-radius);
   background: var(--surface);
   color: var(--muted);
-  font-size: .86rem;
+  font-size: var(--atelier-text-size);
   overflow-wrap: anywhere;
 }
 #camera-state[data-visual-state]::before {
@@ -165,8 +165,8 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%233978ae' stroke-width='1.8'/%3E%3Cpath d='M12 7v5l3 2' fill='none' stroke='%233978ae' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 #camera-state[data-visual-state="ready"] {
-  border-color: color-mix(in srgb, light-dark(#377b53, #a1e0bd) 36%, var(--line));
-  color: light-dark(#286844, #a1e0bd);
+  border-color: color-mix(in srgb, var(--atelier-normal) 36%, var(--line));
+  color: var(--atelier-normal);
 }
 #camera-state[data-visual-state="ready"]::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm13 3 5-3v10l-5-3' fill='none' stroke='%23377b53' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='m7 12 2 2 4-4' fill='none' stroke='%23377b53' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -183,35 +183,34 @@
 /* Adapté d’Esqueleto · Moxen (https://moxen.cl/recursos/esqueleto/) : chaque forme découpe la même bande lumineuse. */
 .list-loading {
   --skeleton-band: 340px;
-  --skeleton-light: light-dark(rgba(255,255,255,.75), rgba(255,255,255,.13));
 }
-.list-loading:not([hidden]) { display: grid; margin-block: 10px; }
-.list-loading-files { gap: 8px; }
+.list-loading:not([hidden]) { display: grid; margin-block: var(--atelier-space-2); }
+.list-loading-files { gap: var(--atelier-space-2); }
 #tasks-loading:not([hidden]) + #tasks-list:empty { display: none; }
 .skeleton-file {
   display: grid;
   grid-template-columns: 30px minmax(0, 210px) minmax(30px, 80px);
   align-items: center;
-  gap: 12px;
+  gap: var(--atelier-space-3);
   min-height: 48px;
-  padding: 8px 12px;
+  padding: var(--atelier-space-2) var(--atelier-space-3);
   border: 1px solid var(--line);
-  border-radius: var(--panel-radius, 12px);
+  border-radius: var(--panel-radius, var(--atelier-card-radius));
   background: var(--surface);
 }
 .skeleton-file-icon { height: 26px; }
 .list-loading .history-card-select { display: grid; place-items: center; }
 .skeleton-check { width: 18px; height: 18px; }
 .skeleton-badge { align-self: center; width: 64px; height: 26px; }
-.skeleton-detail { align-self: center; width: 88px; height: 34px; margin-top: 6px; }
-.list-loading-tasks .skeleton-meta { margin-block: 4px; }
+.skeleton-detail { align-self: center; width: 88px; height: 34px; margin-top: var(--atelier-space-1); }
+.list-loading-tasks .skeleton-meta { margin-block: var(--atelier-space-1); }
 .skeleton-label { width: 74%; height: 12px; }
 .skeleton-meta { width: 42%; height: 8px; }
 .list-loading .skeleton-piece {
   position: relative;
   display: block;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--atelier-control-radius);
   background-color: color-mix(in srgb, var(--muted) 13%, var(--surface));
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -220,7 +219,7 @@
     position: absolute;
     inset: 0 auto 0 0;
     width: var(--skeleton-band);
-    background: linear-gradient(100deg, transparent, var(--skeleton-light) 50%, transparent);
+    background: linear-gradient(100deg, transparent, var(--atelier-loading-glint) 50%, transparent);
     animation: visual-skeleton-sweep 1.7s cubic-bezier(.45, 0, .55, 1) infinite;
   }
 }
@@ -231,7 +230,7 @@
 @keyframes visual-wait-pulse { to { opacity: .48; transform: translateY(-2px); } }
 
 @media (max-width: 560px) {
-  .empty-message { min-height: 116px; padding: 22px 14px; }
+  .empty-message { min-height: 116px; padding: var(--atelier-space-5) var(--atelier-space-3); }
   .preview-state:not([hidden]) { width: 100%; min-height: 112px; }
 }
 @media (prefers-reduced-motion: reduce) {

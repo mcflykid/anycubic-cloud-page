@@ -10,26 +10,26 @@
   max-height: min(78dvh, 56rem);
   min-height: 0;
   overflow: hidden;
-  padding: 14px;
+  padding: var(--atelier-space-3);
 }
 
 #notifications-panel .notifications-heading {
   align-items: center;
-  gap: 8px;
-  padding-bottom: 10px;
+  gap: var(--atelier-space-2);
+  padding-bottom: var(--atelier-space-2);
   border-bottom: 1px solid var(--line);
 }
 
 #notifications-panel .notifications-heading h2 {
   min-width: 0;
-  font-size: 1rem;
+  font-size: var(--atelier-card-title-size);
 }
 
 #notifications-panel .notifications-heading button,
 #notifications-panel .notice-filters button {
   min-height: 36px;
-  padding: 5px 9px;
-  font-size: .76rem;
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  font-size: var(--atelier-caption-size);
 }
 
 #notifications-panel #notifications-source {
@@ -37,23 +37,23 @@
   margin-inline-start: auto;
   width: auto;
   min-height: 30px;
-  padding: 3px 8px;
-  font-size: .72rem;
+  padding: 3px var(--atelier-space-2);
+  font-size: var(--atelier-caption-size);
 }
 
 #notifications-panel .notice-toolbar {
   display: grid;
   grid-template-columns: auto minmax(140px, 1fr);
   align-items: center;
-  gap: 6px;
-  margin: 8px 0;
+  gap: var(--atelier-space-1);
+  margin: var(--atelier-space-2) 0;
 }
 
 #notifications-panel .notice-filters {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--atelier-space-1);
   margin: 0;
 }
 
@@ -73,12 +73,12 @@
 #notifications-panel .notice-search input {
   min-width: 0;
   min-height: 38px;
-  padding: 7px 9px;
+  padding: var(--atelier-space-2) var(--atelier-space-2);
 }
 
 #notifications-panel #history-state:not([hidden]) {
-  margin: 8px 0 0;
-  padding: 12px;
+  margin: var(--atelier-space-2) 0 0;
+  padding: var(--atelier-space-3);
 }
 
 #notifications-panel .notification-list {
@@ -86,7 +86,7 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  margin: 6px 0;
+  margin: var(--atelier-space-1) 0;
   padding-inline: 2px;
 }
 
@@ -94,8 +94,8 @@
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: start;
-  gap: 10px;
-  padding: 12px 2px;
+  gap: var(--atelier-space-2);
+  padding: var(--atelier-space-3) 2px;
   border-bottom: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
 }
 
@@ -103,7 +103,7 @@
   width: 48px;
   height: 48px;
   flex: 0 0 48px;
-  border-radius: 10px;
+  border-radius: var(--atelier-card-radius);
   background: color-mix(in srgb, var(--text) 4%, var(--surface));
 }
 
@@ -129,13 +129,13 @@
 #notifications-panel .notification-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 5px;
+  gap: var(--atelier-space-1);
   min-width: 0;
 }
 
 #notifications-panel .notification-open {
   align-items: center;
-  gap: 9px;
+  gap: var(--atelier-space-2);
   min-height: 0;
   padding: 0;
 }
@@ -149,7 +149,7 @@
 }
 
 #notifications-panel .notification-name {
-  font-size: .84rem;
+  font-size: var(--atelier-label-size);
   line-height: 1.25;
 }
 
@@ -157,7 +157,7 @@
   display: flex;
   align-items: baseline;
   justify-content: flex-start;
-  gap: 6px;
+  gap: var(--atelier-space-1);
   text-align: right;
 }
 
@@ -166,36 +166,36 @@
 }
 
 #notifications-panel .notification-copy .muted {
-  font-size: .72rem;
+  font-size: var(--atelier-caption-size);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 #notifications-panel .notification-result {
   grid-column: 1 / -1;
-  font-size: .76rem;
+  font-size: var(--atelier-caption-size);
   line-height: 1.25;
 }
 
 #notifications-panel .notification-error {
   grid-column: 1;
-  gap: 4px 8px;
+  gap: var(--atelier-space-1) var(--atelier-space-2);
   min-width: 0;
   margin: 0;
 }
 
 #notifications-panel .notification-error-title {
-  font-size: .76rem;
+  font-size: var(--atelier-caption-size);
   line-height: 1.3;
 }
 
 #notifications-panel .notification-error-link {
   min-height: 32px;
-  padding: 4px 7px;
+  padding: var(--atelier-space-1) var(--atelier-space-2);
   border: 1px solid color-mix(in srgb, currentColor 25%, var(--line));
-  border-radius: 8px;
+  border-radius: var(--atelier-control-radius);
   background: color-mix(in srgb, currentColor 7%, var(--surface));
-  font-size: .76rem;
+  font-size: var(--atelier-caption-size);
   font-variant-numeric: tabular-nums;
   text-decoration: none;
   white-space: normal;
@@ -208,13 +208,13 @@
   width: auto;
   max-width: 100%;
   margin: 2px 0 0;
-  padding: 7px 9px;
-  border-radius: 8px;
+  padding: var(--atelier-space-2) var(--atelier-space-2);
+  border-radius: var(--atelier-control-radius);
   box-shadow: none;
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
-  font-size: .74rem;
+  font-size: var(--atelier-caption-size);
   line-height: 1.4;
 }
 
@@ -233,7 +233,7 @@
 #notifications-panel .notification-delete {
   min-width: 36px;
   min-height: 36px;
-  padding: 4px;
+  padding: var(--atelier-space-1);
 }
 
 #notifications-panel .notification-actions {
@@ -241,8 +241,8 @@
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 8px;
+  gap: var(--atelier-space-1);
+  padding-top: var(--atelier-space-2);
   border-top: 1px solid var(--line);
 }
 
@@ -250,8 +250,8 @@
 #notifications-panel #history-delete-all,
 #notifications-panel #notifications-more {
   min-height: 36px;
-  padding: 6px 9px;
-  font-size: .76rem;
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  font-size: var(--atelier-caption-size);
 }
 
 @media (max-width: 640px) {
@@ -261,7 +261,7 @@
     inset-block-start: calc(env(safe-area-inset-top) + 72px);
     width: auto;
     max-height: calc(100dvh - env(safe-area-inset-top) - 88px);
-    padding: 11px;
+    padding: var(--atelier-space-3);
   }
 
   #notifications-panel .notifications-heading {
@@ -278,7 +278,7 @@
 
   #notifications-panel .notice-toolbar {
     grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
+    gap: var(--atelier-space-2);
   }
 
   #notifications-panel .notification-copy {
@@ -315,7 +315,7 @@
 @media (max-width: 380px) {
   #notifications-panel .notification-row {
     grid-template-columns: 44px minmax(0, 1fr) 32px;
-    gap: 6px;
+    gap: var(--atelier-space-1);
   }
 
   #notifications-panel .notification-row .task-thumbnail {
