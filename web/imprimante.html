@@ -404,11 +404,15 @@
     <button type="submit" disabled>Appliquer les températures</button>
     <p class="muted">0 °C coupe la chauffe.</p>
   </form>
-  <form id="idle-fan-form" aria-label="Ventilation">
-    <label>Ventilateur au repos<select name="fan" disabled><option value="fan_speed_pct">Pièce</option><option value="aux_fan_speed_pct">Auxiliaire</option></select></label>
-    <label>Vitesse cible (%)<input type="number" name="value" min="0" max="100" step="1" placeholder="0 à 100" required disabled></label>
-    <button type="submit" disabled>Appliquer la ventilation</button>
-    <p id="idle-fan-current" class="muted"></p>
+  <form class="idle-fan-form" aria-labelledby="idle-room-fan-title">
+    <div class="idle-fan-summary"><h4 id="idle-room-fan-title">Pièce</h4><p class="muted idle-fan-current"></p></div>
+    <label>Vitesse cible (%)<input type="number" name="fan_speed_pct" min="0" max="100" step="1" placeholder="0 à 100" required disabled></label>
+    <button type="submit" aria-label="Appliquer la ventilation" disabled>Appliquer</button>
+  </form>
+  <form class="idle-fan-form" aria-labelledby="idle-aux-fan-title">
+    <div class="idle-fan-summary"><h4 id="idle-aux-fan-title">Auxiliaire</h4><p class="muted idle-fan-current"></p></div>
+    <label>Vitesse cible (%)<input type="number" name="aux_fan_speed_pct" min="0" max="100" step="1" placeholder="0 à 100" required disabled></label>
+    <button type="submit" aria-label="Appliquer la ventilation" disabled>Appliquer</button>
   </form>
 </section><form id="settings-form" class="print-settings" hidden><div class="settings-card-heading"><h3>Réglages d’impression</h3><span id="settings-availability" class="muted">En attente de l’état de l’imprimante</span></div><div class="settings-groups"><fieldset><legend>Températures</legend><label>Buse (°C)<input disabled name="target_nozzle_temp" type="number" min="0" max="320" placeholder="Ne pas modifier"></label><label>Plateau (°C)<input disabled name="target_hotbed_temp" type="number" min="0" max="120" placeholder="Ne pas modifier"></label></fieldset><fieldset><legend>Ventilation</legend><label>Pièce (%)<input disabled name="fan_speed_pct" type="number" min="0" max="100" placeholder="Ne pas modifier"></label><label>Auxiliaire (%)<input disabled name="aux_fan_speed_pct" type="number" min="0" max="100" placeholder="Ne pas modifier"></label><label>Enceinte (0–3)<input disabled name="box_fan_level" type="number" min="0" max="3" placeholder="Ne pas modifier"></label></fieldset><fieldset><legend>Vitesse</legend><label>Mode<select disabled name="print_speed_mode" id="speed-mode"><option value="">Ne pas modifier</option></select></label></fieldset></div><div class="settings-save"><p class="muted">Seuls les champs renseignés sont modifiés.</p><button disabled type="submit" class="primary">Appliquer les réglages</button></div></form><p id="control-feedback" class="muted" role="status"></p></dialog>
 <dialog id="reauth-dialog" class="settings-dialog" aria-labelledby="reauth-title"><div class="dialog-top"><h2 id="reauth-title">Confirmer avec le mot de passe web</h2><button class="dialog-close" type="button">Annuler</button></div><form id="reauth-form" method="dialog"><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reauth-state" class="muted" role="status"></p><button type="submit" id="reauth-submit" class="primary">Confirmer</button></form></dialog>

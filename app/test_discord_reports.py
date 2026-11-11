@@ -8,8 +8,9 @@ import unittest
 from unittest.mock import AsyncMock
 from zoneinfo import ZoneInfo
 
-from notification_discord import DiscordConfig, DiscordResult
+from notification_discord import DiscordConfig, DiscordResult, format_message
 from notification_reports import ReportSchedule, collect_history, format_report, report_window
+from notification_settings import _report_payload
 
 PARIS = ZoneInfo("Europe/Paris")
 REPORT = "https://discord.com/api/webhooks/12345678901234567/" + "b" * 64
@@ -39,6 +40,14 @@ class ReportWindowTest(unittest.TestCase):
 class ReportDeliveryTest(unittest.IsolatedAsyncioTestCase):
     """Utilise un transport fictif et vérifie les preuves de couverture."""
 
+    def test_reports_and_alerts_use_the_same_discord_avatar(self):
+        """Vérifie que les deux canaux reprennent l’image publique du projet."""
+        config = DiscordConfig(REPORT, True)
+        payload = _report_payload(None, config)
+        self.assertTrue(payload["avatar_url"].endswith("/docs/assets/discord-avatar.png"))
+        self.assertEqual(payload["allowed_mentions"], {"parse": []})
+        self.assertEqual(payload["avatar_url"], format_message(None, config)["avatar_url"])
+
     async def test_restart_keeps_one_report_and_no_alert_state(self):
         with TemporaryDirectory() as folder:
             state = Path(folder)
@@ -54,7 +63,9 @@ class ReportDeliveryTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(sender.await_count, 1)
             config, report = sender.await_args.args
             self.assertEqual(config.url, REPORT)
-            self.assertIn("Aucune impression", format_report(report, config))
+            payload = _report_payload(report, config)
+            self.assertIn("Aucune impression", payload["content"])
+            self.assertEqual(payload["avatar_url"], _report_payload(None, config)["avatar_url"])
             self.assertFalse((state / "notification-delivery.json").exists())
 
     async def test_only_terminal_rows_and_verified_metrics(self):

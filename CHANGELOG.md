@@ -3,8 +3,9 @@
 ## 1.12.1 — 2026-11-11
 
 - Clarifie l’état des alertes et des bilans Discord. Le formulaire confirme qu’une adresse est enregistrée et la garde masquée (#319).
-- Sépare les mesures et l’éclairage, les réglages au repos et les réglages d’impression. La ventilation au repos affiche la mesure et confirme la cible avant l’envoi (#319).
+- Sépare les mesures et l’éclairage, les réglages au repos et les réglages d’impression. Chaque ventilateur affiche sa mesure, sa cible et son bouton d’application, avec confirmation avant l’envoi (#319).
 - Supprime le double trait sous les températures, centre l’aide de la caméra et corrige les alignements de la carte ACE. Les emplacements chargés affichent de petites bobines aux couleurs détectées (#319).
+- Utilise l’icône du projet comme avatar des alertes et des bilans Discord, y compris pour les messages de test (#320).
 
 ## 1.12.0 — 2026-11-11
 

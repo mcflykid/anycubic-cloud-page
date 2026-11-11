@@ -130,8 +130,14 @@ def format_message(event, config):
 
 
 def message_payload(content):
-    """Désactive mentions et aperçus pour tous les messages de l’atelier."""
-    return {"content": content, "allowed_mentions": {"parse": []}, "flags": 4}
+    """Ajoute l’avatar public du projet et désactive les mentions et aperçus."""
+    return {
+        "content": content,
+        "allowed_mentions": {"parse": []},
+        "flags": 4,
+        # Discord lit le fichier public sans contacter l’atelier.
+        "avatar_url": "https://raw.githubusercontent.com/mcflykid/anycubic-cloud-page/main/docs/assets/discord-avatar.png",
+    }
 
 
 async def send_discord(session, config, event, *, formatter=format_message):
