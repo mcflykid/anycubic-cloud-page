@@ -5,6 +5,7 @@ import asyncio
 import base64
 import contextlib
 import hashlib
+import logging
 import re
 import time
 import uuid
@@ -13,6 +14,18 @@ from printer_values import filepath, safeget, serial
 from cloud_extras import key, number, download_preview
 from anycubic_cloud_api.data_models.files import AnycubicCloudFile
 from command_journal import dispatch_command
+from operational_logging import log_event
+
+
+def log_axis_rejection(reason):
+    """Ne journalise que la catégorie du rejet, sans identifiant ni réponse brute."""
+    log_event(
+        logging.getLogger("cloud_page.axes"),
+        logging.INFO,
+        "axis_query_mqtt_rejected",
+        message="Rapport MQTT de position écarté",
+        reply_rejection=reason,
+    )
 
 
 class MQTTReplies:
@@ -28,10 +41,13 @@ class MQTTReplies:
     def receive(self, payload):
         """Transfère une réponse du fil MQTT sans modifier les attentes depuis ce fil."""
         identifier = payload.get("msgid")
+        is_axis_query = (payload.get("type"), payload.get("action")) == ("axis", "query")
+        valid_id = type(identifier) in (int, str) and 0 < len(str(identifier)) <= 128
+        if is_axis_query and (not valid_id or not self.loop):
+            log_axis_rejection("identifier" if not valid_id else "outside_window")
         if (
             self.loop
-            and type(identifier) in (int, str)
-            and 0 < len(str(identifier)) <= 128
+            and valid_id
             and isinstance(payload.get("type"), str)
             and isinstance(payload.get("action"), str)
         ):
@@ -41,12 +57,20 @@ class MQTTReplies:
     def _deliver(self, payload, received):
         key = (payload.get("type"), payload.get("action"), str(payload["msgid"]))
         waiter = self.pending.get(key)
+        axis_key = ("axis", "query", key[2])
+        if key != axis_key and axis_key in self.pending:
+            log_axis_rejection("kind_action")
         if waiter is not None and not waiter.done():
             waiter.set_result(payload)
         elif self.opening:
             self.early[key] = (received, payload)
             if len(self.early) > 24:
                 self.early.pop(next(iter(self.early)))
+        elif key[:2] == ("axis", "query"):
+            awaiting_axis = any(item[:2] == key[:2] for item in self.pending)
+            log_axis_rejection(
+                "identifier" if awaiting_axis and waiter is None else "outside_window"
+            )
 
     async def ask(self, kind, action, send, timeout, *, on_phase=None):
         """Attend la réponse corrélée ; le callback facultatif reçoit les phases et délais écoulés."""
@@ -61,6 +85,21 @@ class MQTTReplies:
                 on_phase("cloud_ack", (time.monotonic() - started) * 1000)
             key = (kind, action, str(identifier))
             cached = self.early.pop(key, None)
+            if key[:2] == ("axis", "query"):
+                # Avant l’accusé Cloud, la référence attendue n’est pas encore connue.
+                if any(
+                    other[:2] == key[:2] and received >= started
+                    for other, (received, _) in self.early.items()
+                ):
+                    log_axis_rejection("identifier")
+                other_shape = any(
+                    other[:2] != key[:2] and other[2] == key[2] and received >= started
+                    for other, (received, _) in self.early.items()
+                )
+                if other_shape:
+                    log_axis_rejection("kind_action")
+                if cached and cached[0] < started:
+                    log_axis_rejection("outside_window")
             if cached and cached[0] >= started:
                 if on_phase:
                     on_phase("mqtt_reply", (time.monotonic() - started) * 1000)
