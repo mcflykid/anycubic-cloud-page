@@ -2,7 +2,7 @@
 
 import os, unittest
 from unittest.mock import patch
-from container_entrypoint import launch
+from container_entrypoint import launch, main
 
 
 class Entrypoint(unittest.TestCase):
@@ -85,3 +85,17 @@ class Entrypoint(unittest.TestCase):
         self.assertNotIn("fixture-secret", str(caught.exception))
         self.assertIn("container_start_failed", str(log.call_args))
         self.assertIn("RuntimeError", str(log.call_args))
+
+    def test_invalid_log_settings_stop_before_initialization(self):
+        """Une configuration invalide désigne le champ et masque la valeur reçue."""
+        for name in ("LOG_LEVEL", "LOG_FORMAT"):
+            with (
+                self.subTest(name=name),
+                patch.dict(os.environ, {name: "fixture-secret"}, clear=True),
+                patch("container_entrypoint.initialize") as initialize,
+                self.assertRaises(SystemExit) as caught,
+            ):
+                main()
+            self.assertIn(name + " invalide", str(caught.exception))
+            self.assertNotIn("fixture-secret", str(caught.exception))
+            initialize.assert_not_called()

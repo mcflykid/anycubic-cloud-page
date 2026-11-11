@@ -8,7 +8,12 @@ APP_DIRECTORY = str(pathlib.Path(__file__).resolve().parents[1] / "app")
 if APP_DIRECTORY not in sys.path:
     sys.path.insert(0, APP_DIRECTORY)
 
-from operational_logging import configure_logging, log_event, safe_exception_frames
+from operational_logging import (
+    LoggingConfigurationError,
+    configure_logging,
+    log_event,
+    safe_exception_frames,
+)
 from container_setup import initialize, identity
 
 _log = logging.getLogger("cloud_page.bootstrap")
@@ -55,6 +60,9 @@ def main():
     """Démarre ou échoue sans révéler les secrets présents dans une exception système ou réseau."""
     try:
         launch()
+    except LoggingConfigurationError as error:
+        # Le formatteur ne peut pas démarrer ; ce message fixe n’inclut aucune valeur saisie.
+        raise SystemExit(str(error)) from None
     except Exception as error:
         log_event(
             _log,

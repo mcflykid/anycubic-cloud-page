@@ -2,6 +2,35 @@
 
 ## À venir
 
+- Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
+
+- Sépare les courbes Buse et Plateau dans les statistiques (#238).
+- Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
+- Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
+
+- Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
+- Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
+- Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
+- Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
+
+## 1.9.0 — 2026-11-11
+
+### Atelier
+
+- Ouvre l’atelier sur **Résumé**, qui réunit l’impression en cours, les températures et l’état de l’ACE. Regroupe les dix onglets par usage et place **Statistiques** avant **Réglages** (#227).
+- Ajoute **Studio**, **Observatoire** et **Verrière** aux sept styles existants. Tous donnent accès aux mêmes données et commandes en clair comme en sombre (#230).
+- Permet de déplacer et de redimensionner les cartes après ouverture du cadenas. La disposition est mémorisée par onglet dans le navigateur et peut être exportée, importée ou réinitialisée depuis **Réglages** (#229).
+- Réorganise la cloche, rapproche l’aperçu du nom de fichier en style **Par défaut** et aère les graphiques de **Parc et santé** dans **Laboratoire** sur grand écran (#216).
+- Distingue les aperçus absents ou indisponibles, les listes vides et les états de chargement ou d’erreur de la caméra (#228).
+- Harmonise les transitions, les chargements de listes et les signaux de changement réel. Respecte la préférence de réduction des animations (#195, #196, #197, #198, #199, #200).
+
+### Fiabilité et sécurité
+
+- Expire les sessions de visionnage caméra abandonnées et laisse passer pause et annulation pendant les lectures longues et les transferts de stockage. Les ordres physiques restent sérialisés (#183, #184).
+- Nettoie les transferts STL et 3MF abandonnés, valide les paramètres avant appel au Cloud et exige une impression active pour modifier les réglages d’une tâche (#185, #187, #188).
+- Renforce les quotas IPv6 derrière un proxy, fiabilise les réponses de notification et invalide les aperçus des fichiers mémoire ou USB modifiés (#186, #189, #190).
+- Suit les échecs de reconnexion MQTT, compare sans distinction de casse l’adresse du compte enregistré et épingle les actions GitHub externes par empreinte (#191, #192, #193).
+
 - Retire la lecture des coordonnées dans Caméra → Déplacer ainsi que sa route et son diagnostic. Les commandes de déplacement restent disponibles (#167).
 - Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - L’ouverture et la fermeture de la caméra laissent passer pause et annulation pendant l’attente d’une lecture. Le verrou d’envoi continue de sérialiser les ordres machine (#206).

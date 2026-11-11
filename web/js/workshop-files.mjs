@@ -9,12 +9,12 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=694563e60115';
-import { workshopState, setBusy } from './workshop-state.mjs?v=71c71895c6b5';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=4706603eff7c';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=19af03798ed2';
+} from './workshop-ui.mjs';
+import { workshopState, setBusy } from './workshop-state.mjs';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
+import { createFileThumbnails } from './workshop-file-previews.mjs';
 
-import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
+import { initializePaintSelection } from './workshop-selection.mjs';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {
@@ -206,6 +206,9 @@ export function createFiles(request, command) {
             ? formatText('{0} élément(s).', rows.length)
             : tr('Ce dossier est vide.'),
       );
+    if (list === null) $('files-state').dataset.visualState = 'waiting';
+    else if (rows.length === 0) $('files-state').dataset.visualState = 'empty';
+    else delete $('files-state').dataset.visualState;
     $('cloud-tools').hidden = source !== 'cloud';
     if (source === 'cloud') {
       if (Array.isArray(list)) set('files-state', formatText('{0} fichier(s).', rows.length));
@@ -233,6 +236,7 @@ export function createFiles(request, command) {
       printer: workshopState.selectedPrinter,
     };
     filePending = true;
+    $('files-state').dataset.visualState = 'loading';
     renderFiles();
     const stopLoading = beginListLoading($('file-rows'), $('files-loading'), () => {
       if (generation !== fileGeneration || !currentFileContext(context)) return false;
@@ -276,6 +280,7 @@ export function createFiles(request, command) {
         renderFiles();
         message(e.message, true);
         set('files-state', tr('Liste indisponible.'));
+        $('files-state').dataset.visualState = 'error';
       }
     } finally {
       stopLoading();

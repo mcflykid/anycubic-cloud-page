@@ -1,0 +1,116 @@
+
+
+
+
+
+
+
+
+
+
+
+
+/* Verrière sépare la navigation en panneaux translucides et aère les commandes. */
+:root[data-style="glasshouse"] {
+  --bg: light-dark(#e9eef8, #1b2030);
+  --surface: light-dark(#fcfbff, #272d42);
+  --text: light-dark(#242940, #f1efff);
+  --muted: light-dark(#575f7b, #b9c1da);
+  --line: light-dark(#c2cce2, #505b78);
+  --accent: light-dark(#564e9f, #c4baff);
+  --panel-radius: 24px;
+}
+
+[data-style="glasshouse"] body {
+  background-image:
+    radial-gradient(ellipse at 15% 8%, color-mix(in srgb, #718cd5 27%, transparent), transparent 39rem),
+    radial-gradient(ellipse at 88% 26%, color-mix(in srgb, #bd89ab 22%, transparent), transparent 37rem);
+}
+
+[data-style="glasshouse"] :is(.summary-grid > section, .atelier-nav-group, .login-card) {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: var(--panel-radius);
+  backdrop-filter: blur(14px);
+}
+
+[data-style="glasshouse"] #atelier-tabs .atelier-nav-group {
+  padding: 8px;
+}
+
+[data-style="glasshouse"] #atelier-tabs .atelier-nav-group > button {
+  border-radius: 15px;
+  transition: background-color var(--motion-fast, .18s), box-shadow var(--motion-fast, .18s);
+}
+
+[data-style="glasshouse"] .summary-grid > section {
+  padding: clamp(18px, 3vw, 32px);
+}
+
+[data-style="glasshouse"] .summary-grid button {
+  border-radius: 999px;
+}
+
+@media (min-width: 900px) {
+  [data-style="glasshouse"] .summary-grid:not([data-layout-custom]) {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 26px;
+  }
+
+  [data-style="glasshouse"] .summary-card-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-style="glasshouse"] #atelier-tabs .atelier-nav-group > button {
+    transition: none;
+  }
+}
+
+/* Les styles existants gardent leur hiérarchie dès le Résumé. */
+[data-style="apple"] .summary-grid > section {
+  border-radius: 26px;
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+
+
+[data-style="blueprint"] .summary-grid > section {
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+[data-style="blueprint"] .summary-card-header {
+  border-block-end: 1px dashed var(--accent);
+  padding-block-end: 8px;
+}
+
+[data-style="aurora"] .summary-grid > section {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), var(--surface) 65%);
+  border-radius: 24px;
+}
+
+
+[data-style="lab"] .summary-grid > section {
+  border-inline-start: 4px solid var(--accent);
+}
+
+@media (min-width: 961px) {
+
+  [data-style="aurora"] .summary-grid:not([data-layout-custom]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+
+
+
+  [data-style="lab"] .summary-grid:not([data-layout-custom]) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .92fr);
+    gap: 18px;
+  }
+}

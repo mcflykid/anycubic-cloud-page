@@ -1,0 +1,315 @@
+/* Navigation par usage : les groupes se répartissent selon leur contenu. */
+#atelier-tabs .atelier-nav-group {
+  display: grid;
+  grid-template-columns: repeat(var(--section-count), minmax(0, 1fr));
+  align-content: start;
+  gap: 4px 7px;
+  min-width: 0;
+}
+
+#atelier-tabs .atelier-nav-label {
+  grid-column: 1 / -1;
+  padding-inline: 5px;
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+#atelier-tabs .atelier-nav-group > button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text);
+  background: transparent;
+  font-size: .85rem;
+  line-height: 1.2;
+  text-align: start;
+  white-space: normal;
+}
+
+#atelier-tabs .atelier-nav-group > button > span {
+  min-width: 0;
+  overflow-wrap: normal;
+  white-space: normal;
+}
+
+#atelier-tabs .atelier-nav-group > button:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+#atelier-tabs .atelier-nav-group > button[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: inset 0 -2px var(--accent);
+}
+
+#atelier-tabs .atelier-nav-group > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (min-width: 761px) {
+  [data-style] #atelier-tabs:has(> .atelier-nav-group) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 3.8fr) minmax(0, 2.05fr) minmax(0, 1.1fr);
+    align-items: start;
+    column-gap: clamp(7px, 1vw, 16px);
+    padding-block: 9px;
+    overflow: visible;
+  }
+
+  [data-style] #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    padding-inline-start: clamp(7px, 1vw, 16px);
+    border-inline-start: 1px solid var(--line);
+  }
+
+  [data-style="apple"] #atelier-tabs .atelier-nav-group > button {
+    position: relative;
+    z-index: 1;
+  }
+
+  [data-style="apple"] #atelier-tabs .atelier-nav-group > button[aria-current="page"] {
+    background: transparent;
+  }
+
+  [data-style] .atelier-title {
+    gap: 12px;
+    padding-block: 14px;
+  }
+
+  [data-style] .atelier-title h1 {
+    font-size: clamp(1.65rem, 3vw, 2.35rem);
+    line-height: 1.12;
+  }
+
+  [data-style] .atelier-title p {
+    margin: 4px 0 0;
+  }
+}
+
+/* Les libellés disposent de toute la largeur de leur tuile. */
+@media (min-width: 1191px) {
+  [data-style]:not([data-style="lab"], [data-style="blueprint"], [data-style="aurora"]) #atelier-tabs .atelier-nav-group > button {
+    flex-direction: column;
+    justify-content: center;
+    min-height: 54px;
+    text-align: center;
+  }
+}
+
+/* Entre tablette et portable, les styles horizontaux gardent des intitulés entiers. */
+@media (min-width: 761px) and (max-width: 1190px) {
+  [data-style] #atelier-tabs:has(> .atelier-nav-group) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+
+  [data-style] #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  #atelier-tabs .atelier-nav-group:has([data-tab="files"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Les rails conservent leur présentation propre et évitent d’imposer une rangée de petits boutons. */
+@media (min-width: 761px) {
+  [data-style="lab"] #atelier-tabs:has(> .atelier-nav-group) {
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 0;
+  }
+}
+
+@media (min-width: 961px) {
+  :is([data-style="blueprint"], [data-style="aurora"]) #atelier-tabs:has(> .atelier-nav-group) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-style="blueprint"] .blueprint-sidebar-collapsed #atelier-tabs .atelier-nav-label,
+  [data-style="aurora"] #atelier-tabs .atelier-nav-label {
+    display: none;
+  }
+
+  [data-style="aurora"] #atelier-tabs .atelier-nav-group > button,
+  [data-style="blueprint"] .blueprint-sidebar-collapsed #atelier-tabs .atelier-nav-group > button {
+    justify-content: center;
+  }
+
+  [data-style="blueprint"] .blueprint-sidebar-collapsed #atelier-tabs .atelier-nav-group > button > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 761px) {
+  [data-style="lab"] #atelier-tabs .atelier-nav-group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-style="lab"] #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    padding: 7px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (min-width: 961px) {
+  :is([data-style="blueprint"], [data-style="aurora"]) #atelier-tabs .atelier-nav-group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :is([data-style="blueprint"], [data-style="aurora"]) #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    padding: 7px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Le menu téléphone conserve l’ordre par usage, le focus et la vague des tuiles. */
+@media (max-width: 760px) {
+  [data-style] #atelier-tabs[data-open="true"]:has(> .atelier-nav-group) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    max-height: min(34rem, 65dvh);
+    overflow-y: auto;
+  }
+
+  #atelier-tabs .atelier-nav-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #atelier-tabs .atelier-nav-group > button {
+    border-color: var(--line);
+    background: var(--surface);
+    font-size: .82rem;
+  }
+
+  #atelier-tabs[data-phase="opening"] .atelier-nav-group > button {
+    animation: tile-enter .28s both;
+    animation-delay: calc(var(--tile-index, 0) * 42ms);
+  }
+
+  #atelier-tabs[data-phase="closing"] .atelier-nav-group > button {
+    animation: tile-exit .24s both;
+    animation-delay: calc(var(--tile-exit-index, 0) * 24ms);
+  }
+
+  #atelier-tabs .atelier-active-indicator {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #atelier-tabs .atelier-nav-group > button {
+    animation: none !important;
+  }
+}
+
+/* Résumé : le fichier, les mesures et l’accès à chaque appareil sont regroupés. */
+.summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.summary-grid > section {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.summary-card-header, .summary-current {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.summary-card-header {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.summary-card-header h3, .summary-current h4, .summary-current p, .summary-box h4 {
+  margin: 0;
+}
+
+.summary-current > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.summary-current img {
+  width: clamp(68px, 9vw, 112px);
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border-radius: 9px;
+}
+
+.summary-grid label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.summary-grid progress {
+  width: 100%;
+}
+
+.summary-grid button {
+  justify-self: start;
+  min-height: 44px;
+}
+
+.summary-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 0;
+}
+
+.summary-values dt {
+  color: var(--muted);
+  font-size: .83rem;
+}
+
+.summary-values dd {
+  margin: 3px 0 0;
+  font-weight: 650;
+}
+
+.summary-box + .summary-box {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.summary-box h4 {
+  margin-bottom: 8px;
+}
+
+#settings-container {
+  margin-block: 18px;
+}
+
+@media (max-width: 620px) {
+  .summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

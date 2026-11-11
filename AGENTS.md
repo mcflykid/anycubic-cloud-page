@@ -28,5 +28,14 @@ Chaque livraison terminée et testée reçoit un numéro inédit. Une livraison 
 - Ne publier ni identifiant privé, ni domaine d'exploitation, ni adresse privée, ni chemin personnel. Les documents et données propres à une installation restent hors du dépôt public et de l'image.
 - Ne jamais afficher de secret, de jeton, de mot de passe ou le contenu d'un fichier d'environnement.
 - Contrôler les fichiers, les images et leurs métadonnées avant publication. Les valeurs privées à rechercher sont fournies localement ou par un secret CI ; elles ne figurent jamais dans le code ni dans les sorties de tests.
-- Les tests d'interface utilisent les données fictives de `app/demo.py`. Ne jamais envoyer de commande physique à une imprimante pour tester ce projet.
+- Tous les tests automatisés, y compris en local et en CI, utilisent des doublures ou les données fictives de `app/demo.py`. Ils n’accèdent à aucun compte Cloud ou appareil réel.
 - Conserver les licences et avis des composants tiers ; documenter toute reprise de code.
+
+
+## Essais manuels sur une imprimante réelle
+
+- Réserver ces essais à l’installation et à l’appareil explicitement autorisés par leur propriétaire. Une autorisation locale ne s’applique pas aux autres appareils ni à la CI.
+- Avant un mouvement, une chauffe ou un lancement, contrôler à la caméra que le plateau est dégagé et que l’état de la machine permet l’essai. En cas de doute, attendre la décision du propriétaire. Préserver toute impression déjà en cours.
+- Exécuter une commande à la fois. Un essai de lancement, pause, reprise ou annulation s’arrête dès l’observation attendue. Une impression complète, une mise à jour de firmware, une réinitialisation d’usine et la suppression de données antérieures à l’essai sont exclues.
+- Après un résultat incertain, vérifier l’état réel avant toute autre commande. Remettre la machine dans l’état constaté au départ, notamment chauffage, séchage, éclairage et caméra.
+- Consigner dans la pull request les commandes de l’essai, les observations et l’état final. Les journaux du conteneur peuvent être lus avec l’autorisation du propriétaire. Expurger les secrets, références et données de l’installation avant de publier une observation.
