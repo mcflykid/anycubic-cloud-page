@@ -55,15 +55,22 @@ test('les repères rejoignent les lignes sans défilement à 1 440 px', async ({
   await expect(panel.locator('.current-control-row')).toHaveCount(7);
   const drawing = panel.locator('#controls-connectors');
   await expect(drawing.locator('polyline')).toHaveCount(5);
-  const errors = await drawing.evaluate(svg => Array.from(svg.querySelectorAll('polyline')).map(line => {
-    const row = svg.parentElement.querySelector(`.current-control-row[data-organ="${line.dataset.organ}"] label`);
-    const box = row.getBoundingClientRect();
-    const tip = line.points.getItem(line.points.numberOfItems - 1);
-    return Math.abs(box.y + box.height / 2 - (svg.getBoundingClientRect().y + tip.y));
-  }));
-  expect(Math.max(...errors)).toBeLessThanOrEqual(1);
-  const overflow = await panel.evaluate(el => Math.max(el.scrollWidth-el.clientWidth,el.scrollHeight-el.clientHeight));
-  expect(overflow).toBeLessThanOrEqual(1);
+  for (const style of ['standard', 'aurora', 'lab']) {
+    for (const theme of ['light', 'dark']) {
+      await page.locator('html').evaluate((html, appearance) => Object.assign(html.dataset, appearance), {style, theme});
+      await expect.poll(() => drawing.evaluate(svg => {
+        const errors = Array.from(svg.querySelectorAll('polyline')).map(line => {
+          const row = svg.parentElement.querySelector(`.current-control-row[data-organ="${line.dataset.organ}"] label`);
+          const box = row.getBoundingClientRect();
+          const tip = line.points.getItem(line.points.numberOfItems - 1);
+          return Math.abs(box.y + box.height / 2 - (svg.getBoundingClientRect().y + tip.y));
+        });
+        return errors.length ? Math.max(...errors) : Infinity;
+      })).toBeLessThanOrEqual(1);
+      const overflow = await panel.evaluate(el => Math.max(el.scrollWidth-el.clientWidth,el.scrollHeight-el.clientHeight));
+      expect(overflow).toBeLessThanOrEqual(1);
+    }
+  }
   await page.setViewportSize({width:390,height:760});
   await expect(drawing).toBeHidden();
   expect(await panel.evaluate(el => el.scrollWidth-el.clientWidth)).toBeLessThanOrEqual(1);
@@ -73,12 +80,17 @@ test('la barre horizontale centre ses groupes sur ordinateur', async ({page}) =>
   await page.setViewportSize({width:1920,height:1080});
   await login(page);
   const bar = page.locator('#atelier-tabs');
-  const offset = await bar.evaluate(nav => {
-    const bounds = nav.getBoundingClientRect();
-    const groups = nav.querySelectorAll('.atelier-nav-group');
-    return Math.abs((groups[0].getBoundingClientRect().left + groups[groups.length - 1].getBoundingClientRect().right) / 2 - (bounds.left + bounds.width / 2));
-  });
-  expect(offset).toBeLessThanOrEqual(1);
+  for (const style of ['standard', 'aurora']) {
+    await page.locator('html').evaluate((html, value) => { html.dataset.style = value; }, style);
+    const offset = await bar.evaluate(nav => {
+      const bounds = nav.getBoundingClientRect();
+      const groups = nav.querySelectorAll('.atelier-nav-group');
+      const first = groups[0].getBoundingClientRect().left;
+      const last = groups[groups.length - 1].getBoundingClientRect().right;
+      return Math.abs((first + last) / 2 - (bounds.left + bounds.width / 2));
+    });
+    expect(offset).toBeLessThanOrEqual(1);
+  }
 });
 
 test('la vue garde ses lignes et propose les deux actions si l’éclairage est inconnu', async ({page}) => {
