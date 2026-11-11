@@ -96,6 +96,7 @@ test('les axes conservent leurs directions et les pictogrammes restent sur les l
  await expect(page.locator('#temperatures dt svg').first()).toHaveAttribute('aria-hidden','true');
  await expect(page.locator('#temperatures dd svg,#details dd svg')).toHaveCount(0);
  await openSection(page,'camera');
+ await expect(page.getByRole('button',{name:'Lire les coordonnées',exact:true})).toHaveCount(0);
  const steps=page.getByRole('radiogroup',{name:'Pas',exact:true});
  await expect(steps.getByRole('radio',{name:'1 mm',exact:true})).toBeChecked();
  await steps.getByRole('radio',{name:'15 mm',exact:true}).check();
@@ -383,10 +384,15 @@ test('les statistiques distinguent les boîtiers, le zéro, les lacunes et les c
   const secondBox=await page.locator('#ace-selector option').nth(1).getAttribute('value');
   await page.locator('#ace-selector').selectOption(secondBox);
   await openSection(page,'statistics');
-  await expect(page.locator('#chart-ace-name')).toHaveText('ACE 2 Pro');
+  await expect(page.locator('#statistics-printer-name')).toHaveText('Kobra S1 · Démonstration');
+  await expect(page.locator('#statistics-ace-name')).toHaveText('ACE 2 Pro');
+  await expect(page.locator('#statistics-ace .ace-temperature h4')).toHaveText('Température');
   await expect(page.locator('#chart-humidity strong').first()).toContainText('0 %');
-  await expect(page.locator('#chart-humidity h4')).toHaveText(['ACE 2 Pro · Humidité','ACE Mini · Humidité']);
-  await expect(page.locator('#chart-filament h4')).toHaveText(['ACE 2 Pro · Emplacement 1','ACE Mini · Emplacement 1']);
+  await expect(page.locator('#chart-humidity h4')).toHaveText('Humidité');
+  await expect(page.locator('#statistics-other-ace .ace-chart-group-name')).toHaveText('ACE Mini');
+  await expect(page.locator('#statistics-other-ace .temperature-card h4')).toHaveText('Humidité');
+  await expect(page.locator('#chart-filament .ace-chart-group-name')).toHaveText(['ACE 2 Pro','ACE Mini']);
+  await expect(page.locator('#chart-filament .temperature-card h4')).toHaveText(['Emplacement 1','Emplacement 1']);
   const [aceTemperature, aceHumidity] = await Promise.all([
     page.locator('#chart-ace').boundingBox(),
     page.locator('#chart-humidity').boundingBox(),

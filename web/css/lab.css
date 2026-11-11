@@ -24,6 +24,9 @@ html[data-style="lab"] { --accent:light-dark(#136f69,#6edfd0); --bg:light-dark(#
 }
 [data-style="lab"] #job-preview { max-height:220px; object-fit:contain; align-self:center; }
 [data-style="lab"] #tab-overview .printer-lower-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+/* Le séchage garde une marge interne même quand le Laboratoire encadre le formulaire. */
+[data-style="lab"] #dry-dialog #dry-form { padding:clamp(12px,3vw,18px); }
+[data-style="lab"] #dry-dialog #dry-form>#auto-feed-save { margin-inline:0; }
 [data-style="lab"] #tab-ace .ace-overview { border-radius:22px; background:var(--surface); border:1px solid var(--line); }
 [data-style="lab"] #tab-ace .spool { transition:transform .2s; }
 [data-style="lab"] #tab-ace .spool:focus-within { transform:translateY(-3px); }

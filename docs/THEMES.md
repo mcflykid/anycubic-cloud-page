@@ -4,7 +4,7 @@ Suivi : #162.
 
 Les sept styles partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style. Le choix est mémorisé dans ce navigateur; une ancienne préférence pour un style retiré revient à **Par défaut**.
 
-Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste ou ouvrir **Explorer les 7 styles**. La galerie décrit la disposition et les interactions de chaque proposition. Les flèches et les touches Début/Fin parcourent la galerie au clavier; Entrée applique le choix.
+Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste. La description sous la liste présente le style sélectionné. Les transitions signalent l’ouverture des sections et des fenêtres. Le Laboratoire anime aussi l’arrivée des cartes de statistiques en cascade. Dans le monitoring, la fenêtre de détail part de la carte ouverte. L’atelier s’inspire du détail animé d’[Instrumental](https://moxen.cl/recursos/instrumental/) et du réagencement des cartes de [Parrilla](https://moxen.cl/recursos/parrilla/).
 
 | Style | Disposition | Interaction caractéristique |
 |---|---|---|

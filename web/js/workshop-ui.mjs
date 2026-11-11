@@ -1,7 +1,7 @@
 const preference = 'cloud-page-language';
 const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
-const catalogueURL = new URL('./workshop-translations.json?v=2a7853e68abf', import.meta.url);
-const catalogueIntegrity = 'sha256-KnhT5oq/PLM8CRjBSJ5SKLogov/91YikzjRTE7+UOU4=';
+const catalogueURL = new URL('./workshop-translations.json?v=e73db4ac2dff', import.meta.url);
+const catalogueIntegrity = 'sha256-5z20rC3/i21kzNOm8wUyzifLtWBrbC/v43jFzzIOoLo=';
 let language = 'fr',
   catalogue = {};
 const serverFormats = [
@@ -130,13 +130,13 @@ function initializeTheme() {
 initializeTheme();
 
 const styleCatalogue = [
-  ['standard', 'Par défaut', 'Repères clairs et disposition directe pour le suivi quotidien.'],
-  ['apple', 'Apple Design', 'Navigation flottante, verre doux et curseur actif qui accompagne le choix.'],
-  ['detailed', 'Détaillé', 'Mesures groupées, grille compacte et séparations nettes.'],
-  ['blueprint', 'Blueprint', 'Plan quadrillé, index de sections et panneau latéral repliable.'],
-  ['aurora', 'Aurore', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
-  ['ocean', 'Océan', 'Navigation fluide, repère actif glissant et cartes aux lignes souples.'],
-  ['lab', 'Laboratoire', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
+  ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
+  ['apple', 'Navigation flottante, verre doux et curseur actif qui accompagne le choix.'],
+  ['detailed', 'Mesures groupées, grille compacte et séparations nettes.'],
+  ['blueprint', 'Plan quadrillé, index de sections et panneau latéral repliable.'],
+  ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
+  ['ocean', 'Navigation fluide, repère actif glissant et cartes aux lignes souples.'],
+  ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */
@@ -153,42 +153,7 @@ function initializeStyle() {
     } catch {}
     return;
   }
-  const gallery = document.getElementById('theme-gallery');
   const description = document.getElementById('theme-description');
-  const buttons = [];
-  if (gallery) {
-    for (const [id, label, detail] of styleCatalogue) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.themeChoice = id;
-      const preview = document.createElement('span');
-      preview.className = 'theme-preview';
-      preview.setAttribute('aria-hidden', 'true');
-      for (let index = 0; index < 3; index++) {
-        const swatch = document.createElement('span');
-        swatch.className = 'theme-swatch';
-        preview.append(swatch);
-      }
-      const title = document.createElement('strong');
-      title.textContent = label;
-      const caption = document.createElement('small');
-      caption.textContent = detail;
-      button.append(preview, title, caption);
-      button.onclick = () => {choice.value = id; choice.dispatchEvent(new Event('change', {bubbles: true}));};
-      buttons.push(button);
-      gallery.append(button);
-    }
-    gallery.addEventListener('keydown', event => {
-      const index = buttons.indexOf(event.target);
-      if (index < 0) return;
-      let next;
-      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % buttons.length;
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index + buttons.length - 1) % buttons.length;
-      if (event.key === 'Home') next = 0;
-      if (event.key === 'End') next = buttons.length - 1;
-      if (next !== undefined) {event.preventDefault(); buttons[next].focus();}
-    });
-  }
   try {
     const saved = localStorage.getItem(storageKey);
     if (saved === 'minimal' || !styleCatalogue.some(([id]) => id === saved)) {
@@ -201,12 +166,7 @@ function initializeStyle() {
   const apply = () => {
     document.documentElement.dataset.style = choice.value;
     const selected = styleCatalogue.find(([id]) => id === choice.value);
-    if (description) description.textContent = tr(selected?.[2] || '');
-    for (const button of buttons) {
-      const active = button.dataset.themeChoice === choice.value;
-      button.setAttribute('aria-pressed', String(active));
-      button.tabIndex = active ? 0 : -1;
-    }
+    if (description) description.textContent = tr(selected?.[1] || '');
   };
   apply();
   choice.addEventListener('change', () => {

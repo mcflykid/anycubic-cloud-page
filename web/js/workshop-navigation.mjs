@@ -1,4 +1,4 @@
-import { formatText, tr } from './workshop-ui.mjs?v=6e32f535c683';
+import { formatText, tr } from './workshop-ui.mjs?v=00bb8ecf6593';
 
 /** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
 export function initializeWorkshopNavigation() {
@@ -235,6 +235,8 @@ export function initializeWorkshopNavigation() {
     // L’animation FLIP conserve les positions visuelles; les mouvements sont annulés en mode réduit.
     const flip = action => {
       const before = new Map(list().map(card => [card, card.getBoundingClientRect()]));
+      // Repartir de la position visible si un déplacement est encore en cours.
+      for (const card of list()) card.getAnimations().forEach(animation => animation.cancel());
       action();
       if (!reducedMotion.matches) {
         for (const card of list()) {
@@ -242,7 +244,6 @@ export function initializeWorkshopNavigation() {
           if (!old) continue;
           const dx = old.left - next.left, dy = old.top - next.top;
           if (dx || dy) {
-            card.getAnimations().forEach(animation => animation.cancel());
             card.animate([{transform: `translate(${dx}px,${dy}px)`}, {transform: 'translate(0,0)'}], {
               duration: 270, easing: 'cubic-bezier(.2,.78,.25,1)',
             });
@@ -316,7 +317,7 @@ export function initializeWorkshopNavigation() {
     const parent = navigation.getBoundingClientRect(), rect = active.getBoundingClientRect();
     indicator.style.width = `${rect.width}px`;
     indicator.style.height = `${rect.height}px`;
-    indicator.style.transform = `translate(${rect.left - parent.left}px,${rect.top - parent.top}px)`;
+    indicator.style.transform = `translate(${rect.left - parent.left - navigation.clientLeft}px,${rect.top - parent.top - navigation.clientTop}px)`;
   }
   updateCurrentLabel();
   const resizeObserver = new ResizeObserver(updateIndicator);

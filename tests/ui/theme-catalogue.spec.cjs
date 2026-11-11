@@ -21,16 +21,14 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les sept styles se choisissent dans la galerie, se mémorisent et gardent le mode sombre',async({page})=>{
+test('les sept styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
   await login(page);await openSettings(page);
   await expect(page.locator('#interface-style option')).toHaveCount(7);
   await page.locator('#interface-theme').selectOption('dark');
-  await page.locator('.theme-browser summary').click();
-  await expect(page.locator('#theme-gallery button')).toHaveCount(7);
+  await expect(page.locator('.theme-browser')).toHaveCount(0);
   for(const style of themes){
-    await page.locator(`[data-theme-choice=${style}]`).click();
+    await page.locator('#interface-style').selectOption(style);
     await expect(page.locator('html')).toHaveAttribute('data-style',style);
-    await expect(page.locator(`[data-theme-choice=${style}]`)).toHaveAttribute('aria-pressed','true');
     await expect(page.locator('#interface-theme')).toHaveValue('dark');
     await expect(page.locator('#theme-description')).not.toBeEmpty();
   }

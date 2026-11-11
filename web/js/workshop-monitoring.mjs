@@ -1,4 +1,4 @@
-import { $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=6e32f535c683';
+import { $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=00bb8ecf6593';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** Décrit les unités et la provenance des neuf séries rendues dans le panneau local. */
@@ -226,7 +226,7 @@ function ensureCard(host, key, onOpen) {
   const graph = node('span', null, 'monitor-card-graph');
   button.append(graph);
   button.setAttribute('aria-haspopup', 'dialog');
-  button.onclick = () => onOpen(key);
+  button.onclick = () => onOpen(key, button);
   host.append(button);
   return button;
 }
@@ -293,11 +293,18 @@ export function createMonitoring(request) {
   /** Renvoie les données du détail seulement après un choix et un relevé. */
   function detailData() { return selected && lastData; }
 
-  /** Ouvre la métrique sélectionnée depuis un bouton de carte au clavier ou à la souris. */
-  function selectCard(key) {
+  /** La fenêtre s’ouvre depuis la carte activée et garde le focus natif du dialogue. */
+  function selectCard(key, button) {
     selected = key;
     updateDetail();
-    if (!dialog.open) dialog.showModal();
+    if (dialog.open) return;
+    const origin = button.getBoundingClientRect();
+    dialog.removeAttribute('data-card-origin');
+    dialog.showModal();
+    const target = dialog.getBoundingClientRect();
+    dialog.style.setProperty('--monitor-origin-x', `${origin.x + origin.width / 2 - target.x - target.width / 2}px`);
+    dialog.style.setProperty('--monitor-origin-y', `${origin.y + origin.height / 2 - target.y - target.height / 2}px`);
+    dialog.dataset.cardOrigin = '';
   }
 
   /** Rafraîchit le détail, ses états accessibles et un graphique basé sur l’historique réel. */

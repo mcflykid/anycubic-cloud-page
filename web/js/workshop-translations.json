@@ -3331,18 +3331,6 @@
     "Monochrome",
     "Monocromo"
   ],
-  "Explorer les 20 styles": [
-    "Explore the 20 styles",
-    "Explorar los 20 estilos"
-  ],
-  "Comparez les palettes, les cartes et les animations. Votre mode clair ou sombre est conservé.": [
-    "Compare palettes, cards and animations. Your light or dark mode is preserved.",
-    "Compare paletas, tarjetas y animaciones. Se conserva el modo claro u oscuro."
-  ],
-  "Choisir un style visuel": [
-    "Choose a visual style",
-    "Elegir un estilo visual"
-  ],
   "Une présentation sobre et équilibrée pour le suivi quotidien.": [
     "A calm, balanced layout for everyday monitoring.",
     "Una presentación sobria y equilibrada para el seguimiento diario."
@@ -3551,26 +3539,6 @@
     "Sources: Cloud and MQTT",
     "Fuentes: Cloud y MQTT"
   ],
-  "Lire les coordonnées": [
-    "Read coordinates",
-    "Leer coordenadas"
-  ],
-  "Coordonnées non consultées": [
-    "Coordinates not queried",
-    "Coordenadas sin consultar"
-  ],
-  "Lecture des coordonnées…": [
-    "Reading coordinates…",
-    "Leyendo coordenadas…"
-  ],
-  "X : {0} mm · Y : {1} mm · Z : {2} mm": [
-    "X: {0} mm · Y: {1} mm · Z: {2} mm",
-    "X: {0} mm · Y: {1} mm · Z: {2} mm"
-  ],
-  "L’imprimante ne fournit pas de position complète.": [
-    "The printer did not provide a complete position.",
-    "La impresora no proporcionó una posición completa."
-  ],
   "Réglages au repos": [
     "Idle controls",
     "Ajustes en reposo"
@@ -3738,10 +3706,6 @@
   "Suspendre les mesures": [
     "Pause measurements",
     "Pausar las mediciones"
-  ],
-  "Explorer les 6 styles": [
-    "Explore the 6 styles",
-    "Explorar los 6 estilos"
   ],
   "Requêtes par seconde": [
     "Requests per second",
@@ -3971,10 +3935,6 @@
     "Configure",
     "Configurar"
   ],
-  "Explorer les 7 styles": [
-    "Explore the 7 styles",
-    "Explorar los 7 estilos"
-  ],
   "Ce fichier peut être stocké dans le Cloud. Les options d’impression sont disponibles pour les fichiers .gcode.": [
     "This file can be stored in the Cloud. Printing options are available for .gcode files.",
     "Este archivo puede almacenarse en el Cloud. Las opciones de impresión están disponibles para archivos .gcode."
@@ -4002,10 +3962,6 @@
   "Navigation fluide, repère actif glissant et cartes aux lignes souples.": [
     "Fluid navigation, a sliding active marker and softly shaped cards.",
     "Navegación fluida, indicador activo deslizante y tarjetas de líneas suaves."
-  ],
-  "La lecture des coordonnées a été interrompue. Relancez-la explicitement si nécessaire.": [
-    "The coordinate query was interrupted. Start a new query explicitly if needed.",
-    "Se interrumpió la consulta de coordenadas. Inicie otra consulta explícitamente si es necesario."
   ],
   "Vérifiez le fichier réellement sélectionné et sa provenance : Cloud, mémoire de l’imprimante ou clé USB. Un modèle brut doit être tranché avant d’être utilisé comme fichier d’impression.": [
     "Check the selected file and its source: cloud, printer storage or USB drive. A raw model must be sliced before it can be used as a print file.",

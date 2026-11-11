@@ -67,13 +67,50 @@ test('la vague de tuiles suit la préférence de mouvement réduit',async({page}
   await expect(toggle).toBeFocused();
 });
 
+test('les transitions suivent le style et la préférence de mouvement',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('cloud-page-style','lab'));
+  await login(page);
+  await openSection(page,'statistics');
+  const panel=page.locator('#tab-statistics');
+  await expect(panel).toHaveCSS('animation-name','section-fade');
+  await expect(panel.locator('.statistics-grid > section').nth(1)).toHaveCSS('animation-delay','0.045s');
+  await openSection(page,'overview');
+  await page.locator('#controls-open').click();
+  const dialog=page.locator('#controls-dialog');
+  await expect(dialog).toHaveCSS('animation-name','dialog-pop');
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await expect(dialog).toHaveCSS('animation-name','none');
+});
+
+for (const theme of ['apple','ocean']) {
+  test(`${theme} garde le repère de sélection sur une rangée de navigation`,async({page})=>{
+    await page.setViewportSize({width:1249,height:800});
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.addInitScript(value=>localStorage.setItem('cloud-page-style',value),theme);
+    await login(page);
+    await openSection(page,'settings');
+    const tabs=page.locator('#atelier-tabs');
+    const rows=await tabs.locator('[data-tab]').evaluateAll(buttons=>buttons.map(button=>Math.round(button.getBoundingClientRect().top)));
+    expect(new Set(rows).size).toBe(1);
+    const active=tabs.locator('[aria-current="page"]'), indicator=tabs.locator('.atelier-active-indicator');
+    await expect.poll(async()=>{
+      const [button,marker]=await Promise.all([active.boundingBox(),indicator.boundingBox()]);
+      return Math.abs(button.x-marker.x)+Math.abs(button.y-marker.y);
+    }).toBeLessThan(3);
+  });
+}
+
 test('Blueprint replie son panneau sans perdre les noms accessibles',async({page})=>{
   await login(page);
   await openSettings(page);
   await page.locator('#interface-style').selectOption('blueprint');
   const toggle=page.getByRole('button',{name:'Replier le plan'});
   await expect(toggle).toBeVisible();
-  await expect(page.locator('#atelier-tabs').getByRole('button',{name:'Fichiers'})).toBeVisible();
+  const files=page.locator('#atelier-tabs').getByRole('button',{name:'Fichiers'});
+  await expect(files).toBeVisible();
+  const [icon,label]=await Promise.all([files.locator('svg').boundingBox(),files.locator('span').boundingBox()]);
+  expect(label.x).toBeGreaterThan(icon.x+icon.width);
+  expect(Math.abs(label.y+label.height/2-icon.y-icon.height/2)).toBeLessThan(3);
   await toggle.click();
   await expect(page.locator('.printer-shell')).toHaveClass(/blueprint-sidebar-collapsed/);
   await expect(page.getByRole('button',{name:'Déplier le plan'})).toHaveAttribute('aria-expanded','false');

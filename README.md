@@ -179,4 +179,4 @@ La [supervision locale](docs/MONITORING.md) expose neuf cartes détaillables dan
 
 L’[étude de Kobra Mesh Lab et HomeLab Monitor](docs/RESEARCH-IDEAS.md) distingue les idées réutilisables des fonctions qui demandent des données ou des protocoles supplémentaires.
 
-Les commandes courantes de la Kobra S1 proposent aussi des réglages manuels au repos lorsque les limites constructeur sont disponibles. La lecture des coordonnées est une consultation explicite, sans déplacement. Voir [les garanties et limites de ces contrôles](docs/IDLE-AXES.md).
+Les commandes courantes de la Kobra S1 proposent aussi des réglages manuels au repos lorsque les limites constructeur sont disponibles. Voir [les garanties et limites de ces contrôles](docs/IDLE-AXES.md).

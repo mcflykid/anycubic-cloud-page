@@ -28,6 +28,7 @@ test('supervision affiche neuf métriques locales et actualise les cartes sans p
   await login(page);
   await page.locator('[data-tab="fleet"]').click();
   const cards=page.locator('#monitor-grid [data-monitor-key]');
+  await expect(page.locator('#monitor-window')).toHaveValue('120');
   await expect(cards).toHaveCount(9);
   await expect(page.locator('#monitor-grid')).toContainText('Requêtes par seconde');
   await expect(page.locator('#monitor-grid')).toContainText('Mémoire locale');
