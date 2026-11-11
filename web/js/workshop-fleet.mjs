@@ -1,4 +1,4 @@
-import { $, node, tr, formatText, date } from './workshop-ui.mjs?v=6e2c4d34ac3d';
+import { $, node, tr, formatText, date } from './workshop-ui.mjs?v=fea56098b5bb';
 
 /** La vue n’active aucune machine et ne permet aucune commande ni sélection implicite. */
 export function createFleet(request) {

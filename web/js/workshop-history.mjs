@@ -11,13 +11,14 @@ import {
   node,
   serverText,
   set,
+  signalChange,
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=6e2c4d34ac3d';
-import { workshopState } from './workshop-state.mjs?v=7eedcabd6732';
-import { slots, filamentAdvice } from './workshop-commands.mjs?v=df92888cf9c3';
-import { definition } from './workshop-overview.mjs?v=1b83b7ff98cf';
+} from './workshop-ui.mjs?v=fea56098b5bb';
+import { workshopState } from './workshop-state.mjs?v=ca4998e6830f';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=0e6fba8b1de0';
+import { definition } from './workshop-overview.mjs?v=9f47ca57e5ba';
 import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs?v=b7032b1dcfc1';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
@@ -71,12 +72,15 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
   function updateNoticeCount(count) {
+    const previous = noticeUnread;
     noticeUnread = count == null
       ? noticeRows.filter((item) => item.unread).length
       : Math.max(0, Number(count) || 0);
     const displayed = fmt(noticeUnread);
     const plural = noticeUnread > 1 ? 's' : '';
-    $('notifications-dot').hidden = !noticeUnread;
+    const badge = $('notifications-dot');
+    badge.hidden = !noticeUnread;
+    if (noticeUnread > previous) signalChange(badge);
     $('notifications-filter-dot').hidden = !noticeUnread;
     set('notifications-title', formatText('Messages ({0})', displayed));
     $('notifications-toggle').setAttribute(

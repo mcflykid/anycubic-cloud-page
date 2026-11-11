@@ -22,6 +22,9 @@
 /* Les entrées se déclenchent à l’ouverture d’un panneau ou d’une fenêtre.
    Les relevés et rafraîchissements ne déplacent pas la surface de travail. */
 :root[data-style] {
+  --motion-fast: 180ms;
+  --motion-panel: 240ms;
+  --motion-ease: cubic-bezier(.18,.72,.28,1);
   --section-entry: section-fade;
   --section-entry-duration: 220ms;
   --heading-entry: heading-rise;
@@ -62,16 +65,16 @@
   }
   #atelier > .tab-panel:not([hidden]) > :is(h2,.section-title,.camera-heading),
   #atelier > .tab-panel:not([hidden]) > .temperature-section > .section-title {
-    animation: var(--heading-entry) var(--section-entry-duration) cubic-bezier(.18,.72,.28,1);
+    animation: var(--heading-entry) var(--section-entry-duration) var(--motion-ease);
   }
   dialog[open]:not(#monitor-detail) {
-    animation: var(--dialog-entry) 240ms cubic-bezier(.18,.72,.28,1);
+    animation: var(--dialog-entry) var(--motion-panel) var(--motion-ease);
   }
   #monitor-detail[open][data-card-origin] {
     animation: monitor-expand 420ms cubic-bezier(.18,.76,.24,1);
   }
   dialog[open]::backdrop {
-    animation: backdrop-fade 240ms ease-out;
+    animation: backdrop-fade var(--motion-panel) ease-out;
   }
   [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section {
     animation: heading-deal 320ms ease-out backwards;
@@ -120,3 +123,15 @@
 @media (prefers-reduced-motion:no-preference) {
   .list-loading:not([hidden]) { animation: section-fade 220ms ease-out; }
 }
+
+/* Le texte affiche tout de suite la mesure reçue. Seule sa présentation bouge. */
+@media (prefers-reduced-motion:no-preference) {
+  .monitor-card-value[data-motion-change="a"] { animation: measure-in-a var(--motion-fast) ease-out; }
+  .monitor-card-value[data-motion-change="b"] { animation: measure-in-b var(--motion-fast) ease-out; }
+  #notifications-dot[data-motion-change="a"] { animation: badge-in-a var(--motion-panel) var(--motion-ease); }
+  #notifications-dot[data-motion-change="b"] { animation: badge-in-b var(--motion-panel) var(--motion-ease); }
+}
+@keyframes measure-in-a { from { opacity:.65; translate:0 4px; } }
+@keyframes measure-in-b { from { opacity:.65; translate:0 4px; } }
+@keyframes badge-in-a { 45% { scale:1.5; } }
+@keyframes badge-in-b { 45% { scale:1.5; } }

@@ -181,6 +181,11 @@ await initializeLanguage();
 
 /** Fournit la locale réellement chargée pour les nombres, les dates et la recherche. */
 export const locale = locales[language];
+/** Réarme le mouvement sur un changement réel, même si le précédent est encore en cours. */
+export function signalChange(element) {
+  element.dataset.motionChange = element.dataset.motionChange === 'a' ? 'b' : 'a';
+}
+
 const pendingLists = new WeakMap();
 
 /** Diffère le squelette et réserve l’état occupé à la dernière lecture de la liste. */

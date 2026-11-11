@@ -24,7 +24,11 @@ function fixture(){
 
 test('supervision affiche neuf métriques locales et actualise les cartes sans perdre le focus',async({page})=>{
   let requests=0;
-  await page.route('**/imprimante-api/monitoring',route=>{requests++;return route.fulfill({json:fixture()});});
+  await page.route('**/imprimante-api/monitoring',route=>{
+    const data=fixture();
+    data.system.cpu_percent=requests++===0?22:23;
+    return route.fulfill({json:data});
+  });
   await login(page);
   await page.locator('[data-tab="fleet"]').click();
   const cards=page.locator('#monitor-grid [data-monitor-key]');
@@ -35,10 +39,14 @@ test('supervision affiche neuf métriques locales et actualise les cartes sans p
   await expect(page.locator('#monitor-grid')).toContainText('2 / 3');
   await expect(page.locator('#monitor-state')).toContainText('Données locales');
   const cpu=page.locator('#monitor-grid [data-monitor-key="cpu"]');
+  const value=cpu.locator('.monitor-card-value');
+  await expect(value).not.toHaveAttribute('data-motion-change');
   await cpu.focus();
   const before=requests;
   await page.waitForTimeout(5500);
   expect(requests).toBeGreaterThan(before);
+  await expect(value).toContainText('23');
+  await expect(value).toHaveAttribute('data-motion-change','a');
   await expect(cpu).toBeFocused();
 });
 

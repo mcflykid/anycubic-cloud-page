@@ -1,4 +1,4 @@
-import { $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=6e2c4d34ac3d';
+import { signalChange, $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=fea56098b5bb';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** Décrit les unités et la provenance des neuf séries rendues dans le panneau local. */
@@ -234,7 +234,13 @@ function ensureCard(host, key, onOpen) {
 /** Met à jour une carte et son graphique à partir des seules valeurs reçues. */
 function updateCard(button, key, data) {
   const value = SERIES[key].value(data);
-  button.querySelector('.monitor-card-value').textContent = displayValue(key, value);
+  const current = button.querySelector('.monitor-card-value');
+  const label = displayValue(key, value);
+  if (current.textContent !== label) {
+    const hasPreviousMeasure = current.textContent !== '—';
+    current.textContent = label;
+    if (hasPreviousMeasure && label !== '—') signalChange(current);
+  }
   const context = button.querySelector('.monitor-card-context');
   context.textContent = key === 'requests'
     ? formatText('{0} requêtes sur {1} s', fmt(data.http?.requests_window), fmt(Math.min(number(data.http?.window_seconds) ?? 0, number(data.system?.uptime_seconds) ?? 0)))
