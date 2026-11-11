@@ -96,6 +96,16 @@
   }
 }
 
+/* Les libellés disposent de toute la largeur de leur tuile. */
+@media (min-width: 1191px) {
+  [data-style]:not([data-style="lab"], [data-style="blueprint"], [data-style="aurora"]) #atelier-tabs .atelier-nav-group > button {
+    flex-direction: column;
+    justify-content: center;
+    min-height: 54px;
+    text-align: center;
+  }
+}
+
 /* Entre tablette et portable, les styles horizontaux gardent des intitulés entiers. */
 @media (min-width: 761px) and (max-width: 1190px) {
   [data-style] #atelier-tabs:has(> .atelier-nav-group) {
