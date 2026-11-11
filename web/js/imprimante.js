@@ -27,7 +27,7 @@ import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=9471f6
 initializeWorkshopNavigation();
 import { initializeInteractions } from './workshop-interactions.mjs?v=2e60d9c1b2ba';
 initializeInteractions();
-import { initializeTileLayout } from './workshop-layout.mjs?v=8c6a6718232d';
+import { initializeTileLayout } from './workshop-layout.mjs?v=47bbc20fa725';
 initializeTileLayout();
 import { renderSummary } from './workshop-summary.mjs?v=3fd4337d1467';
 export { previewJob } from './workshop-overview.mjs?v=2557f8992689';

@@ -21,6 +21,15 @@ test('la disposition se déplace, se redimensionne et se retrouve après actuali
   await page.mouse.move(to.x + to.width * .75, to.y + 60);
   await page.mouse.up();
   await expect(cards.first()).toHaveAttribute('data-layout-card', 'ace');
+  await resize.scrollIntoViewIfNeeded();
+  const grip = await resize.boundingBox();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x - 160, grip.y + grip.height / 2);
+  await page.mouse.up();
+  await expect(printer).toHaveAttribute('data-layout-span', '2');
+  await resize.press('Enter');
+  await expect(printer).toHaveAttribute('data-layout-span', '1');
   await resize.press('Enter');
   await expect(printer).toHaveAttribute('data-layout-span', '2');
   await openSection(page, 'ace');
