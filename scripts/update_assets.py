@@ -20,6 +20,7 @@ MODULES = (
     "workshop-ace.mjs",
     "workshop-selection.mjs",
     "workshop-files.mjs",
+    "workshop-error-catalogue.mjs",
     "workshop-history.mjs",
     "workshop-settings.mjs",
     "workshop-timelapses.mjs",

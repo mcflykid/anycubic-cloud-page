@@ -509,12 +509,17 @@ dialog{background:var(--surface);color:var(--text)}
 @media(prefers-reduced-motion:reduce){[data-style="apple"] body{background-attachment:scroll,scroll,scroll}[data-style="apple"] :is(.atelier-tabs button,.spool-actions button){transition:none;transform:none}}
 @supports not (backdrop-filter:blur(1px)){[data-style="apple"] :is(.atelier-tabs,.statistics-panel,.temperature-card,.slot,.form-panel,.camera-controls,.axis-card){background-color:var(--surface)}}
 
-/* Les liens d’erreur restent séparés du bouton qui ouvre la notification. */
+/* Le bouton d’aide reste séparé de celui qui ouvre la notification. */
 .notification-content{flex:1;min-width:0}
 .notification-content>.notification-open{width:100%}
 .notification-error{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;font-size:.78rem;line-height:1.45}
 .notification-error-title{font-size:.8rem;color:var(--text);overflow-wrap:anywhere}
-.notification-error-link{display:inline-flex;align-items:center;min-height:32px;color:var(--accent);font-weight:600;text-underline-offset:3px}
+.notification-error-link{display:inline-flex;align-items:center;min-height:44px;border:0;background:transparent;padding:4px 8px;margin:0;font:inherit;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+#notification-error-dialog{max-width:min(560px,calc(100vw - 24px));overflow-wrap:anywhere}
+#notification-error-dialog h3{margin:16px 0 6px;font-size:1rem}
+#notification-error-dialog li+li{margin-top:8px}
+#notification-error-source{display:inline-block;padding:10px 0}
+#notification-error-source[hidden]{display:none}
 .notification-error-link:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
 .notification-error-tooltip{position:absolute;z-index:40;right:0;top:calc(100% + 6px);width:max-content;max-width:min(320px,calc(100vw - 40px));padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);box-shadow:0 8px 24px #10243e24;font-size:.78rem;line-height:1.5;white-space:normal;visibility:hidden;opacity:0;pointer-events:none}
 .notification-error:hover .notification-error-tooltip,.notification-error-link:focus-visible+.notification-error-tooltip{visibility:visible;opacity:1}

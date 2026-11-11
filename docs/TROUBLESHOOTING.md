@@ -1,5 +1,7 @@
 # Dépannage
 
+Dans la cloche, sélectionnez un code d’erreur pour ouvrir sa fiche dans l’atelier. Le [relevé du wiki Kobra S1](ANYCUBIC-WIKI-S1.md) distingue les conseils constructeur des constats de l’application.
+
 ## Journaux du conteneur
 
 Chaque ligne de diagnostic inclut la version embarquée, en texte comme en JSON. Le [protocole de diagnostic](DIAGNOSTIC-PROTOCOL.md) relie hypothèses, journaux et observations.

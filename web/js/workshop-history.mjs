@@ -13,10 +13,11 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=0557e9df0fbf';
-import { workshopState } from './workshop-state.mjs?v=9561b0639f9d';
-import { slots, filamentAdvice } from './workshop-commands.mjs?v=953d5e4a1028';
-import { definition } from './workshop-overview.mjs?v=dda55eceeff1';
+} from './workshop-ui.mjs?v=6e32f535c683';
+import { workshopState } from './workshop-state.mjs?v=6f0c4b984abf';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=c3fdb64ac065';
+import { definition } from './workshop-overview.mjs?v=e74eab407465';
+import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs?v=b7032b1dcfc1';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
@@ -166,42 +167,32 @@ export function createHistory(request, command, selectedBox) {
         'notification-result ' + item.kind,
       ),
     );
-    if (item.error_title)
-      body.append(node('span', tr(item.error_title), 'notification-error-title'));
+    const code = String(item.reason_code || '');
+    const isError = /^[1-9]\d{0,9}$/.test(code) && code !== '200';
+    const sheet = isError && Object.hasOwn(notificationErrorCatalogue, code)
+      ? notificationErrorCatalogue[code]
+      : null;
+    if (sheet?.title || item.error_title)
+      body.append(node('span', tr(sheet?.title || item.error_title), 'notification-error-title'));
     if (item.reason)
       body.append(
         node('span', serverText(item.reason, 'Pas de diagnostic traduit pour cet événement.'), 'muted'),
       );
-    if (item.reason_code) {
-      let helpUrl = '';
-      try {
-        const url = new URL(item.help_url);
-        if (
-          url.protocol === 'https:' && url.hostname === 'wiki.anycubic.com' &&
-          !url.username && !url.password && !url.port && !url.search && !url.hash &&
-          url.pathname.length <= 240 && /^\/(?:en|fr|zh)\/(?:error-codes|fdm-3d-printer)(?:\/[a-z0-9-]+)*\/?$/.test(url.pathname)
-        ) helpUrl = url.href;
-      } catch {}
+    if (isError) {
       const error = node('span', null, 'notification-error'),
-        description = item.error_description ? tr(item.error_description) : '';
-      if (helpUrl) {
-        const link = node('a', formatText('Code d’erreur : {0}', item.reason_code), 'notification-error-link'),
-          tooltip = node('span', description || tr('Aide Anycubic'), 'notification-error-tooltip');
-        tooltip.id = 'notification-error-' + item.key;
-        tooltip.setAttribute('role', 'tooltip');
-        link.href = helpUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.title = formatText(/\/error-codes\/?$/.test(new URL(helpUrl).pathname)
-          ? 'Ouvrir le catalogue des erreurs Anycubic pour le code {0}'
-          : 'Consulter l’aide officielle Anycubic (code {0})', item.reason_code);
-        link.setAttribute('aria-label', link.title);
-        link.setAttribute('aria-describedby', tooltip.id);
-        error.append(link, tooltip);
-      } else {
-        error.append(node('span', formatText('Code d’erreur : {0}', item.reason_code), 'notification-error-code'));
-        if (description) error.append(node('span', description, 'notification-error-description'));
-      }
+        button = node('button', formatText('Code d’erreur : {0}', code), 'notification-error-link'),
+        tooltip = node(
+          'span',
+          tr(sheet?.description || item.error_description || 'Ce code n’est pas encore documenté dans l’atelier.'),
+          'notification-error-tooltip',
+        );
+      tooltip.id = 'notification-error-' + item.key;
+      tooltip.setAttribute('role', 'tooltip');
+      button.type = 'button';
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.setAttribute('aria-describedby', tooltip.id);
+      button.onclick = () => openErrorSheet(item, code, sheet);
+      error.append(button, tooltip);
       errorBlock = error;
     }
     body.append(node('time', date(item.time), 'muted'));
@@ -225,6 +216,46 @@ export function createHistory(request, command, selectedBox) {
     row.append(remove);
     return row;
   }
+  /** La fiche s’ouvre localement ; le lien facultatif reste limité au wiki officiel. */
+  function openErrorSheet(item, code, sheet) {
+    const dialog = $('notification-error-dialog');
+    if (dialog.open) return;
+    set('notification-error-dialog-title', formatText('Code d’erreur : {0}', code));
+    set('notification-error-subject', [item.printer, item.name].filter(Boolean).join(' · '));
+    $('notification-error-heading').hidden = !sheet?.title;
+    set('notification-error-heading', sheet ? tr(sheet.title) : '');
+    set('notification-error-explanation', tr(sheet?.description || 'Ce code n’est pas encore documenté dans l’atelier.'));
+    $('notification-error-message').hidden = !item.reason;
+    set('notification-error-message-text', item.reason || '');
+    $('notification-error-checks').hidden = !sheet?.steps.length;
+    $('notification-error-steps').replaceChildren(
+      ...(sheet?.steps || []).map((step) => node('li', tr(step))),
+    );
+
+    const source = $('notification-error-source');
+    const url = sheet
+      ? sheet.source || 'https://wiki.anycubic.com/en/error-codes#' + sheet.anchor
+      : safeErrorSource(item.help_url);
+    source.hidden = !url;
+    if (url) source.href = url;
+    else source.removeAttribute('href');
+    dialog.showModal();
+  }
+
+  /** Refuse les hôtes voisins, les redirections et les paramètres provenant de la notification. */
+  function safeErrorSource(value) {
+    try {
+      const url = new URL(value);
+      if (
+        url.origin === 'https://wiki.anycubic.com' &&
+        !url.username && !url.password && !url.search && !url.hash &&
+        url.pathname.length <= 240 &&
+        /^\/(?:en|fr|zh)\/(?:error-codes|fdm-3d-printer)(?:\/[a-z0-9-]+)*\/?$/.test(url.pathname)
+      ) return url.href;
+    } catch {}
+    return '';
+  }
+
   /** Le marquage est confirmé avant le détail ; aucune impression n’est déclenchée. */
   async function openNotice(item) {
     try {

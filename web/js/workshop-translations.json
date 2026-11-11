@@ -4006,5 +4006,125 @@
   "La lecture des coordonnées a été interrompue. Relancez-la explicitement si nécessaire.": [
     "The coordinate query was interrupted. Start a new query explicitly if needed.",
     "Se interrumpió la consulta de coordenadas. Inicie otra consulta explícitamente si es necesario."
+  ],
+  "Vérifiez le fichier réellement sélectionné et sa provenance : Cloud, mémoire de l’imprimante ou clé USB. Un modèle brut doit être tranché avant d’être utilisé comme fichier d’impression.": [
+    "Check the selected file and its source: cloud, printer storage or USB drive. A raw model must be sliced before it can be used as a print file.",
+    "Compruebe el archivo seleccionado y su origen: nube, memoria de la impresora o unidad USB. Un modelo sin laminar debe prepararse antes de usarse como archivo de impresión."
+  ],
+  "Retranchez le modèle avec le profil de votre imprimante et enregistrez le résultat sur l’ordinateur avant de le transférer.": [
+    "Slice the model again with your printer profile and save it to your computer before transferring it.",
+    "Vuelva a laminar el modelo con el perfil de su impresora y guárdelo en el ordenador antes de transferirlo."
+  ],
+  "Si le problème revient, notez le format, la source et la version du micrologiciel pour le diagnostic.": [
+    "If the problem returns, note the format, source and firmware version for troubleshooting.",
+    "Si el problema vuelve, anote el formato, el origen y la versión del firmware para el diagnóstico."
+  ],
+  "Action incompatible avec l’état de l’imprimante": [
+    "Action incompatible with the printer state",
+    "Acción incompatible con el estado de la impresora"
+  ],
+  "L’imprimante a signalé que cette action n’était pas disponible dans son état actuel.": [
+    "The printer reported that this action was unavailable in its current state.",
+    "La impresora indicó que esta acción no estaba disponible en su estado actual."
+  ],
+  "Vérifiez l’état sur l’écran de l’imprimante et attendez la fin de la transition en cours avant de décider de relancer l’action.": [
+    "Check the printer screen and wait for the current transition to finish before deciding whether to retry the action.",
+    "Compruebe la pantalla de la impresora y espere a que termine la transición antes de decidir si repite la acción."
+  ],
+  "Téléchargement du micrologiciel échoué": [
+    "Firmware download failed",
+    "Error al descargar el firmware"
+  ],
+  "Le téléchargement peut avoir expiré ou l’imprimante peut avoir perdu son accès à Internet.": [
+    "The download may have timed out or the printer may have lost internet access.",
+    "La descarga pudo agotar el tiempo de espera o la impresora pudo perder el acceso a Internet."
+  ],
+  "Vérifiez la connexion Cloud sur l’écran de l’imprimante et confirmez qu’aucune mise à jour n’est en cours.": [
+    "Check the cloud connection on the printer screen and confirm that no update is in progress.",
+    "Compruebe la conexión a la nube en la pantalla de la impresora y confirme que no hay una actualización en curso."
+  ],
+  "Délai réseau de la caméra dépassé": [
+    "Camera network request timed out",
+    "Tiempo de espera de red de la cámara agotado"
+  ],
+  "L’imprimante n’a pas pu établir la connexion vidéo dans le délai prévu.": [
+    "The printer could not establish the video connection in time.",
+    "La impresora no pudo establecer la conexión de vídeo a tiempo."
+  ],
+  "Vérifiez séparément l’état de la connexion Cloud et le résultat de l’ouverture de la caméra. Une imprimante en ligne peut encore avoir un flux indisponible.": [
+    "Check the cloud connection and the result of opening the camera separately. An online printer can still have an unavailable stream.",
+    "Compruebe por separado la conexión a la nube y el resultado de abrir la cámara. Una impresora en línea puede seguir sin vídeo."
+  ],
+  "Le flux vidéo n’a pas démarré": [
+    "Video stream failed to start",
+    "La transmisión de vídeo no se inició"
+  ],
+  "Anycubic indique qu’un délai réseau peut empêcher le démarrage du flux.": [
+    "Anycubic indicates that a network timeout may prevent the stream from starting.",
+    "Anycubic indica que un tiempo de espera de red puede impedir que comience el vídeo."
+  ],
+  "Vérifiez si l’imprimante est connectée au Cloud, puis consultez l’état de la session dans l’onglet Caméra.": [
+    "Check whether the printer is connected to the cloud, then check the session status in the Camera tab.",
+    "Compruebe si la impresora está conectada a la nube y consulte el estado de la sesión en la pestaña Cámara."
+  ],
+  "Espace de stockage de l’imprimante insuffisant": [
+    "Not enough printer storage",
+    "Espacio de almacenamiento insuficiente en la impresora"
+  ],
+  "Un espace local insuffisant peut empêcher une impression ou la création d’un timelapse.": [
+    "Insufficient local storage can prevent printing or timelapse creation.",
+    "La falta de espacio local puede impedir una impresión o la creación de un vídeo timelapse."
+  ],
+  "Consultez le stockage local sur l’imprimante et sauvegardez les fichiers à conserver avant de libérer de l’espace.": [
+    "Check the printer’s local storage and back up files you want to keep before freeing space.",
+    "Consulte el almacenamiento local de la impresora y haga una copia de los archivos que quiera conservar antes de liberar espacio."
+  ],
+  "Ce code n’est pas encore documenté dans l’atelier.": [
+    "This code is not documented in the workshop yet.",
+    "Este código aún no está documentado en el taller."
+  ],
+  "Message reçu de l’imprimante": [
+    "Message received from the printer",
+    "Mensaje recibido de la impresora"
+  ],
+  "Vérifications conseillées": [
+    "Suggested checks",
+    "Comprobaciones recomendadas"
+  ],
+  "Documentation officielle Anycubic": [
+    "Official Anycubic documentation",
+    "Documentación oficial de Anycubic"
+  ],
+  "Anomalie de type spaghetti détectée": [
+    "Possible spaghetti failure detected",
+    "Posible fallo de tipo espagueti detectado"
+  ],
+  "La caméra signale une accumulation de filament qui peut correspondre à une impression ratée. Une forme similaire peut aussi déclencher une fausse alerte.": [
+    "The camera detected a buildup of filament that may indicate a failed print. A similar-looking shape can also trigger a false alert.",
+    "La cámara ha detectado una acumulación de filamento que podría indicar un fallo de impresión. Una forma similar también puede activar una falsa alerta."
+  ],
+  "Vérifiez l’état réel de l’impression et observez la pièce avant de prendre une décision.": [
+    "Check the actual print state and inspect the part before deciding what to do.",
+    "Compruebe el estado real de la impresión y observe la pieza antes de decidir qué hacer."
+  ],
+  "Objet signalé sur le plateau": [
+    "Object detected on the build plate",
+    "Objeto detectado en la base de impresión"
+  ],
+  "La caméra a signalé un objet possible avant l’impression. Un plateau inhabituel, sale ou mal éclairé peut aussi déclencher une fausse alerte.": [
+    "The camera reported a possible object before printing. An unusual, dirty or poorly lit build plate can also trigger a false alert.",
+    "La cámara ha señalado un posible objeto antes de imprimir. Una base poco habitual, sucia o mal iluminada también puede provocar una falsa alerta."
+  ],
+  "Inspectez la zone d’impression à l’arrêt. Vérifiez qu’elle est dégagée et que la caméra voit correctement le plateau.": [
+    "Inspect the print area while the printer is idle. Check that it is clear and the camera has a clear view of the plate.",
+    "Inspeccione la zona de impresión con la impresora parada. Compruebe que esté despejada y que la cámara vea bien la base."
+  ],
+  "Défaut d’impression possible détecté": [
+    "Possible print failure detected",
+    "Posible fallo de impresión detectado"
+  ],
+  "La détection IA signale une forme qui peut correspondre à une accumulation de filament. Cette alerte ne confirme pas un arrêt.": [
+    "AI detection reported a shape that may be a buildup of filament. This alert does not confirm that the printer stopped.",
+    "La detección mediante IA ha señalado una forma que podría ser una acumulación de filamento. Esta alerta no confirma que la impresora se haya detenido."
   ]
 }
