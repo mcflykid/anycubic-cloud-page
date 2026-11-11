@@ -67,6 +67,7 @@ SECURE_COOKIE_NAME = "__Host-" + COOKIE_NAME
 SESSION_SECONDS = 8 * 60 * 60
 FAILURE_SECONDS = 5 * 60
 FAILURE_LIMIT = 5
+GLOBAL_FAILURE_LIMIT = 100
 REAUTH_SECONDS = 120
 SENSITIVE_ACTIONS = frozenset(("firmware", "ace-firmware", "factory-reset"))
 
@@ -99,12 +100,19 @@ class AccessState:
         """Initialise des tables bornées ; un redémarrage déconnecte toutes les sessions web."""
         self.sessions = {}
         self.failures = {}
+        self.global_failures = 0
+        self.global_window_until = 0
+        self.global_until = 0
 
     def prune(self):
         """Retire les sessions et compteurs expirés afin de borner la mémoire de l’authentification."""
         now = time.monotonic()
         self.sessions = {key: value for key, value in self.sessions.items() if value.expires > now}
         self.failures = {key: value for key, value in self.failures.items() if value[1] > now}
+        if self.global_window_until <= now:
+            self.global_failures = 0
+            self.global_window_until = 0
+            self.global_until = 0
 
 
 ACCESS_KEY = web.AppKey("access", AccessState)
@@ -131,18 +139,19 @@ def set_session_cookie(response, name, token, remaining, secure):
 
 
 def client_address(request):
-    """Résout l’adresse réelle du client depuis le pair et les proxys déclarés fiables."""
+    """Résout l’adresse réelle du client, sans écouter les en-têtes d’un pair non fiable."""
     remote = request.remote or "unknown"
     trusted = request.app[TRUSTED_PROXIES_KEY]
     try:
         peer = ipaddress.ip_address(remote)
         if not any(peer in network for network in trusted):
             return str(peer)
-        chain = [
-            ipaddress.ip_address(part.strip())
-            for part in request.headers.get("X-Forwarded-For", "").split(",")
-        ]
-        for candidate in reversed(chain):
+        for part in reversed(request.headers.get("X-Forwarded-For", "").split(",")):
+            try:
+                candidate = ipaddress.ip_address(part.strip())
+            except ValueError:
+                # Ne pas traverser une rupture de provenance avant d’avoir identifié le client.
+                break
             if not any(peer in network for network in trusted):
                 break
             peer = candidate
@@ -304,15 +313,14 @@ def login_page(message="", status=200):
 
 
 async def login(request):
-    """Vérifie le formulaire de taille bornée ; renvoie 401 en cas d’échec ou 429 après cinq échecs en cinq minutes."""
+    """Vérifie le formulaire borné avec quotas par client et plafond agrégé temporaire."""
     if request.method in {"GET", "HEAD"}:
         return login_page()
     require_origin(request)
     state = request.app[ACCESS_KEY]
     state.prune()
     client = rate_limit_client(request)
-    # Le compteur reste individuel uniquement derrière des proxys explicitement déclarés fiables.
-
+    # Le quota individuel garde son comportement historique avant le traitement du formulaire.
     failures, until = state.failures.get(client, (0, time.monotonic() + FAILURE_SECONDS))
     if failures >= FAILURE_LIMIT:
         response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
@@ -335,13 +343,28 @@ async def login(request):
     supplied_password = form.get("password", [""])[0]
     valid_user = hmac.compare_digest(supplied_user.encode(), username.encode())
     valid_password = hmac.compare_digest(supplied_password.encode(), password.encode())
-    if not (valid_user and valid_password):
+    if valid_user and valid_password:
+        # Le plafond agrégé freine les refus, mais ne verrouille pas les identifiants valides.
+        state.failures.pop(client, None)
+    else:
+        now = time.monotonic()
+        if state.global_until > now:
+            response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
+            response.headers["Retry-After"] = str(max(1, int(state.global_until - now) + 1))
+            return response
         if client not in state.failures and len(state.failures) >= 1024:
             state.failures.pop(next(iter(state.failures)))
         state.failures.pop(client, None)
         state.failures[client] = (failures + 1, until)
+        if not state.global_window_until:
+            state.global_window_until = now + FAILURE_SECONDS
+        state.global_failures += 1
+        if state.global_failures >= GLOBAL_FAILURE_LIMIT:
+            state.global_until = state.global_window_until
+            response = login_page("Trop de tentatives. Réessayez dans quelques minutes.", 429)
+            response.headers["Retry-After"] = str(max(1, int(state.global_until - now) + 1))
+            return response
         return login_page("Identifiant ou mot de passe incorrect.", 401)
-    state.failures.pop(client, None)
     if len(state.sessions) >= 128:
         state.sessions.pop(next(iter(state.sessions)))
     # Le jeton change à chaque connexion et seule son empreinte est conservée côté serveur.

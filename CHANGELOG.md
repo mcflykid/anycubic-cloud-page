@@ -2,7 +2,11 @@
 
 ## À venir
 
-- Retire la lecture des coordonnées dans Caméra → Déplacer. Les commandes de déplacement restent disponibles (#167).
+- Retire la lecture des coordonnées dans Caméra → Déplacer ainsi que sa route et son diagnostic. Les commandes de déplacement restent disponibles (#167).
+- L’ouverture et la fermeture de la caméra laissent passer pause et annulation pendant l’attente d’une lecture. Le verrou d’envoi continue de sérialiser les ordres machine (#206).
+- Le journal des commandes garde l’adresse IPv6 du client. Seul le quota de connexion regroupe les adresses par préfixe /64 (#207).
+- Les spectateurs caméra sans signal expirent en trois minutes, au plus tard à la fin de leur session web. Le navigateur renouvelle la présence localement pendant l’affichage de la vidéo (#208).
+- La chaîne des proxys est lue jusqu’au premier client identifié ou élément illisible. Un plafond temporaire s’applique aux refus de connexion répartis entre les adresses (#209).
 - Les statistiques affichent le nom de la machine et regroupent les courbes sous le nom de chaque ACE. Les commandes CSV et le résumé du parc tiennent sur une ligne.
 - Corrige l’alignement du menu Apple Design, les libellés Blueprint et le repère de sélection Océan. Le style se choisit dans la liste Apparence.
 - Anime les ouvertures de sections et de fenêtres selon le style et la préférence de mouvement. Corrige les marges du séchage dans Laboratoire.

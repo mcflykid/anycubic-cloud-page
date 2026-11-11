@@ -10,6 +10,7 @@ from aiohttp import FormData
 from aiohttp.test_utils import TestClient, TestServer
 from web_host import (
     access_control,
+    client_address,
     credentials,
     install_access,
     install_ui_resources,
@@ -422,7 +423,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.get("/imprimante-api/status")).status, 401)
 
     async def test_failure_limit_cannot_be_bypassed_with_forwarded_headers(self):
-        """Cinq échecs bloquent l’adresse réelle, puis la fenêtre expire sans bloquer définitivement le compte."""
+        """Le bon secret reste accepté malgré les échecs antérieurs du même client."""
         for index in range(5):
             self.assertEqual(
                 (
@@ -457,7 +458,12 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
             )
         self.assertEqual((await self.sign_in(headers={"X-Forwarded-For": "192.0.2.2"})).status, 303)
         self.assertEqual(
-            (await self.sign_in(headers={"X-Forwarded-For": "192.0.2.99, 192.0.2.1"})).status, 429
+            (
+                await self.sign_in(
+                    password="wrong", headers={"X-Forwarded-For": "192.0.2.99, 192.0.2.1"}
+                )
+            ).status,
+            429,
         )
         self.assertEqual((await self.sign_in(headers={"X-Forwarded-For": "invalid"})).status, 303)
 
@@ -470,19 +476,64 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
                 headers={"X-Forwarded-For": f"2001:db8:42::{index + 1}"},
             )
             self.assertEqual(response.status, 401)
-        response = await self.sign_in(headers={"X-Forwarded-For": "2001:db8:42::abcd"})
+        response = await self.sign_in(
+            password="wrong", headers={"X-Forwarded-For": "2001:db8:42::abcd"}
+        )
         self.assertEqual(response.status, 429)
 
-    async def test_partially_invalid_forwarded_chain_uses_http_peer(self):
-        """Une chaîne incomplète ne laisse pas le proxy choisir le compteur d’une autre adresse."""
+    async def test_partially_invalid_forwarded_chains_stop_at_the_first_invalid_hop(self):
+        """La résolution à droite s’arrête au premier élément illisible."""
         self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
-        for _ in range(5):
-            response = await self.sign_in(
-                password="wrong",
-                headers={"X-Forwarded-For": "2001:db8:42::1, invalid"},
+        for chain, expected in (
+            ("2001:db8:42::1, invalid", "127.0.0.1"),
+            ("invalid, 2001:db8:43::1", "2001:db8:43::1"),
+        ):
+            request = SimpleNamespace(
+                remote="127.0.0.1",
+                app={TRUSTED_PROXIES_KEY: self.app[TRUSTED_PROXIES_KEY]},
+                headers={"X-Forwarded-For": chain},
             )
-            self.assertEqual(response.status, 401)
-        self.assertEqual((await self.sign_in()).status, 429)
+            self.assertEqual(client_address(request), expected)
+
+        for address, chain, expected_status in (
+            ("2001:db8:42::1", "2001:db8:42::1, invalid", 401),
+            ("2001:db8:43::1", "invalid, 2001:db8:43::1", 429),
+        ):
+            for _ in range(5):
+                response = await self.sign_in(password="wrong", headers={"X-Forwarded-For": chain})
+                self.assertIn(response.status, {401, 429})
+            self.assertEqual(
+                (await self.sign_in(password="wrong", headers={"X-Forwarded-For": address})).status,
+                expected_status,
+            )
+
+    async def test_global_failure_ceiling_expires_without_blocking_valid_login(self):
+        """Le plafond global expire et laisse passer le bon secret même pendant le délai."""
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        with patch("web_host.GLOBAL_FAILURE_LIMIT", 3):
+            for index in range(3):
+                response = await self.sign_in(
+                    password="wrong",
+                    headers={"X-Forwarded-For": f"192.0.2.{index + 1}"},
+                )
+            self.assertEqual(response.status, 429)
+            self.assertGreater(int(response.headers["Retry-After"]), 0)
+            self.assertEqual(
+                (await self.sign_in(headers={"X-Forwarded-For": "192.0.2.10"})).status,
+                303,
+            )
+            state = self.app[ACCESS_KEY]
+            state.global_until = time.monotonic() - 1
+            state.global_window_until = time.monotonic() - 1
+            self.assertEqual(
+                (
+                    await self.sign_in(
+                        password="wrong",
+                        headers={"X-Forwarded-For": "192.0.2.11"},
+                    )
+                ).status,
+                401,
+            )
 
     async def test_health_stays_public_even_without_secret(self):
         """La supervision reste indépendante du secret ; les routes privées échouent fermées."""
