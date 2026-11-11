@@ -62,6 +62,7 @@ async function filamentRows(page) {
 function expectSingleFilamentRow(cards) {
   expect(cards).toHaveLength(4);
   for (const [index, card] of cards.entries()) {
+    expect(card.right).toBeGreaterThan(card.left);
     expect(Math.abs(card.top - cards[0].top)).toBeLessThan(2);
     if (index) expect(card.left).toBeGreaterThanOrEqual(cards[index - 1].right - 1);
   }
@@ -116,14 +117,18 @@ for (const style of styles) {
         const overlapY = Math.min(nozzle.y + nozzle.height, bed.y + bed.height) - Math.max(nozzle.y, bed.y);
         expect(Math.min(overlapX, overlapY)).toBeLessThanOrEqual(1);
         await expect(page.locator('#chart-filament .temperature-card svg')).toHaveCount(4);
-        const [filament] = await filamentRows(page);
-        if (width > 400) {
-          expectSingleFilamentRow(filament);
-        } else {
-          // Sur téléphone, les graphiques se replient et restent dans la largeur de l’écran.
-          expect(filament.at(-1).top).toBeGreaterThan(filament[0].top);
-          expect(filament.every(card => card.left >= 0 && card.right <= width)).toBe(true);
-        }
+        // Une actualisation peut remplacer les graphiques pendant la mesure.
+        await expect(async () => {
+          const [filament] = await filamentRows(page);
+          expect(filament).toHaveLength(4);
+          expect(filament.every(card => card.right > card.left && card.bottom > card.top)).toBe(true);
+          if (width > 400) {
+            expectSingleFilamentRow(filament);
+          } else {
+            expect(filament.at(-1).top).toBeGreaterThan(filament[0].top);
+            expect(filament.every(card => card.left >= 0 && card.right <= width)).toBe(true);
+          }
+        }).toPass({timeout: 5000});
 
         await openSection(page, 'history');
         const cards = page.locator('#tasks-list > li');
