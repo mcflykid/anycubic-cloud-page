@@ -49,11 +49,13 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await page.getByRole('button',{name:'Évaluer',exact:true}).click();
  await expect(page.locator('#rating-form fieldset')).toBeEnabled();
  const three=page.getByRole('radio',{name:'3 ★',exact:true});
- await three.press('Space');
+ await expect(three).toBeEnabled();
+ await three.check();
  await expect(three).toBeChecked();
+ await expect(three).toBeFocused();
  await expect(page.locator('.rating-stars label').nth(1).locator('svg')).toHaveCSS('fill-opacity','1');
  await expect(page.locator('.rating-stars label').nth(3).locator('svg')).toHaveCSS('fill-opacity','0');
- await three.press('ArrowRight');
+ await page.keyboard.press('ArrowRight');
  await expect(page.getByRole('radio',{name:'4 ★',exact:true})).toBeChecked();
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Voir le détail',exact:true}).first().click();
