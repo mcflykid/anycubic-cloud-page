@@ -33,6 +33,23 @@ INVARIANT = {
     "Y −",
     "Z +",
     "Z −",
+    # Les noms de projets et d’auteurs sont des attributions, sans traduction.
+    "Arrastre",
+    "Burbuja",
+    "Canica",
+    "chase2k25",
+    "Esqueleto",
+    "hass-anycubic_cloud_v3 · ljschmitt",
+    "Instrumental",
+    "Inter",
+    "Lote",
+    "nazar-gavrylyk",
+    "njesenberger",
+    "Remesa",
+    "RespawnDespair",
+    "SDK Agora",
+    "Segno",
+    "SelfMadeSystem",
 }
 
 
