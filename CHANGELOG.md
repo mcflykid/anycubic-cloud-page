@@ -148,7 +148,7 @@ La caméra et les miniatures de notifications ont été validées sur des répon
 - Sélecteur déroulant du pas de déplacement, croix XY et commandes Z séparées. Les boutons d’éclairage se trouvent dans l’onglet Caméra (#44).
 - Compteurs du constructeur, visuels adaptés aux modèles explicitement identifiés et pictogrammes sur les libellés (#37, #38, #41).
 - Motifs connus et regroupement des notifications qui partagent une machine, une tâche et un motif explicites (#45).
-- Version installée et liens Confidentialité, Conditions, Cookies et Crédits dans le pied de page. Boutons de connexion centrés (#35, #71 à #75).
+- Version installée et liens Confidentialité, Conditions, Cookies et Crédits dans le pied de page. Boutons de connexion centrés (#35, #71, #72, #73, #74, #75).
 - Recherche et pagination des timelapses lorsque le firmware fournit la liste. Les références de miniatures et les liens de téléchargement restent à confirmer (#30).
 - Choix français, anglais ou espagnol mémorisé. La connexion, la navigation et une partie des libellés et confirmations sont traduites. La couverture complète reste suivie dans #55.
 - Les dossiers cloud et les déplacements restent suivis dans #31. Le lien entre les références de fichiers et l’arborescence reste à confirmer.
