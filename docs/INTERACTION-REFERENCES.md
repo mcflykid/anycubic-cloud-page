@@ -12,6 +12,7 @@ un retour compréhensible et un fonctionnement au clavier et sur téléphone.
 | [Lote](https://moxen.cl/recursos/lote/) | Peindre la sélection dans la colonne des cases, Maj+clic, barre contextuelle | Sélection des fichiers Cloud, volume connu et actions existantes avec confirmation |
 | [Instrumental](https://moxen.cl/recursos/instrumental/) et capture 435 | Mesures en cartes, historique et agrandissement d’un détail | Monitoring local de l’application, avec unités, sources et absence de données explicites |
 | [Parrilla](https://moxen.cl/recursos/parrilla/) | Widgets qui se réorganisent et disposition mémorisée | Cartes de l’accueil Aurore, déplacement et restauration de la disposition |
+| [Bento Grid](https://builder.atheros.ai/) et capture fournie | Zones qui changent de colonnes selon la largeur utile | Inspiration pour la composition des neuf sections, les cartes de mesures et le panneau de notifications |
 | [Portada](https://moxen.cl/recursos/portada/) | Un panneau de menu évolue avec le choix courant | Navigation adaptative et repère de section actif |
 | [Pasarela](https://moxen.cl/recursos/pasarela/) | Indicateur qui voyage, gestion du clavier | Navigation en verre Apple et Océan |
 | [Profil](https://moxen.cl/recursos/perfil/) | Détail dépliable et déplacement par transformation | Cartes de monitoring, transitions interrompables |
@@ -60,7 +61,14 @@ paiement dans l’application. Toute animation a une variante sans mouvement.
 | [Material Motion](https://m2.material.io/design/motion/the-motion-system.html) | Réserver le fondu aux contenus qui changent et garder une courbe partagée | Sections et changement explicite du mode clair ou sombre | Inspiration |
 | [MDN prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion) | Suivre la préférence système et appliquer immédiatement les états | Atelier entier | Inspiration |
 | [Chrome Motion](https://developer.chrome.com/docs/modern-web-guidance/guides/ui-behaviors/motion) | Faire du fondu de rendu une amélioration progressive | Réglages → Apparence | Inspiration |
+| [Apple Human Interface Guidelines — Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars) | Libellés stables, repère de section active et destinations de premier niveau | Navigation de l’atelier | Inspiration |
+| [Moxen Parrilla](https://moxen.cl/recursos/parrilla/) | Grille de cartes qui suit les déplacements et mémorise l’ordre | Cadenas et disposition de l’atelier dans les dix styles | Inspiration |
+| [MDN Auto-placement in grid layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Auto-placement) | Placement adaptatif dans l’ordre de lecture, selon la largeur disponible | Cartes personnalisées de l’atelier | Inspiration |
 
 Esqueleto et Demora associent une forme stable à une attente différée. Un indicateur animé dès le clic ajoute un clignotement aux réponses rapides. La liste précédente reste visible pendant une actualisation du même contenu. Instrumental guide le regard vers le détail choisi. Pour la mesure elle-même, la valeur reste stable comme dans Grafana Stat. Une réaction discrète marque une valeur reçue qui change. Le fondu court pour le mode évite la grande révélation circulaire. Pour la navigation, le repère de section et le panneau de tuiles existant permettent de suivre la sélection en gardant toutes les destinations atteignables.
 
 Les conditions [Moxen](https://moxen.cl/terminos.html) encadrent la redistribution des ressources. [Apple](https://developer.apple.com/support/terms/), [Google](https://developers.google.com/terms/site-policies) et [MDN](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license) publient leurs propres conditions. [Carbon](https://github.com/carbon-design-system/carbon/blob/main/LICENSE) est sous Apache-2.0 et le dépôt [Grafana](https://github.com/grafana/grafana/blob/main/LICENSE) sous AGPL-3.0. Cette revue implémente ses mécanismes dans le projet avec du CSS et du JavaScript natifs.
+
+## Scène de connexion imprimée
+
+Les captures de formulaires translucides fournies par le propriétaire servent d’inspiration pour la lisibilité de la carte au premier plan. La scène de dépôt couche par couche, son tracé SVG et ses animations CSS sont des créations du projet. La pièce terminée sert de variante fixe et le navigateur suspend la scène quand la page est masquée.

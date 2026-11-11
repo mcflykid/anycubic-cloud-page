@@ -4,7 +4,6 @@ from dataclasses import asdict
 import asyncio
 from functools import partial
 import html
-import json
 import logging
 import os
 from pathlib import Path
@@ -16,6 +15,7 @@ from aiohttp import web
 from notification_delivery import Delivery, private_json, read_config
 from notification_discord import DiscordConfig, send_discord
 from operational_logging import log_event
+from web_assets import build_web_assets
 from web_host import ROOT, confirm_web_password
 
 PATH = "/imprimante-api/discord"
@@ -96,7 +96,7 @@ def discord_page(delivery, message="", status=200):
 </form>
 <p><a href="/imprimante.html">Retour à l’atelier</a></p>"""
     return web.Response(
-        text=(ROOT / "discord.html").read_text().replace("<!-- DISCORD_CONTENT -->", body),
+        text=build_web_assets(ROOT)[0]["discord.html"].replace("<!-- DISCORD_CONTENT -->", body),
         status=status,
         content_type="text/html",
     )
@@ -127,12 +127,12 @@ async def discord_settings(request):
     if request.method in {"GET", "HEAD"}:
         return discord_page(delivery)
     form = await read_discord_form(request)
-    _, refusal = confirm_web_password(request, form.get("password", ""))
+    def render_refusal(message, status):
+        return discord_page(delivery, message, status)
+
+    _, refusal = confirm_web_password(request, form.get("password", ""), render=render_refusal)
     if refusal is not None:
-        response = discord_page(delivery, json.loads(refusal.text)["message"], refusal.status)
-        if delay := refusal.headers.get("Retry-After"):
-            response.headers["Retry-After"] = delay
-        return response
+        return refusal
     operation = form.get("operation")
     if operation not in {"save", "test", "delete"}:
         raise web.HTTPBadRequest(text="Action Discord invalide.")

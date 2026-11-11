@@ -4,7 +4,7 @@ Dans la cloche, sélectionnez un code d’erreur pour ouvrir sa fiche dans l’a
 
 ## Journaux du conteneur
 
-Chaque ligne de diagnostic inclut la version embarquée, en texte comme en JSON. Le [protocole de diagnostic](DIAGNOSTIC-PROTOCOL.md) relie hypothèses, journaux et observations.
+Chaque événement structuré inclut la version embarquée, en texte comme en JSON. Le [guide d’observabilité](OBSERVABILITY.md#journaux-du-conteneur) décrit les seuils et les champs disponibles. Le [protocole de diagnostic](DIAGNOSTIC-PROTOCOL.md) relie hypothèses, journaux et observations.
 
 Les diagnostics de l’application partent sur stderr et sont accessibles avec Docker. Le format texte est prévu pour une lecture directe; `LOG_FORMAT=json` produit une ligne JSON par événement pour un collecteur. `LOG_LEVEL=INFO` garde les erreurs et les changements utiles sans répéter les consultations périodiques. `LOG_LEVEL=DEBUG` ajoute les étapes et durées de traitement. Les valeurs sont transmises au conteneur par Compose et prennent effet après sa recréation.
 
@@ -18,6 +18,15 @@ docker compose logs --follow --since=5m anycubic-cloud-page
 Chaque ligne contient l’horodatage UTC, le niveau, le composant, le nom d’événement, un message et, si utile, un contexte stable tel que la route déclarée, la méthode HTTP, le statut, la durée, une référence opaque et le type d’exception. En mode JSON, ces informations sont des champs séparés. Pour suivre une requête, rechercher son `request_id`; `route` est un modèle déclaré sans query string. Une action machine se reconnaît à son nom d’action et son résultat, pas à son contenu.
 
 Pour un diagnostic ponctuel, ajouter `LOG_LEVEL=DEBUG` dans l’environnement Compose et recréer le service, puis revenir à INFO après le relevé. DEBUG ne journalise ni les corps HTTP/MQTT, ni les jetons, en-têtes, paramètres de requête, noms d’utilisateur, chemins ou messages d’exception. Les messages de diagnostic bruts du client Anycubic et des transports tiers sont filtrés, y compris en DEBUG. Les journaux Docker ont une rotation locale bornée; les conserver ou les exporter avant qu’ils ne tournent si un incident doit être comparé dans le temps.
+
+| Ce que vous cherchez | Événements à rapprocher |
+| --- | --- |
+| Démarrage | `container_starting`, puis `logging_ready` avec version, niveau et format en INFO ou DEBUG. Un réglage invalide est signalé avant la préparation des données. |
+| Relevés anciens | `cloud_poll` en DEBUG, `cloud_poll_failed` au premier échec ou au changement de type, puis `cloud_recovered` au retour du service. |
+| Caméra sans image | `camera_session_retry`, puis `camera_session_received` ou `camera_session_failed`. Une session reçue donne les éléments nécessaires à la connexion du navigateur. La présence d’une image doit être observée dans le lecteur. |
+| Fermeture vidéo | `camera_close_submitted` après le départ du dernier spectateur ou `camera_close_uncertain` si le transport échoue. |
+| Fichier non visible après un envoi | `upload_staged` en DEBUG indique la validation locale, puis `upload_started` et `upload_accepted` ou `upload_uncertain`. Avec `missing_ack` ou `transport_error`, vérifier le stockage et l’imprimante avant de renvoyer. |
+| Commande au résultat inconnu | `command_result`, `command_uncertain` et `http_request` sous la même référence quand elle est disponible. Vérifier l’état réel avant toute nouvelle demande. |
 
 Ne joindre que les lignes autour de l’événement concerné. Vérifier la présence d’un identifiant, chemin ou donnée personnelle avant tout partage; les filtres réduisent l’exposition, mais ne remplacent pas une relecture humaine.
 

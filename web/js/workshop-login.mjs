@@ -1,9 +1,15 @@
-import { tr } from './workshop-ui.mjs?v=a063449a11af';
+import { tr } from './workshop-ui.mjs';
 
 /** Préserve le POST serveur et les gestionnaires de mots de passe en ajoutant un retour accessible. */
 export function initializeLogin() {
   const form = document.querySelector('.login-card form');
   if (!form) return;
+  const syncMotion = () => {
+    // Une scène de connexion masquée reprend au même point à son retour.
+    document.documentElement.dataset.loginMotion = document.hidden ? 'paused' : 'running';
+  };
+  syncMotion();
+  document.addEventListener('visibilitychange', syncMotion);
   const password = form.elements.password;
   const toggle = document.getElementById('password-visibility');
   const submit = form.querySelector('[type=submit]');

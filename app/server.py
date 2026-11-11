@@ -40,6 +40,7 @@ from web_host import (
 )
 from command_journal import (
     ACTIONS,
+    CLOUD_ONLY_ACTIONS,
     MQTT_CONFIRMATIONS,
     CommandJournal,
     JournalMQTT,
@@ -51,7 +52,13 @@ from command_journal import (
     request_key,
 )
 from session_api import CloudSessionAuthError, SessionRecovery
-from operational_logging import configure_logging, log_event, request_context, safe_exception_frames
+from operational_logging import (
+    LoggingConfigurationError,
+    configure_logging,
+    log_event,
+    request_context,
+    safe_exception_frames,
+)
 from anycubic_cloud_api.api.base import AnycubicHTTPUnauthorized, AnycubicRateLimited
 from anycubic_cloud_api.const.api_endpoints import API_ENDPOINT
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
@@ -605,7 +612,8 @@ class Engine:
                         OPS_LOG,
                         logging.DEBUG,
                         "cloud_poll",
-                        message="État Cloud actualisé",
+                        message="Relevé Cloud actualisé avant la consultation du journal des notifications",
+                        outcome="reconnected" if reconnect else "refreshed",
                         duration_ms=round((time.monotonic() - poll_started) * 1000, 1),
                         count=len(self.known_printers or []),
                     )
@@ -1272,15 +1280,16 @@ async def history_delete(req):
         ):
             raise ValueError("Notification invalide")
         async with engine.lock:
-            if not engine.api:
-                raise ValueError("Connexion en cours")
-            if audit:
-                audit["outcome"] = "inconnue"
-                await save_command_event(req, audit)
-            result = await engine.delete_history(data.get("key"), data.get("all") is True)
-            if audit:
-                audit["outcome"] = "acceptée"
-            return web.json_response(result, headers={"Cache-Control": "no-store"})
+            async with cloud_mutation_operation(engine):
+                if not engine.api:
+                    raise ValueError("Connexion en cours")
+                if audit:
+                    audit["outcome"] = "inconnue"
+                    await save_command_event(req, audit)
+                result = await engine.delete_history(data.get("key"), data.get("all") is True)
+                if audit:
+                    audit["outcome"] = "acceptée"
+                return web.json_response(result, headers={"Cache-Control": "no-store"})
 
 
 async def ai_settings(req):
@@ -1313,6 +1322,21 @@ COMMAND_MQTT_KEY = web.AppKey("command_mqtt", JournalMQTT)
 
 class CommandWaitExpired(ValueError):
     """Signale une attente expirée avant l’envoi d’une commande."""
+
+
+@contextlib.asynccontextmanager
+async def cloud_mutation_operation(engine):
+    """Réserve une mutation Cloud du compte sans immobiliser les ordres machine."""
+    transport = getattr(engine, "transport", None)
+    lock = getattr(transport, "cloud_mutation_lock", None)
+    if lock is None:
+        raise ValueError("Verrou partagé du compte Cloud indisponible")
+    if lock.locked():
+        raise ValueError(
+            "Une action Cloud est déjà en cours sur ce compte. Réessayez après sa fin."
+        )
+    async with lock:
+        yield
 
 
 async def save_command_event(request, entry):
@@ -1395,7 +1419,12 @@ async def audit_command(request, engine, action, request_id, parameters):
                 if entry.get("outcome") in {"inconnue", "refusée", "expirée"}
                 else logging.INFO,
                 "command_result",
-                message="Résultat de la demande ; une acceptation ne prouve pas l’exécution physique",
+                message=(
+                    "Résultat de la mutation Cloud ; une acceptation concerne le compte Anycubic"
+                    if entry.get("action") in CLOUD_ONLY_ACTIONS
+                    or entry.get("action") in {"history-delete", "upload"}
+                    else "Résultat de la demande ; une acceptation ne prouve pas l’exécution physique"
+                ),
                 action=entry.get("action"),
                 outcome=entry.get("outcome"),
                 printer=entry.get("printer"),
@@ -1434,8 +1463,8 @@ async def command_journal(request):
 
 
 @contextlib.asynccontextmanager
-async def command_operation(req, *, require_model=True, bypass_read_lock=False):
-    """Réserve une commande ordinaire puis sérialise l’envoi, après la lecture si nécessaire."""
+async def command_operation(req, *, require_model=True, bypass_read_lock=False, cloud_only=False):
+    """Réserve une requête et sa lecture ; seules les actions Cloud évitent le verrou machine."""
     engine = request_engine(req)
     if engine.command_lock.locked() or (
         not bypass_read_lock and engine.command_request_lock.locked()
@@ -1452,7 +1481,10 @@ async def command_operation(req, *, require_model=True, bypass_read_lock=False):
                     "La consultation Anycubic prend trop de temps. Aucune commande envoyée ; réessayez dans quelques secondes."
                 ) from None
             guards.callback(engine.lock.release)
-        await guards.enter_async_context(engine.command_lock)
+        if cloud_only:
+            await guards.enter_async_context(cloud_mutation_operation(engine))
+        else:
+            await guards.enter_async_context(engine.command_lock)
         if req.transport is None or req.transport.is_closing():
             raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
         verify_printer_target(req, engine, require_model=require_model)
@@ -1479,7 +1511,8 @@ async def storage_upload_operation(req, engine):
                 raise ValueError("Connexion en cours")
         finally:
             engine.lock.release()
-        yield
+        async with cloud_mutation_operation(engine):
+            yield
 
 
 async def command(req):
@@ -1504,6 +1537,7 @@ async def command(req):
             req,
             require_model=name != "presets",
             bypass_read_lock=name in {"pause", "cancel"},
+            cloud_only=name in CLOUD_ONLY_ACTIONS,
         ):
             if requestid in engine.commands:
                 audit.clear()
@@ -1521,9 +1555,14 @@ async def command(req):
                     },
                     status=403,
                 )
+            cloud_action = name in CLOUD_ONLY_ACTIONS
             uncertain = {
                 "ok": False,
-                "message": "Résultat de la commande inconnu. Vérifiez l’état de l’imprimante avant tout nouvel envoi.",
+                "message": (
+                    "Résultat Cloud inconnu. Actualisez les données du compte avant tout nouvel essai."
+                    if cloud_action
+                    else "Résultat de la commande inconnu. Vérifiez l’état de l’imprimante avant tout nouvel envoi."
+                ),
             }
             sent = False
 
@@ -1549,7 +1588,11 @@ async def command(req):
                     OPS_LOG,
                     logging.WARNING,
                     "command_uncertain",
-                    message="Commande transmise, résultat non confirmé; vérifiez l’état de l’imprimante avant tout nouvel envoi",
+                    message=(
+                        "Mutation Cloud transmise, résultat non confirmé ; actualisez les données du compte avant tout nouvel essai"
+                        if cloud_action
+                        else "Commande transmise, résultat non confirmé ; vérifiez l’état de l’imprimante avant tout nouvel envoi"
+                    ),
                     action=name,
                     outcome="inconnue",
                     error_type=type(error).__name__,
@@ -1637,18 +1680,56 @@ async def camera(req):
                 engine.camera_message_id = None
                 engine.camera_diagnostic = None
                 engine.camera_stage = -1
+                started = time.monotonic()
+                attempt = 1
                 try:
-                    session = await engine.printer.get_camera_session()
+                    try:
+                        session = await engine.printer.get_camera_session()
+                    except Exception as error:
+                        # Seule une panne de transport temporaire justifie une seconde demande.
+                        if not camera_transport_failure(error):
+                            raise
+                        log_event(
+                            OPS_LOG,
+                            logging.DEBUG,
+                            "camera_session_retry",
+                            message="Transport vidéo indisponible ; une seule nouvelle demande",
+                            attempt=attempt,
+                            error_type=type(error).__name__,
+                        )
+                        attempt += 1
+                        session = await engine.printer.get_camera_session()
+                    if session is None:
+                        raise ValueError("Caméra indisponible")
                 except Exception as error:
-                    # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
-                    if not camera_transport_failure(error):
-                        raise
-                    session = await engine.printer.get_camera_session()
-                if session is None:
-                    raise ValueError("Caméra indisponible")
+                    log_event(
+                        OPS_LOG,
+                        logging.WARNING,
+                        "camera_session_failed",
+                        message="Session vidéo indisponible ; aucune image n’a été confirmée",
+                        attempt=attempt,
+                        error_type=type(error).__name__,
+                        duration_ms=(time.monotonic() - started) * 1000,
+                    )
+                    raise
+                log_event(
+                    OPS_LOG,
+                    logging.INFO,
+                    "camera_session_received",
+                    message="Session vidéo reçue ; le navigateur doit encore se connecter au flux",
+                    attempt=attempt,
+                    duration_ms=(time.monotonic() - started) * 1000,
+                )
                 engine.camera = session.data
                 engine.camera_message_id = getattr(session, "msg_id", None)
                 engine.last_session = time.time()
+            else:
+                log_event(
+                    OPS_LOG,
+                    logging.DEBUG,
+                    "camera_session_reused",
+                    message="Session vidéo récente réutilisée sans nouvel appel Cloud",
+                )
             if viewer:
                 engine.camera_owner = viewer
                 engine.camera_viewers.add(viewer)
@@ -1766,6 +1847,7 @@ async def close_idle_camera(engine, target):
                 return
             engine.camera = None
             engine.camera_owner = None
+            started = time.monotonic()
             try:
                 request = AnycubicBaseOrderRequest(
                     order_id=AnycubicOrderID.CAMERA_CLOSE, printer_id=target
@@ -1773,6 +1855,22 @@ async def close_idle_camera(engine, target):
                 await engine.api._send_anycubic_order(order_request=request)
             except Exception as error:
                 engine.event("Caméra", "Fermeture non confirmée (" + type(error).__name__ + ")")
+                log_event(
+                    OPS_LOG,
+                    logging.WARNING,
+                    "camera_close_uncertain",
+                    message="Fermeture du flux non confirmée par le Cloud",
+                    error_type=type(error).__name__,
+                    duration_ms=(time.monotonic() - started) * 1000,
+                )
+            else:
+                log_event(
+                    OPS_LOG,
+                    logging.INFO,
+                    "camera_close_submitted",
+                    message="Demande de fermeture du flux transmise au Cloud",
+                    duration_ms=(time.monotonic() - started) * 1000,
+                )
 
 
 async def camera_close(req):
@@ -1854,6 +1952,7 @@ async def upload_operation(req, engine, audit):
         raise ValueError("Un envoi de fichier est déjà en cours")
     # Le dossier d’état est sur le volume persistant, contrairement au /tmp en mémoire du conteneur.
     async with UPLOAD_STAGING:
+        staging_started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="upload-", dir=engine.state_dir) as directory:
             reader = await req.multipart()
             data = {}
@@ -1895,6 +1994,16 @@ async def upload_operation(req, engine, audit):
                 if mode != "upload":
                     raise ValueError("Seul un fichier .gcode peut être envoyé à l’impression.")
                 await asyncio.to_thread(validate_cloud_model, path, extension, size)
+            file_format = extension[1:]
+            log_event(
+                OPS_LOG,
+                logging.DEBUG,
+                "upload_staged",
+                message="Fichier reçu et contrôlé localement ; aucun transfert Cloud à ce stade",
+                action=mode,
+                file_format=file_format,
+                duration_ms=(time.monotonic() - staging_started) * 1000,
+            )
             if audit:
                 audit["action"] = mode
                 audit["request_id"] = request_key(rid)
@@ -1947,6 +2056,7 @@ async def upload_operation(req, engine, audit):
                     "upload_started",
                     message="Transfert Cloud engagé après validation ; un résultat inconnu ne déclenche pas de nouvel envoi",
                     action=mode,
+                    file_format=file_format,
                 )
                 try:
                     if mode == "upload":
@@ -1963,6 +2073,16 @@ async def upload_operation(req, engine, audit):
                             full_file_path=str(path), file_name=filename, slot_index_list=slots
                         )
                         if not response or not response.order_msg_id:
+                            log_event(
+                                OPS_LOG,
+                                logging.WARNING,
+                                "upload_uncertain",
+                                message="Demande sans accusé de réception ; vérifiez le Cloud et l’imprimante avant tout nouvel essai",
+                                action=mode,
+                                file_format=file_format,
+                                outcome="missing_ack",
+                                duration_ms=(time.monotonic() - transfer_started) * 1000,
+                            )
                             return web.json_response(engine.commands[rid], status=409)
                 except Exception as error:
                     # Après le transfert ou la demande d’impression, une erreur locale ne prouve aucun refus.
@@ -1972,6 +2092,8 @@ async def upload_operation(req, engine, audit):
                         "upload_uncertain",
                         message="Résultat du transfert ou du lancement non confirmé ; vérifiez les fichiers Cloud et l’imprimante avant tout nouvel essai",
                         action=mode,
+                        file_format=file_format,
+                        outcome="transport_error",
                         error_type=type(error).__name__,
                         frames=safe_exception_frames(error),
                         duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
@@ -1983,8 +2105,9 @@ async def upload_operation(req, engine, audit):
                     OPS_LOG,
                     logging.INFO,
                     "upload_accepted",
-                    message="Transfert accepté par le Cloud ; cela ne prouve pas la fin d’une impression",
+                    message="Transfert accepté par le Cloud",
                     action=mode,
+                    file_format=file_format,
                     duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
                 )
                 engine.event("Fichier", "Envoi accepté")
@@ -2256,13 +2379,18 @@ if __name__ == "__main__":
         raise SystemExit("Le serveur doit être lancé sans privilèges root.")
     if hasattr(time, "tzset"):
         time.tzset()
-    configure_logging()
+    try:
+        handler = configure_logging()
+    except LoggingConfigurationError as error:
+        raise SystemExit(str(error)) from None
     log_event(
         OPS_LOG,
         logging.INFO,
         "logging_ready",
-        message="Journaux du conteneur actifs ; le mode DEBUG ajoute les étapes sans exposer les échanges privés",
+        message="Journaux du conteneur configurés",
         version=APP_VERSION,
+        log_level=logging.getLevelName(logging.getLogger().level),
+        log_format=handler.formatter.output_format,
     )
     web.run_app(
         app,

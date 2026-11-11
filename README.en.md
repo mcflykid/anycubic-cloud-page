@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.7.0**. [Changelog](CHANGELOG.md).
+Version **1.9.0**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 
@@ -42,19 +42,20 @@ The language selector next to the notification bell remembers French, English or
 
 | Tab | Features | Screenshot |
 | --- | --- | --- |
+| Summary | Current print, printer temperatures and ACE status | — |
 | Printer | State, preview, progress and live temperatures | [View](screenshots/10-session.jpg) |
 | ACE / filaments | Spools, RFID information, remaining filament and drying | [View](screenshots/02-ace-filaments.png) |
 | Files | Printer memory, USB and cloud file operations | [View](screenshots/03-fichiers.png) |
 | Upload / print | Cloud storage for G-code, STL and 3MF, plus G-code printing with ACE mapping | [View](screenshots/04-envoyer-imprimer.png) |
 | Camera | Agora video, zoom, lights and guarded axis controls | [View](screenshots/05-camera.png) |
 | History | Status/date/name filters, preview cards, details and confirmed cloud history removal; notifications in the top-bar bell | [View](screenshots/06-historique.png) |
-| Statistics | Local charts for the past 24 hours covering temperatures, ACE humidity and estimated remaining filament by slot | — |
 | Fleet and health | Availability and freshness of monitored printers | — |
+| Statistics | Local charts for the past 24 hours covering temperatures, ACE humidity and estimated remaining filament by slot | — |
 | Settings | Connection, AI settings and update eligibility | [View](screenshots/07-reglages.png) |
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
 
-In **Settings → Appearance**, choose Default, Apple Design, Detailed, Blueprint, Aurora, Ocean or Laboratory. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
+In **Settings → Appearance**, choose one of six styles, including Glasshouse. Light, dark and system mode are independent. Use the lock on supported tabs to move and resize cards. Settings lets you export, import or reset your layouts. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
 
 ## Offline demo
 

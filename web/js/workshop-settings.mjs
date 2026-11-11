@@ -10,10 +10,10 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=a063449a11af';
-import { workshopState } from './workshop-state.mjs?v=c9f117c20cd5';
-import { definition } from './workshop-overview.mjs?v=d38fe74ae568';
-import { api } from './workshop-api.mjs?v=eaf19d7dd0ca';
+} from './workshop-ui.mjs';
+import { workshopState } from './workshop-state.mjs';
+import { definition } from './workshop-overview.mjs';
+import { api } from './workshop-api.mjs';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {

@@ -8,28 +8,29 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=a063449a11af';
-import { workshopState } from './workshop-state.mjs?v=c9f117c20cd5';
-import { createRequest } from './workshop-api.mjs?v=eaf19d7dd0ca';
-import { createCamera } from './workshop-camera.mjs?v=6e908f319e49';
-import { createTemperatureLoader } from './workshop-temperatures.mjs?v=f0f9736ea93f';
-import { createCommands } from './workshop-commands.mjs?v=476d15aad139';
-import { createOverview } from './workshop-overview.mjs?v=d38fe74ae568';
-import { createAce } from './workshop-ace.mjs?v=709608a9c871';
-import { createFiles } from './workshop-files.mjs?v=7ace2a9c5401';
-import { createHistory } from './workshop-history.mjs?v=755502d8457d';
-import { createSettings } from './workshop-settings.mjs?v=fd9544656dbc';
-import { createTimelapses } from './workshop-timelapses.mjs?v=c50314169eef';
-import './workshop-help.mjs?v=615a054dfe64';
-import { createMonitoring } from './workshop-monitoring.mjs?v=79c94267c3dc';
-import { createFleet } from './workshop-fleet.mjs?v=5067e33f22a1';
-import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=e07d3063ae18';
+} from './workshop-ui.mjs';
+import { workshopState } from './workshop-state.mjs';
+import { createRequest } from './workshop-api.mjs';
+import { createCamera } from './workshop-camera.mjs';
+import { createTemperatureLoader } from './workshop-temperatures.mjs';
+import { createCommands } from './workshop-commands.mjs';
+import { createOverview } from './workshop-overview.mjs';
+import { createAce } from './workshop-ace.mjs';
+import { createFiles } from './workshop-files.mjs';
+import { createHistory } from './workshop-history.mjs';
+import { createSettings } from './workshop-settings.mjs';
+import { createTimelapses } from './workshop-timelapses.mjs';
+import './workshop-help.mjs';
+import { createMonitoring } from './workshop-monitoring.mjs';
+import { createFleet } from './workshop-fleet.mjs';
+import { initializeWorkshopNavigation } from './workshop-navigation.mjs';
 initializeWorkshopNavigation();
-import { initializeInteractions } from './workshop-interactions.mjs?v=086cc64f3abd';
+import { initializeInteractions } from './workshop-interactions.mjs';
 initializeInteractions();
-import { initializeLabLayout } from './workshop-lab.mjs?v=be190f4be7ad';
-initializeLabLayout();
-export { previewJob } from './workshop-overview.mjs?v=d38fe74ae568';
+import { initializeTileLayout } from './workshop-layout.mjs';
+initializeTileLayout();
+import { renderSummary } from './workshop-summary.mjs';
+export { previewJob } from './workshop-overview.mjs';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
@@ -176,6 +177,7 @@ async function refreshState() {
         date(d.token_expires_at),
       );
     }
+    renderSummary(d);
     if (!p) {
       settings.disableQuickControls();
       return;
@@ -237,6 +239,15 @@ function showTab(name) {
 for (const button of document.querySelectorAll('[data-tab]')) {
   button.onclick = () => showTab(button.dataset.tab);
   button.disabled = false;
+}
+// Les liens du résumé ouvrent les sections déjà chargées sans émettre d’ordre.
+for (const button of document.querySelectorAll('[data-summary-open]')) {
+  button.onclick = () => {
+    showTab(button.dataset.summaryOpen);
+    const tab = document.querySelector(`#atelier-tabs [data-tab="${button.dataset.summaryOpen}"]`);
+    const compact = $('section-menu-toggle').getClientRects().length > 0;
+    (compact ? $('section-menu-toggle') : tab)?.focus();
+  };
 }
 document
   .querySelectorAll('[data-command]')

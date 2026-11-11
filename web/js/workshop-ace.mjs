@@ -1,6 +1,6 @@
-import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs?v=a063449a11af';
-import { workshopState } from './workshop-state.mjs?v=c9f117c20cd5';
-import { definition, statusBadge } from './workshop-overview.mjs?v=d38fe74ae568';
+import { $, fmt, formatText, message, mins, node, set, tr } from './workshop-ui.mjs';
+import { workshopState } from './workshop-state.mjs';
+import { definition, statusBadge } from './workshop-overview.mjs';
 
 // Le même hexadécimal peut désigner deux produits, par exemple PLA blanc et PLA Marble blanc.
 const filamentVariants = new Map([

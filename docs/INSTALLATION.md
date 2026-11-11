@@ -162,3 +162,13 @@ Dans **Réglages → Notifications**, ouvrez **Configurer les notifications Disc
 Le canal ne transmet que les résultats terminaux confirmés par le Cloud. Une pause, une annulation ou une alarme sans preuve d’arrêt reste silencieuse. La première lecture de chaque démarrage ou activation établit la référence d’historique. Les résultats déjà visibles à ce moment ne sont pas envoyés. En cas de réponse Discord ambiguë, l’atelier évite de renvoyer le message automatiquement.
 
 L’adresse est conservée dans `APPDATA_DIR/private/discord-webhook`. Laissez le champ vide pour conserver l’adresse enregistrée. Pour bloquer les nouveaux envois et les reprises, décochez l’activation. Une demande déjà transmise peut encore aboutir. Pour retirer aussi l’adresse, utilisez **Supprimer le webhook**. Cette action efface la configuration de l’atelier. Pour révoquer le webhook lui-même, utilisez les intégrations du salon Discord.
+
+## Connexion à deux facteurs
+
+Dans **Réglages → Sécurité**, ouvrez la configuration de la connexion à deux facteurs. Saisissez le mot de passe web, scannez le QR dans une application d’authentification ou entrez la clé manuelle. Saisissez le premier code pour activer le facteur. Conservez les dix codes de secours hors de l’atelier. La page ne les affiche qu’une fois. Un code de secours remplace un code temporaire lors d’une connexion et ne peut servir qu’une fois.
+
+Sur une installation distante, effectuez cette configuration via HTTPS. Gardez l’horloge du serveur et celle du téléphone synchronisées. Le code d’activation est déjà utilisé. Attendez le code suivant si vous vous reconnectez immédiatement. Pour désactiver le facteur depuis les Réglages, confirmez avec le mot de passe web.
+
+Après trois codes refusés, ressaisissez le mot de passe pour ouvrir une nouvelle vérification. Après vingt échecs sur des codes temporaires en deux minutes, attendez la fin du délai affiché ou utilisez un code de secours avec votre mot de passe.
+
+Si le téléphone et les codes de secours sont perdus, ajoutez `WEB_TOTP_RESET=true` au fichier d’environnement utilisé par Compose et recréez le service avec `docker compose up -d`. Ce démarrage efface le facteur local et les anciens codes de secours. Retirez ensuite le réglage et recréez à nouveau le service avant de configurer une nouvelle clé. Cette procédure requiert un accès au déploiement et le mot de passe web. Elle n’agit pas sur le compte Anycubic.

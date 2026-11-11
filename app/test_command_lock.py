@@ -69,6 +69,7 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
             command_lock=asyncio.Lock(),
             command_request_lock=asyncio.Lock(),
             upload_lock=asyncio.Lock(),
+            transport=SimpleNamespace(cloud_mutation_lock=asyncio.Lock()),
             commands={},
             action=AsyncMock(return_value="accepted"),
             event=Mock(),
@@ -152,6 +153,112 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
         finish.set()
         await task
         self.engine.action.assert_awaited_once()
+
+    async def test_pause_and_cancel_pass_during_pending_cloud_task_delete(self):
+        """Une mutation Cloud longue garde sa réservation sans prendre le verrou machine."""
+        for priority in ("pause", "cancel"):
+            with self.subTest(priority=priority):
+                entered = asyncio.Event()
+                finish = asyncio.Event()
+                calls = []
+
+                async def action(name, data, entered=entered, finish=finish, calls=calls):
+                    """Suspend la suppression Cloud et accepte les ordres prioritaires fictifs."""
+                    calls.append(name)
+                    if name == "task-delete-many":
+                        entered.set()
+                        await finish.wait()
+                    return "accepted"
+
+                self.engine.action = AsyncMock(side_effect=action)
+                cloud = asyncio.create_task(
+                    adapter.command(self.req(f"cloud-request-{priority}", "task-delete-many"))
+                )
+                await asyncio.wait_for(entered.wait(), 1)
+                self.assertTrue(self.engine.command_request_lock.locked())
+                self.assertTrue(self.engine.transport.cloud_mutation_lock.locked())
+                self.assertFalse(self.engine.command_lock.locked())
+                result = await adapter.command(self.req(f"{priority}-request-0001", priority))
+                self.assertTrue(json.loads(result.body)["ok"])
+                self.assertEqual(calls, ["task-delete-many", priority])
+                finish.set()
+                self.assertTrue(json.loads((await cloud).body)["ok"])
+                self.assertFalse(self.engine.transport.cloud_mutation_lock.locked())
+
+    async def test_cloud_mutation_reservation_is_shared_across_printer_targets(self):
+        """Le même compte refuse une mutation depuis une seconde cible pendant la première."""
+        entered = asyncio.Event()
+        finish = asyncio.Event()
+        shared_transport = self.engine.transport
+
+        async def pending_cloud(*args):
+            """Maintient une mutation de la première cible en attente, sans réseau réel."""
+            entered.set()
+            await finish.wait()
+            return "accepted"
+
+        self.engine.action = AsyncMock(side_effect=pending_cloud)
+        second = SimpleNamespace(
+            state_dir=self.engine.state_dir,
+            lock=asyncio.Lock(),
+            command_lock=asyncio.Lock(),
+            command_request_lock=asyncio.Lock(),
+            upload_lock=asyncio.Lock(),
+            transport=shared_transport,
+            commands={},
+            action=AsyncMock(return_value="accepted"),
+            event=Mock(),
+            printer=SimpleNamespace(is_available=True),
+            api=SimpleNamespace(upload_file_to_cloud=AsyncMock()),
+        )
+
+        def target(req):
+            """Sélectionne la cible fictive indiquée par le test pour exercer le verrou partagé."""
+            return second if getattr(req, "selected", False) else self.engine
+
+        first_req = self.req("first-cloud-request-0001", "task-delete-many")
+        second_req = self.req("second-cloud-request-0001", "task-delete-many")
+        second_req.selected = True
+        with patch.object(adapter, "request_engine", side_effect=target):
+            first = asyncio.create_task(adapter.command(first_req))
+            await asyncio.wait_for(entered.wait(), 1)
+            with self.assertRaisesRegex(ValueError, "action Cloud est déjà en cours"):
+                await adapter.command(second_req)
+            second.action.assert_not_awaited()
+            finish.set()
+            self.assertTrue(json.loads((await first).body)["ok"])
+
+    async def test_command_journal_keeps_cloud_action_result(self):
+        """Le journal local conserve le résultat final d’une action Cloud simulée."""
+        from aiohttp.test_utils import TestClient, TestServer
+        from command_journal import CommandJournal
+        from web_host import TRUSTED_PROXIES_KEY
+
+        journal = CommandJournal(self.engine.state_dir / "journal.jsonl")
+        app = adapter.web.Application()
+        app[adapter.COMMAND_JOURNAL_KEY] = journal
+        app[TRUSTED_PROXIES_KEY] = ()
+        app.router.add_post("/command", adapter.command)
+        client = TestClient(TestServer(app))
+        await client.start_server()
+        request_data = {
+            "request_id": "journal-request-0001",
+            "action": "task-delete-many",
+            "keys": ["fixture-task"],
+        }
+        with (
+            patch.object(adapter, "request_engine", return_value=self.engine),
+            patch.object(adapter, "json_object", new=AsyncMock(return_value=request_data)),
+        ):
+            response = await client.post("/command", json={})
+        try:
+            self.assertEqual(response.status, 200)
+            rows = journal.rows()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["action"], "task-delete-many")
+            self.assertEqual(rows[0]["outcome"], "acceptée")
+        finally:
+            await client.close()
 
     async def test_slow_read_times_out_without_send_or_unknown_reservation(self):
         """Vérifie que une lecture trop lente expire avant tout envoi ou réservation de résultat."""
