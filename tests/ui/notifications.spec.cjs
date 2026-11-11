@@ -1,8 +1,15 @@
 const {test,expect}=require('@playwright/test');
+const {openSection}=require('./helpers.cjs');
+
+/** Ouvre le journal à partir de l’onglet Historique. */
+async function openHistoryJournal(page) {
+ await openSection(page,'history');
+ await page.getByRole('button',{name:'Journal des notifications',exact:true}).click();
+}
 /** Isole chaque scénario sur le serveur fictif pour ne jamais toucher au cloud. */
 async function openWorkshop(page){await page.goto('/login');await page.getByLabel('Identifiant').fill('admin');await page.getByLabel('Mot de passe').fill('ui-fixture-password');await page.getByRole('button',{name:'Se connecter',exact:true}).click();const reset=await page.request.post('/imprimante-api/demo/reset',{data:{},headers:{Origin:new URL(page.url()).origin}});expect(reset.status()).toBe(200);await page.reload();await expect(page.locator('#notifications-dot')).toBeVisible();}
-test('cloche, filtres, recherche, lecture et clavier sans boucle supplémentaire',async({page})=>{await openWorkshop(page);let historyReads=0;page.on('request',r=>{if(/\/history\?/.test(r.url()))historyReads++;});const bell=page.locator('#notifications-toggle');await bell.click();await expect(bell).toHaveAttribute('aria-expanded','true');await expect(page.locator('#notifications-title')).toHaveText('Messages (2)');await expect(page.locator('.notification-row')).toHaveCount(3);await page.getByRole('button',{name:'Non lu',exact:true}).click();await expect(page.locator('.notification-row')).toHaveCount(2);await page.getByRole('button',{name:'Lu',exact:true}).click();await expect(page.locator('.notification-row')).toHaveCount(1);await page.getByRole('button',{name:'Tous',exact:true}).click();await page.locator('#notification-search').fill('Boîte');await expect(page.locator('.notification-row')).toHaveCount(1);await page.locator('.notification-open').click();await expect(page.locator('#notification-preview-dialog')).toBeVisible();await expect(page.locator('#notifications-title')).toHaveText('Messages (1)');await page.keyboard.press('Escape');await expect(page.locator('#notification-preview-dialog')).toBeHidden();await page.getByRole('button',{name:'Tout marquer comme lu',exact:true}).click();await expect(page.locator('#notifications-title')).toHaveText('Messages (0)');await expect(page.locator('#notifications-dot')).toBeHidden();await page.keyboard.press('Escape');await expect(bell).toBeFocused();await expect(bell).toHaveAttribute('aria-expanded','false');expect(historyReads).toBe(1);});
-test('suppression de messages confirmée et historique des impressions conservé',async({page})=>{await openWorkshop(page);await page.locator('#notifications-toggle').click();await page.getByRole('button',{name:'Supprimer la notification : Cube de calibration.gcode',exact:true}).click();await expect(page.locator('#confirm-dialog')).toBeVisible();await page.locator('#confirm-no').click();await expect(page.locator('.notification-row')).toHaveCount(3);await page.getByRole('button',{name:'Supprimer la notification : Cube de calibration.gcode',exact:true}).click();await page.locator('#confirm-yes').click();await expect(page.locator('.notification-row')).toHaveCount(2);await page.locator('#history-delete-all').click();await page.locator('#confirm-yes').click();await expect(page.getByText('Aucun message',{exact:true})).toBeVisible();await expect.poll(()=>page.locator('#history-state').evaluate(el=>getComputedStyle(el,'::before').backgroundImage)).toContain('/icons/cloud-page.svg');await expect(page.locator('.notification-row')).toHaveCount(0);const tasks=await page.request.get('/imprimante-api/extras/tasks');expect((await tasks.json()).items).toHaveLength(3);const physical=await page.request.post('/imprimante-api/command',{data:{action:'cancel'},headers:{Origin:new URL(page.url()).origin}});expect(physical.status()).toBe(403);});
+test('journal historique, filtres et lecture sans changer la cloche Cloud',async({page})=>{await openWorkshop(page);let historyReads=0;page.on('request',r=>{if(/\/history\?/.test(r.url()))historyReads++;});await openHistoryJournal(page);await expect(page.locator('#historical-notifications-dialog')).toBeVisible();await expect(page.locator('#notifications-title')).toHaveText('Messages (2)');await expect(page.locator('.notification-row')).toHaveCount(3);await page.getByRole('button',{name:'Non lu',exact:true}).click();await expect(page.locator('.notification-row')).toHaveCount(2);await page.getByRole('button',{name:'Lu',exact:true}).click();await expect(page.locator('.notification-row')).toHaveCount(1);await page.getByRole('button',{name:'Tous',exact:true}).click();await page.locator('#notification-search').fill('Boîte');await expect(page.locator('.notification-row')).toHaveCount(1);await page.locator('.notification-open').click();await expect(page.locator('#notification-preview-dialog')).toBeVisible();await expect(page.locator('#notifications-title')).toHaveText('Messages (1)');await page.keyboard.press('Escape');await expect(page.locator('#notification-preview-dialog')).toBeHidden();await page.getByRole('button',{name:'Tout marquer comme lu',exact:true}).click();await expect(page.locator('#notifications-title')).toHaveText('Messages (0)');await expect(page.locator('#notifications-dot')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#historical-notifications-open')).toBeFocused();expect(historyReads).toBe(2);});
+test('suppression de messages confirmée et historique des impressions conservé',async({page})=>{await openWorkshop(page);await openHistoryJournal(page);await page.getByRole('button',{name:'Supprimer la notification : Cube de calibration.gcode',exact:true}).click();await expect(page.locator('#confirm-dialog')).toBeVisible();await page.locator('#confirm-no').click();await expect(page.locator('.notification-row')).toHaveCount(3);await page.getByRole('button',{name:'Supprimer la notification : Cube de calibration.gcode',exact:true}).click();await page.locator('#confirm-yes').click();await expect(page.locator('.notification-row')).toHaveCount(2);await page.locator('#history-delete-all').click();await page.locator('#confirm-yes').click();await expect(page.getByText('Aucun message',{exact:true})).toBeVisible();await expect.poll(()=>page.locator('#history-state').evaluate(el=>getComputedStyle(el,'::before').backgroundImage)).toContain('/icons/cloud-page.svg');await expect(page.locator('.notification-row')).toHaveCount(0);const tasks=await page.request.get('/imprimante-api/extras/tasks');expect((await tasks.json()).items).toHaveLength(3);const physical=await page.request.post('/imprimante-api/command',{data:{action:'cancel'},headers:{Origin:new URL(page.url()).origin}});expect(physical.status()).toBe(403);});
 test('panneau mobile sans débordement et fermeture extérieure',async({page})=>{await page.setViewportSize({width:390,height:844});await openWorkshop(page);await page.locator('#notifications-toggle').click();const box=await page.locator('#notifications-panel').boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(390);await page.locator('h1').click();await expect(page.locator('#notifications-panel')).toBeHidden();});
 
 test('un rafraîchissement de l’historique conserve les aperçus de la cloche',async({page})=>{
@@ -81,9 +88,66 @@ test('la cloche affiche une fin d’impression du slicer et conserve le journal 
  await page.keyboard.press('Escape');
  expect(writes).toHaveLength(0);
  await page.getByRole('button',{name:'Tous',exact:true}).click();
- await page.getByRole('button',{name:'Journal historique',exact:true}).click();
+ await expect(page.locator('#notifications-panel')).not.toContainText('Journal des notifications');
+ await page.keyboard.press('Escape');
+ await openHistoryJournal(page);
  await expect(row).toHaveCount(3);
  await expect(page.locator('#history-delete-all')).toBeVisible();
- await page.getByRole('button',{name:'Notifications Cloud',exact:true}).click();
+ await page.keyboard.press('Escape');
+ await page.locator('#notifications-toggle').click();
  await expect(row).toContainText('Cube du slicer');
+});
+
+test('le panneau Burbuja supporte un changement d’avis et le mouvement réduit',async({page})=>{
+ const panel=page.locator('#notifications-panel');
+ const bell=page.locator('#notifications-toggle');
+ const animation=()=>panel.evaluate(element=>element.getAnimations().find(item=>item.id==='notification-bubble')?.playState);
+ await openWorkshop(page);
+ await bell.click();
+ await expect.poll(animation).toBe('running');
+ await page.keyboard.press('Escape');
+ await expect(bell).toHaveAttribute('aria-expanded','false');
+ await bell.click();
+ await expect(bell).toHaveAttribute('aria-expanded','true');
+ await expect(panel).toBeVisible();
+ await expect.poll(animation).toBeUndefined();
+ await expect(panel).toBeVisible();
+
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await expect.poll(()=>page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
+ await bell.click();
+ await expect(panel).toBeHidden();
+ await expect.poll(animation).toBeUndefined();
+});
+
+test('le pictogramme sans aperçu reste au centre de la miniature de la cloche', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('**/extras/notification-preview?*', (route) => {
+    const key = new URL(route.request().url()).searchParams.get('key');
+    return key.endsWith('1') ? route.fulfill({ json: { image: null } }) : route.fallback();
+  });
+  await openWorkshop(page);
+  await page.locator('#notifications-toggle').click();
+  const miniature = page.locator('#notifications-panel .task-thumbnail').first();
+  await expect(miniature).toHaveAttribute('data-preview-state', 'unavailable');
+  await expect(miniature.locator('img')).toBeHidden();
+  await expect(miniature).toHaveAccessibleName(/Voir les détails de/);
+  const geometry = await miniature.evaluate((button) => {
+    const fallback = button.querySelector('span');
+    const outer = button.getBoundingClientRect();
+    const inner = fallback.getBoundingClientRect();
+    const icon = getComputedStyle(fallback, '::before');
+    return {
+      centerX: inner.x + inner.width / 2 - outer.x - outer.width / 2,
+      centerY: inner.y + inner.height / 2 - outer.y - outer.height / 2,
+      width: parseFloat(icon.width),
+      available: Math.min(inner.width, inner.height),
+    };
+  });
+  expect(Math.abs(geometry.centerX)).toBeLessThan(1);
+  expect(Math.abs(geometry.centerY)).toBeLessThan(1);
+  expect(geometry.width).toBeLessThan(geometry.available);
+  const image = page.locator('#notifications-panel .task-thumbnail').nth(1).locator('img');
+  await expect(image).toBeVisible();
+  await expect(image).toHaveCSS('object-fit', 'contain');
 });

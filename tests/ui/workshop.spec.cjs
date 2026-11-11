@@ -13,12 +13,12 @@ test('un catalogue inaccessible laisse l’atelier fonctionner en français',asy
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('lang','fr');
  await expect(page.locator('#connection')).toHaveText('En ligne');
- await expect(page.locator('#printer-model')).toHaveText('Anycubic Kobra S1');
+ await expect(page.locator('#printer-model')).toHaveText('Kobra S1 · Démonstration');
  await expect(page.getByRole('combobox',{name:'Langue de l’interface'})).toHaveValue('fr');
  expect(failed.length).toBeGreaterThanOrEqual(1);
  const bell=await page.locator('#notifications-toggle').boundingBox();
  expect(bell.width).toBe(44);
- expect(bell.height).toBeGreaterThanOrEqual(44);
+ expect(bell.height).toBe(44);
  expect(await page.locator('.portal-nav').evaluate(nav=>nav.scrollWidth<=nav.clientWidth)).toBe(true);
 });
 
@@ -67,6 +67,7 @@ test('le journal en lecture seule applique les filtres à l’export',async({pag
  }}));
  await login(page);
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
+ await page.locator('#settings-logs-open').click();
  await page.getByText('Journal des commandes',{exact:true}).click();
  await expect(page.locator('#journal-entries')).toContainText('light · confirmée');
  await page.locator('#journal-filters select[name=printer]').selectOption('fixture');
@@ -167,17 +168,17 @@ test('l’apparence suit le système ou garde le choix explicite après recharge
   await page.getByRole('button', {name: 'Réglages', exact: true}).click();
   const theme = page.getByLabel('Thème de l’interface');
   await expect(theme).toHaveValue('system');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
   await theme.selectOption('light');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 244, 246)');
   await page.reload();
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 244, 246)');
   await page.getByRole('button', {name: 'Réglages', exact: true}).click();
   await theme.selectOption('dark');
   await page.emulateMedia({colorScheme: 'light'});
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
   await theme.selectOption('system');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 244, 246)');
 });
 
 test('le style visuel se mémorise indépendamment du mode sombre', async ({page}) => {
@@ -191,14 +192,13 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   const desktopStyle = await style.boundingBox();
   expect(desktopStyle.y).toBeCloseTo(desktopTheme.y);
   expect(desktopStyle.x).toBeGreaterThan(desktopTheme.x + desktopTheme.width);
-  await expect(page.getByText('La déconnexion du suivi n’arrête pas l’impression.')).toHaveCSS('text-align', 'center');
+  await page.getByRole('button', {name: 'Déconnecter', exact:true}).click();
+  await expect(page.locator('#confirm-text')).toContainText('Cette action n’arrête pas l’impression.');
+  await page.locator('#confirm-no').click();
   await page.setViewportSize({width:360,height:800});
   expect((await style.boundingBox()).y).toBeGreaterThan((await theme.boundingBox()).y);
   await page.setViewportSize({width:1280,height:900});
   await theme.selectOption('dark');
-  await style.selectOption({label: 'Apple Design'});
-  await expect(page.locator('.atelier-tabs')).toHaveCSS('border-radius', '999px');
-  await expect(page.locator('.portal-nav')).toHaveCSS('backdrop-filter', 'saturate(1.45) blur(18px)');
   for (const width of [1280, 800]) {
     await page.setViewportSize({width,height:900});
     const tabs = page.locator('#atelier-tabs');
@@ -215,21 +215,13 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   await page.setViewportSize({width:1280,height:900});
-  await openSection(page,'overview');
-  await expect(page.locator('#tab-overview .product')).toHaveCSS('border-radius', '26px');
-  const product = await page.locator('#tab-overview .product').boundingBox();
-  const job = await page.locator('#tab-overview .overview-content').boundingBox();
-  expect(product.y).toBeCloseTo(job.y);
-  expect(product.height).toBeLessThan(job.height);
-  expect(product.height).toBeGreaterThan(48);
-  await expect(page.locator('#controls-open')).toHaveCSS('border-radius', '999px');
   await settings.click();
-  await style.selectOption({label: 'Blueprint'});
-  await expect(page.locator('html')).toHaveAttribute('data-style', 'blueprint');
+  await style.selectOption({label: 'Verrière'});
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'glasshouse');
   await page.reload();
   await settings.click();
-  await expect(style).toHaveValue('blueprint');
+  await expect(style).toHaveValue('glasshouse');
   await expect(theme).toHaveValue('dark');
   await style.selectOption({label: 'Par défaut'});
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(19, 21, 24)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
 });

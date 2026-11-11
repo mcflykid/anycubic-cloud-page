@@ -111,7 +111,8 @@ async function initializeLanguage() {
 function initializeTheme() {
   const storageKey = 'cloud-page-theme',
     root = document.documentElement,
-    choice = document.getElementById('interface-theme');
+    choice = document.getElementById('interface-theme'),
+    toggle = document.getElementById('interface-mode-toggle');
   let theme = 'system';
   try {
     const saved = localStorage.getItem(storageKey);
@@ -119,6 +120,21 @@ function initializeTheme() {
   } catch {}
   root.dataset.theme = theme;
   if (!choice) return;
+  const system = matchMedia('(prefers-color-scheme: dark)');
+  const updateModeToggle = () => {
+    const dark = root.dataset.theme === 'dark' || (root.dataset.theme === 'system' && system.matches);
+    toggle.dataset.mode = dark ? 'dark' : 'light';
+    toggle.setAttribute('aria-label', tr(dark ? 'Activer le mode clair' : 'Activer le mode sombre'));
+  };
+  if (toggle) {
+    updateModeToggle();
+    system.addEventListener('change', updateModeToggle);
+    toggle.disabled = false;
+    toggle.onclick = () => {
+      choice.value = toggle.dataset.mode === 'dark' ? 'light' : 'dark';
+      choice.dispatchEvent(new Event('change'));
+    };
+  }
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let transition;
   choice.value = theme;
@@ -127,7 +143,10 @@ function initializeTheme() {
     transition?.skipTransition();
     const applyTheme = () => {
       // Le navigateur peut différer le rendu jusqu’après un deuxième changement.
-      if (choice.value === nextTheme) root.dataset.theme = nextTheme;
+      if (choice.value === nextTheme) {
+        root.dataset.theme = nextTheme;
+        if (toggle) updateModeToggle();
+      }
     };
     if (!reducedMotion.matches && typeof document.startViewTransition === 'function') {
       const current = document.startViewTransition(applyTheme);
@@ -148,11 +167,9 @@ initializeTheme();
 
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
-  ['apple', 'Navigation flottante, verre doux et curseur actif qui accompagne le choix.'],
-  ['blueprint', 'Plan quadrillé, index de sections et panneau latéral repliable.'],
-  ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
-  ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
-  ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
+  ['aurora', 'Surfaces lumineuses et accents violets.'],
+  ['lab', 'Palette bleu-vert et menu latéral repliable sur ordinateur.'],
+  ['glasshouse', 'Surfaces bleutées et accent indigo.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */
@@ -208,12 +225,27 @@ const pendingLists = new WeakMap();
 export function beginListLoading(list, skeleton, announce) {
   pendingLists.get(list)?.();
   list.setAttribute('aria-busy', 'true');
+  const pieces = [...skeleton.querySelectorAll('.skeleton-piece')];
+  // Adapté d’Esqueleto · Moxen (https://moxen.cl/recursos/esqueleto/) : les décalages synchronisent le reflet après chaque changement de grille.
+  const alignSweep = () => {
+    const {left, width} = skeleton.getBoundingClientRect();
+    skeleton.style.setProperty('--skeleton-width', `${width}px`);
+    for (const piece of pieces) {
+      const offset = piece.getBoundingClientRect().left - left;
+      piece.style.setProperty('--skeleton-offset', `${offset}px`);
+    }
+  };
+  const observer = new ResizeObserver(alignSweep);
   const timer = setTimeout(() => {
-    if (announce() !== false) skeleton.hidden = list.childElementCount !== 0;
+    if (announce() === false || list.childElementCount !== 0) return;
+    skeleton.hidden = false;
+    alignSweep();
+    observer.observe(skeleton);
   }, 240);
   const stop = () => {
     if (pendingLists.get(list) !== stop) return;
     clearTimeout(timer);
+    observer.disconnect();
     skeleton.hidden = true;
     list.removeAttribute('aria-busy');
     pendingLists.delete(list);
@@ -271,10 +303,11 @@ export function message(text, error = false) {
   $('message').classList.toggle('error', error);
 }
 /** Renvoie une promesse booléenne ; une fermeture du dialogue annule l’action physique proposée. */
-export function confirmAction(text) {
+export function confirmAction(text, showFileSlots = false) {
   return new Promise((resolve) => {
     const d = $('confirm-dialog');
     set('confirm-text', text);
+    $('file-mapping-form').hidden = !showFileSlots;
     d.showModal();
     let settled = false;
     const settle = (value) => {

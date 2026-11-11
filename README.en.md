@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.9.0**. [Changelog](CHANGELOG.md).
+Version **1.11.0**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 
@@ -55,7 +55,7 @@ The language selector next to the notification bell remembers French, English or
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
 
-In **Settings → Appearance**, choose one of six styles, including Glasshouse. Light, dark and system mode are independent. Use the lock on supported tabs to move and resize cards. Settings lets you export, import or reset your layouts. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
+In **Settings → Appearance**, choose one of four styles. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
 
 ## Offline demo
 
@@ -83,3 +83,5 @@ GPL-3.0-or-later. Independent community project; not an official Anycubic produc
 The French `/login` form uses an eight-hour session cookie: HttpOnly, SameSite=Strict, and Secure when `PUBLIC_ORIGIN` is HTTPS. Sign-out revokes the session. Five failures per five-minute window limit attempts per connection address; users behind a proxy may share this limit. Restarting the application or changing the web password invalidates sessions.
 
 ![Sign-in page — synthetic demo](screenshots/00-connexion.jpg)
+
+The [HTML layout references](docs/DESIGN.md#maquettes-de-référence) cover all ten tabs.

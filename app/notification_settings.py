@@ -53,6 +53,12 @@ def install_discord(app, state_dir, *, fake_sender=None):
     app.router.add_post(PATH, discord_settings)
 
 
+def discord_enabled(app):
+    """Indique si le canal est actif, ou absent de cette variante de l’atelier."""
+    delivery = app.get(DELIVERY_KEY)
+    return delivery.config.enabled if delivery is not None else None
+
+
 def discord_page(delivery, message="", status=200):
     """Affiche des options publiques et garde le champ du secret toujours vide."""
     config = delivery.config

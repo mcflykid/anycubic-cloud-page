@@ -1,13 +1,17 @@
 # Feuille de route
 
-Mise à jour le 11 novembre 2026. Dernière version publiée [1.9.0](https://github.com/mcflykid/anycubic-cloud-page/releases/tag/v1.9.0).
+Mise à jour le 11 novembre 2026. Voir les [versions publiées](https://github.com/mcflykid/anycubic-cloud-page/releases).
 
 ## Décisions du propriétaire
 
 - L’atelier utilise le Cloud Anycubic. Les protocoles réseau locaux sont étudiés pour leurs formats et leurs idées.
 - Le stockage du mot de passe web reste celui de l’installation actuelle.
-- Le catalogue conserve Par défaut, Apple Design, Blueprint, Aurore, Laboratoire et Verrière. [#245](https://github.com/mcflykid/anycubic-cloud-page/issues/245)
+- Le catalogue conserve Par défaut, Apple Design, Blueprint, Aurore, Laboratoire, Verrière et Prisme. [#245](https://github.com/mcflykid/anycubic-cloud-page/issues/245)
 - Les essais sur la Kobra S1 Combo suivent le cadre [#214](https://github.com/mcflykid/anycubic-cloud-page/issues/214), avec vérification de l’état et remise en état après chaque essai. Toute impression complète, mise à jour de firmware ou réinitialisation est exclue.
+
+## Livré dans la 1.10.0
+
+Prisme, la connexion à deux facteurs, les corrections d’affichage et le découpage du serveur sont détaillés dans le [journal des changements](../CHANGELOG.md).
 
 ## En cours
 
@@ -15,16 +19,13 @@ Les critères sont regroupés dans [Prochaine livraison](https://github.com/mcfl
 
 | Sujet | Suivi |
 | --- | --- |
-| Ressources web stables | [#237](https://github.com/mcflykid/anycubic-cloud-page/issues/237) est livré sur `main` depuis `239c6fc`. |
-| Régressions d’affichage | [#238 Graphiques](https://github.com/mcflykid/anycubic-cloud-page/issues/238), [#239 Historique Safari](https://github.com/mcflykid/anycubic-cloud-page/issues/239), [#240 Caméra](https://github.com/mcflykid/anycubic-cloud-page/issues/240) vérifiés dans les six styles sous Chromium et WebKit. [#264 Courbes du filament](https://github.com/mcflykid/anycubic-cloud-page/issues/264) place les quatre emplacements sur une rangée par ACE sur ordinateur. |
-| Journaux, connexion et code temporaire | [#218 Journaux](https://github.com/mcflykid/anycubic-cloud-page/issues/218), [#215 Connexion](https://github.com/mcflykid/anycubic-cloud-page/issues/215), [#221 TOTP](https://github.com/mcflykid/anycubic-cloud-page/issues/221), [#249 File](https://github.com/mcflykid/anycubic-cloud-page/issues/249), [#250 Quota TOTP](https://github.com/mcflykid/anycubic-cloud-page/issues/250), [#251 Confirmation](https://github.com/mcflykid/anycubic-cloud-page/issues/251) |
 | Discord | [#205 Notifications](https://github.com/mcflykid/anycubic-cloud-page/issues/205), [#252 Écritures](https://github.com/mcflykid/anycubic-cloud-page/issues/252), [#253 Événements manqués](https://github.com/mcflykid/anycubic-cloud-page/issues/253), [#254 Qualification S1](https://github.com/mcflykid/anycubic-cloud-page/issues/254) |
-| Parcours et mouvements | [#241 Envoyer](https://github.com/mcflykid/anycubic-cloud-page/issues/241), [#242 Fichiers](https://github.com/mcflykid/anycubic-cloud-page/issues/242), [#243 Journal historique](https://github.com/mcflykid/anycubic-cloud-page/issues/243), [#244 Apple Design](https://github.com/mcflykid/anycubic-cloud-page/issues/244), [#246 Aurore](https://github.com/mcflykid/anycubic-cloud-page/issues/246), [#247 Grille](https://github.com/mcflykid/anycubic-cloud-page/issues/247), [#248 Animations](https://github.com/mcflykid/anycubic-cloud-page/issues/248) |
+| Suite de l’interface | [#248 Animations](https://github.com/mcflykid/anycubic-cloud-page/issues/248) |
 | Annotations en français | [#223](https://github.com/mcflykid/anycubic-cloud-page/issues/223), à intégrer après les autres changements. |
 
 ## Ensuite
 
-[Livraison suivante](https://github.com/mcflykid/anycubic-cloud-page/milestone/13) regroupe le [découpage serveur #255](https://github.com/mcflykid/anycubic-cloud-page/issues/255), la [documentation des verrous #256](https://github.com/mcflykid/anycubic-cloud-page/issues/256), l’[audit des styles #257](https://github.com/mcflykid/anycubic-cloud-page/issues/257), l’[étude des seize dépôts #258](https://github.com/mcflykid/anycubic-cloud-page/issues/258), le [catalogue d’erreurs #259](https://github.com/mcflykid/anycubic-cloud-page/issues/259), le [registre des sources #260](https://github.com/mcflykid/anycubic-cloud-page/issues/260), les [README #261](https://github.com/mcflykid/anycubic-cloud-page/issues/261) et les [captures #262](https://github.com/mcflykid/anycubic-cloud-page/issues/262).
+[Livraison suivante](https://github.com/mcflykid/anycubic-cloud-page/milestone/13) regroupe l’[audit des styles #257](https://github.com/mcflykid/anycubic-cloud-page/issues/257), l’[étude des seize dépôts #258](https://github.com/mcflykid/anycubic-cloud-page/issues/258), le [catalogue d’erreurs #259](https://github.com/mcflykid/anycubic-cloud-page/issues/259), le [registre des sources #260](https://github.com/mcflykid/anycubic-cloud-page/issues/260), les [README #261](https://github.com/mcflykid/anycubic-cloud-page/issues/261) et les [captures #262](https://github.com/mcflykid/anycubic-cloud-page/issues/262).
 
 ## À l’étude
 

@@ -371,7 +371,7 @@ class EngineSelection(unittest.IsolatedAsyncioTestCase):
             mqtt_add_subscribed_printer=Mock(),
             disconnect_mqtt=Mock(),
         )
-        with patch.object(adapter, "CloudPageAPI", return_value=client):
+        with patch("printer_engine.CloudPageAPI", return_value=client):
             await e.connect()
             self.assertIs(e.printer, a)
             self.assertEqual(e.pinned_id, "1")

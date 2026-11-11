@@ -37,14 +37,16 @@ test('le glissement peint une plage sans ordre et Maj+clic la complète',async({
  await page.locator('[data-source=cloud]').click();
  const checks=page.locator('#file-rows input[type=checkbox]');
  await expect(checks).toHaveCount(5);
- await checks.nth(2).scrollIntoViewIfNeeded();
- const first=await checks.nth(0).boundingBox(),third=await checks.nth(2).boundingBox();
- await page.mouse.move(first.x+first.width/2,first.y+first.height/2);
+ await checks.nth(0).hover();
  await page.mouse.down();
- await page.mouse.move(third.x+third.width/2,third.y+third.height/2,{steps:8});
+ await expect(checks.nth(0)).toBeChecked();
+ // La première sélection révèle la barre groupée. La cible se mesure après ce changement.
+ await checks.nth(2).hover();
  await page.mouse.up();
  await expect(page.locator('#file-rows .file-selected')).toHaveCount(3);
  await expect(page.locator('#cloud-selected-count')).toHaveText('3 sélections');
+ await expect(page.locator('#cloud-selection-digits .selection-digit-strip')).toHaveCSS('--d','3');
+ await expect(checks.nth(2).locator('xpath=ancestor::tr')).toHaveCSS('--selection-wave-delay','46ms');
  await checks.nth(4).click({modifiers:['Shift']});
  await expect(page.locator('#cloud-selected-count')).toHaveText('5 sélections');
  expect(commands).toBe(0);
@@ -101,4 +103,22 @@ test('Retry-After interdit la reprise de lecture',async({page})=>{
   return errors;
  });
  expect(limited).toBe(1);expect(messages).toHaveLength(1);
+});
+
+test('la recherche occupe la barre des fichiers Cloud et les dossiers locaux gardent leurs commandes',async({page})=>{
+  await page.setViewportSize({width:1366,height:768});
+  await login(page);
+  await page.locator('[data-tab=files]').click();
+  const form=page.locator('#files-form');
+  await page.locator('[data-source=cloud]').click();
+  await expect(page.locator('#file-path-label')).toBeHidden();
+  await expect(page.locator('#cloud-folder-label')).toBeVisible();
+  const search=await page.locator('#files-search').boundingBox();
+  const refresh=await form.locator('button[type=submit]').boundingBox();
+  const sort=await form.locator('#files-sort').boundingBox();
+  expect(search.width).toBeGreaterThan(refresh.width);
+  expect(search.x).toBeGreaterThan(refresh.x);
+  expect(sort.x).toBeGreaterThan(search.x);
+  await page.locator('[data-source=local]').click();
+  await expect(page.locator('#file-path-label')).toBeVisible();
 });

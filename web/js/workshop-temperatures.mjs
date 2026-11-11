@@ -30,13 +30,14 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
   const valid = rows.filter((r) => Number.isFinite(r[key])),
     last = valid.at(-1);
   host.replaceChildren();
-  current.textContent = last ? `${fmt(last[key], unit)} · ${hour(last.time)}` : '—';
+  current.textContent = last ? fmt(last[key], unit) : '—';
+  current.title = last ? hour(last.time) : '';
   if (!valid.length) {
     host.append(node('p', tr('En attente des premiers relevés.'), 'muted'));
     return;
   }
   const W = 360,
-    H = 180,
+    H = 126,
     L = 38,
     R = 12,
     T = 12,
@@ -165,7 +166,9 @@ function renderAceCharts(rows, hours, boxes) {
 
   function group(host, box) {
     const section = node('section'), charts = node('div', null, 'temperature-charts');
-    section.append(node('h4', aceChartName(boxes, box), 'ace-chart-group-name'), charts);
+    if (host !== filament || slots.size !== 1)
+      section.append(node('h4', aceChartName(boxes, box), 'ace-chart-group-name'));
+    section.append(charts);
     host.append(section);
     return charts;
   }
@@ -197,6 +200,8 @@ function renderAceCharts(rows, hours, boxes) {
     for (const slot of ordered(slots.get(box))) chart(charts, box, slot);
   }
   if (!slots.size) filament.append(empty());
+  const box = slots.size === 1 ? slots.keys().next().value : boxes.length === 1 ? primary : null;
+  set('statistics-filament-name', box === null ? tr('Filament restant') : aceChartName(boxes, box) + ' · ' + tr('Filament restant'));
 }
 
 /** Lie courbes, modèles de boîtiers et export à la cible et à la période des requêtes. */
@@ -204,7 +209,9 @@ export function createTemperatureLoader(request, getPrinter = () => '', getHardw
   let sequence = 0;
   const exportButton = $('temperature-export');
   if (exportButton) exportButton.onclick = async () => {
+    // Le bouton indique uniquement l’attente de l’export en cours.
     exportButton.disabled = true;
+    exportButton.setAttribute('aria-busy', 'true');
     const hours = Number($('temperature-hours').value), printer = getPrinter();
     const sameContext = () => !!printer && printer === getPrinter()
       && hours === Number($('temperature-hours').value)
@@ -226,6 +233,7 @@ export function createTemperatureLoader(request, getPrinter = () => '', getHardw
       else cancelled();
     } finally {
       exportButton.disabled = false;
+      exportButton.removeAttribute('aria-busy');
     }
   };
   return async function loadTemperatures() {

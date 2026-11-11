@@ -1,0 +1,184 @@
+/* Structure commune des cartes et des commandes de l’atelier. */
+.atelier-card {
+  min-inline-size: 0;
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  font: var(--atelier-text);
+}
+.atelier-card-header,
+.atelier-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--atelier-space-3);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+}
+.atelier-card-header {
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+}
+.atelier-card-header :is(h2, h3) {
+  margin: 0;
+  color: inherit;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+.atelier-card-body { padding: var(--atelier-space-4); }
+.atelier-card-footer { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+.atelier-card-footer > :only-child { margin-inline: auto; }
+.atelier-field {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--atelier-space-1);
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.atelier-control,
+.atelier-field > :is(input, select) {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  block-size: var(--atelier-control);
+  min-block-size: var(--atelier-control);
+  margin: 0;
+  padding: 0 var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  color: var(--atelier-fg);
+  background: var(--atelier-surface);
+  font: var(--atelier-text);
+}
+button.atelier-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--atelier-space-1);
+  font-weight: var(--atelier-semibold);
+  white-space: nowrap;
+}
+button.atelier-control-icon {
+  inline-size: var(--atelier-control);
+  padding: 0;
+}
+.atelier-control-icon .ui-icon {
+  inline-size: var(--atelier-icon);
+  block-size: var(--atelier-icon);
+  stroke-width: var(--atelier-stroke);
+}
+.atelier-control-primary {
+  background: var(--atelier-accent);
+  color: var(--atelier-on-accent);
+  border-color: var(--atelier-accent);
+}
+.atelier-control-danger {
+  border-color: var(--atelier-error);
+  color: var(--atelier-error);
+}
+.atelier-control:disabled {
+  background: var(--atelier-bg);
+  color: var(--atelier-muted);
+  opacity: 1;
+}
+.atelier-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--atelier-space-2);
+}
+.atelier-status::before {
+  content: "";
+  inline-size: var(--atelier-dot);
+  block-size: var(--atelier-dot);
+  border-radius: 50%;
+  background: var(--atelier-normal);
+}
+
+.atelier-status[data-state="running"]::before { background: var(--atelier-accent); }
+.atelier-status[data-state="paused"]::before {
+  background: var(--atelier-warning);
+  border-radius: 0;
+}
+.atelier-status.offline::before {
+  background: transparent;
+  border: var(--atelier-active-rule) solid var(--atelier-error);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+.atelier-measures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--atelier-space-2) var(--atelier-space-5);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.atelier-measures > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--atelier-space-2);
+}
+.atelier-measures dt { color: var(--atelier-muted); font: var(--atelier-label); }
+.atelier-measures dd { margin: 0; font-weight: var(--atelier-semibold); }
+.atelier-progress-group { display: grid; gap: var(--atelier-space-1); }
+.atelier-progress-group[hidden] { display: none; }
+.atelier-progress-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--atelier-space-3);
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.atelier-progress-group strong {
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.atelier-progress-group progress {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--atelier-progress);
+  margin: 0;
+  accent-color: var(--atelier-accent);
+}
+.atelier-control-danger:disabled { border-color: var(--atelier-line); }
+
+/* Une commande masquée ne réserve aucune place dans une carte ou une fenêtre. */
+.atelier-card [hidden], .atelier-field[hidden] { display: none; }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  .atelier-card-header, .atelier-card-footer {
+    padding-block: var(--atelier-space-2);
+  }
+  .atelier-card-body { padding-block: var(--atelier-space-2); }
+}
+
+/* Les fenêtres standard utilisent les mêmes rôles et la même échelle que les cartes. */
+body:has(.workshop-frame) > dialog:not(:where(#task-dialog)) {
+  padding: var(--atelier-space-5);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  box-shadow: var(--atelier-dialog-shadow);
+}
+body:has(.workshop-frame) > dialog :is(.dialog-top > h2, #confirm-title) {
+  margin: 0;
+  font: var(--atelier-title);
+  font-weight: var(--atelier-semibold);
+}
+body:has(.workshop-frame) > dialog :is(.dialog-close, #confirm-yes, #confirm-no) {
+  min-block-size: var(--atelier-control);
+  padding-block: 0;
+  border-radius: var(--atelier-control-radius);
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+}
+@media (max-width: 760px) {
+  body:has(.workshop-frame) > dialog:not(:where(#task-dialog)) {
+    padding: var(--atelier-space-4);
+  }
+}

@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
 
-test('chaque modèle reconnu suit la sélection dans Imprimante et Réglages',async({page})=>{
+test('chaque modèle reconnu suit la sélection dans Imprimante et Résumé',async({page})=>{
   let model='Anycubic Kobra 1';
   await page.route('**/imprimante-api/status',async route=>{
     const response=await route.fetch(),data=await response.json();
@@ -14,7 +14,7 @@ test('chaque modèle reconnu suit la sélection dans Imprimante et Réglages',as
     await page.reload();
     const filename=name.toLowerCase().replaceAll(' ','-')+'.svg';
     await expect(page.locator('#printer-illustration')).toHaveAttribute('src',new RegExp(filename+'$'));
-    await expect(page.locator('#settings-printer-illustration')).toHaveAttribute('src',new RegExp(filename+'$'));
+    await expect(page.locator('#summary-printer-image')).toHaveAttribute('src',new RegExp(filename+'$'));
     expect(await page.locator('#printer-illustration').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
   }
   model='Modèle inconnu';await page.reload();

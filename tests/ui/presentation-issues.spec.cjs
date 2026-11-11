@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const {login,openSection}=require('./helpers.cjs');
+const {login}=require('./helpers.cjs');
 
 async function useStyle(page,style){
  await page.addInitScript(value=>localStorage.setItem('cloud-page-style',value),style);
@@ -10,12 +10,12 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('data-style','standard');
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
- await expect(page.locator('#interface-style option')).toHaveCount(6);
+ await expect(page.locator('#interface-style option')).toHaveCount(4);
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 
-test('Apple Design garde dix sections accessibles sans débordement horizontal',async({page})=>{
- await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page, 'summary');
+test('Le menu mobile garde dix sections accessibles sans débordement horizontal',async({page})=>{
+ await page.setViewportSize({width:390,height:800}); await login(page, 'summary');
  const tabs=page.locator('#atelier-tabs');
  await expect(page.locator('#section-menu-toggle')).toBeVisible();
  await expect(tabs).toBeHidden();
@@ -33,14 +33,14 @@ test('Apple Design garde dix sections accessibles sans débordement horizontal',
 
 test('les statistiques regroupent température, ACE et filaments en trois zones adaptatives',async({page})=>{
  await login(page); await page.getByRole('button',{name:'Statistiques',exact:true}).click();
- await expect(page.locator('.statistics-grid > section')).toHaveCount(3);
+ await expect(page.locator('.atelier-statistics-grid > section')).toHaveCount(3);
  await expect(page.locator('#statistics-printer #chart-nozzle')).toBeVisible();
  await expect(page.locator('#statistics-ace #chart-ace')).toBeVisible();
  await expect(page.locator('#statistics-filament #chart-filament .temperature-card')).toHaveCount(4);
- const positions=await page.locator('.statistics-grid > section').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}}));
+ const positions=await page.locator('.atelier-statistics-grid > section').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}}));
  expect(positions[0].y).toBeCloseTo(positions[1].y,0); expect(positions[2].y).toBeGreaterThan(positions[0].y);
  await page.setViewportSize({width:390,height:800});
- expect(await page.locator('.statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ expect(await page.locator('.atelier-statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 
 test('les mesures absentes gardent les cartes',async({page})=>{
@@ -51,47 +51,17 @@ test('les mesures absentes gardent les cartes',async({page})=>{
  });
  await login(page);
  const metrics=page.locator('#temperatures');
- await expect(metrics.locator('dd')).toHaveCount(5);
+ await expect(metrics.locator('td')).toHaveCount(4);
  await expect(metrics).toContainText('—');
 });
 
 test('l’avertissement des axes reste en bas de la carte sur ordinateur et mobile',async({page})=>{
  await login(page); await page.getByRole('button',{name:'Caméra',exact:true}).click();
- const warning=page.locator('.axis-card>.settings-help'), card=page.locator('.axis-card');
- const measure=()=>warning.evaluate(el=>({bottom:el.getBoundingClientRect().bottom,card:el.closest('.axis-card').getBoundingClientRect()}));
+ const warning=page.locator('.camera-warning > .settings-help'), card=page.locator('.camera-command-card');
+ const measure=()=>warning.evaluate(el=>({bottom:el.getBoundingClientRect().bottom,card:el.closest('.camera-command-card').getBoundingClientRect()}));
  let result=await measure(); expect(Math.abs(result.bottom-result.card.bottom)).toBeLessThan(40);
  await page.setViewportSize({width:390,height:800}); result=await measure();
  expect(Math.abs(result.bottom-result.card.bottom)).toBeLessThan(40);
-});
-
-test('Apple Design aligne les cartes et garde les quatre commandes sur une rangée',async({page})=>{
- await useStyle(page,'apple'); await page.setViewportSize({width:1440,height:900}); await login(page);
- const [buttons,top,bottom]=await Promise.all([
-  page.locator('#tab-overview .actions button').evaluateAll(items=>items.map(item=>({y:item.getBoundingClientRect().top,disabled:item.disabled}))),
-  page.locator('#tab-overview .overview-grid').boundingBox(),
-  page.locator('#tab-overview .printer-lower-grid').boundingBox(),
- ]);
- expect(new Set(buttons.map(button=>Math.round(button.y))).size).toBe(1);
- const topSplit=await page.locator('#tab-overview .overview-grid').evaluate(el=>el.children[0].getBoundingClientRect().right);
- const lowerSplit=await page.locator('#tab-overview .printer-lower-grid').evaluate(el=>el.children[0].getBoundingClientRect().right);
- expect(Math.abs(topSplit-lowerSplit)).toBeLessThan(3);
- expect(Math.abs(top.x-bottom.x)).toBeLessThan(2);
-});
-
-test('Apple Design applique fond profond, verre discret et respect des animations réduites',async({page})=>{
- await useStyle(page,'apple'); await login(page);
- // Le changement d’URL précède parfois l’application du thème et de ses styles.
- await expect(page.locator('html')).toHaveAttribute('data-style','apple');
- await expect(page.locator('body')).toHaveCSS('background-image',/radial-gradient/);
- await expect(page.locator('.atelier-tabs')).toHaveCSS('backdrop-filter',/blur/);
- await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
- const [seeButton,configureButton]=await Promise.all([
-  page.getByRole('button',{name:'Voir',exact:true}).first().evaluate(el=>getComputedStyle(el).borderRadius),
-  page.getByRole('button',{name:'Configurer une bobine',exact:true}).evaluate(el=>getComputedStyle(el).borderRadius),
- ]);
- expect(seeButton).toBe(configureButton);
- await page.emulateMedia({reducedMotion:'reduce'});
- await expect(page.locator('body')).toHaveCSS('background-attachment','scroll, scroll, scroll');
 });
 
 test('une fermeture externe de confirmation annule une seule fois',async({page})=>{
@@ -103,4 +73,21 @@ test('une fermeture externe de confirmation annule une seule fois',async({page})
   window.confirmOutcome=await result;
  });
  await expect.poll(()=>page.evaluate(()=>window.confirmOutcome)).toBe(false);
+});
+
+test('Aurore conserve la navigation commune et son onglet actif sur mobile',async({page})=>{
+ await useStyle(page,'aurora');
+ await page.setViewportSize({width:1366,height:768});
+ await login(page,'settings');
+ const nav=page.locator('#atelier-tabs');
+ const active=nav.locator('[aria-current=page]');
+ await expect(active).toHaveText('Réglages');
+ await expect(active).toHaveCSS('border-radius','0px');
+ await expect(nav.locator('.atelier-navigation-marker')).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('#section-menu-toggle').click();
+ await expect(active).toBeVisible();
+ await expect(active).toHaveCSS('box-shadow',/inset/);
+ await expect(nav.locator('.atelier-navigation-marker')).toBeHidden();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

@@ -17,3 +17,40 @@ test('l’aperçu courant utilise sa référence de projet pour un lancement dep
   await expect(page.locator('#job-preview')).toBeVisible();
   expect(requests[0]).toEqual({source:'active',project_key:'a'.repeat(20)});
 });
+
+test('La fiche révèle l’aperçu seulement après le chargement de l’image',async({page})=>{
+  let release;
+  const gate=new Promise(resolve=>{release=resolve;});
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.route('**/imprimante-api/preview', route=>route.fulfill({
+    json:{image:'/imprimante-api/ui/icons/fixture-current-preview.svg'},
+  }));
+  await page.route('**/imprimante-api/ui/icons/fixture-current-preview.svg',async route=>{
+    await gate;
+    await route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="navy"/></svg>'});
+  });
+  await login(page);
+  const preview=page.locator('#job-preview'), state=page.locator('#job-preview-state');
+  try {
+    await expect(preview).toHaveAttribute('src',/fixture-current-preview/);
+    await expect(preview).toBeHidden();
+    await expect(state).toHaveAttribute('aria-busy','true');
+  } finally {
+    release();
+  }
+  await expect(preview).toBeVisible();
+  await expect(state).toBeHidden();
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await expect(preview).toHaveCSS('animation-name','none');
+});
+
+test('une image reçue mais illisible reste masquée avec son état d’erreur',async({page})=>{
+  await page.route('**/imprimante-api/preview', route=>route.fulfill({
+    json:{image:'/imprimante-api/ui/icons/fixture-broken-preview.svg'},
+  }));
+  await page.route('**/imprimante-api/ui/icons/fixture-broken-preview.svg', route=>route.fulfill({status:404}));
+  await login(page);
+  await expect(page.locator('#job-preview-state')).toHaveText('Aperçu indisponible');
+  await expect(page.locator('#job-preview')).toBeHidden();
+  await expect(page.locator('#summary-preview')).toHaveAttribute('hidden','');
+});

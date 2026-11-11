@@ -14,5 +14,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Valide les ressources sans écrire.")
     parser.parse_args()
-    pages, scripts = build_web_assets(ROOT / "web")
+    pages, scripts, _, _ = build_web_assets(ROOT / "web")
     print(f"Ressources contrôlées : {len(pages)} pages et {len(scripts)} scripts.")

@@ -1,0 +1,156 @@
+/* Référentiel commun. Les composants consomment ces valeurs par leur rôle. */
+@font-face {
+  font-family: Inter;
+  src: url("./fonts/Inter-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Inter;
+  src: url("./fonts/Inter-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+:root {
+  --atelier-font: Inter, system-ui, sans-serif;
+  --motion-fast: 180ms;
+  --motion-panel: 240ms;
+  --motion-tile-stagger: 24ms;
+  --motion-ease: cubic-bezier(.18,.72,.28,1);
+  --ease: cubic-bezier(.2,.65,.3,1);
+  /* Les affichages hors texte courant conservent leur échelle propre. */
+  --atelier-micro-size: 11px;
+  --atelier-machine-responsive-size: clamp(2rem, 5vw, 3.4rem);
+  --atelier-job-title-size: 1.9rem;
+  --atelier-reset-code-size: 32px;
+  --atelier-display-size: 1.8rem;
+  --atelier-illustration-size: 2.5rem;
+  --atelier-compact-tab-size: clamp(var(--atelier-micro-size), .78vw, var(--atelier-label-size));
+  --atelier-brand-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  --atelier-document-title-size: clamp(2rem, 4.2vw, 3.25rem);
+  --atelier-brand-mobile-size: 2.125rem;
+  --atelier-monitor-value-size: clamp(var(--atelier-title-size), 2vw, var(--atelier-display-size));
+  --atelier-workshop-title-size: clamp(var(--atelier-machine-size), 3vw, 2.35rem);
+  --atelier-reading-font: 1rem/1.6 var(--atelier-font);
+  --atelier-swatch-border: #0002;
+  --atelier-video-idle: #161618;
+  --atelier-backdrop: #0005;
+  --atelier-relay-texture: #a5aab0;
+  --atelier-regular: 400;
+  --atelier-semibold: 600;
+  --atelier-machine-size: 28px;
+  --atelier-machine: var(--atelier-machine-size)/36px var(--atelier-font);
+  --atelier-title-size: 20px;
+  --atelier-title: var(--atelier-title-size)/28px var(--atelier-font);
+  --atelier-card-title-size: 16px;
+  --atelier-card-title: var(--atelier-card-title-size)/24px var(--atelier-font);
+  --atelier-text-size: 14px;
+  --atelier-text: var(--atelier-text-size)/20px var(--atelier-font);
+  --atelier-label-size: 13px;
+  --atelier-label: var(--atelier-label-size)/20px var(--atelier-font);
+  --atelier-caption-size: 12px;
+  --atelier-caption: var(--atelier-caption-size)/16px var(--atelier-font);
+  --atelier-space-1: 4px;
+  --atelier-space-2: 8px;
+  --atelier-space-3: 12px;
+  --atelier-space-4: 16px;
+  --atelier-space-5: 24px;
+  --atelier-space-6: 32px;
+  --atelier-control-radius: 6px;
+  --atelier-pill-radius: 999px;
+  --atelier-card-radius: 10px;
+  --atelier-rule: 1px;
+  --atelier-active-rule: 2px;
+  --atelier-control: 36px;
+  --atelier-touch-control: 44px;
+  --atelier-icon: 18px;
+  --atelier-stroke: 1.8;
+  --atelier-dot: 8px;
+  --atelier-progress: 6px;
+  --atelier-content-min: 15rem;
+  --atelier-job-min: 12rem;
+  --atelier-bg: light-dark(#f3f4f6, #11151a);
+  --atelier-surface: light-dark(#ffffff, #1b222a);
+  --atelier-fg: light-dark(#14181d, #eef2f6);
+  --atelier-muted: light-dark(#55606c, #b6c0cc);
+  --atelier-line: light-dark(#d9dee3, #414c59);
+  --atelier-accent: light-dark(#0b6b5d, #70d8c1);
+  --atelier-normal: light-dark(#1a7a4c, #6bd6a1);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+  /* Les composants historiques et les écrans de connexion partagent ces mêmes rôles. */
+  --bg: var(--atelier-bg);
+  --surface: var(--atelier-surface);
+  --text: var(--atelier-fg);
+  --muted: var(--atelier-muted);
+  --line: var(--atelier-line);
+  --accent: var(--atelier-accent);
+  --font: var(--atelier-font);
+  --atelier-access-width: 480px;
+  --atelier-login-halo: light-dark(#f5eee5, #252530);
+  --atelier-loading-glint: light-dark(rgb(255 255 255 / .75), rgb(255 255 255 / .13));
+  --atelier-dialog-shadow: 0 20px 80px #0002;
+  --atelier-popover-shadow: 0 12px 36px rgb(0 0 0 / .18);
+  --atelier-focus-glow: 0 0 0 var(--atelier-control-radius)
+    color-mix(in srgb, var(--atelier-accent) 12%, transparent);
+  /* Le relief fait partie du retour visuel des interrupteurs. */
+  --atelier-track-shadow: inset 0 1px 3px rgb(0 0 0 / .22);
+  --atelier-switch-thumb-shadow: 0 1px 3px rgb(0 0 0 / .2);
+  --atelier-relay-thumb-shadow: inset 0 -2px 2px rgb(0 0 0 / .2),
+    inset 0 2px 1px rgb(255 255 255 / .5), 0 2px 2px rgb(0 0 0 / .45);
+  --atelier-glider-shadow: 0 2px 9px color-mix(in srgb, var(--atelier-accent) 24%, transparent),
+    inset 0 1px 3px rgb(255 255 255 / .25);
+  --atelier-on-accent: light-dark(var(--atelier-surface), var(--atelier-bg));
+}
+@media (pointer: coarse), (max-width: 760px) {
+  :root { --atelier-control: var(--atelier-touch-control); }
+}
+:root {
+  --atelier-device-image: 128px;
+  --atelier-job-thumbnail: 56px;
+}
+:root {
+  --atelier-axis-size: 64px;
+  --atelier-video-ratio: 16 / 9;
+  --atelier-video-max-height: 48dvh;
+}
+:root {
+  --atelier-file-thumbnail: 40px;
+  --atelier-quota-width: 360px;
+}
+
+:root[data-style="aurora"] {
+  --atelier-bg: light-dark(#f0effa, #121321);
+  --atelier-surface: light-dark(#fcfbff, #1d2035);
+  --atelier-fg: light-dark(#292b4d, #f0efff);
+  --atelier-muted: light-dark(#565975, #b6b8d5);
+  --atelier-line: light-dark(#c9cbea, #474a70);
+  --atelier-accent: light-dark(#5145a0, #bcb2ff);
+  --atelier-normal: light-dark(#19744f, #86d6b5);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}
+
+:root[data-style="lab"] {
+  --atelier-bg: light-dark(#edf3f2, #0d1a1d);
+  --atelier-surface: light-dark(#ffffff, #14272c);
+  --atelier-fg: light-dark(#142f33, #e6f6f2);
+  --atelier-muted: light-dark(#476468, #b3cac9);
+  --atelier-line: light-dark(#cadbd7, #365259);
+  --atelier-accent: light-dark(#136f69, #6edfd0);
+  --atelier-normal: light-dark(#19744f, #7de0ac);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}
+
+:root[data-style="glasshouse"] {
+  --atelier-bg: light-dark(#e9eef8, #1b2030);
+  --atelier-surface: light-dark(#fcfbff, #272d42);
+  --atelier-fg: light-dark(#242940, #f1efff);
+  --atelier-muted: light-dark(#575f7b, #b9c1da);
+  --atelier-line: light-dark(#c2cce2, #505b78);
+  --atelier-accent: light-dark(#454894, #bcc4ff);
+  --atelier-normal: light-dark(#19744f, #86d6b5);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}

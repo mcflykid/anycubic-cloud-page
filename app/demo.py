@@ -5,7 +5,7 @@ from pathlib import Path
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 from notification_discord import DiscordResult
-from notification_settings import install_discord
+from notification_settings import discord_enabled, install_discord
 from filament_catalog import editable_materials
 from print_preflight import evaluate_preflight
 from temperature_history import ace_readings
@@ -17,6 +17,8 @@ from web_host import (
     access_control,
     install_access,
     ACCESS_KEY,
+    TOTP_KEY,
+    current_totp,
 )
 
 T = time.time()
@@ -82,6 +84,7 @@ PARAMS = {
 }
 PRINTER = {
     "name": "Kobra S1 · Démonstration",
+    "camera_light": False,
     "machine_name": "Anycubic Kobra S1",
     "printer_online": True,
     "is_available": True,
@@ -173,19 +176,18 @@ FILES = [
 
 
 async def demo_index(request):
-    """Renvoie l’interface marquée comme démonstration, avec une caméra purement illustrative."""
+    """Renvoie l’interface marquée comme démonstration, sans session caméra réelle."""
     html = render_page(
-        home_url(os.environ.get("HOME_URL", "/imprimante.html")), display_timezone()
+        home_url(os.environ.get("HOME_URL", "/imprimante.html")),
+        display_timezone(),
+        totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
+        discord_active=discord_enabled(request.app),
     ).replace(
         "<body>",
         '<body><div class="demo-banner">Démonstration · Données fictives · Aucune imprimante connectée</div>',
     )
     if ACCESS_KEY not in request.app:
         html = re.sub(r'<form action="/logout".*?</form>', "", html)
-    html = html.replace(
-        '<div id="camera-video"></div>',
-        '<div id="camera-video" class="demo-camera"><img src="/imprimante-api/ui/icons/kobra-s1-ace2pro.png" alt="Illustration de l’imprimante"><p>Zone vidéo · Démonstration sans flux caméra</p></div>',
-    )
     return web.Response(text=html, content_type="text/html")
 
 
@@ -317,10 +319,11 @@ async def api(request):
                 ]
             ],
             "notifications": {
-                "items": notices,
+                "source": "slicer",
+                "items": NOTICE_FIXTURES,
                 "page": 1,
-                "total": len(notices),
-                "unread": sum(x["unread"] for x in notices),
+                "total": len(NOTICE_FIXTURES),
+                "unread": sum(x["unread"] for x in NOTICE_FIXTURES),
                 "has_more": False,
             },
             "events": [
@@ -413,11 +416,15 @@ async def api(request):
             "parameters": PARAMS,
         }
     elif path == "history":
+        source = request.query.get("source", "legacy")
+        # Les écritures du journal de démonstration ne modifient pas la cloche Cloud.
+        rows = NOTICE_FIXTURES if source == "slicer" else notices
         d = {
-            "items": notices,
+            "source": source,
+            "items": rows,
             "page": 1,
-            "total": len(notices),
-            "unread": sum(x["unread"] for x in notices),
+            "total": len(rows),
+            "unread": sum(x["unread"] for x in rows),
             "has_more": False,
         }
     elif path == "ai-settings":

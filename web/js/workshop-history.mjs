@@ -1,3 +1,4 @@
+import { createNotificationMotion } from './workshop-notification-motion.mjs';
 import {
   $,
   beginListLoading,
@@ -34,26 +35,33 @@ export function createHistory(request, command, selectedBox) {
     noticeMore = false,
     noticeSignature = '',
     noticeUnread = 0,
+    cloudUnread = 0,
     noticeError = '',
-    noticeSource = 'legacy',
-    legacySelected = false;
+    noticeSource = 'slicer',
+    legacySelected = false,
+    noticeGeneration = 0;
   /** Charge une page de notifications du compte, en empêchant deux lectures simultanées. */
   async function loadHistory(force = false, page = 1) {
     if (historyPending) return;
     historyPending = true;
+    const generation = noticeGeneration;
+    const source = legacySelected ? 'legacy' : 'slicer';
+    const snapshot = workshopState.snapshot;
     try {
-      const source = legacySelected ? 'legacy' : page > 1 ? noticeSource : '';
       const d =
-        !force && !source && workshopState.snapshot?.notifications &&
-          !workshopState.snapshot.notifications_error
-          ? workshopState.snapshot.notifications
-          : await request(`/history?page=${page}${source ? `&source=${source}` : ''}`);
+        !force && source === 'slicer' && snapshot?.notifications?.source === source &&
+          !snapshot.notifications_error
+          ? snapshot.notifications
+          : await request(`/history?page=${page}&source=${source}`);
+      if (generation !== noticeGeneration) return;
+      if ((d.source || 'legacy') !== source) throw new Error(tr('Messages temporairement indisponibles'));
       applyNotifications(d, page);
     } catch (e) {
+      if (generation !== noticeGeneration) return;
       noticeError = e.message || tr('Messages temporairement indisponibles');
       renderNotifications();
     } finally {
-      historyPending = false;
+      if (generation === noticeGeneration) historyPending = false;
     }
   }
   /** Actualise le panneau sans mélanger les pages issues de journaux différents. */
@@ -72,21 +80,23 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
   function updateNoticeCount(count) {
-    const previous = noticeUnread;
     noticeUnread = count == null
       ? noticeRows.filter((item) => item.unread).length
       : Math.max(0, Number(count) || 0);
     const displayed = fmt(noticeUnread);
     const plural = noticeUnread > 1 ? 's' : '';
     const badge = $('notifications-dot');
-    badge.hidden = !noticeUnread;
-    if (noticeUnread > previous) signalChange(badge);
+    if (!legacySelected) {
+      badge.hidden = !noticeUnread;
+      if (noticeUnread > cloudUnread) signalChange(badge);
+      cloudUnread = noticeUnread;
+      $('notifications-toggle').setAttribute(
+        'aria-label',
+        formatText('Notifications : {0} message{1} non lu{2}', displayed, plural, plural),
+      );
+    }
     $('notifications-filter-dot').hidden = !noticeUnread;
     set('notifications-title', formatText('Messages ({0})', displayed));
-    $('notifications-toggle').setAttribute(
-      'aria-label',
-      formatText('Notifications : {0} message{1} non lu{2}', displayed, plural, plural),
-    );
     $('history-read-all').disabled = !noticeUnread || noticeSource === 'slicer';
   }
   /** Filtre les messages chargés ; les noms du cloud restent du texte et les aperçus sont différés. */
@@ -150,8 +160,6 @@ export function createHistory(request, command, selectedBox) {
     const fromSlicer = noticeSource === 'slicer';
     $('history-read-all').hidden = $('history-delete-all').hidden = fromSlicer;
     $('history-delete-all').disabled = fromSlicer || !noticeRows.length;
-    $('notifications-source').hidden = !fromSlicer && !legacySelected;
-    set('notifications-source', tr(legacySelected ? 'Notifications Cloud' : 'Journal historique'));
   }
   /** Chaque événement conserve sa miniature, son horodatage et ses actions individuelles. */
   function notificationRow(item) {
@@ -289,21 +297,22 @@ export function createHistory(request, command, selectedBox) {
       message(e.message, true);
     }
   }
+  const animateNoticePanel = createNotificationMotion($('notifications-panel'), $('notifications-toggle'));
   /** Ferme le panneau et restitue le clavier à la cloche sur Échap. */
-  function noticePanel(open, focus = false) {
-    $('notifications-panel').hidden = !open;
+  function noticePanel(open, focus = false, immediate = false) {
     $('notifications-toggle').setAttribute('aria-expanded', String(open));
+    animateNoticePanel(open, immediate);
     if (open) {
       historyPage = 1;
       void loadHistory();
     } else if (focus) $('notifications-toggle').focus();
   }
-  $('notifications-toggle').onclick = () => noticePanel($('notifications-panel').hidden);
+  $('notifications-toggle').onclick = () => noticePanel($('notifications-toggle').getAttribute('aria-expanded') !== 'true');
   document.addEventListener('keydown', (event) => {
     if (
       event.key === 'Escape' &&
       !document.querySelector('dialog[open]') &&
-      !$('notifications-panel').hidden
+      $('notifications-toggle').getAttribute('aria-expanded') === 'true'
     ) {
       event.preventDefault();
       noticePanel(false, true);
@@ -312,7 +321,7 @@ export function createHistory(request, command, selectedBox) {
   document.addEventListener('pointerdown', (event) => {
     if (
       !document.querySelector('dialog[open]') &&
-      !$('notifications-panel').hidden &&
+      $('notifications-toggle').getAttribute('aria-expanded') === 'true' &&
       !event.target.closest('.notifications')
     )
       noticePanel(false);
@@ -327,17 +336,46 @@ export function createHistory(request, command, selectedBox) {
     };
   $('notification-search').oninput = renderNotifications;
   $('notifications-more').onclick = () => void loadHistory(true, historyPage + 1);
-  $('notifications-source').onclick = () => {
-    if (historyPending) return;
-    legacySelected = !legacySelected;
+  const noticeDialog = $('historical-notifications-dialog');
+  const historyOpen = $('historical-notifications-open');
+  const noticeContent = $('notifications-panel');
+  const bellContainer = noticeContent.parentElement;
+  /** Invalide les réponses de la source précédente avant de réutiliser la liste. */
+  function selectNoticeSource(legacy) {
+    noticeGeneration++;
+    historyPending = false;
+    legacySelected = legacy;
+    noticeSource = legacy ? 'legacy' : 'slicer';
     noticeRows = [];
     noticeMore = false;
     noticeError = '';
     noticeSignature = '';
     historyPage = 1;
+    noticeFilter = 'all';
+    $('notification-search').value = '';
+    for (const button of document.querySelectorAll('[data-notice-filter]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.noticeFilter === 'all'));
+    }
+    updateNoticeCount(legacy ? 0 : cloudUnread);
     renderNotifications();
+  }
+  historyOpen.onclick = () => {
+    noticePanel(false, false, true);
+    selectNoticeSource(true);
+    noticeDialog.append(noticeContent);
+    noticeContent.hidden = false;
+    noticeContent.inert = false;
+    noticeDialog.showModal();
     void loadHistory(true);
   };
+  noticeDialog.addEventListener('close', () => {
+    noticeContent.hidden = true;
+    bellContainer.append(noticeContent);
+    selectNoticeSource(false);
+    const latest = workshopState.snapshot?.notifications;
+    if (latest?.source === 'slicer') syncNotifications(latest);
+    historyOpen.focus({preventScroll: true});
+  });
   /** Marque une notification ou toutes comme lues ; allItems exige une confirmation puis rafraîchit le journal. */
   async function markHistoryRead(key, allItems, button) {
     button.disabled = true;
@@ -663,31 +701,56 @@ export function createHistory(request, command, selectedBox) {
   function taskSelectionState() {
     const rows = visibleTasks(),
       n = taskSelected.size;
-    set('tasks-selected-count', formatText('{0} sélection{1}', n, n > 1 ? 's' : ''));
+    set('tasks-selected-count', n ? formatText('{0} sélection{1}', n, n > 1 ? 's' : '') : tr('Aucune sélection'));
     $('tasks-delete').disabled = !n;
+    $('tasks-select-page').disabled = !rows.length;
     $('tasks-select-page').checked = !!rows.length && rows.every((t) => taskSelected.has(t.key));
     $('tasks-select-page').indeterminate =
       rows.some((t) => taskSelected.has(t.key)) && !$('tasks-select-page').checked;
   }
-  /** Les cartes affichent les dates connues sans fabriquer une fin ni une durée manquante. */
+  /** Indique une disponibilité réelle et conserve la confirmation existante de la réimpression. */
+  function canReprint(task) {
+    const printer = workshopState.snapshot?.printer;
+    return task.can_reprint && ![0, 1].includes(task.status_code) &&
+      task.printer_key === workshopState.selectedPrinter && printer?.printer_online && printer.is_available;
+  }
+  function prepareReprint(task) {
+    if (!canReprint(task)) return;
+    pastTaskKey = task.key;
+    set('reprint-task-name', task.name);
+    set('reprint-target', workshopState.snapshot?.printer?.name || task.printer);
+    const form = $('task-reprint-form');
+    form.reset();
+    form.elements.slots.required = !!selectedBox();
+    form.elements.slots.disabled = !selectedBox();
+    $('task-reprint-dialog').showModal();
+  }
+
+  /** Une ligne par impression, sans inventer une date ou une durée manquante. */
   function renderTasks() {
     taskPreviewObserver.disconnect();
     const rows = visibleTasks();
     $('tasks-list').replaceChildren(
       ...rows.map((t) => {
-        const li = node('li', null, 'task-history-item'),
+        const row = node('tr'),
+          selectCell = node('td', null, 'files-selection-cell'),
           select = node('input'),
-          label = node('label', null, 'history-card-select'),
-          body = node('div', null, 'history-card-body'),
+          file = node('td', null, 'files-identity-cell'),
+          identity = node('div', null, 'history-table-identity'),
+          copy = node('div', null, 'file-row-caption'),
           name = node('strong', t.name, 'history-card-name'),
-          state = node(
-            'span',
-            { 2: tr('Terminé'), 3: tr('Arrêté'), 1: tr('En cours'), 0: tr('En préparation') }[
-              t.status_code
-            ] || t.status,
-            'history-badge status-' + t.status_code,
+          status = node('td', null, 'history-table-status'),
+          state = node('span',
+            { 2: tr('Terminée'), 3: tr('Arrêtée'), 1: tr('En cours'), 0: tr('En préparation') }[t.status_code] || t.status,
+            'atelier-status history-status-' + t.status_code,
           ),
-          open = extraButton(tr('Voir le détail'), () => openPastTask(t), 'history-detail');
+          started = node('td', t.start ? date(t.start) : '—', 'history-table-start'),
+          duration = node('td', t.elapsed_minutes == null ? '—' : fmt(t.elapsed_minutes, ' min'), 'files-size history-table-duration'),
+          actionsCell = node('td', null, 'files-actions-cell'),
+          actions = node('div', null, 'files-row-actions'),
+          open = extraButton(tr('Détail'), () => openPastTask(t), 'atelier-control history-detail'),
+          reprint = extraButton(tr('Réimprimer'), () => prepareReprint(t), 'atelier-control');
+        if (t.status_code === 1 && Number.isFinite(t.progress)) state.append(' · ' + fmt(t.progress, ' %'));
         select.type = 'checkbox';
         select.checked = taskSelected.has(t.key);
         select.setAttribute('aria-label', tr('Sélectionner ') + t.name);
@@ -695,30 +758,18 @@ export function createHistory(request, command, selectedBox) {
           select.checked ? taskSelected.add(t.key) : taskSelected.delete(t.key);
           taskSelectionState();
         };
-        label.append(select, node('span', tr('Sélectionner'), 'sr-only'));
         name.title = t.name;
-        body.append(
-          state,
-          name,
-          node(
-            'p',
-            t.end ? `${date(t.start)} – ${date(t.end)}` : tr('Début : ') + date(t.start),
-            'muted history-card-period',
-          ),
-          node('p', t.printer || tr('Imprimante'), 'muted'),
-          node(
-            'p',
-            tr('Durée : ') +
-              (t.elapsed_minutes == null
-                ? tr('Non renseignée')
-                : Number(t.elapsed_minutes).toLocaleString(locale, { maximumFractionDigits: 1 }) +
-                  ' min'),
-            'muted',
-          ),
-          open,
-        );
-        li.append(label, taskThumbnail(t), body);
-        return li;
+        reprint.disabled = !canReprint(t);
+        open.setAttribute('aria-label', tr('Voir le détail'));
+        selectCell.append(select);
+        copy.append(name, node('span', t.printer || tr('Imprimante')));
+        identity.append(taskThumbnail(t), copy);
+        file.append(identity);
+        status.append(state);
+        actions.append(open, reprint);
+        actionsCell.append(actions);
+        row.append(selectCell, file, status, started, duration, actionsCell);
+        return row;
       }),
     );
     set(
@@ -735,7 +786,7 @@ export function createHistory(request, command, selectedBox) {
     $('tasks-state').className = rows.length ? 'muted' : 'empty-message';
     if (rows.length) delete $('tasks-state').dataset.visualState;
     else $('tasks-state').dataset.visualState = 'empty';
-    set('tasks-page', formatText('{0} fiche(s) chargée(s)', taskRows.length));
+    set('tasks-page', formatText(rows.length === 1 ? '{0} impression sur la période' : '{0} impressions sur la période', rows.length));
     $('tasks-next').hidden = !taskMore;
     taskSelectionState();
   }
@@ -843,9 +894,7 @@ export function createHistory(request, command, selectedBox) {
     rate.hidden = !selected || t.status_code !== 2;
     rate.disabled = t.evaluated === true;
     reprint.hidden = !selected || !t.can_reprint;
-    reprint.disabled =
-      !workshopState.snapshot?.printer?.printer_online ||
-      !workshopState.snapshot.printer.is_available;
+    reprint.disabled = !canReprint(t);
     set(
       'past-task-actions-state',
       !selected
@@ -862,13 +911,7 @@ export function createHistory(request, command, selectedBox) {
     };
     reprint.onclick = () => {
       dialog.close();
-      set('reprint-task-name', t.name);
-      set('reprint-target', workshopState.snapshot?.printer?.name || t.printer);
-      const form = $('task-reprint-form');
-      form.reset();
-      form.elements.slots.required = !!selectedBox();
-      form.elements.slots.disabled = !selectedBox();
-      $('task-reprint-dialog').showModal();
+      prepareReprint(t);
     };
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;
@@ -1082,7 +1125,7 @@ export function createHistory(request, command, selectedBox) {
 
   /** Réconcilie la première page du statut sans remplacer un journal choisi manuellement. */
   function syncNotifications(notifications) {
-    if (legacySelected || historyPending) return;
+    if (legacySelected || historyPending || notifications.source !== 'slicer') return;
     const signature = JSON.stringify(notifications);
     if (signature === noticeSignature) return;
     noticeSignature = signature;

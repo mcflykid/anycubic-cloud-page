@@ -40,7 +40,9 @@ def build_web_assets(root):
         path.relative_to(root).as_posix(): path.read_bytes()
         for path in sorted(root.rglob("*"))
         if path.is_file()
-        and path.suffix in {".html", ".js", ".mjs", ".json", ".css", ".svg", ".png"}
+        # Les sources d’origine conservées à part ne font pas partie des ressources servies.
+        and path.relative_to(root).parts[0] != "vendor"
+        and path.suffix in {".html", ".js", ".mjs", ".json", ".css", ".svg", ".png", ".woff2"}
     }
     missing = REQUIRED.difference(files)
     if missing:
@@ -102,4 +104,5 @@ def build_web_assets(root):
                 '<script id="workshop-script"', preload + '<script id="workshop-script"'
             )
         pages[name] = rendered
-    return pages, scripts
+    assets = {name: data for name, data in files.items() if not name.endswith(".html")}
+    return pages, scripts, revision, {**assets, **scripts}

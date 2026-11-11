@@ -27,8 +27,6 @@ import { initializeWorkshopNavigation } from './workshop-navigation.mjs';
 initializeWorkshopNavigation();
 import { initializeInteractions } from './workshop-interactions.mjs';
 initializeInteractions();
-import { initializeTileLayout } from './workshop-layout.mjs';
-initializeTileLayout();
 import { renderSummary } from './workshop-summary.mjs';
 export { previewJob } from './workshop-overview.mjs';
 
@@ -149,6 +147,9 @@ async function refreshState() {
       !d.ok ? tr('Cloud indisponible') : p?.printer_online ? tr('En ligne') : tr('Hors ligne'),
     );
     $('connection').classList.toggle('offline', !d.ok || !p?.printer_online);
+    const following = d.ok && d.mqtt_connected === true;
+    set('settings-follow-state', tr(following ? 'Suivi en direct' : d.mqtt_connected === false ? 'Suivi suspendu' : 'État inconnu'));
+    $('settings-follow-state').classList.toggle('offline', !following);
     set(
       'updated',
       `${tr('Dernière actualisation')} : ${date([d.updated_at, d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`,
@@ -216,23 +217,12 @@ function showTab(name) {
     files.renderFiles();
     files.loadFiles();
   }
+  if (name === 'upload') void files.loadCloudStorage();
   if (name === 'history') history.loadTasks();
   if (name === 'statistics' && printerCatalogueReady) void loadTemperatures();
   if (name === 'fleet') { void loadFleet(); void loadMonitoring(); }
   if (name === 'settings') settings.enter();
-  if (name === 'camera') {
-    timelapses.loadTimelapse();
-    if (workshopState.snapshot?.demo) {
-      const image = node('img');
-      image.src = $('printer-illustration').src;
-      image.alt = tr('Illustration de l’imprimante');
-      $('camera-video').classList.add('demo-camera');
-      $('camera-video').replaceChildren(
-        image,
-        node('p', tr('Zone vidéo · Démonstration sans flux caméra')),
-      );
-    }
-  }
+  if (name === 'camera') timelapses.loadTimelapse();
   if (name !== 'camera') void camera.close();
 }
 // Les onglets restent inactifs jusqu’au chargement des modules et de leurs gestionnaires.

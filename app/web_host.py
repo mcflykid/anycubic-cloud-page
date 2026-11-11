@@ -1,6 +1,6 @@
 """Ressources de l’interface et contrôle d’accès de la distribution autonome."""
 
-import asyncio, hashlib, hmac, html, ipaddress, json, os, pathlib, re, secrets, time
+import asyncio, hashlib, hmac, html, ipaddress, json, mimetypes, os, pathlib, re, secrets, time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from urllib.parse import urlsplit, parse_qs
@@ -24,8 +24,10 @@ APP_VERSION = json.loads((ROOT.parent / "package.json").read_text())["version"]
 PUBLIC_ASSETS = {
     "/css/landing.css",
     "/css/imprimante.css",
-    "/css/lab.css",
-    "/css/density.css",
+    "/css/atelier-tokens.css",
+    "/css/atelier-access.css",
+    "/css/fonts/Inter-Regular.woff2",
+    "/css/fonts/Inter-SemiBold.woff2",
     "/css/visual-states.css",
     "/icons/cloud-page.svg",
     # Ces visuels sont des fichiers publics du dépôt ; une session expirée ne doit pas servir une page de connexion à leur place.
@@ -399,7 +401,7 @@ async def access_control(request, handler):
     # no-referrer rend Origin nul sur les formulaires ; same-origin le conserve sans fuite vers les sites externes.
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "same-origin"
-    response.headers["Cache-Control"] = "no-store"
+    response.headers.setdefault("Cache-Control", "no-store")
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.agora.io https://*.sd-rtn.com https://*.agoraio.cn wss://*.agora.io wss://*.sd-rtn.com wss://*.agoraio.cn; media-src blob: https:; worker-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
     )
@@ -855,10 +857,17 @@ def consume_action_ticket(request, action, token):
     return True
 
 
-def render_page(destination, time_zone):
+def render_page(destination, time_zone, *, totp_active=False, discord_active=None):
     """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
     content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
         "<!-- APP_VERSION -->", html.escape(APP_VERSION)
+    )
+    content = content.replace("<!-- TOTP_BADGE_STATE -->", "normal" if totp_active else "unknown")
+    content = content.replace("<!-- TOTP_STATE -->", "Activée" if totp_active else "Désactivée")
+    content = (
+        content.replace("<!-- DISCORD_CARD_VISIBILITY -->", "hidden" if discord_active is None else "")
+        .replace("<!-- DISCORD_BADGE_STATE -->", "normal" if discord_active else "unknown")
+        .replace("<!-- DISCORD_STATE -->", "Activées" if discord_active else "Désactivées")
     )
     # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
     level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
@@ -896,8 +905,15 @@ def render_page(destination, time_zone):
 
 async def index(request):
     """Renvoie l’interface avec les destinations et le fuseau validés au démarrage."""
+    from notification_settings import discord_enabled
+
     return web.Response(
-        text=render_page(request.app[HOME_URL_KEY], request.app[TIME_ZONE_KEY]),
+        text=render_page(
+            request.app[HOME_URL_KEY],
+            request.app[TIME_ZONE_KEY],
+            totp_active=TOTP_KEY in request.app and current_totp(request) is not None,
+            discord_active=discord_enabled(request.app),
+        ),
         content_type="text/html",
     )
 
@@ -910,18 +926,28 @@ async def about(request):
     )
 
 
-async def versioned_script(request):
-    """Sert les octets qui ont servi au calcul de l’intégrité dans les pages."""
+async def versioned_asset(request):
+    """Sert l’instantané lié à l’empreinte et réserve le cache long à son URL exacte."""
     name = request.path.removeprefix(UI_PREFIX).lstrip("/")
-    return web.Response(body=build_web_assets(ROOT)[1][name], content_type="text/javascript")
+    _, scripts, revision, assets = build_web_assets(ROOT)
+    content_type = (
+        "text/javascript"
+        if name in scripts or name.endswith(".js")
+        else mimetypes.guess_type(name)[0] or "application/octet-stream"
+    )
+    headers = {}
+    if request.query_string == f"v={revision}":
+        # Le cache navigateur conserve l’instantané, sans autoriser un cache partagé.
+        headers["Cache-Control"] = "private, max-age=31536000, immutable"
+    return web.Response(body=assets[name], content_type=content_type, headers=headers)
 
 
 def install_ui_resources(app):
     """Sert les ressources via le préfixe déjà routé et conserve les anciennes adresses."""
-    _, scripts = build_web_assets(ROOT)
+    _, _, _, assets = build_web_assets(ROOT)
     for prefix in ("", UI_PREFIX):
-        for name in scripts:
-            app.router.add_get(f"{prefix}/{name}", versioned_script)
+        for name in assets:
+            app.router.add_get(f"{prefix}/{name}", versioned_asset)
         for path in INFORMATION_PAGES:
             app.router.add_get(prefix + path, about)
         for folder in ("css", "js", "icons"):

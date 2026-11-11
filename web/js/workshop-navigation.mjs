@@ -1,12 +1,20 @@
 import { tr } from './workshop-ui.mjs';
 
-/** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
+/** Gère la navigation responsive et le rail du Laboratoire. */
 export function initializeWorkshopNavigation() {
   const toggle = document.getElementById('section-menu-toggle');
   const navigation = document.getElementById('atelier-tabs');
   const shell = document.querySelector('.printer-shell');
   if (!toggle || !navigation || !shell || toggle.dataset.initialized === 'true') return;
   toggle.dataset.initialized = 'true';
+  const labToggle = document.getElementById('lab-navigation-toggle');
+  labToggle.hidden = false;
+  labToggle.onclick = () => {
+    const collapsed = shell.classList.toggle('lab-navigation-collapsed');
+    labToggle.setAttribute('aria-expanded', String(!collapsed));
+    labToggle.setAttribute('aria-label', tr(collapsed ? 'Développer les sections' : 'Réduire les sections'));
+  };
+
   const menuName = tr('Sections');
   toggle.setAttribute('aria-label', menuName);
   const compact = window.matchMedia('(max-width: 760px)');
@@ -18,7 +26,7 @@ export function initializeWorkshopNavigation() {
     tab.style.setProperty('--tile-index', index);
     tab.style.setProperty('--tile-exit-index', tabs.length - index - 1);
   });
-  let phase = 0, closeTimer = 0, bento = null, bentoItems = [], indicator = null;
+  let phase = 0, closeTimer = 0;
   let mobileLabel = document.getElementById('section-menu-current');
   if (!mobileLabel) {
     mobileLabel = document.createElement('span');
@@ -28,6 +36,33 @@ export function initializeWorkshopNavigation() {
     toggle.append(mobileLabel);
   }
   const currentButton = () => navigation.querySelector('[data-tab][aria-current="page"]');
+  // Le trait est hors du flux. Il suit le bouton actif sans redimensionner la navigation.
+  const markerLayer = document.createElement('span');
+  markerLayer.className = 'atelier-navigation-marker-layer';
+  markerLayer.setAttribute('aria-hidden', 'true');
+  const marker = document.createElement('span');
+  marker.className = 'atelier-navigation-marker';
+  markerLayer.append(marker);
+  navigation.append(markerLayer);
+  const placeMarker = () => {
+    const current = currentButton();
+    if (!current || !marker.getClientRects().length) return;
+    const navBox = navigation.getBoundingClientRect();
+    const activeBox = current.getBoundingClientRect();
+    marker.style.inlineSize = activeBox.width + 'px';
+    marker.style.translate =
+      (activeBox.left - navBox.left) + 'px ' + (activeBox.bottom - navBox.top) + 'px';
+    // La première mesure doit placer le trait directement sur la section d’accueil.
+    navigation.dataset.markerReady = 'true';
+  };
+  const navigationSize = new ResizeObserver(placeMarker);
+  navigationSize.observe(navigation);
+  tabs.forEach((tab) => navigationSize.observe(tab));
+  new MutationObserver(placeMarker).observe(navigation, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['aria-current'],
+  });
   const updateCurrentLabel = () => {
     const label = currentButton()?.querySelector('span')?.textContent?.trim();
     mobileLabel.textContent = label || '';
@@ -59,7 +94,7 @@ export function initializeWorkshopNavigation() {
     closeTimer = window.setTimeout(() => finishClose(token), 900);
   };
   const open = () => {
-    const token = ++phase;
+    ++phase;
     clearTimeout(closeTimer);
     navigation.dataset.open = 'true';
     navigation.dataset.phase = '';
@@ -71,9 +106,6 @@ export function initializeWorkshopNavigation() {
       navigation.dataset.phase = 'opening';
     }
     (currentButton() || navigation.querySelector('[data-tab]:not(:disabled)'))?.focus();
-    requestAnimationFrame(() => {
-      if (token === phase) updateIndicator();
-    });
   };
   toggle.onclick = () => {
     if (toggle.getAttribute('aria-expanded') === 'true') close(true);
@@ -84,7 +116,6 @@ export function initializeWorkshopNavigation() {
     const tab = event.target.closest('[data-tab]');
     if (!tab) return;
     updateCurrentLabel();
-    requestAnimationFrame(updateIndicator);
     if (compact.matches) close(true);
   });
   navigation.addEventListener('animationend', event => {
@@ -115,89 +146,5 @@ export function initializeWorkshopNavigation() {
     if (navigation.dataset.phase === 'closing') finishClose(phase);
   });
 
-  indicator = document.createElement('span');
-  indicator.className = 'atelier-active-indicator';
-  indicator.setAttribute('aria-hidden', 'true');
-  navigation.append(indicator);
-  const blueprintToggle = document.createElement('button');
-  blueprintToggle.id = 'blueprint-nav-toggle';
-  blueprintToggle.type = 'button';
-  blueprintToggle.setAttribute('aria-expanded', String(!shell.classList.contains('blueprint-sidebar-collapsed')));
-  const blueprintIcon = document.createElement('span'), blueprintLabel = document.createElement('span');
-  blueprintIcon.setAttribute('aria-hidden', 'true');
-  blueprintIcon.textContent = '⌗';
-  blueprintLabel.className = 'blueprint-toggle-label';
-  blueprintLabel.textContent = tr('Replier le plan');
-  blueprintToggle.setAttribute('aria-label', blueprintLabel.textContent);
-  blueprintToggle.append(blueprintIcon, blueprintLabel);
-  document.querySelector('.atelier-navigation').insertBefore(blueprintToggle, navigation);
-  blueprintToggle.onclick = () => {
-    const expanded = blueprintToggle.getAttribute('aria-expanded') === 'true';
-    shell.classList.toggle('blueprint-sidebar-collapsed', expanded);
-    blueprintToggle.setAttribute('aria-expanded', String(!expanded));
-    const label = tr(expanded ? 'Déplier le plan' : 'Replier le plan');
-    blueprintToggle.setAttribute('aria-label', label);
-    blueprintToggle.querySelector('.blueprint-toggle-label').textContent = label;
-    requestAnimationFrame(updateIndicator);
-  };
-  const styleObserver = new MutationObserver(() => {
-    const style = document.documentElement.dataset.style;
-    updateCurrentLabel();
-    requestAnimationFrame(updateIndicator);
-    if (style === 'aurora') buildAuroraBento();
-    else restoreAuroraBento();
-  });
-  styleObserver.observe(document.documentElement, {attributes: true, attributeFilter: ['data-style']});
-
-  function buildAuroraBento() {
-    if (bento) return;
-    const overview = document.getElementById('tab-overview');
-    if (!overview) return;
-    const entries = [
-      ['machine', overview.querySelector('.overview-grid .product')],
-      ['job', overview.querySelector('.overview-grid .overview-content')],
-      ['temperatures', overview.querySelector('.printer-lower-grid > section:first-of-type')],
-      ['details', overview.querySelector('.printer-lower-grid > section:last-of-type')],
-    ].filter(([, element]) => element);
-    bento = document.createElement('div');
-    bento.id = 'aurora-bento';
-    bento.className = 'aurora-bento';
-    for (const [name, element] of entries) {
-      // Les repères rétablissent les éléments à leur place à la sortie d’Aurore.
-      const marker = document.createComment(`aurora:${name}`);
-      element.before(marker);
-      const card = document.createElement('article');
-      card.className = `aurora-widget aurora-widget-${name}`;
-      card.dataset.widget = name;
-      card.append(element);
-      bento.append(card);
-      bentoItems.push({marker, element});
-    }
-    overview.prepend(bento);
-  }
-  // Replace chaque élément avant son repère afin de quitter Aurore sans déplacer le contenu.
-  function restoreAuroraBento() {
-    if (!bento) return;
-    for (const {marker, element} of bentoItems) {
-      if (marker.parentNode) marker.parentNode.insertBefore(element, marker);
-      marker.remove();
-    }
-    bento.remove();
-    bento = null;
-    bentoItems = [];
-  }
-  // Le repère est positionné en coordonnées de la barre pour suivre le bouton actif.
-  function updateIndicator() {
-    if (!indicator || document.documentElement.dataset.style !== 'apple') return;
-    const active = currentButton();
-    if (!active) return;
-    const parent = navigation.getBoundingClientRect(), rect = active.getBoundingClientRect();
-    indicator.style.width = `${rect.width}px`;
-    indicator.style.height = `${rect.height}px`;
-    indicator.style.transform = `translate(${rect.left - parent.left - navigation.clientLeft}px,${rect.top - parent.top - navigation.clientTop}px)`;
-  }
   updateCurrentLabel();
-  const resizeObserver = new ResizeObserver(updateIndicator);
-  resizeObserver.observe(navigation);
-  if (document.documentElement.dataset.style === 'aurora') buildAuroraBento();
 }

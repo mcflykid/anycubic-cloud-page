@@ -41,6 +41,27 @@ def history_minutes(row):
     return (end - start) / 60 if start is not None and end is not None and end >= start else None
 
 
+def notification_timestamp(value):
+    """Normalise les horodatages Unix du Cloud, fournis en secondes ou millisecondes."""
+    stamp = number(value, 0)
+    if stamp >= 100_000_000_000:
+        stamp /= 1000
+    return stamp if 1_000_000_000 <= stamp < 100_000_000_000 else None
+
+
+def matching_completed_task(notice, task, printer_id):
+    """Reconnaît une fin d’impression locale par la machine, le chemin complet et la seconde de fin."""
+    stamp = notification_timestamp(notice.get("create_time"))
+    return (
+        stamp is not None
+        and int(stamp) == int(notification_timestamp(task.get("end_time")) or 0)
+        and str(task.get("printer_id")) == printer_id
+        and task.get("print_status") == notice.get("print_status") == 2
+        and notice["project_name"]
+        in (task.get("task_name"), task.get("gcode_name"), task.get("model"))
+    )
+
+
 def trusted_url(url):
     """Indique si une URL HTTPS appartient au stockage autorisé, sans identifiants ni port inhabituel."""
     try:
@@ -156,6 +177,7 @@ class CloudExtras:
         self.device_cache = None
         self.notification_projects = None
         self.notification_projects_lock = asyncio.Lock()
+        self.notification_history_lock = asyncio.Lock()
         self.file_projects = None
         self.folder_selection = None
         self.task_page_cache = {}
@@ -438,7 +460,8 @@ class CloudExtras:
                     return PROJECT_IMAGE_URL_BASE + image_id
 
         url = image_url(r)
-        if not url and lookup_detail:
+        image = await download_preview(self.e.session, url) if url else None
+        if image is None and lookup_detail:
             with contextlib.suppress(Exception):
                 detail = await self.api(
                     "/v5/project/printHistory/detail",
@@ -446,8 +469,9 @@ class CloudExtras:
                     method="GET",
                 )
                 if isinstance(detail, dict):
-                    url = image_url(detail)
-        image = await download_preview(self.e.session, url) if url else None
+                    detail_url = image_url(detail)
+                    if detail_url and detail_url != url:
+                        image = await download_preview(self.e.session, detail_url)
         self.previews[k] = (time.monotonic(), image)
         while len(self.previews) > 20:
             self.previews.pop(next(iter(self.previews)))
@@ -472,6 +496,7 @@ class CloudExtras:
         direct = await self.preview_row(cachekey, row, lookup_detail=False)
         if direct["image"]:
             return direct
+        explicit_printer = bool(printer_id)
         if not printer_id:
             # Une notification sans cible ne dépend jamais de l’imprimante choisie dans le navigateur.
             if len(allowed) != 1:
@@ -480,10 +505,29 @@ class CloudExtras:
         # Les identifiants de tâche et de projet ont des espaces distincts.
         task_id = str(row.get("task_id") or row.get("taskid") or "")
         project_id = str(row.get("project_id") or "")
-        if task_id in ("", "0") and project_id in ("", "0"):
-            return {"image": None}
         task_id = task_id if task_id != "0" else ""
         project_id = project_id if project_id != "0" else ""
+        path = row.get("project_name")
+        local_completion = (
+            explicit_printer
+            and isinstance(path, str)
+            and "/" in path
+            and path.lower().endswith((".gcode", ".gcode.3mf"))
+            and row.get("print_status") == 2
+            and notification_timestamp(row.get("create_time")) is not None
+        )
+        if (
+            not project_id
+            and local_completion
+            and (not task_id or path.lstrip("/").startswith(".3mf_temp/"))
+        ):
+            # L’absence d’image directe ne peut pas masquer une recherche encore en cours.
+            self.previews.pop(cachekey, None)
+            local = await self._local_notification_preview(cachekey, row, printer_id, task_id)
+            if local is not None:
+                return local
+        if not task_id and not project_id:
+            return {"image": None}
         # L’échec de l’image directe n’est pas définitif pendant la recherche du projet.
         self.previews.pop(cachekey, None)
         matches = []
@@ -515,6 +559,44 @@ class CloudExtras:
             project = {**project, "taskid": task_reference}
             return await self.preview_row(cachekey, project)
         return await self.preview_row(cachekey, project, lookup_detail=False)
+
+    async def _local_notification_preview(self, cachekey, notice, printer_id, task_id):
+        def matches_notice(task):
+            reference = task.get("taskid") or task.get("task_id") or task.get("id")
+            return matching_completed_task(notice, task, printer_id) and (
+                not task_id or str(reference) == task_id
+            )
+
+        # Le même G-code peut avoir servi plusieurs fois. Le rapprochement reste lié à une fin.
+        matches = [task for task in self.tasks.values() if matches_notice(task)]
+        if not matches and notice["project_name"].lstrip("/").startswith(".3mf_temp/"):
+            # Les impressions lancées sur la S1 sont dans l’historique, indépendamment du catalogue.
+            try:
+                async with asyncio.timeout(10), self.notification_history_lock:
+                    rows, _ = await self.task_rows(printer_id, 1)
+            except (ValueError, aiohttp.ClientError, TimeoutError):
+                rows = []
+            matches = [
+                {**task, "taskid": task.get("taskid") or task.get("task_id") or task.get("id")}
+                for task in rows
+                if matches_notice(task)
+            ]
+        if not matches and not task_id:
+            try:
+                projects = await self._notification_project_rows()
+            except (ValueError, aiohttp.ClientError, TimeoutError):
+                projects = []
+            matches = [task for task in projects if isinstance(task, dict) and matches_notice(task)]
+        if not matches:
+            return None
+        if len(matches) != 1:
+            return {"image": None}
+        task = matches[0]
+        reference = task.get("taskid") or task.get("task_id")
+        self.previews.pop(cachekey, None)
+        if reference not in (None, "", 0, "0"):
+            return await self.preview_row(cachekey, {**task, "taskid": reference})
+        return await self.preview_row(cachekey, task, lookup_detail=False)
 
     async def _notification_project_rows(self):
         # L’observateur peut demander plusieurs vignettes visibles pendant la même lecture.

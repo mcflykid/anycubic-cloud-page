@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canica · Moxen</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=chillax@400,500,600&display=swap">
+<link rel="stylesheet" href="canica.css">
+<!-- ?tema=claro (la arcilla de día, la de siempre) o ?tema=oscuro (la misma arcilla de noche) -->
+<script>if (/[?&]tema=claro/.test(location.search)) document.documentElement.dataset.tema = 'claro'; else if (/[?&]tema=oscuro/.test(location.search)) document.documentElement.dataset.tema = 'oscuro';</script>
+</head>
+<body>
+  <!-- las aspas del remolino que lleva cada canica por dentro (se dibujan una vez y se reutilizan) -->
+  <svg class="cn-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="cn-g-clara" x1="0" y1="1" x2="0.4" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".6" stop-color="#eaffff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity=".85"/></linearGradient>
+      <linearGradient id="cn-g-honda" x1="0" y1="1" x2="0.4" y2="0"><stop offset="0" stop-color="#0a6a86" stop-opacity="0"/><stop offset="1" stop-color="#0a6a86" stop-opacity=".3"/></linearGradient>
+      <path id="cn-brazo" d="M50 50C50 36 62 22 84 24C70 30 62 40 59 56Z"/>
+      <path id="cn-brazo-h" d="M50 50C52 38 66 27 88 33C72 38 62 47 58 61Z"/>
+      <g id="cn-aspas">
+        <g fill="url(#cn-g-honda)" transform="rotate(60 50 50)">
+          <use href="#cn-brazo-h"/><use href="#cn-brazo-h" transform="rotate(120 50 50)"/><use href="#cn-brazo-h" transform="rotate(240 50 50)"/>
+        </g>
+        <g fill="url(#cn-g-clara)">
+          <use href="#cn-brazo"/><use href="#cn-brazo" transform="rotate(120 50 50)"/><use href="#cn-brazo" transform="rotate(240 50 50)"/>
+        </g>
+        <circle cx="80" cy="40" r="2.6" fill="#fff" fill-opacity=".85"/>
+        <circle cx="24" cy="66" r="1.7" fill="#fff" fill-opacity=".7"/>
+        <circle cx="64" cy="82" r="1.2" fill="#fff" fill-opacity=".6"/>
+      </g>
+    </defs>
+  </svg>
+
+  <main class="cn-escena" data-canica>
+    <!-- el fondo: arcilla con grano, huecos hundidos con el dedo y unas bolitas de modelar -->
+    <div class="cn-fondo" aria-hidden="true">
+      <i class="cn-hueco cn-h1"></i><i class="cn-hueco cn-h2"></i><i class="cn-hueco cn-h3"></i>
+      <i class="cn-bolita cn-b1"></i><i class="cn-bolita cn-b2"></i><i class="cn-bolita cn-b3"></i><i class="cn-bolita cn-b4"></i>
+    </div>
+
+    <div class="cn-pila">
+    <i class="cn-losa" aria-hidden="true"></i>
+    <section class="cn-tarjeta" aria-labelledby="cn-titulo">
+      <header class="cn-cab">
+        <h1 class="cn-chip" id="cn-titulo"><i class="cn-chip-punto"></i>Ajustes rápidos</h1>
+        <p class="cn-cuenta" aria-hidden="true"><span class="cn-rueda" data-cuenta><span>1 de 4 activos</span></span></p>
+      </header>
+
+      <!-- el interruptor héroe: el carril y la canica grandes -->
+      <div class="cn-heroe" data-fila>
+        <div class="cn-heroe-info">
+          <span class="cn-icono cn-icono--g" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M2.8 9.3a13.5 13.5 0 0 1 18.4 0M5.9 12.7a9 9 0 0 1 12.2 0M9 16a4.5 4.5 0 0 1 6 0"/><circle cx="12" cy="19.2" r=".6"/></svg>
+          </span>
+          <div class="cn-textos">
+            <p class="cn-nombre" id="cn-n-wifi">Wi‑Fi</p>
+            <p class="cn-estado" aria-hidden="true"><span class="cn-rueda" data-estado><span>Sin conexión</span></span></p>
+          </div>
+        </div>
+        <button class="cn-int cn-int--g" type="button" role="switch" aria-checked="false" aria-labelledby="cn-n-wifi"
+                data-int="wifi" data-texto-on="Conectado · Casa" data-texto-off="Sin conexión">
+          <span class="cn-carril"></span>
+          <span class="cn-interior">
+            <i class="cn-relleno"></i>
+            <i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-onda"></i>
+            <i class="cn-sombra"></i><i class="cn-luz"></i>
+          </span>
+          <i class="cn-tink"></i>
+          <span class="cn-canica"><span class="cn-vidrio"><i class="cn-refrac"></i><svg class="cn-remolino" viewBox="0 0 100 100" aria-hidden="true"><use href="#cn-aspas"/></svg></span></span>
+        </button>
+      </div>
+
+      <ul class="cn-lista">
+        <li class="cn-fila" data-fila>
+          <span class="cn-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6.2 16.5V11a5.8 5.8 0 0 1 11.6 0v5.5l1.6 2H4.6zM10 21a2.2 2.2 0 0 0 4 0"/></svg>
+          </span>
+          <div class="cn-textos">
+            <p class="cn-nombre" id="cn-n-avisos">Notificaciones</p>
+            <p class="cn-estado" aria-hidden="true"><span class="cn-rueda" data-estado><span>Silenciadas</span></span></p>
+          </div>
+          <button class="cn-int" type="button" role="switch" aria-checked="true" aria-labelledby="cn-n-avisos"
+                  data-int="avisos" data-activo data-texto-on="Activadas" data-texto-off="Silenciadas">
+            <span class="cn-carril"></span>
+            <span class="cn-interior"><i class="cn-relleno"></i><i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-sombra"></i><i class="cn-luz"></i></span>
+            <i class="cn-tink"></i>
+            <span class="cn-canica"><span class="cn-vidrio"><i class="cn-refrac"></i><svg class="cn-remolino" viewBox="0 0 100 100" aria-hidden="true"><use href="#cn-aspas"/></svg></span></span>
+          </button>
+        </li>
+
+        <li class="cn-fila" data-fila>
+          <span class="cn-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg>
+          </span>
+          <div class="cn-textos">
+            <p class="cn-nombre" id="cn-n-silencio">No molestar</p>
+            <p class="cn-estado" aria-hidden="true"><span class="cn-rueda" data-estado><span>Desactivado</span></span></p>
+          </div>
+          <button class="cn-int" type="button" role="switch" aria-checked="false" aria-labelledby="cn-n-silencio"
+                  data-int="silencio" data-texto-on="Hasta las 7:00" data-texto-off="Desactivado">
+            <span class="cn-carril"></span>
+            <span class="cn-interior"><i class="cn-relleno"></i><i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-sombra"></i><i class="cn-luz"></i></span>
+            <i class="cn-tink"></i>
+            <span class="cn-canica"><span class="cn-vidrio"><i class="cn-refrac"></i><svg class="cn-remolino" viewBox="0 0 100 100" aria-hidden="true"><use href="#cn-aspas"/></svg></span></span>
+          </button>
+        </li>
+
+        <li class="cn-fila" data-fila>
+          <span class="cn-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 19c0-8 4.5-13 14-14 0 9.5-5 14-13 14zM5 19c2.5-4 5-6.5 8.5-8.5"/></svg>
+          </span>
+          <div class="cn-textos">
+            <p class="cn-nombre" id="cn-n-ahorro">Modo ahorro</p>
+            <p class="cn-estado" aria-hidden="true"><span class="cn-rueda" data-estado><span>Apagado</span></span></p>
+          </div>
+          <button class="cn-int" type="button" role="switch" aria-checked="false" aria-labelledby="cn-n-ahorro"
+                  data-int="ahorro" data-texto-on="Activo" data-texto-off="Apagado">
+            <span class="cn-carril"></span>
+            <span class="cn-interior"><i class="cn-relleno"></i><i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-onda"></i><i class="cn-sombra"></i><i class="cn-luz"></i></span>
+            <i class="cn-tink"></i>
+            <span class="cn-canica"><span class="cn-vidrio"><i class="cn-refrac"></i><svg class="cn-remolino" viewBox="0 0 100 100" aria-hidden="true"><use href="#cn-aspas"/></svg></span></span>
+          </button>
+        </li>
+      </ul>
+    </section>
+    </div>
+
+    <p class="cn-pista">Arrastra la canica, haz clic o pulsa Espacio</p>
+    <div class="cn-sr" role="status" aria-live="polite" data-vivo></div>
+  </main>
+  <script src="canica.js"></script>
+</body>
+</html>

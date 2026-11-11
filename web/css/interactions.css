@@ -3,27 +3,27 @@
 .file-selection-gutter input { margin:0!important; cursor:inherit; }
 #file-rows tr td { transition:background-color .16s; }
 #file-rows tr.file-selected td { background:color-mix(in srgb,var(--accent) 10%,var(--surface)); }
-#file-rows tr.file-selected td:first-child { box-shadow:inset 3px 0 var(--accent); }
-#cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { position:fixed; bottom:max(18px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:25; display:flex; width:max-content; max-width:calc(100vw - 28px); padding:12px 18px; margin:0; border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:0 12px 40px #0003; animation:selection-rise .2s ease-out; }
+
+#cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { position:fixed; bottom:max(18px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:25; display:flex; width:max-content; max-width:calc(100vw - 28px); padding:var(--atelier-space-3) var(--atelier-space-4); margin:0; border:1px solid var(--line); border-radius:var(--atelier-card-radius); background:var(--surface); box-shadow:var(--atelier-popover-shadow); animation:selection-rise .2s ease-out; }
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk .check { flex-basis:auto; }
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk button { flex:0 1 auto; }
 #tab-files:has(#cloud-tools.has-selection) { padding-bottom:130px; }
-.quick-palette { width:min(92vw,560px); padding:24px; border-radius:22px; border:1px solid var(--line); background:var(--surface); color:var(--text); box-shadow:0 24px 100px #0005; }
+.quick-palette { width:min(92vw,560px); padding:var(--atelier-space-5); border-radius:var(--atelier-card-radius); border:1px solid var(--line); background:var(--surface); color:var(--text); box-shadow:var(--atelier-dialog-shadow); }
 .quick-palette h2 { margin-top:0; }
-.quick-palette input { width:100%; min-height:46px; padding:10px 14px; }
-.quick-results { display:grid; gap:6px; margin:16px 0; max-height:55dvh; overflow:auto; }
-.quick-results button { text-align:left; min-height:44px; padding:10px 14px; }
+.quick-palette input { width:100%; min-height:46px; padding:var(--atelier-space-2) var(--atelier-space-3); }
+.quick-results { display:grid; gap:var(--atelier-space-1); margin:var(--atelier-space-4) 0; max-height:55dvh; overflow:auto; }
+.quick-results button { text-align:left; min-height:44px; padding:var(--atelier-space-2) var(--atelier-space-3); }
 .quick-results button:focus-visible { background:color-mix(in srgb,var(--accent) 12%,var(--surface)); outline:2px solid var(--accent); outline-offset:-2px; }
 .quick-palette[open] { animation:selection-rise .18s ease-out; }
 @keyframes selection-rise { from { opacity:0; translate:0 12px; } to { opacity:1; translate:0 0; } }
-@media(max-width:560px) { .quick-open { font-size:.8rem; } #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { gap:8px; padding:10px; justify-content:center; } }
+@media(max-width:560px) { .quick-open { font-size:var(--atelier-label-size); } #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { gap:var(--atelier-space-2); padding:var(--atelier-space-2); justify-content:center; } }
 @media(prefers-reduced-motion:reduce) { #file-rows tr td { transition:none; } #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk,.quick-palette[open] { animation:none; } }
 
 /* Les entrées se déclenchent à l’ouverture d’un panneau ou d’une fenêtre.
    Les relevés et rafraîchissements ne déplacent pas la surface de travail. */
 :root[data-style] {
   --section-entry: section-fade;
-  --section-entry-duration: 220ms;
+  --section-entry-duration: var(--motion-panel);
   --heading-entry: heading-rise;
   --dialog-entry: dialog-rise;
 }
@@ -39,26 +39,6 @@
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none; }
 }
-:root[data-style="apple"] {
-  --section-entry-duration: 320ms;
-  --heading-entry: heading-spring;
-  --dialog-entry: dialog-pop;
-}
-:root[data-style="blueprint"] {
-  --section-entry: section-reveal;
-  --section-entry-duration: 290ms;
-  --heading-entry: heading-sweep;
-}
-:root[data-style="aurora"] {
-  --section-entry-duration: 340ms;
-  --heading-entry: heading-spring;
-  --dialog-entry: dialog-pop;
-}
-:root[data-style="lab"] {
-  --section-entry-duration: 320ms;
-  --heading-entry: heading-deal;
-  --dialog-entry: dialog-pop;
-}
 
 @media (prefers-reduced-motion:no-preference) {
   #atelier > .tab-panel:not([hidden]) {
@@ -71,60 +51,15 @@
   dialog[open]:not(#monitor-detail) {
     animation: var(--dialog-entry) var(--motion-panel) var(--motion-ease);
   }
-  #monitor-detail[open][data-card-origin] {
-    animation: monitor-expand 420ms cubic-bezier(.18,.76,.24,1);
-  }
   dialog[open]::backdrop {
     animation: backdrop-fade var(--motion-panel) ease-out;
-  }
-  [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section {
-    animation: heading-deal 320ms ease-out backwards;
-  }
-  [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section:nth-child(2) {
-    animation-delay: 45ms;
-  }
-  [data-style="lab"] #tab-statistics:not([hidden]) .statistics-grid > section:nth-child(3) {
-    animation-delay: 90ms;
   }
 }
 
 @keyframes section-fade { from { opacity:.55; } }
-@keyframes section-reveal { from { opacity:.5; clip-path:inset(0 10% 0 0); } to { clip-path:inset(0); } }
-@keyframes heading-rise { from { translate:0 9px; } }
-@keyframes heading-spring {
-  0% { translate:0 12px; }
-  70% { translate:0 -2px; }
-  100% { translate:0 0; }
-}
-@keyframes heading-sweep { from { translate:-10px 0; } }
-@keyframes heading-drift { from { translate:12px 0; } }
-@keyframes heading-deal { from { opacity:.5; translate:0 13px; } }
-@keyframes dialog-rise { from { opacity:0; translate:0 10px; } }
-@keyframes dialog-pop { from { opacity:0; scale:.96; } }
+@keyframes heading-rise { from { translate:0 var(--atelier-space-2); } }
+@keyframes dialog-rise { from { opacity:0; translate:0 var(--atelier-space-3); } }
 @keyframes backdrop-fade { from { opacity:0; } }
-@keyframes monitor-expand {
-  from { opacity:.35; transform:translate(var(--monitor-origin-x),var(--monitor-origin-y)) scale(.65); }
-  85% { opacity:1; transform:translate(0,0) scale(1.015); }
-  to { opacity:1; transform:none; }
-}
-
-/* L’attente ne remplace que des listes sans contenu affiché. */
-.list-loading:not([hidden]) { display:grid; gap:8px; margin-block:10px; }
-.list-loading > span {
-  min-height:48px;
-  border:1px solid var(--line);
-  border-radius:var(--panel-radius,12px);
-  background:
-    linear-gradient(var(--line) 0 0) 12px center / 30px 26px no-repeat,
-    linear-gradient(var(--line) 0 0) 56px 40% / min(38%,210px) 8px no-repeat,
-    linear-gradient(var(--line) 0 0) 56px 65% / min(25%,130px) 6px no-repeat,
-    var(--surface);
-}
-.list-loading-tasks > span { min-height:68px; }
-@media (prefers-reduced-motion:no-preference) {
-  .list-loading:not([hidden]) { animation: section-fade 220ms ease-out; }
-}
-
 /* Le texte affiche tout de suite la mesure reçue. Seule sa présentation bouge. */
 @media (prefers-reduced-motion:no-preference) {
   .monitor-card-value[data-motion-change="a"] { animation: measure-in-a var(--motion-fast) ease-out; }
@@ -136,3 +71,301 @@
 @keyframes measure-in-b { from { opacity:.65; translate:0 4px; } }
 @keyframes badge-in-a { 45% { scale:1.5; } }
 @keyframes badge-in-b { 45% { scale:1.5; } }
+
+/* Compteur et barre contextuelle repris de Moxen Lote https://moxen.cl/recursos/lote/ */
+#tab-files { --selection-spring: cubic-bezier(.34, 1.56, .64, 1); }
+
+@supports (animation-timing-function: linear(0, 1)) {
+  #tab-files { --selection-spring: linear(0.0000, 0.0494, 0.1330, 0.2699, 0.3912, 0.5433, 0.6575, 0.7842, 0.8698, 0.9558, 1.0187, 1.0540, 1.0817, 1.0929, 1.0963, 1.0927, 1.0828, 1.0723, 1.0578, 1.0460, 1.0322, 1.0201, 1.0120, 1.0038, 0.9989, 0.9946, 0.9924, 0.9910, 0.9907, 0.9911, 0.9921, 0.9931, 0.9945, 0.9957, 0.9970, 0.9979, 0.9989, 0.9995, 1.0001, 1.0005, 1); }
+}
+
+.selection-count {
+  display: inline-flex;
+  align-items: center;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+#cloud-selection-digits { display: flex; }
+.selection-digit { display: block; height: 1em; overflow: hidden; }
+
+.selection-digit-strip {
+  display: block;
+  line-height: 1;
+  transform: translateY(calc(var(--d, 0) * -1em));
+  transition: transform .8s var(--selection-spring);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+#file-rows tr.file-selected td { transition-delay: var(--selection-wave-delay, 0ms); }
+
+#file-rows tr:has(input[data-selection]) td:first-child { position: relative; }
+
+#file-rows tr:has(input[data-selection]) td:first-child::after {
+  content: "";
+  position: absolute;
+  inset: 14px auto 14px 0;
+  width: 3px;
+  border-radius: var(--atelier-control-radius);
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform .45s var(--selection-spring) var(--selection-wave-delay, 0ms);
+  pointer-events: none;
+}
+
+#file-rows tr.file-selected td:first-child::after { transform: scaleY(1); }
+
+#cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk {
+  animation: selection-slide .75s var(--selection-spring), selection-appear .2s ease-out;
+  transform-origin: 50% 100%;
+}
+
+@keyframes selection-slide {
+  from { translate: 0 26px; scale: .94; }
+  to { translate: 0 0; scale: 1; }
+}
+
+@keyframes selection-appear { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .selection-digit-strip,
+  #file-rows tr.file-selected td,
+  #file-rows tr:has(input[data-selection]) td:first-child::after { transition: none; }
+  #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { animation: none; }
+}
+
+/* Contour repris de Moxen Remesa https://moxen.cl/recursos/remesa/ */
+.upload-file { position: relative; }
+
+.upload-progress-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.upload-file[aria-busy="true"] .upload-progress-outline { visibility: visible; }
+
+.upload-progress-outline rect {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .upload-file[aria-busy="true"] .upload-progress-outline rect {
+    animation: upload-outline-flow 2.6s linear infinite;
+  }
+
+  .upload-file[data-upload-motion-paused] .upload-progress-outline rect {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes upload-outline-flow { to { stroke-dashoffset: -2; } }
+
+/* Lumière de proximité reprise de Moxen Arrastre https://moxen.cl/recursos/arrastre/ */
+.upload-drop-light-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.upload-drop-light {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
+}
+
+/* Le curseur Uiverse suit aria-pressed, la même source que la sélection annoncée. */
+#tab-files .storage-tabs {
+  --storage-inset: 4px;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  width: min(100%, 33rem);
+  padding: var(--storage-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-card-radius);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  box-shadow: var(--atelier-track-shadow);
+}
+#tab-files .storage-tabs > button[data-source] {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--atelier-space-1) var(--atelier-space-1);
+  border: 1px solid transparent;
+  border-radius: var(--atelier-card-radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  white-space: normal;
+}
+#tab-files .storage-tabs > button[aria-pressed="true"] { font-weight: 700; }
+#tab-files .storage-tabs > button[data-source]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+.storage-glider {
+  position: absolute;
+  inset: var(--storage-inset) auto var(--storage-inset) var(--storage-inset);
+  width: calc((100% - 2 * var(--storage-inset)) / 3);
+  border-radius: var(--atelier-card-radius);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: linear-gradient(135deg, var(--surface), color-mix(in srgb, var(--accent) 19%, var(--surface)));
+  box-shadow: var(--atelier-glider-shadow);
+  pointer-events: none;
+  transition: transform 380ms cubic-bezier(.37, 1.95, .66, .56);
+}
+.storage-tabs:has([data-source="usb"][aria-pressed="true"]) .storage-glider { transform: translateX(100%); }
+.storage-tabs:has([data-source="cloud"][aria-pressed="true"]) .storage-glider { transform: translateX(200%); }
+
+/* Le relief Uiverse suit le choix du formulaire. L’ordre ACE reste lié au bouton Appliquer. */
+.ace-relay-control {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 44px;
+  flex: none;
+}
+.ace-auto-feed .ace-relay-control > input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ace-relay-track {
+  display: flex;
+  align-items: center;
+  width: 48px;
+  height: 24px;
+  padding-inline: 2px;
+  border-radius: var(--atelier-control-radius);
+  background: var(--line);
+  box-shadow: var(--atelier-track-shadow);
+  transition: background-color var(--motion-fast, 180ms) linear;
+}
+.ace-relay-thumb {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--atelier-control-radius);
+  background: var(--atelier-surface);
+  box-shadow: var(--atelier-relay-thumb-shadow);
+  transition: transform var(--motion-fast, 180ms) ease;
+}
+.ace-relay-thumb::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, var(--atelier-relay-texture) 1px, transparent 1.35px) 0 0 / 3.33px 3.33px;
+}
+.ace-relay-control > input:checked + .ace-relay-track { background: var(--accent); }
+.ace-relay-control > input:checked + .ace-relay-track .ace-relay-thumb { transform: translateX(24px); }
+.ace-relay-control > input:focus-visible + .ace-relay-track { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ace-relay-control > input:disabled + .ace-relay-track { opacity: .55; }
+
+@media (prefers-reduced-motion: reduce) {
+  .storage-glider, .ace-relay-track, .ace-relay-thumb { transition: none; }
+}
+@media (forced-colors: active) {
+  #tab-files .storage-tabs > button[aria-pressed="true"],
+  .ace-relay-track, .ace-relay-thumb { border: 1px solid ButtonText; }
+}
+
+/* La pulsation Uiverse dure le temps de la requête, avec une largeur de bouton stable. */
+#temperature-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--atelier-space-2);
+}
+.csv-export-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+}
+.csv-export-icon svg { width: 15px; height: 15px; }
+#temperature-export[aria-busy="true"] .csv-export-icon { animation: csv-export-pulse 1s ease-out infinite; }
+@keyframes csv-export-pulse {
+  0% { scale: .95; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  70% { scale: 1; box-shadow: 0 0 0 var(--atelier-space-2) transparent; }
+  100% { scale: .95; box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #temperature-export[aria-busy="true"] .csv-export-icon { animation: none; }
+}
+
+/* Les radios restent dans l’ordre des notes pour que les flèches augmentent la valeur. */
+.rating-stars > label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-color: transparent;
+}
+.rating-stars > label > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.rating-stars > label > input:disabled { cursor: not-allowed; }
+.rating-stars label:has(input:disabled) { opacity: .55; }
+.rating-stars svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  fill-opacity: 0;
+  stroke: currentColor;
+  stroke-linejoin: bevel;
+}
+.rating-stars label:is(:has(input:checked), :has(~ label input:checked)) svg {
+  color: var(--accent);
+  fill-opacity: 1;
+}
+.rating-stars label:has(input:focus-visible) { outline: 2px solid var(--accent); }
+.rating-stars label:has(input:checked) svg { animation: rating-star-pop 360ms ease-out; }
+@keyframes rating-star-pop {
+  0% { transform: scale(1); fill-opacity: 0; stroke-dasharray: 10; }
+  30% { transform: scale(.45); fill-opacity: 0; stroke-dasharray: 10; }
+  60% { transform: scale(1.2); fill-opacity: 1; }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rating-stars label:has(input:checked) svg { animation: none; }
+}

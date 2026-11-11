@@ -75,10 +75,6 @@
     "Halloween",
     "Halloween"
   ],
-  "Apple Design": [
-    "Apple Design",
-    "Apple Design"
-  ],
   "Appliquer": [
     "Apply",
     "Aplicar"
@@ -3415,10 +3411,6 @@
     "A technical drawing grid with precise guides.",
     "Una trama de plano técnico con guías precisas."
   ],
-  "Blueprint": [
-    "Blueprint",
-    "Blueprint"
-  ],
   "Des cartes de carnet, des tons ivoire et une navigation éditoriale.": [
     "Notebook cards, ivory tones and editorial navigation.",
     "Tarjetas de cuaderno, tonos marfil y navegación editorial."
@@ -3654,14 +3646,6 @@
   "Aucune section trouvée.": [
     "No sections found.",
     "No se encontró ninguna sección."
-  ],
-  "Replier le plan": [
-    "Collapse the plan",
-    "Contraer el plano"
-  ],
-  "Déplier le plan": [
-    "Expand the plan",
-    "Expandir el plano"
   ],
   "Réinitialiser la disposition": [
     "Reset layout",
@@ -3915,9 +3899,9 @@
     "Laboratory",
     "Laboratorio"
   ],
-  "Navigation par usage et compositions expérimentales pour comparer les parcours.": [
-    "Navigation by use and experimental layouts for comparing workflows.",
-    "Navegación por uso y diseños experimentales para comparar los recorridos."
+  "Palette bleu-vert et menu latéral repliable sur ordinateur.": [
+    "Teal palette and collapsible sidebar on desktop.",
+    "Paleta verde azulada y menú lateral plegable en el ordenador."
   ],
   "Atelier": [
     "Workshop",
@@ -3947,17 +3931,9 @@
     "Clear landmarks and a direct layout for daily monitoring.",
     "Referencias claras y disposición directa para el seguimiento diario."
   ],
-  "Navigation flottante, verre doux et curseur actif qui accompagne le choix.": [
-    "Floating navigation, soft glass and an active marker that follows the selection.",
-    "Navegación flotante, cristal suave e indicador activo que sigue la selección."
-  ],
   "Mesures groupées, grille compacte et séparations nettes.": [
     "Grouped measurements, a compact grid and clear separators.",
     "Mediciones agrupadas, cuadrícula compacta y separaciones claras."
-  ],
-  "Plan quadrillé, index de sections et panneau latéral repliable.": [
-    "Grid plan, section index and a collapsible sidebar.",
-    "Plano cuadriculado, índice de secciones y panel lateral plegable."
   ],
   "Tableau de bord en tuiles déplaçables et surfaces lumineuses.": [
     "Dashboard with movable tiles and luminous surfaces.",
@@ -4155,54 +4131,6 @@
     "Workshop sections",
     "Secciones del taller"
   ],
-  "Déverrouiller la disposition": [
-    "Unlock layout",
-    "Desbloquear la disposición"
-  ],
-  "Verrouiller la disposition": [
-    "Lock layout",
-    "Bloquear la disposición"
-  ],
-  "Déplacer avant": [
-    "Move earlier",
-    "Mover antes"
-  ],
-  "Déplacer après": [
-    "Move later",
-    "Mover después"
-  ],
-  "Redimensionner cette tuile": [
-    "Resize this tile",
-    "Cambiar tamaño de la tarjeta"
-  ],
-  "Disposition restaurée.": [
-    "Layout restored.",
-    "Disposición restaurada."
-  ],
-  "Sauvegarde de disposition invalide.": [
-    "Invalid layout backup.",
-    "Copia de disposición no válida."
-  ],
-  "Sauvegarde des dispositions": [
-    "Layout backup",
-    "Copia de las disposiciones"
-  ],
-  "Les positions et tailles des tuiles sont enregistrées dans ce navigateur.": [
-    "Tile positions and sizes are saved in this browser.",
-    "Las posiciones y tamaños de las tarjetas se guardan en este navegador."
-  ],
-  "Exporter la disposition": [
-    "Export layout",
-    "Exportar disposición"
-  ],
-  "Restaurer les dispositions d’origine": [
-    "Restore default layouts",
-    "Restaurar disposiciones originales"
-  ],
-  "Importer une disposition": [
-    "Import a layout",
-    "Importar una disposición"
-  ],
   "Studio": [
     "Studio",
     "Studio"
@@ -4223,9 +4151,9 @@
     "Glasshouse",
     "Invernadero"
   ],
-  "Navigation en panneaux vitrés et cartes aérées.": [
-    "Glass navigation panels and spacious cards.",
-    "Paneles de navegación translúcidos y tarjetas espaciosas."
+  "Surfaces bleutées et accent indigo.": [
+    "Blue-tinted surfaces with an indigo accent.",
+    "Superficies azuladas y acento índigo."
   ],
   "Sécurité": [
     "Security",
@@ -4343,6 +4271,406 @@
     "Too many rejected codes. Start signing in again.",
     "Demasiados códigos rechazados. Vuelve a iniciar sesión."
   ],
+  "Animations de l’atelier": [
+    "Workshop animations",
+    "Animaciones del taller"
+  ],
+  "Ressort et soulèvement des tuiles d’après": [
+    "Tile spring and lift based on",
+    "Resorte y elevación de las tarjetas basados en"
+  ],
+  "Parrilla · Moxen": [
+    "Parrilla · Moxen",
+    "Parrilla · Moxen"
+  ],
+  "Compteur et sélection par glissement d’après": [
+    "Counter and drag selection based on",
+    "Contador y selección por arrastre basados en"
+  ],
+  "Lote · Moxen": [
+    "Lote · Moxen",
+    "Lote · Moxen"
+  ],
+  "Arrastre · Moxen": [
+    "Arrastre · Moxen",
+    "Arrastre · Moxen"
+  ],
+  "Remesa · Moxen": [
+    "Remesa · Moxen",
+    "Remesa · Moxen"
+  ],
+  "Inclinaison de la zone de dépôt d’après": [
+    "File drop zone tilt based on",
+    "Inclinación de la zona de depósito basada en"
+  ],
+  "Contour d’envoi d’après": [
+    "Upload outline based on",
+    "Contorno de subida basado en"
+  ],
+  "Ouverture de la cloche d’après": [
+    "Notification panel opening based on",
+    "Apertura de la campana basada en"
+  ],
+  "Burbuja · Moxen": [
+    "Burbuja · Moxen",
+    "Burbuja · Moxen"
+  ],
+  "Reflet des chargements d’après": [
+    "Loading shimmer based on",
+    "Reflejo de carga basado en"
+  ],
+  "Esqueleto · Moxen": [
+    "Esqueleto · Moxen",
+    "Esqueleto · Moxen"
+  ],
+  "Détail de la supervision d’après": [
+    "Monitoring details based on",
+    "Detalle de supervisión basado en"
+  ],
+  "Instrumental · Moxen": [
+    "Instrumental · Moxen",
+    "Instrumental · Moxen"
+  ],
+  "Moyenne des relevés": [
+    "Sample average",
+    "Promedio de las muestras"
+  ],
+  "95e centile": [
+    "95th percentile",
+    "Percentil 95"
+  ],
+  "Relevés valides": [
+    "Valid samples",
+    "Muestras válidas"
+  ],
+  "Interrupteur des mesures d’après": [
+    "Measurement switch based on",
+    "Interruptor de medidas basado en"
+  ],
+  "Canica · Moxen": [
+    "Canica · Moxen",
+    "Canica · Moxen"
+  ],
+  "Activer le mode clair": [
+    "Switch to light mode",
+    "Activar el modo claro"
+  ],
+  "Activer le mode sombre": [
+    "Switch to dark mode",
+    "Activar el modo oscuro"
+  ],
+  "Réduire les sections": [
+    "Collapse sections",
+    "Contraer secciones"
+  ],
+  "Développer les sections": [
+    "Expand sections",
+    "Expandir secciones"
+  ],
+  "{0} bobine chargée": [
+    "{0} loaded spool",
+    "{0} bobina cargada"
+  ],
+  "{0} bobines chargées": [
+    "{0} loaded spools",
+    "{0} bobinas cargadas"
+  ],
+  "Séchage à {0}": [
+    "Drying at {0}",
+    "Secado a {0}"
+  ],
+  "{0} restantes": [
+    "{0} remaining",
+    "{0} restantes"
+  ],
+  "Bobines": [
+    "Spools",
+    "Bobinas"
+  ],
+  "Suivi en direct": [
+    "Live monitoring",
+    "Seguimiento en directo"
+  ],
+  "Suivi suspendu": [
+    "Monitoring paused",
+    "Seguimiento suspendido"
+  ],
+  "Suivi de l’imprimante": [
+    "Printer monitoring",
+    "Seguimiento de la impresora"
+  ],
+  "Déconnecter le suivi en direct ? Cette action n’arrête pas l’impression.": [
+    "Disconnect live monitoring? This does not stop printing.",
+    "¿Desconectar el seguimiento en directo? Esto no detiene la impresión."
+  ],
+  "Nom affiché dans le compte Anycubic": [
+    "Name shown in the Anycubic account",
+    "Nombre mostrado en la cuenta de Anycubic"
+  ],
+  "Surveillance des défauts par la caméra": [
+    "Camera-based defect monitoring",
+    "Detección de defectos mediante la cámara"
+  ],
+  "Une mise à jour proposée par Anycubic s’installe lorsque l’imprimante est libre.": [
+    "An update offered by Anycubic installs when the printer is idle.",
+    "Las actualizaciones de Anycubic se instalan cuando la impresora está libre."
+  ],
+  "Ces paramètres se règlent dans le fichier Compose.": [
+    "These settings are configured in the Compose file.",
+    "Estos ajustes se configuran en el archivo Compose."
+  ],
+  "Un code temporaire est demandé après le mot de passe.": [
+    "A temporary code is requested after the password.",
+    "Se pide un código temporal después de la contraseña."
+  ],
+  "Style": [
+    "Style",
+    "Estilo"
+  ],
+  "Thème": [
+    "Theme",
+    "Tema"
+  ],
+  "Régler": [
+    "Configure",
+    "Configurar"
+  ],
+  "Mettre à jour": [
+    "Update",
+    "Actualizar"
+  ],
+  "Désactivée": [
+    "Disabled",
+    "Desactivada"
+  ],
+  "Flux vidéo de la caméra": [
+    "Camera video stream",
+    "Transmisión de la cámara"
+  ],
+  "Allumer la caméra": [
+    "Turn on the camera",
+    "Encender la cámara"
+  ],
+  "Éteindre la caméra": [
+    "Turn off the camera",
+    "Apagar la cámara"
+  ],
+  "Commandes": [
+    "Controls",
+    "Controles"
+  ],
+  "Zoom de la vidéo": [
+    "Video zoom",
+    "Zoom del vídeo"
+  ],
+  "Distance par appui": [
+    "Distance per press",
+    "Distancia por pulsación"
+  ],
+  "Origine de tous les axes": [
+    "Home all axes",
+    "Llevar todos los ejes al origen"
+  ],
+  "Désactiver les moteurs": [
+    "Disable motors",
+    "Desactivar los motores"
+  ],
+  "Mémoire": [
+    "Memory",
+    "Memoria"
+  ],
+  "Précédente": [
+    "Previous",
+    "Anterior"
+  ],
+  "Suivante": [
+    "Next",
+    "Siguiente"
+  ],
+  "Sélectionner les fichiers de cette page": [
+    "Select files on this page",
+    "Seleccionar archivos de esta página"
+  ],
+  "{0} fichier": [
+    "{0} file",
+    "{0} archivo"
+  ],
+  "{0} fichiers": [
+    "{0} files",
+    "{0} archivos"
+  ],
+  "{0} sur {1}": [
+    "{0} of {1}",
+    "{0} de {1}"
+  ],
+  "{0} · imprimable": [
+    "{0} · printable",
+    "{0} · imprimible"
+  ],
+  "Surveillez la distance buse-plateau pendant un déplacement.": [
+    "Watch the nozzle-to-bed distance while moving the axes.",
+    "Vigila la distancia entre la boquilla y la cama durante el movimiento."
+  ],
+  "Déplacer les axes de l’imprimante avec ces paramètres ? La surveillance à distance sera activée.": [
+    "Move the printer axes with these settings? Remote monitoring will turn on.",
+    "¿Mover los ejes de la impresora con estos ajustes? Se activará la supervisión remota."
+  ],
+  "Imprimer « {0} » sur « {1} » ? Vérifiez que le plateau est libre.": [
+    "Print “{0}” on “{1}”? Make sure the bed is clear.",
+    "¿Imprimir «{0}» en «{1}»? Comprueba que la cama esté libre."
+  ],
+  "Imprimante sélectionnée": [
+    "Selected printer",
+    "Impresora seleccionada"
+  ],
+  "Journal des notifications": [
+    "Notification log",
+    "Registro de notificaciones"
+  ],
+  "Aucune sélection": [
+    "Nothing selected",
+    "Ninguna selección"
+  ],
+  "Terminées": [
+    "Completed",
+    "Terminadas"
+  ],
+  "Arrêtées": [
+    "Stopped",
+    "Detenidas"
+  ],
+  "Terminée": [
+    "Completed",
+    "Terminada"
+  ],
+  "Arrêtée": [
+    "Stopped",
+    "Detenida"
+  ],
+  "Réimprimer": [
+    "Reprint",
+    "Reimprimir"
+  ],
+  "Liste des impressions": [
+    "Print list",
+    "Lista de impresiones"
+  ],
+  "{0} impression sur la période": [
+    "{0} print in this period",
+    "{0} impresión en este período"
+  ],
+  "{0} impressions sur la période": [
+    "{0} prints in this period",
+    "{0} impresiones en este período"
+  ],
+  "Aucun fichier choisi": [
+    "No file selected",
+    "Ningún archivo seleccionado"
+  ],
+  "ou déposer un fichier ici": [
+    "or drop a file here",
+    "o suelta un archivo aquí"
+  ],
+  "Cible": [
+    "Target",
+    "Objetivo"
+  ],
+  "État": [
+    "Status",
+    "Estado"
+  ],
+  "Supervision de l’application": [
+    "Application monitoring",
+    "Supervisión de la aplicación"
+  ],
+  "Matériel et compteurs": [
+    "Hardware and counters",
+    "Hardware y contadores"
+  ],
+  "Choisir un fichier": [
+    "Choose a file",
+    "Elegir un archivo"
+  ],
+  "24 heures": [
+    "24 hours",
+    "24 horas"
+  ],
+  "Cloud": [
+    "Cloud",
+    "Nube"
+  ],
+  "6 heures": [
+    "6 hours",
+    "6 horas"
+  ],
+  "30 jours": [
+    "30 days",
+    "30 días"
+  ],
+  "Début": [
+    "Start",
+    "Inicio"
+  ],
+  "Aucun événement de connexion.": [
+    "No connection events.",
+    "No hay eventos de conexión."
+  ],
+  "2 jours": [
+    "2 days",
+    "2 días"
+  ],
+  "Actuelle": [
+    "Current",
+    "Actual"
+  ],
+  "Impression": [
+    "Print",
+    "Impresión"
+  ],
+  "7 jours": [
+    "7 days",
+    "7 días"
+  ],
+  "Machines": [
+    "Machines",
+    "Máquinas"
+  ],
+  "Réinitialiser le zoom": [
+    "Reset zoom",
+    "Restablecer zoom"
+  ],
+  "Envoi": [
+    "Upload",
+    "Envío"
+  ],
+  "Période": [
+    "Period",
+    "Período"
+  ],
+  "Durée": [
+    "Duration",
+    "Duración"
+  ],
+  "Mesure": [
+    "Reading",
+    "Medición"
+  ],
+  "Bobine engagée": [
+    "Spool engaged",
+    "Bobina cargada"
+  ],
+  "Enceinte": [
+    "Enclosure",
+    "Recinto"
+  ],
+  "Les événements de connexion sont indisponibles.": [
+    "Connection events are unavailable.",
+    "Los eventos de conexión no están disponibles."
+  ],
+  "Surfaces lumineuses et accents violets.": [
+    "Bright surfaces and violet accents.",
+    "Superficies luminosas y acentos violetas."
+  ],
   "Notifications Discord — Anycubic Cloud Page": [
     "Discord notifications — Anycubic Cloud Page",
     "Notificaciones de Discord — Anycubic Cloud Page"
@@ -4442,5 +4770,13 @@
   "Réglage Discord enregistré.": [
     "Discord settings saved.",
     "Configuración de Discord guardada."
+  ],
+  "Activées": [
+    "Enabled",
+    "Activadas"
+  ],
+  "Désactivées": [
+    "Disabled",
+    "Desactivadas"
   ]
 }

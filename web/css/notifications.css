@@ -1,0 +1,345 @@
+/* Notifications : l’en-tête reste accessible pendant que seule la liste défile. */
+#notifications-panel[hidden] {
+  display: none;
+}
+
+#notifications-panel:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, calc(100vw - 32px));
+  max-height: min(78dvh, 56rem);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--atelier-space-3);
+}
+
+#notifications-panel .notifications-heading {
+  align-items: center;
+  gap: var(--atelier-space-2);
+  padding-bottom: var(--atelier-space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+#notifications-panel .notifications-heading h2 {
+  min-width: 0;
+  font-size: var(--atelier-card-title-size);
+}
+
+#notifications-panel .notifications-heading button,
+#notifications-panel .notice-filters button {
+  min-height: 36px;
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  font-size: var(--atelier-caption-size);
+}
+
+#notifications-panel #notifications-source {
+  align-self: center;
+  margin-inline-start: auto;
+  width: auto;
+  min-height: 30px;
+  padding: 3px var(--atelier-space-2);
+  font-size: var(--atelier-caption-size);
+}
+
+#notifications-panel .notice-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 1fr);
+  align-items: center;
+  gap: var(--atelier-space-1);
+  margin: var(--atelier-space-2) 0;
+}
+
+#notifications-panel .notice-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-1);
+  margin: 0;
+}
+
+#notifications-panel .notice-filters button {
+  white-space: nowrap;
+}
+
+#notifications-panel .notice-search {
+  min-width: 0;
+  margin: 0;
+}
+
+#notifications-panel .notice-search svg {
+  display: none;
+}
+
+#notifications-panel .notice-search input {
+  min-width: 0;
+  min-height: 38px;
+  padding: var(--atelier-space-2) var(--atelier-space-2);
+}
+
+#notifications-panel #history-state:not([hidden]) {
+  margin: var(--atelier-space-2) 0 0;
+  padding: var(--atelier-space-3);
+}
+
+#notifications-panel .notification-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: var(--atelier-space-1) 0;
+  padding-inline: 2px;
+}
+
+#notifications-panel .notification-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--atelier-space-2);
+  padding: var(--atelier-space-3) 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+}
+
+#notifications-panel .notification-row .task-thumbnail {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: var(--atelier-card-radius);
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+}
+
+/* Le pictogramme seul occupe la miniature. Le nom accessible est porté par le bouton. */
+.notification-row .task-thumbnail > span:not([hidden]) {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  gap: 0;
+  font-size: 0;
+}
+.notification-row .task-thumbnail > span::before {
+  width: var(--atelier-space-5);
+  height: var(--atelier-space-5);
+}
+
+#notifications-panel .notification-row .task-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#notifications-panel .notification-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--atelier-space-1);
+  min-width: 0;
+}
+
+#notifications-panel .notification-open {
+  align-items: center;
+  gap: var(--atelier-space-2);
+  min-height: 0;
+  padding: 0;
+}
+
+#notifications-panel .notification-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: baseline;
+  gap: 3px;
+  width: 100%;
+}
+
+#notifications-panel .notification-name {
+  font-size: var(--atelier-label-size);
+  line-height: 1.25;
+}
+
+#notifications-panel .notification-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: var(--atelier-space-1);
+  text-align: right;
+}
+
+#notifications-panel .notification-meta time {
+  white-space: nowrap;
+}
+
+#notifications-panel .notification-copy .muted {
+  font-size: var(--atelier-caption-size);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+#notifications-panel .notification-result {
+  grid-column: 1 / -1;
+  font-size: var(--atelier-caption-size);
+  line-height: 1.25;
+}
+
+#notifications-panel .notification-error {
+  grid-column: 1;
+  gap: var(--atelier-space-1) var(--atelier-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+#notifications-panel .notification-error-title {
+  font-size: var(--atelier-caption-size);
+  line-height: 1.3;
+}
+
+#notifications-panel .notification-error-link {
+  min-height: 32px;
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  border: 1px solid color-mix(in srgb, currentColor 25%, var(--line));
+  border-radius: var(--atelier-control-radius);
+  background: color-mix(in srgb, currentColor 7%, var(--surface));
+  font-size: var(--atelier-caption-size);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: normal;
+  text-align: left;
+}
+
+#notifications-panel .notification-error-tooltip {
+  position: static;
+  display: none;
+  width: auto;
+  max-width: 100%;
+  margin: 2px 0 0;
+  padding: var(--atelier-space-2) var(--atelier-space-2);
+  border-radius: var(--atelier-control-radius);
+  box-shadow: none;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  font-size: var(--atelier-caption-size);
+  line-height: 1.4;
+}
+
+#notifications-panel .notification-error:hover .notification-error-tooltip,
+#notifications-panel .notification-error-link:focus-visible + .notification-error-tooltip {
+  display: block;
+}
+
+@media (hover: none), (pointer: coarse) {
+  #notifications-panel .notification-error-tooltip {
+    display: block;
+    flex-basis: 100%;
+  }
+}
+
+#notifications-panel .notification-delete {
+  min-width: 36px;
+  min-height: 36px;
+  padding: var(--atelier-space-1);
+}
+
+#notifications-panel .notification-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-1);
+  padding-top: var(--atelier-space-2);
+  border-top: 1px solid var(--line);
+}
+
+#notifications-panel #history-read-all,
+#notifications-panel #history-delete-all,
+#notifications-panel #notifications-more {
+  min-height: 36px;
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  font-size: var(--atelier-caption-size);
+}
+
+@media (max-width: 640px) {
+  #notifications-panel:not([hidden]) {
+    position: fixed;
+    inset-inline: 8px;
+    inset-block-start: calc(env(safe-area-inset-top) + 72px);
+    width: auto;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 88px);
+    padding: var(--atelier-space-3);
+  }
+
+  #notifications-panel .notifications-heading {
+    align-items: center;
+  }
+
+  #notifications-panel .notice-filters {
+    grid-column: 1 / -1;
+  }
+
+  #notifications-panel .notice-search {
+    grid-column: 1 / -1;
+  }
+
+  #notifications-panel .notice-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--atelier-space-2);
+  }
+
+  #notifications-panel .notification-copy {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  #notifications-panel .notification-meta {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  #notifications-panel .notification-actions {
+    justify-content: stretch;
+  }
+
+  #notifications-panel .notification-actions button {
+    flex: 1 1 130px;
+    white-space: normal;
+  }
+}
+
+/* Aux largeurs intermédiaires, la cloche ancre le panneau à la fenêtre pour éviter son décalage latéral. */
+@media (min-width: 641px) and (max-width: 900px) {
+  #notifications-panel:not([hidden]) {
+    position: fixed;
+    inset-inline: 8px;
+    inset-block-start: calc(env(safe-area-inset-top) + 72px);
+    width: auto;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 88px);
+  }
+}
+
+@media (max-width: 380px) {
+  #notifications-panel .notification-row {
+    grid-template-columns: 44px minmax(0, 1fr) 32px;
+    gap: var(--atelier-space-1);
+  }
+
+  #notifications-panel .notification-row .task-thumbnail {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  #notifications-panel .notification-error {
+    margin-inline-start: 0;
+  }
+}
+
+/* Le journal historique utilise les mêmes cartes dans sa propre fenêtre. */
+#historical-notifications-dialog {
+  width: min(670px, calc(100vw - 24px));
+}
+
+#historical-notifications-dialog #notifications-panel:not([hidden]) {
+  position: static;
+  width: 100%;
+  max-height: min(70dvh, 620px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-inline: 0;
+}

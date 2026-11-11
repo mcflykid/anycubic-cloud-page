@@ -18,10 +18,8 @@ test('le second ACE garde ses bobines et sa cible, puis se replie s’il dispara
   await expect(page.locator('#spool-dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.locator('#ace-selector').selectOption('1');
-  await expect(page.locator('#spools h3').first()).toHaveText('PETG');
-  const ids=await page.locator('#spools svg [id]').evaluateAll(nodes=>nodes.map(n=>n.id));
-  expect(new Set(ids).size).toBe(ids.length);
-  expect(ids.every(id=>id.includes('ace-1'))).toBe(true);
+  await expect(page.locator('#spools .ace-spool-copy strong').first()).toContainText('PETG');
+  await expect(page.locator('#spools .ace-spool-row')).toHaveCount(4);
 
   await page.locator('#go-drying').click();
   await page.locator('#dry-stop').click();
@@ -32,5 +30,5 @@ test('le second ACE garde ses bobines et sa cible, puis se replie s’il dispara
   await page.reload();
   await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
   await expect(page.locator('#ace-selector')).toBeHidden();
-  await expect(page.locator('#spools h3').first()).toHaveText('PLA');
+  await expect(page.locator('#spools .ace-spool-copy strong').first()).toContainText('PLA');
 });

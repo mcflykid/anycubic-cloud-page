@@ -16,6 +16,8 @@ for(const change of ['period','printer']){
   await page.locator('#temperature-hours').selectOption('24');
   await page.locator('#temperature-export').click();
   await started;
+  await expect(page.locator('#temperature-export')).toHaveAttribute('aria-busy','true');
+  await expect(page.locator('.csv-export-icon')).toHaveCSS('animation-name','csv-export-pulse');
   if(change==='period')await page.locator('#temperature-hours').selectOption('1');
   else await page.locator('#printer-selector').evaluate(select=>{
    select.add(new Option('Autre machine fictive','fixture-other'));
@@ -23,6 +25,7 @@ for(const change of ['period','printer']){
   });
   release();
   await expect(page.locator('#temperature-export')).toBeEnabled();
+  await expect(page.locator('.csv-export-icon')).toHaveCSS('animation-name','none');
   await expect(page.locator('#temperature-export-state')).toContainText('Export annulé');
   expect(downloads).toBe(0);
  });

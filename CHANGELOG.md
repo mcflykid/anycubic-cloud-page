@@ -1,22 +1,46 @@
 # Changements
 
-## À venir
+## 1.11.0 — 2026-11-11
 
-- Ajoute un canal Discord facultatif pour les impressions terminées et les échecs confirmés par le Cloud (#205, #251, #252, #253).
+### Atelier
 
-- Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).
+- Recompose les dix onglets à partir des maquettes HTML de référence. Aligne les commandes, les cartes et les titres de navigation. Les quatre styles partagent la même mise en page et les mêmes règles de présentation en clair et en sombre. Le menu latéral de Laboratoire reste repliable (#287, #288, #293, #295, #296).
+- Retire le cadenas, les dispositions personnalisables et les styles Apple Design, Prisme et Blueprint. Les anciennes préférences de style reviennent à **Par défaut** (#284, #294).
+- Illustre le Résumé avec les modèles détectés, identifie les emplacements des bobines et place l’aperçu à droite de la progression dans **Imprimante** (#291, #292).
+- Centre les commandes d’axes et maintient le flux dans le cadre de **Caméra**. Aligne les cartes et les commandes de **Statistiques**, avec des courbes distinctes par appareil et par emplacement (#285, #286).
 
-- Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
-- Sépare les courbes Buse et Plateau dans les statistiques (#238).
-- Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
-- Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
-- Aligne les quatre courbes de filament sur une rangée par ACE sur ordinateur (#264).
-- Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
-- Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
-- Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
-- Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
-- Ajoute la connexion facultative à deux facteurs, les codes de secours à usage unique et la récupération opérateur (#221).
-- Borne l’attente de connexion et applique des quotas distincts au mot de passe et aux codes temporaires. Les confirmations d’actions sensibles partagent un quota par session (#249, #250, #251).
+### Notifications
+
+- Affiche une seule fois le résultat traduit de fin d’impression et conserve les diagnostics distincts (#289).
+- Retrouve les impressions locales dans l’historique par machine, chemin et seconde de fin. Cherche l’image dans le détail de la tâche et affiche le pictogramme centré quand aucune image exploitable n’est disponible (#290).
+
+## 1.10.0 — 2026-11-11
+
+### Atelier
+
+- Ajoute **Prisme**, un style graphite avec une palette claire, des relevés en tuiles et des onglets regroupés en capsules sur ordinateur (#277, #281).
+- Affiche les aperçus après le chargement réel de l’image. Les listes de fichiers et l’historique montrent un état d’attente lorsque les données tardent (#248).
+- Réorganise les fichiers Cloud et ajoute un curseur entre mémoire, USB et Cloud. La sélection groupée fonctionne par glissement ou avec Maj + clic. Le formulaire d’envoi présente le fichier en premier et affiche l’ordre des bobines lors d’une demande d’impression (#241, #242, #248).
+- Affiche la grille et la cible pendant le déplacement des cartes. Les dispositions sont mémorisées dans le navigateur (#247, #248).
+- Place le journal des notifications dans **Historique**. La cloche présente les messages Cloud (#243, #248).
+- Corrige la sélection des onglets Apple Design et Aurore, agrandit l’image de l’imprimante et retire les styles Détaillé, Océan, Studio et Observatoire. Une préférence pour un style retiré revient à **Par défaut** (#244, #245, #246).
+- Sépare les courbes Buse et Plateau, aligne les quatre courbes de filament par ACE sur ordinateur, corrige les fiches d’historique sous Safari et rapproche la caméra de ses commandes (#238, #239, #240, #264).
+- Affiche la moyenne, le 95e centile et le nombre de relevés dans le détail de **Parc et santé**. L’export CSV indique l’attente de la requête. Le relais des bobines et l’évaluation d’une impression ont de nouveaux contrôles visuels (#248).
+- Illustre la connexion par une impression couche par couche. Les animations de l’atelier respectent la préférence de mouvement réduit. Les archives des effets adaptés sont référencées dans le registre des sources (#215, #248, #265).
+
+### Sécurité et exploitation
+
+- Ajoute la connexion facultative à deux facteurs par code temporaire, avec dix codes de secours à usage unique et une procédure de récupération. Centre les écrans de sécurité sur ordinateur et téléphone (#221, #273).
+- Applique des quotas distincts au mot de passe et aux codes temporaires. Lorsque le seuil global est atteint, les demandes de connexion attendent une vérification séquentielle (#212, #249, #250, #251).
+- Enrichit les journaux du conteneur avec les étapes de la caméra et des transferts, ainsi qu’une référence de requête pour le diagnostic (#218).
+- Sépare le moteur, les sessions caméra, les transferts et le journal HTTP. Documente l’ordre des verrous et vérifie que la pause et l’annulation restent disponibles pendant les opérations Cloud prévues (#213, #255, #256).
+- Calcule les empreintes des ressources web au démarrage et documente le cadre des essais manuels ainsi que le diagnostic historique de lecture des coordonnées (#211, #214, #237).
+
+### À vérifier après mise à jour
+
+- **Réglages → Apparence** propose Prisme. Le journal des notifications se trouve dans **Historique**.
+- **Réglages → Sécurité** permet d’activer le code temporaire. Conservez les codes de secours à l’activation. Réservez `WEB_TOTP_RESET=true` à la procédure de récupération et remettez-le à `false` ensuite.
+- Pour les journaux du conteneur, `LOG_LEVEL` vaut `INFO` et `LOG_FORMAT` vaut `text` par défaut. Le format `json` est disponible pour la collecte structurée.
 
 ## 1.9.0 — 2026-11-11
 

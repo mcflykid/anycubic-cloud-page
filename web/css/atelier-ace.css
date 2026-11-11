@@ -1,0 +1,92 @@
+/* La fiche du module et la liste des bobines partagent la même hauteur. */
+#tab-ace { container: ace / inline-size; }
+.ace-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--atelier-space-4);
+}
+#tab-ace .ace-workspace > .atelier-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+#tab-ace .atelier-card-header h2,
+#tab-ace #ace-module-name {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+#tab-ace .ace-workspace p {
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+#tab-ace .atelier-card-header p { color: inherit; font: var(--atelier-text); }
+.ace-module-body { display: grid; align-content: start; gap: var(--atelier-space-4); }
+.ace-module-body [hidden] { display: none; }
+.ace-relay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--atelier-space-3);
+  padding-block-start: var(--atelier-space-3);
+  border-block-start: var(--atelier-rule) solid var(--atelier-line);
+}
+.ace-module-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--atelier-space-2);
+}
+#tab-ace .ace-module-actions button { white-space: normal; }
+.ace-spool-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, .65fr) auto;
+  align-items: center;
+  gap: var(--atelier-space-3);
+  min-width: 0;
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+}
+.ace-spool-row + .ace-spool-row { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+.ace-spool-copy { min-width: 0; overflow-wrap: anywhere; }
+.ace-spool-copy strong,
+.ace-spool-remaining strong { font-weight: var(--atelier-semibold); }
+.ace-spool-remaining {
+  display: grid;
+  justify-items: end;
+  gap: var(--atelier-space-1);
+  font-variant-numeric: tabular-nums;
+}
+.ace-spool-remaining progress {
+  width: 100%;
+  height: var(--atelier-progress);
+  accent-color: var(--atelier-accent);
+}
+#tab-ace .ace-spool-copy .engaged-spool { color: var(--atelier-normal); }
+#tab-ace .ace-filament-list > p { padding: var(--atelier-space-4); }
+#tab-ace .atelier-card-footer > p { margin-inline: 0; }
+@container ace (min-width: 900px) {
+  .ace-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+    row-gap: 0;
+  }
+  #tab-ace .ace-workspace > .atelier-card {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+  }
+}
+@container ace (max-width: 420px) {
+  .ace-spool-row { gap: var(--atelier-space-2); }
+  .ace-module-actions { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Les commandes du formulaire de séchage gardent une marge sur les écrans étroits. */
+#dry-dialog #dry-form {
+  padding: var(--atelier-space-3);
+}
+#dry-dialog #dry-form > #auto-feed-save {
+  margin-inline: 0;
+}

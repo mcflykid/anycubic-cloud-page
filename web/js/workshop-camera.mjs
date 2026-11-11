@@ -95,8 +95,8 @@ export function createCamera(request, getPrinter) {
       : releasePending;
     wanted = false;
     const closing = ++generation;
-    $('camera-start').disabled = false;
-    $('camera-stop').disabled = true;
+    $('camera-start').disabled = $('camera-start').hidden = false;
+    $('camera-stop').disabled = $('camera-stop').hidden = true;
     track?.stop();
     track = null;
     $('camera-video').replaceChildren();
@@ -115,8 +115,8 @@ export function createCamera(request, getPrinter) {
       if (closing !== generation) return;
       opening = ++generation;
       wanted = true;
-      $('camera-start').disabled = true;
-      $('camera-stop').disabled = false;
+      $('camera-start').disabled = $('camera-start').hidden = true;
+      $('camera-stop').disabled = $('camera-stop').hidden = false;
       cameraState(tr('Connexion en cours…'), 'loading');
       delete $('camera-state').dataset.tooltip;
       const sdk = await loadSdk();

@@ -20,10 +20,10 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les six styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
+test('les quatre styles gardent la composition commune en clair, sombre et sur mobile',async({page})=>{
   await login(page);
   await openSettings(page);
-  const themes=['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
+  const themes=['standard', 'aurora', 'lab', 'glasshouse'];
   for(const mode of ['light','dark']){
     await page.locator('#interface-theme').selectOption(mode);
     for(const style of themes){
@@ -80,70 +80,40 @@ test('les transitions suivent le style et la préférence de mouvement',async({p
   await openSection(page,'statistics');
   const panel=page.locator('#tab-statistics');
   await expect(panel).toHaveCSS('animation-name','section-fade');
-  await expect(panel.locator('.statistics-grid > section').nth(1)).toHaveCSS('animation-delay','0.045s');
   await openSection(page,'overview');
   await page.locator('#controls-open').click();
   const dialog=page.locator('#controls-dialog');
-  await expect(dialog).toHaveCSS('animation-name','dialog-pop');
+  await expect(dialog).toHaveCSS('animation-name','dialog-rise');
   await page.emulateMedia({reducedMotion:'reduce'});
   await expect(dialog).toHaveCSS('animation-name','none');
 });
 
-for (const theme of ['apple']) {
-  test(`${theme} garde le repère de sélection sur une rangée de navigation`,async({page})=>{
-    await page.setViewportSize({width:1249,height:800});
-    await page.emulateMedia({reducedMotion:'reduce'});
-    await page.addInitScript(value=>localStorage.setItem('cloud-page-style',value),theme);
-    await login(page);
-    await openSection(page,'settings');
-    const tabs=page.locator('#atelier-tabs');
-    const rows=await tabs.locator('[data-tab]').evaluateAll(buttons=>buttons.map(button=>Math.round(button.getBoundingClientRect().top)));
-    expect(new Set(rows).size).toBe(1);
-    const active=tabs.locator('[aria-current="page"]'), indicator=tabs.locator('.atelier-active-indicator');
-    await expect.poll(async()=>{
-      const [button,marker]=await Promise.all([active.boundingBox(),indicator.boundingBox()]);
-      return Math.abs(button.x-marker.x)+Math.abs(button.y-marker.y);
-    }).toBeLessThan(3);
-  });
-}
-
-test('Blueprint replie son panneau sans perdre les noms accessibles',async({page})=>{
-  await login(page);
-  await openSettings(page);
-  await page.locator('#interface-style').selectOption('blueprint');
-  const toggle=page.getByRole('button',{name:'Replier le plan'});
-  await expect(toggle).toBeVisible();
-  const files=page.locator('#atelier-tabs').getByRole('button',{name:'Fichiers'});
-  await expect(files).toBeVisible();
-  const [icon,label]=await Promise.all([files.locator('svg').boundingBox(),files.locator('span').boundingBox()]);
-  expect(label.x).toBeGreaterThan(icon.x+icon.width);
-  expect(Math.abs(label.y+label.height/2-icon.y-icon.height/2)).toBeLessThan(3);
-  await toggle.click();
-  await expect(page.locator('.printer-shell')).toHaveClass(/blueprint-sidebar-collapsed/);
-  await expect(page.getByRole('button',{name:'Déplier le plan'})).toHaveAttribute('aria-expanded','false');
-  await expect(page.locator('#atelier-tabs').getByRole('button',{name:'Fichiers'})).toBeAttached();
-});
-
-test('Aurore mémorise les cartes réordonnées et les réinitialise au clavier',async({page})=>{
+test('Aurore conserve l’ordre commun des cartes de l’imprimante', async ({ page }) => {
   await login(page);
   await openSettings(page);
   await page.locator('#interface-style').selectOption('aurora');
-  await openSection(page,'overview');
-  const bento=page.locator('#aurora-bento');
-  await expect(bento.locator('.aurora-widget')).toHaveCount(4);
-  const first=bento.locator('.aurora-widget').first();
-  const firstName=await first.getAttribute('data-widget');
-  const lock = page.locator('#tab-overview [data-layout-action="lock"]');
-  await expect(lock).toHaveAttribute('aria-pressed', 'false');
-  await lock.click();
-  await first.getByRole('button',{name:'Déplacer après'}).press('Enter');
-  await expect(bento.locator('.aurora-widget').nth(1)).toHaveAttribute('data-widget',firstName);
-  await page.reload();
-  await openSection(page,'overview');
-  await expect(lock).toHaveAttribute('aria-pressed','false');
-  await expect(bento.locator('.aurora-widget').nth(1)).toHaveAttribute('data-widget',firstName);
-  await openSettings(page);
-  await page.locator('#layout-reset').click();
-  await openSection(page,'overview');
-  await expect(bento.locator('.aurora-widget').first()).toHaveAttribute('data-widget',firstName);
+  await openSection(page, 'overview');
+  await expect(page.locator('.printer-workspace .atelier-card-header h2'))
+    .toHaveText(['Impression', 'Températures et ventilation']);
+});
+
+test('le repère suit l’onglet horizontal sans déplacer le contenu', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page, 'summary');
+  const marker = page.locator('.atelier-navigation-marker');
+  await expect(marker).toBeVisible();
+  const before = await page.locator('#atelier').boundingBox();
+  await page.locator('[data-tab="history"]').click();
+  const active = page.locator('[data-tab][aria-current="page"]');
+  await expect(active).toHaveAttribute('data-tab', 'history');
+  await expect.poll(async () => {
+    const [line, button] = await Promise.all([marker.boundingBox(), active.boundingBox()]);
+    return Math.round(Math.abs(line.x - button.x) + Math.abs(line.width - button.width));
+  }).toBe(0);
+  const after = await page.locator('#atelier').boundingBox();
+  expect(after.y).toBe(before.y);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(marker).toHaveCSS('transition-property', 'none');
+  await page.evaluate(() => { document.documentElement.dataset.style = 'lab'; });
+  await expect(marker).toBeHidden();
 });

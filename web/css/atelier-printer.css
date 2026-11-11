@@ -1,0 +1,98 @@
+/* L’illustration, le travail et sa vignette forment une seule rangée quand la place le permet. */
+#tab-overview { container: printer / inline-size; }
+.printer-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--atelier-space-4);
+}
+.printer-workspace > .atelier-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+#tab-overview .atelier-card-header h2,
+#tab-overview #job-name {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+#tab-overview .atelier-card-header p { margin: 0; }
+.printer-task-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  align-items: flex-start;
+  gap: var(--atelier-space-4);
+}
+.printer-task-info { display: grid; gap: var(--atelier-space-3); flex: 1 1 var(--atelier-job-min); min-width: 0; }
+#tab-overview #job-name { overflow-wrap: anywhere; }
+#tab-overview #job-state {
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+#tab-overview .printer-task-preview:has(> :not([hidden])) {
+  flex: 0 0 var(--atelier-device-image);
+  min-width: 0;
+}
+#tab-overview .printer-task-preview:not(:has(> :not([hidden]))) { display: none; }
+#tab-overview #job-preview:not([hidden]) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: var(--atelier-device-image);
+  max-height: none;
+  margin: 0;
+  object-fit: contain;
+  border-radius: var(--atelier-control-radius);
+}
+#tab-overview .printer-task-preview #job-preview-state {
+  width: auto;
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+#tab-overview .printer-task-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--atelier-space-2);
+}
+.printer-metrics { display: grid; align-content: start; gap: var(--atelier-space-3); }
+#tab-overview #temperatures {
+  display: table;
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font: var(--atelier-text);
+  font-variant-numeric: tabular-nums;
+}
+#temperatures :is(th, td) {
+  padding: var(--atelier-space-1) 0;
+  text-align: right;
+}
+#temperatures thead th { color: var(--atelier-muted); font: var(--atelier-label); }
+#temperatures tbody th {
+  text-align: left;
+  font-weight: var(--atelier-semibold);
+}
+#printer-fans {
+  border-block-start: var(--atelier-rule) solid var(--atelier-line);
+  padding-block-start: var(--atelier-space-3);
+}
+.printer-materials { margin-block-start: var(--atelier-space-4); }
+#tab-overview .atelier-measures .metric-icon { display: none; }
+@container printer (min-width: 900px) {
+  .printer-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+    row-gap: 0;
+  }
+  .printer-workspace > .atelier-card {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+  }
+}
+@container printer (max-width: 430px) {
+  #tab-overview .printer-task-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
