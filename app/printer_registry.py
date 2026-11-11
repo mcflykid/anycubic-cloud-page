@@ -218,6 +218,7 @@ async def select_printer(request, handler):
             "/imprimante-api/monitoring",
             "/imprimante-api/journal",
             "/imprimante-api/discord",
+            "/imprimante-api/discord/reports",
             "/imprimante-api/security",
         ]
     ):

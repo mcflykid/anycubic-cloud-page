@@ -4794,5 +4794,29 @@
   "Désactivées": [
     "Disabled",
     "Desactivadas"
+  ],
+  "Bilans Discord": [
+    "Discord reports",
+    "Informes de Discord"
+  ],
+  "Bilans Discord — Anycubic Cloud Page": [
+    "Discord reports — Anycubic Cloud Page",
+    "Informes de Discord — Anycubic Cloud Page"
+  ],
+  "Recevez le bilan des impressions à 08 h et à 21 h dans le fuseau de l’atelier.": [
+    "Get a print report at 08:00 and 21:00 in the workshop time zone.",
+    "Recibe un informe a las 08:00 y a las 21:00 en la zona horaria del taller."
+  ],
+  "Activer les bilans Discord": [
+    "Enable Discord reports",
+    "Activar los informes de Discord"
+  ],
+  "Configurer les bilans Discord": [
+    "Set up Discord reports",
+    "Configurar los informes de Discord"
+  ],
+  "Choisissez deux webhooks Discord distincts.": [
+    "Choose two different Discord webhooks.",
+    "Elige dos webhooks de Discord distintos."
   ]
 }

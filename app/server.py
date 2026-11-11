@@ -26,6 +26,7 @@ from printer_registry import PrinterRegistry, select_printer, printer_key
 from printer_engine import CloudPageAPI as CloudPageAPI, Engine, engine
 from fleet_health import FleetHealth
 from monitoring import Monitoring
+from notification_reports import collect_history
 from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
 from printer_values import integer, now as now, safeget
@@ -694,6 +695,17 @@ async def temperatures(req):
     )
 
 
+async def discord_report_history(start, end):
+    """Consulte le compte actif et écarte un relevé traversant une reconnexion."""
+    api = engine.api
+    if not api or not engine.ok or engine.reconnect_required:
+        return [], False
+    rows, complete = await collect_history(engine.extras, start, end)
+    if engine.api is not api or engine.reconnect_required:
+        return [], False
+    return rows, complete
+
+
 async def startup(app):
     """Préserve la collecte initiale et initialise le registre des cibles indépendantes."""
     log_event(
@@ -836,7 +848,7 @@ install_extras(app, engine)
 app.router.add_get("/imprimante-api/journal", command_journal)
 app.on_startup.append(startup)
 app.on_cleanup.append(cleanup)
-install_discord(app, engine.state_dir)
+install_discord(app, engine.state_dir, history_reader=discord_report_history)
 from web_host import install_static
 
 install_static(app)

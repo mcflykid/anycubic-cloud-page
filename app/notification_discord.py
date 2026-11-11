@@ -122,17 +122,22 @@ def format_message(event, config):
             content += f"\n{code} {event.code}"
         if config.include_filename and (filename := clean_label(event.filename, 140)):
             content += f"\n{filename}"
+    return message_payload(content)
+
+
+def message_payload(content):
+    """Désactive mentions et aperçus pour tous les messages de l’atelier."""
     return {"content": content, "allowed_mentions": {"parse": []}, "flags": 4}
 
 
-async def send_discord(session, config, event):
+async def send_discord(session, config, event, *, formatter=format_message):
     """Envoie une seule requête à Discord et classe toute réponse sans conserver son corps."""
     url = discord_url(config.url)
     try:
         async with session.post(
             url,
             params={"wait": "true"},
-            json=format_message(event, config),
+            json=formatter(event, config),
             allow_redirects=False,
             timeout=aiohttp.ClientTimeout(total=10, connect=3),
         ) as response:

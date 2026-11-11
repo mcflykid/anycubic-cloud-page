@@ -1,56 +1,102 @@
 """Expose le réglage Discord authentifié et rattache son canal au cycle de vie du serveur."""
 
 import asyncio
+from contextlib import suppress
 from functools import partial
 import html
 import logging
 import os
 from pathlib import Path
 from urllib.parse import parse_qs
+from zoneinfo import ZoneInfo
 
 import aiohttp
 from aiohttp import web
 
 from notification_delivery import Delivery, read_config
-from notification_discord import DiscordConfig, send_discord
+from notification_discord import DiscordConfig, message_payload, send_discord
+from notification_reports import ReportSchedule, format_report
 from operational_logging import log_event
 from web_assets import build_web_assets
-from web_host import ROOT, confirm_web_password
+from web_host import ROOT, confirm_web_password, display_timezone
 
 PATH = "/imprimante-api/discord"
+REPORT_PATH = PATH + "/reports"
 DELIVERY_KEY = web.AppKey("discord_delivery", Delivery)
 CONFIG_KEY = web.AppKey("discord_private_config", Path)
+REPORT_KEY = web.AppKey("discord_reports", Delivery)
+REPORT_CONFIG_KEY = web.AppKey("discord_report_private_config", Path)
+SETTINGS_LOCK = web.AppKey("discord_destinations_lock", asyncio.Lock)
 _LOG = logging.getLogger("cloud_page.notifications")
 
 
-def install_discord(app, state_dir, *, fake_sender=None):
-    """Installe les réglages et choisit un transport fictif ou la session réseau dédiée."""
+def _same_destination(first, second):
+    # Comparer les identifiants empêche une rotation de jeton de masquer un même webhook.
+    return first and second and first.rsplit("/", 2)[-2] == second.rsplit("/", 2)[-2]
+
+
+def _restore_config(delivery, path):
+    try:
+        delivery.configure(read_config(path))
+    except (OSError, ValueError) as error:
+        log_event(
+            _LOG,
+            logging.WARNING,
+            "notification_config_invalid",
+            message="Réglages Discord illisibles, canal désactivé",
+            error_type=type(error).__name__,
+        )
+
+
+def _report_payload(report, config):
+    return message_payload(format_report(report, config))
+
+
+def install_discord(app, state_dir, *, fake_sender=None, history_reader=None):
+    """Installe deux destinations privées et démarre le planificateur en production."""
     password_path = Path(os.environ.get("WEB_PASSWORD_FILE", "/appdata/private/web-password"))
     app[CONFIG_KEY] = password_path.with_name("discord-webhook")
+    app[REPORT_CONFIG_KEY] = password_path.with_name("discord-reports-webhook")
+    app[SETTINGS_LOCK] = asyncio.Lock()
 
     async def lifecycle(app):
-        """Charge les réglages au démarrage et arrête les livraisons avant de fermer le transport."""
         async with aiohttp.ClientSession(trust_env=False) as session:
             sender = fake_sender if fake_sender is not None else partial(send_discord, session)
+            report_sender = (
+                fake_sender
+                if fake_sender is not None
+                else partial(send_discord, session, formatter=_report_payload)
+            )
             delivery = app[DELIVERY_KEY] = Delivery(state_dir, sender)
-            try:
-                delivery.configure(read_config(app[CONFIG_KEY]))
-            except (OSError, ValueError) as error:
+            schedule = ReportSchedule(
+                state_dir, report_sender, ZoneInfo(display_timezone()), history_reader
+            )
+            reports = app[REPORT_KEY] = schedule.delivery
+            _restore_config(delivery, app[CONFIG_KEY])
+            _restore_config(reports, app[REPORT_CONFIG_KEY])
+            if _same_destination(delivery.config.url, reports.config.url):
+                reports.configure(DiscordConfig())
                 log_event(
                     _LOG,
                     logging.WARNING,
-                    "notification_config_invalid",
-                    message="Réglages Discord illisibles, canal désactivé",
-                    error_type=type(error).__name__,
+                    "discord_report_destination_conflict",
+                    message="Bilans Discord désactivés : le webhook est déjà celui des alertes",
                 )
+            task = asyncio.create_task(schedule.run()) if history_reader is not None else None
             try:
                 yield
             finally:
+                if task is not None:
+                    task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await task
+                await reports.close()
                 await delivery.close()
 
     app.cleanup_ctx.append(lifecycle)
-    app.router.add_get(PATH, discord_settings)
-    app.router.add_post(PATH, discord_settings)
+    for path in (PATH, REPORT_PATH):
+        app.router.add_get(path, discord_settings)
+        app.router.add_post(path, discord_settings)
 
 
 def discord_enabled(app):
@@ -59,7 +105,7 @@ def discord_enabled(app):
     return delivery.config.enabled if delivery is not None else None
 
 
-def discord_page(delivery, message="", status=200):
+def discord_page(delivery, message="", status=200, *, report=False):
     """Affiche des options publiques et garde le champ du secret toujours vide."""
     config = delivery.config
     selected = {"fr": "", "en": "", "es": ""}
@@ -76,20 +122,41 @@ def discord_page(delivery, message="", status=200):
     last_delivery = f"<p>{last}</p>" if last else ""
     enabled = " checked" if config.enabled else ""
     include_filename = " checked" if config.include_filename else ""
-    body = f"""<h1>Notifications Discord</h1>
-<p>Recevez un message après une impression terminée ou échouée.</p>
+    title = "Bilans Discord" if report else "Notifications Discord"
+    introduction = (
+        "Recevez le bilan des impressions à 08 h et à 21 h dans le fuseau de l’atelier."
+        if report
+        else "Recevez un message après une impression terminée ou échouée."
+    )
+    action = REPORT_PATH if report else PATH
+    activation = "Activer les bilans Discord" if report else "Activer les notifications Discord"
+    filename = (
+        ""
+        if report
+        else (
+            f'<label class="check"><input type="checkbox" name="include_filename"{include_filename}> '
+            "Inclure le nom du fichier</label>"
+        )
+    )
+    other_path = PATH if report else REPORT_PATH
+    other_title = (
+        "Configurer les notifications Discord" if report else "Configurer les bilans Discord"
+    )
+    body = f"""<h1>{title}</h1>
+<p>{introduction}</p>
+<p><a href="{other_path}">{other_title}</a></p>
 <p>{configured}</p>
 {last_delivery}
 {feedback}
-<form method="post" action="{PATH}">
+<form method="post" action="{action}">
 <label for="discord-url">Adresse du webhook Discord</label>
 <input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" aria-describedby="discord-url-hint">
 <p id="discord-url-hint" class="muted">Laissez vide pour conserver le webhook enregistré.</p>
 <label for="discord-language">Langue du message</label>
 <select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option></select>
 <div class="discord-options">
-<label class="check"><input type="checkbox" name="enabled"{enabled}> Activer les notifications Discord</label>
-<label class="check"><input type="checkbox" name="include_filename"{include_filename}> Inclure le nom du fichier</label>
+<label class="check"><input type="checkbox" name="enabled"{enabled}> {activation}</label>
+{filename}
 </div>
 <label for="discord-password">Mot de passe web</label>
 <input id="discord-password" type="password" name="password" maxlength="2048" required autocomplete="current-password">
@@ -101,7 +168,9 @@ def discord_page(delivery, message="", status=200):
 </form>
 <p><a href="/imprimante.html">Retour à l’atelier</a></p>"""
     return web.Response(
-        text=build_web_assets(ROOT)[0]["discord.html"].replace("<!-- DISCORD_CONTENT -->", body),
+        text=build_web_assets(ROOT)[0]["discord.html"]
+        .replace("Notifications Discord — Anycubic Cloud Page", f"{title} — Anycubic Cloud Page")
+        .replace("<!-- DISCORD_CONTENT -->", body),
         status=status,
         content_type="text/html",
     )
@@ -128,48 +197,52 @@ async def read_discord_form(request):
 
 async def discord_settings(request):
     """Confirme le mot de passe avant de sauvegarder, retirer ou utiliser la destination."""
-    delivery = request.app[DELIVERY_KEY]
+    report = request.path == REPORT_PATH
+    delivery = request.app[REPORT_KEY if report else DELIVERY_KEY]
+    other = request.app[DELIVERY_KEY if report else REPORT_KEY]
+    config_path = request.app[REPORT_CONFIG_KEY if report else CONFIG_KEY]
+
+    def render(message="", status=200):
+        return discord_page(delivery, message, status, report=report)
+
     if request.method in {"GET", "HEAD"}:
-        return discord_page(delivery)
+        return render()
     form = await read_discord_form(request)
-
-    def render_refusal(message, status):
-        return discord_page(delivery, message, status)
-
-    _, refusal = confirm_web_password(request, form.get("password", ""), render=render_refusal)
+    _, refusal = confirm_web_password(request, form.get("password", ""), render=render)
     if refusal is not None:
         return refusal
     operation = form.get("operation")
     if operation not in {"save", "test", "delete"}:
         raise web.HTTPBadRequest(text="Action Discord invalide.")
-    try:
-        config = (
-            DiscordConfig()
-            if operation == "delete"
-            else DiscordConfig.parse(
-                {
-                    "url": form.get("url", "").strip() or delivery.config.url,
-                    "enabled": form.get("enabled") == "on" if operation == "save" else True,
-                    "language": form.get("language", "fr"),
-                    "include_filename": form.get("include_filename") == "on",
-                }
+    async with request.app[SETTINGS_LOCK]:
+        try:
+            config = (
+                DiscordConfig()
+                if operation == "delete"
+                else DiscordConfig.parse(
+                    {
+                        "url": form.get("url", "").strip() or delivery.config.url,
+                        "enabled": form.get("enabled") == "on" if operation == "save" else True,
+                        "language": form.get("language", "fr"),
+                        "include_filename": not report and form.get("include_filename") == "on",
+                    }
+                )
             )
-        )
-    except ValueError as error:
-        return discord_page(delivery, str(error), 400)
-    if operation == "test":
+            if _same_destination(config.url, other.config.url):
+                raise ValueError("Choisissez deux webhooks Discord distincts.")
+        except ValueError as error:
+            return render(str(error), 400)
+        if operation != "test":
+            try:
+                await delivery.save_config(config_path, config)
+            except OSError:
+                return render("Impossible d’enregistrer le réglage Discord.", 503)
+            return render(
+                "Webhook supprimé." if operation == "delete" else "Réglage Discord enregistré."
+            )
         result = await delivery.test(config)
-        if result.outcome == "sent":
-            return discord_page(delivery, "Message de test confirmé.")
-        if result.status == 429:
-            return discord_page(
-                delivery, "Le test est temporairement limité. Réessayez plus tard.", 429
-            )
-        return discord_page(delivery, "Discord n’a pas confirmé le message de test.", 502)
-    try:
-        await delivery.save_config(request.app[CONFIG_KEY], config)
-    except OSError:
-        return discord_page(delivery, "Impossible d’enregistrer le réglage Discord.", 503)
-    return discord_page(
-        delivery, "Webhook supprimé." if operation == "delete" else "Réglage Discord enregistré."
-    )
+    if result.outcome == "sent":
+        return render("Message de test confirmé.")
+    if result.status == 429:
+        return render("Le test est temporairement limité. Réessayez plus tard.", 429)
+    return render("Discord n’a pas confirmé le message de test.", 502)
