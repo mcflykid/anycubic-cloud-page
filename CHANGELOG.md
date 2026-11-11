@@ -12,7 +12,7 @@
 - Corrige la sélection des onglets Apple Design et Aurore, agrandit l’image de l’imprimante et retire les styles Détaillé, Océan, Studio et Observatoire. Une préférence pour un style retiré revient à **Par défaut** (#244, #245, #246).
 - Sépare les courbes Buse et Plateau, aligne les quatre courbes de filament par ACE sur ordinateur, corrige les fiches d’historique sous Safari et rapproche la caméra de ses commandes (#238, #239, #240, #264).
 - Affiche la moyenne, le 95e centile et le nombre de relevés dans le détail de **Parc et santé**. L’export CSV indique l’attente de la requête. Le relais des bobines et l’évaluation d’une impression ont de nouveaux contrôles visuels (#248).
-- Illustre la connexion par une impression couche par couche. Les animations de l’atelier respectent la préférence de mouvement réduit (#215, #248).
+- Illustre la connexion par une impression couche par couche. Les animations de l’atelier respectent la préférence de mouvement réduit. Les archives des effets adaptés sont référencées dans le registre des sources (#215, #248, #265).
 
 ### Sécurité et exploitation
 
@@ -21,6 +21,12 @@
 - Enrichit les journaux du conteneur avec les étapes de la caméra et des transferts, ainsi qu’une référence de requête pour le diagnostic (#218).
 - Sépare le moteur, les sessions caméra, les transferts et le journal HTTP. Documente l’ordre des verrous et vérifie que la pause et l’annulation restent disponibles pendant les opérations Cloud prévues (#213, #255, #256).
 - Calcule les empreintes des ressources web au démarrage et documente le cadre des essais manuels ainsi que le diagnostic historique de lecture des coordonnées (#211, #214, #237).
+
+### À vérifier après mise à jour
+
+- **Réglages → Apparence** propose Prisme. Le journal des notifications se trouve dans **Historique**.
+- **Réglages → Sécurité** permet d’activer le code temporaire. Conservez les codes de secours à l’activation. Réservez `WEB_TOTP_RESET=true` à la procédure de récupération et remettez-le à `false` ensuite.
+- Pour les journaux du conteneur, `LOG_LEVEL` vaut `INFO` et `LOG_FORMAT` vaut `text` par défaut. Le format `json` est disponible pour la collecte structurée.
 
 ## 1.9.0 — 2026-11-11
 
