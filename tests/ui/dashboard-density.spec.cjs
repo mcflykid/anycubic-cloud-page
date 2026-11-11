@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { login } = require('./helpers.cjs');
 
-const styles = ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
+const styles = ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse', 'prism'];
 const colors = ['light', 'dark'];
 const desktopWidths = [
   { name: 'bureau', width: 1920, height: 1080 },
@@ -56,7 +56,7 @@ async function openTab(page, key) {
   if (key === 'fleet') await expect(page.locator('#monitor-grid .monitor-card').first()).toBeVisible();
 }
 
-test('les onglets du tableau de bord tiennent dans les deux vues ordinateur, six styles et deux palettes', async ({
+test('les onglets du tableau de bord tiennent dans les deux vues ordinateur, sept styles et deux palettes', async ({
   page,
 }) => {
   test.setTimeout(240000);
@@ -93,7 +93,7 @@ test('les onglets du tableau de bord tiennent dans les deux vues ordinateur, six
   }
 });
 
-test('sur téléphone les six styles restent sans débordement horizontal et gardent état et action visibles', async ({
+test('sur téléphone les sept styles restent sans débordement horizontal et gardent état et action visibles', async ({
   page,
 }) => {
   test.setTimeout(240000);

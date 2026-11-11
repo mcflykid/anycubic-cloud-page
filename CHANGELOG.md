@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Ajoute Prisme, un style aux panneaux de verre fumé et aux mesures en tuiles (#277).
+
 - Centre la vérification par code et les réglages de sécurité sur ordinateur et téléphone (#273).
 
 - Dans Parc et santé, ouvre le détail depuis la carte avec le ressort d’Instrumental et affiche la moyenne, le 95e centile et le nombre de relevés disponibles. L’interrupteur Canica accompagne la suspension locale des mesures (#248).

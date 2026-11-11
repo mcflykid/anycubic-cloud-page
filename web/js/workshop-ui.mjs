@@ -153,6 +153,7 @@ const styleCatalogue = [
   ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
   ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
   ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
+  ['prism', 'Verre fumé, reflets colorés et relevés en tuiles.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */
