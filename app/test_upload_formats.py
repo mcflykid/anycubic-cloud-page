@@ -4,7 +4,8 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
+from unittest.mock import patch
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 from upload_formats import validate_cloud_model
 
@@ -74,6 +75,24 @@ class CloudModelValidationTests(unittest.TestCase):
             self.validate(force_zip64(standard, entry_count=4097))
         with self.assertRaises(ValueError):
             self.validate(b"PK\x03\x04malformed archive")
+
+    def test_rejects_oversized_directory_before_opening_zip_or_zip64(self):
+        """Un répertoire valide de plus de 2 Mio est refusé avant son chargement en mémoire."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "oversized.3mf"
+            with ZipFile(path, "w") as archive:
+                archive.writestr("[Content_Types].xml", "<Types/>")
+                archive.writestr("3D/3dmodel.model", "<model/>")
+                for index in range(33):
+                    entry = ZipInfo(f"Metadata/fixture-{index}.txt")
+                    entry.comment = b"x" * 65535
+                    archive.writestr(entry, "")
+            standard = path.read_bytes()
+        for archive in (standard, force_zip64(standard)):
+            with patch("upload_formats.ZipFile") as zip_reader:
+                with self.assertRaisesRegex(ValueError, "3MF est invalide"):
+                    self.validate(archive)
+                zip_reader.assert_not_called()
 
     def test_rejects_size_outside_declared_upload(self):
         """La taille déclarée doit correspondre au fichier reçu avant validation du contenu."""

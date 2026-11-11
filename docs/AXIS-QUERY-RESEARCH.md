@@ -40,3 +40,23 @@ Cette capture ne permet pas d’attribuer la ligne isolée à une imprimante S1 
 Sur la Kobra S1 observée (firmware 2.7.2.7), une lecture à l’arrêt, caméra fermée, puis une seule lecture avec un flux vidéo décodé ont toutes deux expiré sans coordonnées (HTTP 400 en 1.7.1). La caméra active ne suffit donc pas à obtenir la réponse. Aucun déplacement, chauffage ou démarrage d’impression n’a été demandé. La 1.8.0 expose des événements de phase et renvoie HTTP 504 lorsque l’attente MQTT expire ; le diagnostic de la cause reste ouvert dans #167.
 
 Conserver l’ordre `1214` et la validation stricte tant qu’une capture de réponse documentée ou une observation autorisée ne contredit pas le contrat. Si un diagnostic ultérieur est mené, relever des horodatages de phase sans données sensibles et vérifier le routage par cible à partir des journaux expurgés. Toute nouvelle connexion MQTT, émission d’ordre, ou action physique nécessite une autorisation distincte; cette note n’en effectue aucune.
+
+## Rejets distingués dans les journaux
+
+L’événement `axis_query_mqtt_rejected` émet une catégorie bornée dans
+`reply_rejection`. Il aide à lire les phases existantes sans afficher les
+coordonnées, le sujet MQTT ou les identifiants du Cloud.
+
+| Catégorie | Observation |
+| --- | --- |
+| `target` | Le routeur ne retrouve pas la machine du rapport. |
+| `retained` | MQTT marque le rapport comme conservé par le courtier. |
+| `kind_action` | L’enveloppe attendue diffère de celle du rapport associé à la consultation. |
+| `identifier` | L’identifiant est inutilisable ou diffère de celui de l’accusé Cloud pendant l’attente. |
+| `outside_window` | Le rapport arrive sans attente active ou hors de sa fenêtre. |
+
+Les fixtures incluent un rapport plausible reçu avant l’accusé Cloud avec un
+identifiant différent. Le corrélateur laisse expirer la consultation dans ce
+cas. Une telle divergence est donc une cause possible, à distinguer des
+autres catégories sur des observations. La fenêtre et les critères
+d’acceptation sont inchangés.

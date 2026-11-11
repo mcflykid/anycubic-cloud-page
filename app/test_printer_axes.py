@@ -4,7 +4,7 @@ import asyncio
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call as mock_call, patch
 
 from printer_axes import is_allowed, query_axis_position
 from printer_files import MQTTReplies
@@ -219,6 +219,36 @@ class PrinterAxesTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([phase for phase, _ in phases], ["cloud_ack", "mqtt_timeout"])
         self.assertTrue(all(duration >= 0 for _, duration in phases))
 
+    async def test_axis_mismatched_cloud_ack_never_accepts_a_valid_report(self):
+        """Un rapport plausible écarté avant l’accusé ne raccourcit pas le délai strict."""
+        from printer_files import MQTTReplyTimeout
+
+        replies = MQTTReplies()
+        report = {
+            "type": "axis",
+            "action": "query",
+            "msgid": "fixture-mqtt-different",
+            "data": {"coordinates": {"x": 0, "y": 0, "z": 0}},
+        }
+
+        async def accepted():
+            replies.receive(report)
+            replies.receive({**report, "action": "move", "msgid": "fixture-cloud-ack"})
+            await asyncio.sleep(0)
+            return "fixture-cloud-ack"
+
+        with patch("printer_files.log_axis_rejection") as rejected:
+            with self.assertRaises(MQTTReplyTimeout):
+                await replies.ask("axis", "query", accepted, 0.001)
+            replies.receive({**report, "msgid": "fixture-cloud-ack"})
+            await asyncio.sleep(0)
+
+        self.assertEqual(
+            rejected.call_args_list,
+            [mock_call("identifier"), mock_call("kind_action"), mock_call("outside_window")],
+        )
+        self.assertEqual(replies.pending, {})
+
     async def test_axis_query_logs_correlated_cloud_and_mqtt_phases(self):
         """Les phases gardent la même référence et ne journalisent pas la réponse brute."""
         from unittest.mock import patch
@@ -327,6 +357,45 @@ class AxisRouterTests(unittest.TestCase):
         self.assertEqual(log.call_args.kwargs["msgid_present"], True)
         self.assertEqual(log.call_args.kwargs["coordinates_complete"], True)
         self.assertEqual(log.call_args.kwargs["reply_code"], "success")
+
+    def test_axis_routing_classifies_retained_unknown_targets_and_wrong_envelopes(self):
+        """Les rejets en amont du corrélateur exposent uniquement leur catégorie."""
+        import json
+        from unittest.mock import Mock
+        from server import CloudPageAPI
+        from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
+
+        owner = SimpleNamespace(
+            printer=SimpleNamespace(key="fixture-device"),
+            fleet_registry=None,
+            command_mqtt=None,
+            receive_ai_reply=Mock(),
+            receive_video_reply=Mock(),
+            mqtt_replies=SimpleNamespace(receive=Mock()),
+        )
+        api = object.__new__(CloudPageAPI)
+        api.cloud_engine = owner
+        with (
+            patch.object(AnycubicMQTTAPI, "_mqtt_message_router"),
+            patch("printer_files.log_axis_rejection") as rejected,
+        ):
+            for device, retained, kind in (
+                ("fixture-device", True, "axis"),
+                ("fixture-unregistered", False, "axis"),
+                ("fixture-device", False, "unknown"),
+            ):
+                api._mqtt_message_router(
+                    SimpleNamespace(
+                        topic=f"anycubic/anycubicCloud/v1/printer/app/20025/{device}/axis",
+                        payload=json.dumps({"type": kind, "action": "query"}).encode(),
+                        retain=retained,
+                    )
+                )
+        self.assertEqual(
+            rejected.call_args_list,
+            [mock_call("retained"), mock_call("target"), mock_call("kind_action")],
+        )
+        owner.mqtt_replies.receive.assert_not_called()
 
     def test_axis_query_is_logged_before_unknown_owner_is_discarded(self):
         """Une réponse axis/query sans propriétaire est diagnostiquée sans transmettre son contenu."""

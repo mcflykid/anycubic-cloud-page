@@ -236,6 +236,57 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         slots = self.e.snapshot()["printer"]["boxes"][0]["spools"]
         self.assertEqual([s["remaining_percent"] for s in slots], [None, 0, 45])
 
+    async def test_s1_ace_slots_stay_aligned_with_reversed_reports_and_empty_middle(self):
+        """Le numéro du boîtier et le logement physique survivent aux lacunes du relevé."""
+        self.p.multi_color_box = [
+            SimpleNamespace(box_id=0, loaded_slot=None),
+            SimpleNamespace(box_id=1, loaded_slot=3),
+        ]
+        self.p.primary_multi_color_box_spool_info_object = [{"local_slot": i} for i in (1, 2, 3, 4)]
+        self.p.secondary_multi_color_box_spool_info_object = [
+            {"local_slot": i} for i in (1, 2, 3, 4)
+        ]
+        self.e.raw_info = {
+            "multi_color_box_version": [
+                {"box_id": 1, "box_name": "ACE 2 Pro"},
+                {"box_id": 0, "box_name": "ACE 2 Pro"},
+            ],
+            "multi_color_box": [
+                {
+                    "id": 1,
+                    "slots": [
+                        {"status": 5, "edit_status": 0, "consumables_percent": 0},
+                        {"status": 4, "edit_status": 2, "consumables_percent": 0},
+                        {"status": 5, "edit_status": 0, "consumables_percent": 68},
+                        {"status": 5, "edit_status": 1, "consumables_percent": 100},
+                    ],
+                },
+                {
+                    "id": 0,
+                    "slots": [
+                        {"status": 5, "edit_status": 0, "consumables_percent": 35},
+                        None,
+                        {"status": 5, "edit_status": 0},
+                        {"status": 4, "edit_status": 2},
+                    ],
+                },
+            ],
+        }
+
+        first, second = self.e.snapshot()["printer"]["boxes"]
+        self.assertEqual([first["box_id"], second["box_id"]], [0, 1])
+        self.assertEqual(second["loaded_slot"], 3)
+        for box, values, rfid in (
+            (first, [35, None, None, None], [True, None, True, None]),
+            (second, [0, None, 68, None], [True, None, True, False]),
+        ):
+            with self.subTest(box=box["box_id"]):
+                slots = box["spools"]
+                self.assertEqual([slot["local_slot"] for slot in slots], [1, 2, 3, 4])
+                self.assertEqual([slot.get("remaining_percent") for slot in slots], values)
+                self.assertEqual([slot.get("rfid") for slot in slots], rfid)
+                self.assertTrue(all("brand" not in slot for slot in slots))
+
     async def test_kobra_x_rack_never_supplies_ace_readings(self):
         """L’ACE ne reçoit ni le support interne ni les mesures d’un autre boîtier."""
         rack = SimpleNamespace(box_id=-1)
