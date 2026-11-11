@@ -28,11 +28,17 @@
 .ace-module-body [hidden] { display: none; }
 .ace-relay-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--atelier-space-2);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--atelier-space-3);
   padding-block-start: var(--atelier-space-3);
   border-block-start: var(--atelier-rule) solid var(--atelier-line);
+}
+.ace-relay-row > div {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-1) var(--atelier-space-2);
 }
 .ace-module-actions {
   display: grid;
@@ -108,9 +114,10 @@
 }
 
 #dry-dialog .drying-status {
-  display: grid;
-  justify-items: start;
-  gap: var(--atelier-space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--atelier-space-2) var(--atelier-space-3);
 }
-#dry-dialog .drying-status p { margin: 0; }
+#dry-dialog .drying-status p { flex-basis: 100%; margin: 0; }
 #dry-dialog .drying-status #dry-toggle { padding-inline: 0; }

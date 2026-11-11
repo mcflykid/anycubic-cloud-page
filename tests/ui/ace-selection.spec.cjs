@@ -48,19 +48,20 @@ test('les bobines et les commandes ACE restent alignées en mode sombre', async 
   expect((await spools.first().boundingBox()).width).toBeLessThanOrEqual(32);
   await expect(page.locator('#spools .ace-spool-empty')).toHaveCount(1);
   const drying = page.locator('#go-drying'), spool = page.locator('#go-spool');
-  const relayState = page.locator('#ace-relay-state'), relayButton = page.locator('#ace-relay-open');
+  const relay = page.locator('.ace-relay-row > div'), relayButton = page.locator('#ace-relay-open');
   for (const width of [1920, 390]) {
     await page.setViewportSize({width, height: 900});
     expect((await drying.boundingBox()).y).toBeCloseTo((await spool.boundingBox()).y, 0);
-    const stateBox = await relayState.boundingBox(), relayBox = await relayButton.boundingBox();
-    expect(relayBox.y).toBeGreaterThanOrEqual(stateBox.y + stateBox.height);
-    expect(relayBox.x).toBeCloseTo(stateBox.x, 0);
+    const relayBox = await relay.boundingBox(), relayAction = await relayButton.boundingBox();
+    expect(relayAction.x).toBeGreaterThanOrEqual(relayBox.x + relayBox.width);
+    expect(Math.abs(relayBox.y + relayBox.height / 2 - (relayAction.y + relayAction.height / 2))).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await drying.click();
   const toggle = await page.locator('#dry-toggle').boundingBox();
   const status = await page.locator('#drying-state').boundingBox();
-  expect(status.y).toBeGreaterThanOrEqual(toggle.y + toggle.height);
+  expect(status.x).toBeGreaterThanOrEqual(toggle.x + toggle.width);
+  expect(Math.abs(toggle.y + toggle.height / 2 - (status.y + status.height / 2))).toBeLessThanOrEqual(1);
   await page.keyboard.press('Escape');
   await openSection(page, 'camera');
   const help = page.locator('[data-context-help="camera"]');
