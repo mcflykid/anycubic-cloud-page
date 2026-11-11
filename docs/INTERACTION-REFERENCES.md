@@ -11,10 +11,10 @@ un retour compréhensible et un fonctionnement au clavier et sur téléphone.
 | --- | --- | --- |
 | [Lote](https://moxen.cl/recursos/lote/) | Peindre la sélection dans la colonne des cases, Maj+clic, barre contextuelle | Sélection des fichiers Cloud, volume connu et actions existantes avec confirmation |
 | [Instrumental](https://moxen.cl/recursos/instrumental/) et capture 435 | Mesures en cartes, historique et agrandissement d’un détail | Monitoring local de l’application, avec unités, sources et absence de données explicites |
-| [Parrilla](https://moxen.cl/recursos/parrilla/) | Widgets qui se réorganisent et disposition mémorisée | Cartes de l’accueil Aurore, déplacement et restauration de la disposition |
+| [Parrilla](https://moxen.cl/recursos/parrilla/) | Widgets qui se réorganisent et disposition mémorisée | Ancienne disposition modulable, retirée lors de la refonte. |
 | [Bento Grid](https://builder.atheros.ai/) et capture fournie | Zones qui changent de colonnes selon la largeur utile | Inspiration pour la composition des neuf sections, les cartes de mesures et le panneau de notifications |
 | [Portada](https://moxen.cl/recursos/portada/) | Un panneau de menu évolue avec le choix courant | Navigation adaptative et repère de section actif |
-| [Pasarela](https://moxen.cl/recursos/pasarela/) | Indicateur qui voyage, gestion du clavier | Navigation en verre Apple et Océan |
+| [Pasarela](https://moxen.cl/recursos/pasarela/) | Indicateur qui voyage, gestion du clavier | Navigation horizontale actuelle, repère sous l’onglet. Inspiration. |
 | [Profil](https://moxen.cl/recursos/perfil/) | Détail dépliable et déplacement par transformation | Cartes de monitoring, transitions interrompables |
 | [Acceso](https://moxen.cl/recursos/acceso/) | Écran de connexion traité comme une interface complète | Panneau translucide, affichage du mot de passe, attente et erreur serveur |
 | [Mirada](https://moxen.cl/recursos/mirada/) | Contrôle explicite de visibilité du mot de passe | Bouton Afficher/Masquer accessible et compatible avec le remplissage automatique |

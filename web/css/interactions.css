@@ -23,7 +23,7 @@
    Les relevés et rafraîchissements ne déplacent pas la surface de travail. */
 :root[data-style] {
   --section-entry: section-fade;
-  --section-entry-duration: 220ms;
+  --section-entry-duration: var(--motion-panel);
   --heading-entry: heading-rise;
   --dialog-entry: dialog-rise;
 }
@@ -57,18 +57,8 @@
 }
 
 @keyframes section-fade { from { opacity:.55; } }
-@keyframes section-reveal { from { opacity:.5; clip-path:inset(0 10% 0 0); } to { clip-path:inset(0); } }
-@keyframes heading-rise { from { translate:0 9px; } }
-@keyframes heading-spring {
-  0% { translate:0 12px; }
-  70% { translate:0 -2px; }
-  100% { translate:0 0; }
-}
-@keyframes heading-sweep { from { translate:-10px 0; } }
-@keyframes heading-drift { from { translate:12px 0; } }
-@keyframes heading-deal { from { opacity:.5; translate:0 13px; } }
-@keyframes dialog-rise { from { opacity:0; translate:0 10px; } }
-@keyframes dialog-pop { from { opacity:0; scale:.96; } }
+@keyframes heading-rise { from { translate:0 var(--atelier-space-2); } }
+@keyframes dialog-rise { from { opacity:0; translate:0 var(--atelier-space-3); } }
 @keyframes backdrop-fade { from { opacity:0; } }
 /* Le texte affiche tout de suite la mesure reçue. Seule sa présentation bouge. */
 @media (prefers-reduced-motion:no-preference) {

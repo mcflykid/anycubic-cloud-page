@@ -489,10 +489,6 @@ dialog{background:var(--surface);color:var(--text)}
 
 /* Sous le seuil du rail, les tuiles gardent toute leur largeur pour les libellés. */
 
-/* Aurore compose quatre cartes réordonnables et conserve le même tableau après rechargement. */
-
-/* Apple et Océan partagent un repère actif translucide qui suit la section choisie. */
-
 /* Tile Build assemble le menu en vague et le démonte dans l’ordre inverse. */
 @keyframes tile-enter{0%{opacity:0;transform:translateY(18px) scale(.88);clip-path:inset(16% 12% round 18px)}70%{opacity:1;transform:translateY(-2px) scale(1.015)}100%{opacity:1;transform:none;clip-path:inset(0 round 12px)}}
 @keyframes tile-exit{0%{opacity:1;transform:none;clip-path:inset(0 round 12px)}100%{opacity:0;transform:translateY(12px) scale(.9);clip-path:inset(12% 9% round 18px)}}

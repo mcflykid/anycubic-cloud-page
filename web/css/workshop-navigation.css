@@ -151,13 +151,13 @@
   }
 
   #atelier-tabs[data-phase="opening"] .atelier-nav-group > button {
-    animation: tile-enter .28s both;
-    animation-delay: calc(var(--tile-index, 0) * 42ms);
+    animation: tile-enter var(--motion-panel) var(--motion-ease) both;
+    animation-delay: calc(var(--tile-index, 0) * var(--motion-tile-stagger));
   }
 
   #atelier-tabs[data-phase="closing"] .atelier-nav-group > button {
-    animation: tile-exit .24s both;
-    animation-delay: calc(var(--tile-exit-index, 0) * 24ms);
+    animation: tile-exit var(--motion-panel) var(--motion-ease) both;
+    animation-delay: calc(var(--tile-exit-index, 0) * var(--motion-tile-stagger));
   }
 }
 

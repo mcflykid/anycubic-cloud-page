@@ -57,6 +57,7 @@
   --accent: var(--atelier-accent);
   --font: var(--atelier-font);
   --atelier-access-width: 480px;
+  --atelier-dialog-shadow: 0 20px 80px #0002;
   --atelier-on-accent: light-dark(var(--atelier-surface), var(--atelier-bg));
 }
 @media (pointer: coarse), (max-width: 760px) {

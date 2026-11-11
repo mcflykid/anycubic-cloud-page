@@ -20,11 +20,12 @@ async function visibleImages(page) {
   ]));
 }
 
-async function photo(page, filename) {
+async function photo(page, filename, fullPage = false) {
+  await page.evaluate(() => document.fonts.ready);
   await visibleImages(page);
   const jpeg = filename.endsWith('.jpg');
   await page.screenshot({
-    path: path.resolve('screenshots', filename), animations: 'disabled',
+    path: path.resolve('screenshots', filename), animations: 'disabled', fullPage,
     ...(jpeg ? {type: 'jpeg', quality: 86} : {}),
   });
 }
@@ -74,7 +75,7 @@ async function captureError(page) {
   await page.unroute('**/imprimante-api/status');
 }
 
-/** Assemble les six styles sans publier une série d’images redondantes. */
+/** Assemble les quatre styles sans publier une série d’images redondantes. */
 async function captureStyles(page, browser) {
   const samples = [];
   for (const [style, name] of styles) {
@@ -85,17 +86,17 @@ async function captureStyles(page, browser) {
     await page.reload();
     await openSection(page, 'summary');
     await visibleImages(page);
-    samples.push({name, jpeg:(await page.screenshot({type:'jpeg', quality:80})).toString('base64')});
+    samples.push({name, jpeg:(await page.locator('.workshop-frame').screenshot({type:'jpeg', quality:80})).toString('base64')});
   }
   const sheet = await browser.newPage({viewport:desktop});
   await sheet.setContent(`<style>
     *{box-sizing:border-box}body{margin:0;padding:32px;background:#e7edf4;color:#172332;font:20px system-ui}
-    main{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}figure{margin:0;background:white;border-radius:14px;overflow:hidden}
+    main{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}figure{margin:0;background:white;border-radius:14px;overflow:hidden}
     h1{font-size:30px;margin:0 0 24px}img{display:block;width:100%;height:auto}figcaption{padding:14px 16px}
-    </style><h1>Les six styles de l’atelier</h1><main>
+    </style><h1>Les quatre styles de l’atelier</h1><main>
     ${samples.map(({name,jpeg}) => `<figure><img src="data:image/jpeg;base64,${jpeg}" alt=""><figcaption>${name}</figcaption></figure>`).join('')}
     </main>`);
-  await photo(sheet, '17-six-styles.jpg');
+  await photo(sheet, '17-quatre-styles.jpg', true);
   await sheet.close();
 }
 
@@ -154,6 +155,8 @@ async function main() {
       await openSection(page, tab);
       if (tab === 'history') await page.locator('#tasks-list > tr').first().waitFor();
       if (tab === 'fleet') await page.locator('#monitor-grid .monitor-card').first().waitFor();
+      if (tab === 'statistics') await page.locator('#chart-nozzle svg').waitFor();
+      if (tab === 'files') await page.locator('#file-rows tr').first().waitFor();
       await photo(page, filename);
       if (tab === 'files') await captureCloudFolders(page);
     }
@@ -198,6 +201,13 @@ async function main() {
     await page.setViewportSize(mobile);
     await openSection(page, 'summary');
     await photo(page, '21-resume-mobile.png');
+    await page.setViewportSize({width: 1920, height: 1080});
+    await page.evaluate(() => localStorage.setItem('cloud-page-style', 'glasshouse'));
+    await page.reload();
+    await openSection(page, 'summary');
+    await photo(page, '23-verriere-sombre.png');
+    await page.setViewportSize(mobile);
+    await photo(page, '24-verriere-mobile.png');
     await captureTotp(page, browser, base);
     console.log('Captures de démonstration produites, sans compte réel.');
   } finally {

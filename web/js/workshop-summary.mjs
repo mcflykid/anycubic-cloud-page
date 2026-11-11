@@ -84,7 +84,11 @@ function summaryAce(box, index) {
     color.setAttribute('aria-hidden', 'true');
     if (Array.isArray(spool.color) && spool.color.length >= 3 && spool.color.slice(0, 3).every(value => Number.isInteger(value) && value >= 0 && value <= 255))
       color.style.backgroundColor = `rgb(${spool.color.slice(0, 3).join(',')})`;
-    item.append(color, node('span', spool.material_type || tr('Non renseigné')),
+    // L’emplacement reporté permet de retrouver la même bobine dans l’onglet ACE.
+    const slot = spool.display_slot ?? spool.slot;
+    const material = spool.material_type || tr('Non renseigné');
+    const label = Number.isInteger(slot) && slot > 0 ? `${slot} · ${material}` : material;
+    item.append(color, node('span', label),
       node('strong', fmt(spool.remaining_percent, ' %')));
     spools.append(item);
   }

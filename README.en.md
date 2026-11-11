@@ -83,3 +83,5 @@ GPL-3.0-or-later. Independent community project; not an official Anycubic produc
 The French `/login` form uses an eight-hour session cookie: HttpOnly, SameSite=Strict, and Secure when `PUBLIC_ORIGIN` is HTTPS. Sign-out revokes the session. Five failures per five-minute window limit attempts per connection address; users behind a proxy may share this limit. Restarting the application or changing the web password invalidates sessions.
 
 ![Sign-in page — synthetic demo](screenshots/00-connexion.jpg)
+
+The [HTML layout references](docs/DESIGN.md#maquettes-de-référence) cover all ten tabs.

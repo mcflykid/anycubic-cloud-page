@@ -154,3 +154,31 @@ button.atelier-control-icon {
   }
   .atelier-card-body { padding-block: var(--atelier-space-2); }
 }
+
+/* Les fenêtres standard utilisent les mêmes rôles et la même échelle que les cartes. */
+body:has(.workshop-frame) > dialog:not(:where(#task-dialog)) {
+  padding: var(--atelier-space-5);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  box-shadow: var(--atelier-dialog-shadow);
+}
+body:has(.workshop-frame) > dialog :is(.dialog-top > h2, #confirm-title) {
+  margin: 0;
+  font: var(--atelier-title);
+  font-weight: var(--atelier-semibold);
+}
+body:has(.workshop-frame) > dialog :is(.dialog-close, #confirm-yes, #confirm-no) {
+  min-block-size: var(--atelier-control);
+  padding-block: 0;
+  border-radius: var(--atelier-control-radius);
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+}
+@media (max-width: 760px) {
+  body:has(.workshop-frame) > dialog:not(:where(#task-dialog)) {
+    padding: var(--atelier-space-4);
+  }
+}

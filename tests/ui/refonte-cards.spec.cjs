@@ -35,11 +35,17 @@ test('le résumé garde le nom long et les huit bobines dans les limites de la p
   await page.route('**/imprimante-api/status', async route=>{
     const response=await route.fetch(), json=await response.json();
     json.printer.job_name='fichier_'+('exempleTrèsLong'.repeat(14))+'.gcode';
-    json.printer.boxes.push({...json.printer.boxes[0],box_id:1});
+    const first = json.printer.boxes[0];
+    json.printer.boxes.push({
+      ...first,
+      box_id: 1,
+      spools: first.spools.map((spool) => ({ ...spool, display_slot: spool.display_slot + 4 })),
+    });
     await route.fulfill({response,json});
   });
   await login(page,'summary');
   await expect(page.locator('.summary-spools > li')).toHaveCount(8);
+  await expect(page.locator('.summary-spools > li').last()).toContainText('8 · PLA');
   for(const width of [1440,390]){
     await page.setViewportSize({width,height:844});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
