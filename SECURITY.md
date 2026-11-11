@@ -23,7 +23,7 @@ Le mot de passe web est actuellement conservé dans un fichier privé en mode 06
 
 ## Facteur temporaire local
 
-L’atelier peut demander un TOTP après le mot de passe web. Le défi expire après trois minutes, ne confère aucun droit et partage le quota du mot de passe. L’atelier ne crée la session qu’après consommation du code. La confirmation du mot de passe pour les actions sensibles demeure distincte.
+L’atelier peut demander un TOTP après le mot de passe web. Le défi expire après trois minutes ou trois échecs. Les codes temporaires ont également un quota commun de vingt échecs en deux minutes. Un code de secours demeure utilisable après une nouvelle étape de mot de passe. L’atelier crée la session après consommation du code. La confirmation des opérations sensibles dispose d’un quota par session.
 
 Le fichier `APPDATA_DIR/private/web-totp.json` appartient à l’utilisateur du service, en mode 0600. Il contient la clé requise pour vérifier les codes, le dernier pas accepté et les empreintes des codes de secours. Protégez les sauvegardes de ce fichier comme celles des autres secrets. La preuve est enregistrée avant l’émission du cookie. Le verrou d’authentification couvre la lecture et l’écriture sur l’unique processus du service Compose. Une copie ancienne de l’état peut restaurer une clé ou un code déjà consommé. En cas de restauration, réinitialisez et réenrôlez le facteur.
 
