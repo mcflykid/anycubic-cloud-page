@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Ajoute un canal Discord facultatif pour les impressions terminées et les échecs confirmés par le Cloud (#205, #251, #252, #253).
+
 - Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).
 
 - Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
