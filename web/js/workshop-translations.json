@@ -5079,6 +5079,14 @@
     "Set the “{0}” fan to {1}%?",
     "¿Ajustar el ventilador «{0}» al {1} %?"
   ],
+  "Au repos": [
+    "Idle",
+    "En reposo"
+  ],
+  "Imprimante occupée": [
+    "Printer busy",
+    "Impresora ocupada"
+  ],
   "Circulation": [
     "Circulation",
     "Circulación"

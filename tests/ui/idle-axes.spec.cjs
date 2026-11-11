@@ -125,3 +125,28 @@ test('la vue garde ses lignes et propose les deux actions si l’éclairage est 
   }
   expect(sizes[0]).toEqual(sizes[1]);
 });
+
+test('les commandes affichent l’état et la mesure dans les trois langues', async ({page}) => {
+  await page.setViewportSize({width:1920,height:1080});
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    data.printer.box_fan_level = 33;
+    await route.fulfill({json:data});
+  });
+  await login(page);
+  const panel = page.locator('#controls-dialog');
+  for (const [language, idle, circulation, reading] of [
+    ['fr', 'Au repos', 'Circulation', 'Actuelle'],
+    ['en', 'Idle', 'Circulation', 'Current'],
+    ['es', 'En reposo', 'Circulación', 'Actual'],
+  ]) {
+    await page.locator('#interface-language').selectOption(language);
+    await expect(page.locator('html')).toHaveAttribute('lang', language);
+    await openSection(page, 'overview');
+    await page.locator('#controls-open').click();
+    await expect(panel.locator('#controls-machine-state')).toHaveText(idle);
+    await expect(panel.getByLabel(circulation, {exact:true})).toBeVisible();
+    await expect(panel.locator('#current-circulation-reading')).toHaveText(`${reading} 33 %`);
+    await page.keyboard.press('Escape');
+  }
+});
