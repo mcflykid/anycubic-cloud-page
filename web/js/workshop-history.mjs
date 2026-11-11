@@ -166,23 +166,31 @@ export function createHistory(request, command, selectedBox) {
     );
     thumb.tabIndex = -1;
     row.append(thumb);
+    const code = String(item.reason_code || '');
+    const isError = /^[1-9]\d{0,9}$/.test(code) && code !== '200';
+    const sheet = isError && Object.hasOwn(notificationErrorCatalogue, code)
+      ? notificationErrorCatalogue[code]
+      : null;
+    /* Une erreur codée est expliquée par sa fiche et son aide contextuelle : éviter de répéter la même phrase. */
+    const meta = node('span', null, 'muted notification-meta');
+    if (item.printer) meta.append(node('span', item.printer));
+    const timestamp = node('time', date(item.time));
+    const timestampValue =
+      typeof item.time === 'number' && item.time > 1e9 && item.time < 1e11
+        ? item.time * 1000
+        : item.time;
+    if (item.time) timestamp.dateTime = new Date(timestampValue).toISOString();
+    meta.append(timestamp);
     body.append(
       node('strong', item.name, 'notification-name'),
-      node('span', item.printer, 'muted'),
+      meta,
       node(
         'span',
         `${item.kind === 'success' ? '✓' : item.kind === 'interrupted' ? '■' : '◷'} ${tr(item.result)}`,
         'notification-result ' + item.kind,
       ),
     );
-    const code = String(item.reason_code || '');
-    const isError = /^[1-9]\d{0,9}$/.test(code) && code !== '200';
-    const sheet = isError && Object.hasOwn(notificationErrorCatalogue, code)
-      ? notificationErrorCatalogue[code]
-      : null;
-    if (sheet?.title || item.error_title)
-      body.append(node('span', tr(sheet?.title || item.error_title), 'notification-error-title'));
-    if (item.reason)
+    if (item.reason && !isError)
       body.append(
         node('span', serverText(item.reason, 'Pas de diagnostic traduit pour cet événement.'), 'muted'),
       );
@@ -203,7 +211,6 @@ export function createHistory(request, command, selectedBox) {
       error.append(button, tooltip);
       errorBlock = error;
     }
-    body.append(node('time', date(item.time), 'muted'));
     open.append(body);
     if (item.unread) {
       const dot = node('span', null, 'unread-dot');
