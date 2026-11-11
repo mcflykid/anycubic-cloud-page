@@ -1,0 +1,325 @@
+/* Canica · Moxen — los estilos del interruptor y de la demostración.
+   Material: arcilla suave y mate. La canica de vidrio es el único acento vivo.
+   Para recolorear cambia las variables de aquí abajo: la arcilla del fondo, la
+   crema de la tarjeta, el rosa del relleno y los tonos del vidrio. */
+:root {
+  /* la arcilla del fondo: de la luz a la sombra */
+  --cn-fondo: #b7d4bf;
+  --cn-fondo-luz: #d0e3d6;
+  --cn-fondo-sombra: #9ebca9;
+  --cn-hueco-luz: rgba(255, 255, 255, .5);        /* el filo de luz de los huecos hundidos */
+  --cn-hueco-sombra: 62, 98, 76;                  /* rgb de su sombra interior */
+  /* la tarjeta */
+  --cn-crema: #f7efe3;
+  --cn-crema-luz: #fffbf4;
+  --cn-crema-sombra: #e5d8c5;
+  --cn-placa: #eadfcc;                            /* la losa que asoma por detrás */
+  /* el carril tallado */
+  --cn-surco: #e7dbc8;
+  --cn-surco-hondo: #d6c8b1;
+  /* lo que se llena al encender */
+  --cn-rosa: #f4b8c4;
+  --cn-rosa-luz: #f9d0d8;
+  --cn-rosa-hondo: #e69fb0;
+  /* el vidrio de la canica (único acento vivo) */
+  --cn-v-luz: #e0fffd;
+  --cn-v-medio: #55d6e8;
+  --cn-v-hondo: #1b9dc0;
+  --cn-v-borde: #0f6f95;
+  --cn-v-caustica: 218, 255, 252;                 /* rgb de la luz que se junta abajo */
+  --cn-lente-surco: #fff1d6;                      /* el surco visto a través del vidrio */
+  --cn-lente-relleno: #ffb2cb;                    /* el relleno rosa visto a través del vidrio */
+  /* la tinta */
+  --cn-tinta: #2c3a32;
+  --cn-suave: #5d6b62;
+  --cn-icono-fondo: #b7d4bf;                      /* el disco de arcilla de cada ícono */
+  --cn-icono-tinta: #2c4a39;
+  --cn-sombra: 64, 98, 76;                        /* rgb de las sombras (hacia el verde, no al negro) */
+  --cn-foco: #1c8aa2;
+  /* medidas y curvas */
+  --cn-curva: cubic-bezier(.22, 1, .36, 1);
+  --cn-fuente: "Chillax", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+/* ?tema=oscuro: la misma arcilla de noche (musgo hondo, rosa empolvado y la canica que brilla más) */
+:root[data-tema="oscuro"] {
+  --cn-fondo: #22332b;
+  --cn-fondo-luz: #31473c;
+  --cn-fondo-sombra: #17231d;
+  --cn-hueco-luz: rgba(190, 230, 205, .12);
+  --cn-hueco-sombra: 6, 14, 10;
+  --cn-crema: #34473d;
+  --cn-crema-luz: #45594e;
+  --cn-crema-sombra: #2a3b32;
+  --cn-placa: #2b3c33;
+  --cn-surco: #26362e;
+  --cn-surco-hondo: #1b2822;
+  --cn-rosa: #d58a9b;
+  --cn-rosa-luz: #e6a6b4;
+  --cn-rosa-hondo: #b96b7e;
+  --cn-v-luz: #e2fffd;
+  --cn-v-medio: #6fe6f0;
+  --cn-v-hondo: #1fa0ba;
+  --cn-v-borde: #0c6684;
+  --cn-lente-surco: #36a2ad;
+  --cn-lente-relleno: #f0a2c4;
+  --cn-tinta: #f1e9db;
+  --cn-suave: #b5c4b9;
+  --cn-icono-fondo: #4c6657;
+  --cn-icono-tinta: #e9f3ea;
+  --cn-sombra: 4, 10, 7;
+  --cn-foco: #7ae6f2;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--cn-fondo); }
+body { font-family: var(--cn-fuente); -webkit-font-smoothing: antialiased; color: var(--cn-tinta); overflow-x: hidden; }
+button { font: inherit; color: inherit; }
+svg { display: block; }
+.cn-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.cn-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ── la escena: arcilla con grano ─────────────────────────────────── */
+.cn-escena {
+  position: relative; isolation: isolate; min-height: 100vh; display: grid; place-items: center; align-content: center; gap: 30px; padding: 40px 20px; overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 14% 0%, var(--cn-fondo-luz), transparent 62%),
+    radial-gradient(80% 70% at 100% 100%, var(--cn-fondo-sombra), transparent 66%),
+    var(--cn-fondo);
+}
+/* el grano fino de la arcilla: claros y oscuros sueltos */
+.cn-escena::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .5; mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='.33 .33 .33 0 0  .33 .33 .33 0 0  .33 .33 .33 0 0  0 0 0 0 1'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+}
+:root[data-tema="oscuro"] .cn-escena::before { opacity: .38; }
+
+.cn-fondo { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+/* huecos que alguien hundió con el pulgar: sombra interior arriba a la izquierda, filo de luz abajo */
+.cn-hueco {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle at 68% 72%, rgba(255, 255, 255, .1), rgba(var(--cn-hueco-sombra), .12) 100%);
+  box-shadow: inset 18px 24px 40px -14px rgba(var(--cn-hueco-sombra), .42), inset 3px 4px 8px rgba(var(--cn-hueco-sombra), .18), 3px 5px 0 -1px var(--cn-hueco-luz);
+}
+.cn-h1 { width: 520px; height: 520px; left: -170px; bottom: -200px; }
+.cn-h2 { width: 300px; height: 300px; right: -90px; top: -110px; }
+.cn-h3 { width: 150px; height: 150px; right: 15%; bottom: 7%; }
+/* bolitas de modelar con volumen, sin brillo (arcilla mate) */
+.cn-bolita {
+  position: absolute; border-radius: 50%; animation: cn-flota 9s ease-in-out infinite;
+  background: radial-gradient(circle at 32% 26%, var(--cn-bl), var(--cn-bm) 52%, var(--cn-bh) 100%);
+  box-shadow: 14px 22px 22px -10px rgba(var(--cn-sombra), .38), inset -5px -7px 10px rgba(var(--cn-sombra), .12);
+}
+.cn-b1 { --cn-bl: #fbdce2; --cn-bm: #f4b8c4; --cn-bh: #e29cae; width: 74px; height: 74px; left: 8%; top: 17%; }
+.cn-b2 { --cn-bl: #fffaf0; --cn-bm: #f7efe3; --cn-bh: #e0d2bd; width: 46px; height: 46px; left: 15.5%; top: 62%; animation-delay: -3s; animation-duration: 11s; }
+.cn-b3 { --cn-bl: #dcebe1; --cn-bm: #c4dccb; --cn-bh: #9fbfab; width: 58px; height: 58px; right: 9%; top: 74%; animation-delay: -6s; }
+.cn-b4 { --cn-bl: #fffaf0; --cn-bm: #f7efe3; --cn-bh: #e0d2bd; width: 36px; height: 36px; right: 14%; top: 16%; animation-delay: -1.5s; animation-duration: 12s; }
+:root[data-tema="oscuro"] .cn-b1 { --cn-bl: #e2a3b2; --cn-bm: #c47d8f; --cn-bh: #9c5a6d; }
+:root[data-tema="oscuro"] .cn-b2, :root[data-tema="oscuro"] .cn-b4 { --cn-bl: #58705f; --cn-bm: #435a4b; --cn-bh: #2f4238; }
+:root[data-tema="oscuro"] .cn-b3 { --cn-bl: #6f8b78; --cn-bm: #587260; --cn-bh: #3f564a; }
+@keyframes cn-flota { 50% { transform: translateY(-9px); } }
+
+/* ── la tarjeta de arcilla ────────────────────────────────────────── */
+.cn-tarjeta {
+  position: relative; width: 100%; padding: 34px 48px 38px; border-radius: 60px;
+  background:
+    radial-gradient(120% 90% at 18% 0%, var(--cn-crema-luz), transparent 56%),
+    linear-gradient(180deg, var(--cn-crema), var(--cn-crema-sombra));
+  box-shadow:
+    0 64px 90px -46px rgba(var(--cn-sombra), .72), 0 26px 40px -24px rgba(var(--cn-sombra), .5),
+    inset 0 3px 0 rgba(255, 255, 255, .9), inset 4px 6px 12px -2px rgba(255, 255, 255, .55), inset -6px -14px 24px -8px rgba(var(--cn-sombra), .22);
+}
+/* la pila (losa + tarjeta) es lo que entra: así la losa queda siempre detrás de la tarjeta */
+.cn-pila { position: relative; z-index: 1; width: min(920px, 100%); animation: cn-entra .9s var(--cn-curva) both; }
+:root[data-tema="oscuro"] .cn-tarjeta { box-shadow: 0 64px 90px -46px rgba(var(--cn-sombra), .9), 0 26px 40px -24px rgba(var(--cn-sombra), .7), inset 0 2px 0 rgba(255, 255, 255, .16), inset 4px 6px 12px -2px rgba(255, 255, 255, .06), inset -6px -14px 24px -8px rgba(var(--cn-sombra), .5); }
+/* la losa de atrás: otra capa de arcilla, un poco girada */
+.cn-losa {
+  position: absolute; inset: 16px -14px -20px 14px; border-radius: 62px; transform: rotate(-1.4deg);
+  background: linear-gradient(180deg, var(--cn-placa), var(--cn-crema-sombra));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .5), 0 40px 60px -36px rgba(var(--cn-sombra), .55);
+}
+.cn-tarjeta::after {   /* el grano también en la tarjeta */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .5; mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='.33 .33 .33 0 0  .33 .33 .33 0 0  .33 .33 .33 0 0  0 0 0 0 1'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+}
+@keyframes cn-entra { from { opacity: 0; transform: translateY(26px) scale(.985); } }
+
+.cn-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cn-chip {
+  display: inline-flex; align-items: center; gap: 10px; margin: 0; height: 38px; padding: 0 18px 0 14px; border-radius: 99px; font-size: 15px; font-weight: 500; letter-spacing: .01em;
+  background: var(--cn-icono-fondo); color: var(--cn-icono-tinta);
+  box-shadow: inset 2px 3px 5px rgba(255, 255, 255, .5), inset -2px -3px 6px rgba(var(--cn-sombra), .22), 0 6px 10px -6px rgba(var(--cn-sombra), .4);
+}
+.cn-chip-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--cn-rosa); box-shadow: inset -1px -2px 2px rgba(var(--cn-sombra), .25), inset 1px 1px 1px rgba(255, 255, 255, .6); }
+.cn-cuenta { margin: 0; font-size: 15px; font-weight: 500; color: var(--cn-suave); font-variant-numeric: tabular-nums; }
+
+/* el texto que cambia: el viejo sube y se va, el nuevo entra desde abajo */
+.cn-rueda { display: inline-grid; overflow: hidden; vertical-align: top; padding: 2px 0; margin: -2px 0; }
+.cn-rueda > span { grid-area: 1 / 1; white-space: nowrap; }
+
+/* ── el interruptor héroe ─────────────────────────────────────────── */
+.cn-heroe { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 18px 0 30px; }
+.cn-heroe-info { display: flex; align-items: center; gap: 26px; min-width: 0; }
+.cn-heroe .cn-nombre { font-size: 58px; font-weight: 500; letter-spacing: -.035em; line-height: 1; }
+.cn-heroe .cn-estado { margin-top: 12px; font-size: 21px; color: var(--cn-suave); }
+.cn-textos { min-width: 0; }
+.cn-nombre { margin: 0; font-size: 24px; font-weight: 500; letter-spacing: -.015em; line-height: 1.15; }
+.cn-estado { margin: 4px 0 0; font-size: 16px; font-weight: 400; color: var(--cn-suave); line-height: 1.3; }
+
+/* el disco de arcilla del ícono: se enciende en rosa cuando su interruptor llega al tope */
+.cn-icono {
+  position: relative; flex: none; display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; color: var(--cn-icono-tinta);
+  background: radial-gradient(circle at 34% 26%, rgba(255, 255, 255, .45), transparent 60%), var(--cn-icono-fondo);
+  box-shadow: inset 3px 4px 6px rgba(255, 255, 255, .45), inset -4px -6px 10px rgba(var(--cn-sombra), .24), 0 10px 14px -8px rgba(var(--cn-sombra), .45);
+  transition: background-color .45s ease, color .45s ease;
+}
+.cn-icono svg { width: 52%; height: 52%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cn-icono--g { width: 96px; height: 96px; }
+.cn-icono--g svg { width: 50%; height: 50%; stroke-width: 1.6; }
+[data-fila].is-on > .cn-icono, [data-fila].is-on > .cn-heroe-info > .cn-icono { background-color: var(--cn-rosa); color: #5a2a3b; }
+:root[data-tema="oscuro"] [data-fila].is-on > .cn-icono, :root[data-tema="oscuro"] [data-fila].is-on > .cn-heroe-info > .cn-icono { color: #3a1a26; }
+
+/* ── las filas pequeñas ───────────────────────────────────────────── */
+.cn-lista { position: relative; list-style: none; margin: 0; padding: 0; }
+/* una ranura fina entre el héroe y la lista: tallada, con su filo de luz */
+.cn-lista::before { content: ""; position: absolute; left: 0; right: 0; top: -3px; height: 3px; border-radius: 3px; background: rgba(var(--cn-sombra), .18); box-shadow: 0 1.5px 0 rgba(255, 255, 255, .8); }
+:root[data-tema="oscuro"] .cn-lista::before { box-shadow: 0 1.5px 0 rgba(255, 255, 255, .08); }
+.cn-fila { display: flex; align-items: center; gap: 18px; padding: 15px 0 0; }
+.cn-fila + .cn-fila { padding-top: 15px; }
+.cn-fila .cn-textos { flex: 1; }
+.cn-lista { padding-top: 22px; }
+
+/* ── el interruptor: carril tallado, relleno, canica ──────────────── */
+.cn-int {
+  --cn-w: 132px; --cn-h: 64px; --cn-p: 7px; --cn-d: calc(var(--cn-h) - 2 * var(--cn-p));
+  position: relative; flex: none; width: var(--cn-w); height: var(--cn-h); padding: 0; border: 0; border-radius: 99px; background: none; cursor: pointer;
+  touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.cn-int--g { --cn-w: 392px; --cn-h: 144px; --cn-p: 15px; }
+.cn-int:focus { outline: none; }
+.cn-int:focus-visible::before { content: ""; position: absolute; inset: -6px; border-radius: 99px; border: 3px solid var(--cn-foco); }
+
+/* el carril: tallado en la crema, así que la luz cae al borde de abajo */
+.cn-carril {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, var(--cn-surco-hondo), var(--cn-surco) 60%);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 3px 3px rgba(255, 255, 255, .5);
+}
+/* al encender, el carril deja un halo rosa suave sobre la arcilla de abajo */
+.cn-carril { transition: box-shadow .6s ease; }
+[data-fila].is-on .cn-carril { box-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 3px 3px rgba(255, 255, 255, .5), 0 16px 24px -14px rgba(226, 130, 158, .6); }
+.cn-heroe.is-on .cn-carril { box-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 3px 3px rgba(255, 255, 255, .5), 0 30px 38px -22px rgba(226, 130, 158, .65); }
+:root[data-tema="oscuro"] [data-fila].is-on .cn-carril, :root[data-tema="oscuro"] .cn-heroe.is-on .cn-carril { box-shadow: 0 2px 0 rgba(255, 255, 255, .13), 0 3px 3px rgba(255, 255, 255, .04), 0 22px 30px -16px rgba(213, 138, 155, .4); }
+:root[data-tema="oscuro"] .cn-carril { box-shadow: 0 2px 0 rgba(255, 255, 255, .13), 0 3px 3px rgba(255, 255, 255, .04); }
+.cn-interior { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; }
+/* las sombras de la talla van por encima del relleno, para que el rosa también parezca hundido */
+.cn-interior::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 3;
+  box-shadow: inset 4px 6px 10px -3px rgba(var(--cn-sombra), .55), inset 1.5px 2px 3px rgba(var(--cn-sombra), .3), inset -2px -3px 5px -2px rgba(255, 255, 255, .5);
+}
+.cn-int--g .cn-interior::after { box-shadow: inset 10px 14px 20px -6px rgba(var(--cn-sombra), .55), inset 3px 4px 6px rgba(var(--cn-sombra), .3), inset -5px -7px 10px -4px rgba(255, 255, 255, .5); }
+:root[data-tema="oscuro"] .cn-interior::after { box-shadow: inset 4px 6px 10px -3px rgba(0, 0, 0, .6), inset 1.5px 2px 3px rgba(0, 0, 0, .35), inset -2px -3px 5px -2px rgba(255, 255, 255, .07); }
+:root[data-tema="oscuro"] .cn-int--g .cn-interior::after { box-shadow: inset 10px 14px 20px -6px rgba(0, 0, 0, .6), inset 3px 4px 6px rgba(0, 0, 0, .35), inset -5px -7px 10px -4px rgba(255, 255, 255, .07); }
+
+/* el relleno: llega siempre hasta el centro de la canica (lo mueve canica.js) */
+.cn-relleno {
+  position: absolute; inset: 0; border-radius: inherit; transform: translateX(-100%); will-change: transform;
+  background: linear-gradient(180deg, var(--cn-rosa-luz), var(--cn-rosa) 46%, var(--cn-rosa-hondo));
+}
+/* el borde del relleno: una arista suave de arcilla, como si se hubiera empujado con el dedo */
+.cn-relleno::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 34%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22)); }
+
+/* la sombra de la canica y la luz de vidrio que deja en la ranura */
+.cn-sombra, .cn-luz { position: absolute; left: 0; top: 0; width: var(--cn-d); height: var(--cn-d); border-radius: 50%; will-change: transform, opacity; }
+.cn-sombra { background: radial-gradient(closest-side, rgba(var(--cn-sombra), .5), rgba(var(--cn-sombra), .22) 62%, rgba(var(--cn-sombra), 0)); }
+.cn-sombra { width: calc(var(--cn-d) * 1.18); height: calc(var(--cn-d) * 1.18); margin: calc(var(--cn-d) * -.09) 0 0 calc(var(--cn-d) * -.09); }
+.cn-luz { background: radial-gradient(closest-side, rgba(190, 255, 252, .95), rgba(118, 230, 238, .5) 52%, rgba(98, 218, 228, 0)); }
+/* ondas que salen del tope cuando la canica golpea */
+.cn-onda {
+  position: absolute; left: 0; top: 50%; width: var(--cn-d); height: var(--cn-d); margin: calc(var(--cn-d) * -.5) 0 0; border-radius: 50%; opacity: 0; pointer-events: none; will-change: transform, opacity;
+  border: 3px solid rgba(255, 255, 255, .9); box-shadow: 0 0 0 1.5px rgba(var(--cn-sombra), .16), inset 0 0 0 1.5px rgba(var(--cn-sombra), .12);
+}
+:root[data-tema="oscuro"] .cn-onda { border-color: rgba(214, 255, 240, .4); }
+/* el destello del golpe: una estrella de cuatro puntas pegada al tope */
+.cn-tink {
+  position: absolute; left: 0; top: 0; width: 52px; height: 52px; margin: -26px 0 0 -26px; opacity: 0; pointer-events: none; z-index: 3; will-change: transform, opacity;
+  background: radial-gradient(circle, #fff 0, rgba(255, 255, 255, .95) 18%, rgba(205, 255, 252, .75) 60%, rgba(205, 255, 252, .45));
+  clip-path: polygon(50% 0, 57% 43%, 100% 50%, 57% 57%, 50% 100%, 43% 57%, 0 50%, 43% 43%);
+}
+.cn-int--g .cn-tink { width: 70px; height: 70px; margin: -35px 0 0 -35px; }
+
+/* la canica: vidrio cian translúcido, con borde más oscuro, remolino, ventana y luz abajo */
+.cn-canica { position: absolute; left: var(--cn-p); top: var(--cn-p); width: var(--cn-d); height: var(--cn-d); z-index: 2; will-change: transform; pointer-events: none; }
+.cn-vidrio {
+  position: relative; display: block; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; will-change: transform;
+  background: radial-gradient(circle at 50% 55%, var(--cn-v-luz) 0, var(--cn-v-medio) 40%, var(--cn-v-hondo) 76%, var(--cn-v-borde) 100%);
+  box-shadow: 0 0 0 1px rgba(8, 96, 122, .35);
+}
+/* lo que se ve del carril a través del vidrio: invertido, ampliado y desplazado al revés de la canica */
+.cn-refrac {
+  position: absolute; left: -150%; top: -22%; width: 400%; height: 144%; opacity: .3; will-change: transform;
+  background:
+    radial-gradient(ellipse 34% 30% at 50% 100%, rgba(var(--cn-sombra), .5), transparent 100%),
+    radial-gradient(ellipse 34% 26% at 50% 0%, rgba(255, 255, 255, .6), transparent 100%),
+    linear-gradient(90deg, var(--cn-lente-surco) 0 calc(50% - 7px), var(--cn-lente-relleno) calc(50% + 7px) 100%);
+}
+.cn-remolino { position: absolute; inset: 6%; width: 88%; height: 88%; opacity: .8; filter: blur(.8px); will-change: transform; }
+/* borde oscuro, luz que se junta abajo (cáustica) y brillo de ventana arriba a la izquierda */
+.cn-vidrio::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(ellipse 56% 27% at 56% 93%, rgba(var(--cn-v-caustica), .95), rgba(var(--cn-v-caustica), 0) 74%),
+    radial-gradient(circle at 50% 50%, transparent 55%, rgba(6, 84, 106, .3) 82%, rgba(5, 70, 92, .62) 100%);
+  box-shadow: inset 0 -5px 9px -3px rgba(var(--cn-v-caustica), .65), inset 3px 4px 8px -2px rgba(255, 255, 255, .6);
+}
+.cn-int--g .cn-vidrio::before { box-shadow: inset 0 -9px 16px -5px rgba(var(--cn-v-caustica), .65), inset 5px 7px 14px -3px rgba(255, 255, 255, .6); }
+.cn-vidrio::after {
+  content: ""; position: absolute; left: 14%; top: 10%; width: 34%; height: 25%; border-radius: 40% 48% 42% 50% / 48% 42% 50% 42%; transform: rotate(-26deg);
+  background:
+    linear-gradient(rgba(255, 255, 255, .95), rgba(255, 255, 255, .62)) 0 0 / 47% 46% no-repeat,
+    linear-gradient(rgba(255, 255, 255, .85), rgba(255, 255, 255, .5)) 100% 0 / 47% 46% no-repeat,
+    linear-gradient(rgba(255, 255, 255, .7), rgba(255, 255, 255, .42)) 0 100% / 47% 46% no-repeat,
+    linear-gradient(rgba(255, 255, 255, .6), rgba(255, 255, 255, .34)) 100% 100% / 47% 46% no-repeat;
+  filter: blur(.35px);
+}
+
+@media (hover: hover) {
+  .cn-int:hover .cn-carril { background: linear-gradient(180deg, var(--cn-surco-hondo), var(--cn-surco) 50%); filter: brightness(1.025); }
+}
+.cn-int.is-arrastra { cursor: grabbing; }
+
+/* ── la pista de abajo ────────────────────────────────────────────── */
+.cn-pista { position: relative; z-index: 1; margin: 0; font-size: 15px; font-weight: 400; letter-spacing: .01em; color: var(--cn-icono-tinta); opacity: .78; text-align: center; }
+:root[data-tema="oscuro"] .cn-pista { color: var(--cn-suave); opacity: 1; }
+
+/* ── movimiento reducido: la canica llega sin rodar, solo con un deslizamiento corto ─── */
+.cn-quieto .cn-canica, .cn-quieto .cn-relleno, .cn-quieto .cn-sombra, .cn-quieto .cn-luz, .cn-quieto .cn-refrac { transition: transform .2s ease; }
+.cn-quieto .is-arrastra .cn-canica, .cn-quieto .is-arrastra .cn-relleno, .cn-quieto .is-arrastra .cn-sombra, .cn-quieto .is-arrastra .cn-luz, .cn-quieto .is-arrastra .cn-refrac { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cn-pila { animation: none; }
+  .cn-bolita { animation: none; }
+}
+
+/* ── en el móvil: el héroe pasa arriba y el carril ocupa el ancho ─── */
+@media (max-width: 760px) {
+  .cn-escena { padding: 28px 16px 24px; gap: 22px; }
+  .cn-tarjeta { padding: 24px 22px 28px; border-radius: 44px; }
+  .cn-losa { inset: 14px -8px -14px 8px; border-radius: 46px; }
+  .cn-heroe { flex-direction: column; align-items: stretch; gap: 22px; padding: 12px 0 24px; }
+  .cn-heroe-info { gap: 18px; }
+  .cn-heroe .cn-nombre { font-size: 40px; }
+  .cn-heroe .cn-estado { font-size: 17px; margin-top: 8px; }
+  .cn-int--g { --cn-w: 100%; --cn-h: 112px; --cn-p: 12px; width: 100%; }
+  .cn-fila { gap: 14px; }
+  .cn-nombre { font-size: 21px; }
+  .cn-icono { width: 48px; height: 48px; }
+  .cn-icono--g { width: 72px; height: 72px; }
+  .cn-h1 { width: 360px; height: 360px; left: -150px; bottom: -150px; }
+  .cn-bolita { display: none; }
+}
+@media (max-width: 380px) {
+  .cn-tarjeta { padding: 22px 18px 26px; }
+  .cn-fila { gap: 12px; }
+  .cn-int { --cn-w: 116px; --cn-h: 58px; --cn-p: 6px; }
+  .cn-icono { width: 44px; height: 44px; }
+  .cn-icono--g { width: 64px; height: 64px; }
+}
