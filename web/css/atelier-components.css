@@ -1,0 +1,94 @@
+/* Structure commune des cartes et des commandes de l’atelier. */
+.atelier-card {
+  min-inline-size: 0;
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  font: var(--atelier-text);
+}
+.atelier-card-header,
+.atelier-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--atelier-space-3);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+}
+.atelier-card-header {
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+}
+.atelier-card-header :is(h2, h3) {
+  margin: 0;
+  color: inherit;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+.atelier-card-body { padding: var(--atelier-space-4); }
+.atelier-card-footer { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+.atelier-card-footer > :only-child { margin-inline: auto; }
+.atelier-field {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--atelier-space-1);
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.atelier-control,
+.atelier-field > :is(input, select) {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  block-size: var(--atelier-control);
+  min-block-size: var(--atelier-control);
+  margin: 0;
+  padding: 0 var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  color: var(--atelier-fg);
+  background: var(--atelier-surface);
+  font: var(--atelier-text);
+}
+button.atelier-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--atelier-space-1);
+  font-weight: var(--atelier-semibold);
+  white-space: nowrap;
+}
+button.atelier-control-icon {
+  inline-size: var(--atelier-control);
+  padding: 0;
+}
+.atelier-control-icon .ui-icon {
+  inline-size: var(--atelier-icon);
+  block-size: var(--atelier-icon);
+  stroke-width: var(--atelier-stroke);
+}
+.atelier-control-primary {
+  background: var(--atelier-accent);
+  color: var(--atelier-on-accent);
+  border-color: var(--atelier-accent);
+}
+.atelier-control-danger {
+  border-color: var(--atelier-error);
+  color: var(--atelier-error);
+}
+.atelier-control:disabled {
+  background: var(--atelier-bg);
+  color: var(--atelier-muted);
+  opacity: 1;
+}
+.atelier-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--atelier-space-2);
+}
+.atelier-status::before {
+  content: "";
+  inline-size: var(--atelier-dot);
+  block-size: var(--atelier-dot);
+  border-radius: 50%;
+  background: var(--atelier-normal);
+}

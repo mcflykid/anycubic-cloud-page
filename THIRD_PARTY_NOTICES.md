@@ -71,3 +71,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Police Inter
+
+[Inter 4.1](https://github.com/rsms/inter/releases/tag/v4.1), par Rasmus Andersson et les contributeurs du projet, est distribuée sous SIL Open Font License 1.1. Les fichiers WOFF2 Regular et SemiBold d’origine et leur licence sont conservés dans `web/css/fonts/`.
