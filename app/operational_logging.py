@@ -39,6 +39,8 @@ _FIELD_NAMES = frozenset(
         "nested",
         "endpoint",
         "cloud_code",
+        "log_level",
+        "log_format",
     }
 )
 _TOKEN = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
@@ -59,6 +61,8 @@ _PRIVATE_PATH = re.compile(
 _OPAQUE = re.compile(r"\b(?:[A-Fa-f0-9]{24,}|[A-Za-z0-9_-]{32,})\b")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _FORMAT_ARG = re.compile(r"%(?:\([^)]+\))?[#0 +\-]?(?:\d+|\*)?(?:\.\d+)?[diouxXeEfFgGcrsa%]")
+_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+_FORMATS = ("text", "json")
 _CLIENT_LOGGERS = ("anycubic_cloud_api", "aiohttp", "paho", "urllib3", "httpx")
 _LEGACY_MESSAGES = {
     "Structure de requête invalide (%s)",
@@ -114,6 +118,10 @@ def _safe_value(name, value):
             if isinstance(value, str) and value in {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"}
             else None
         )
+    if name == "log_level":
+        return value if isinstance(value, str) and value in _LEVELS else None
+    if name == "log_format":
+        return value if isinstance(value, str) and value in _FORMATS else None
     if name == "status":
         return value if type(value) is int and 100 <= value <= 599 else None
     if name == "mqtt_code":
@@ -166,7 +174,7 @@ def _safe_value(name, value):
     if name == "file_format":
         return (
             value
-            if isinstance(value, str) and value in {"gcode", "gcode_3mf", "3mf", "other"}
+            if isinstance(value, str) and value in {"gcode", "gcode_3mf", "3mf", "stl", "other"}
             else None
         )
     if name == "storage":
@@ -312,14 +320,20 @@ class OperationalFormatter(logging.Formatter):
         return f"{timestamp} {record.levelname} {record.safe_component} {record.safe_event} — {record.safe_message}{suffix}"
 
 
+class LoggingConfigurationError(ValueError):
+    """Signale un niveau ou un format invalide sans reprendre la valeur saisie."""
+
+
 def configure_logging(stream=None):
     """Configure stderr UTC, niveau INFO et format texte par défaut; lève ValueError si mal configuré."""
     level_name = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
     output_format = os.environ.get("LOG_FORMAT", "text").strip().lower() or "text"
-    if level_name not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
-        raise ValueError("LOG_LEVEL doit être DEBUG, INFO, WARNING, ERROR ou CRITICAL")
-    if output_format not in {"text", "json"}:
-        raise ValueError("LOG_FORMAT doit être text ou json")
+    if level_name not in _LEVELS:
+        raise LoggingConfigurationError(
+            "LOG_LEVEL invalide : choisissez DEBUG, INFO, WARNING, ERROR ou CRITICAL."
+        )
+    if output_format not in _FORMATS:
+        raise LoggingConfigurationError("LOG_FORMAT invalide : choisissez text ou json.")
     handler = logging.StreamHandler(stream or sys.stderr)
     handler.setFormatter(OperationalFormatter(output_format))
     handler.addFilter(PrivacyFilter())
