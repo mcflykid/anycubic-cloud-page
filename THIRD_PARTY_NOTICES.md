@@ -43,3 +43,31 @@ Les versions 0.4.5 à 0.4.8 de [ljschmitt/hass-anycubic_cloud_v3](https://github
 [Segno 1.6.6](https://pypi.org/project/segno/), Copyright (c) 2016 - 2025, Lars Heuer, encodeur Python sous licence BSD à trois clauses. Le paquet installé conserve l’avis complet dans son dossier de métadonnées. La dépendance n’est utilisée que pour la génération locale du QR. Aucun service externe ne reçoit la clé.
 
 Le contenu de `web/vendor/` reste soumis aux conditions de ses auteurs et n’est pas couvert par la licence GPL du projet.
+
+## Commandes Uiverse
+
+- [Curseur des boutons radio par chase2k25](https://uiverse.io/chase2k25/slimy-chipmunk-97). Copyright © 2026 chase2k25 (chandu.exe).
+- [Interrupteur par njesenberger](https://uiverse.io/njesenberger/rude-stingray-22). Copyright © 2026 njesenberger (Nicolas Jesenberger).
+- [Bouton de téléchargement par nazar-gavrylyk](https://uiverse.io/nazar-gavrylyk/evil-dragon-24). Copyright © 2026 nazar-gavrylyk (Nazar).
+
+- [Étoiles par SelfMadeSystem](https://uiverse.io/SelfMadeSystem/selfish-starfish-40). Copyright © 2026 SelfMadeSystem (SelfMadeSystem).
+
+Les adaptations CSS sont distribuées avec l’avis MIT suivant.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
