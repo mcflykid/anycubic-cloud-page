@@ -79,6 +79,7 @@ export function initializeWorkshopNavigation() {
     if (toggle.getAttribute('aria-expanded') === 'true') close(true);
     else open();
   };
+  toggle.disabled = false;
   navigation.addEventListener('click', event => {
     const tab = event.target.closest('[data-tab]');
     if (!tab) return;

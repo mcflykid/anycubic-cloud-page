@@ -52,6 +52,23 @@ function layoutButton(label, symbol, action) {
   return button;
 }
 
+/** Dessine le cadenas avec le même trait que les icônes de navigation. */
+function paintLock(button, open) {
+  const namespace = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(namespace, 'svg');
+  icon.classList.add('ui-icon');
+  for (const [name, value] of Object.entries({
+    viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+    'stroke-width': '1.7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true',
+  })) icon.setAttribute(name, value);
+  const outline = document.createElementNS(namespace, 'path');
+  outline.setAttribute('d', 'M7 11h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Zm5 4v2');
+  const shackle = document.createElementNS(namespace, 'path');
+  shackle.setAttribute('d', open ? 'M8 11V7a4 4 0 0 1 7.6-1.8' : 'M8 11V7a4 4 0 0 1 8 0v4');
+  icon.append(outline, shackle);
+  button.replaceChildren(icon);
+}
+
 /** Réorganise les tuiles de l’onglet courant et mémorise les positions et tailles. */
 export function initializeTileLayout() {
   let preferences = read();
@@ -66,11 +83,14 @@ export function initializeTileLayout() {
     for (const key of new Set(layouts.map(([id])=>panelKey(id)))) {
       const panel = $('tab-' + key);
       const toolbar = node('div', null, 'layout-toolbar');
-      const toggle = layoutButton('Déverrouiller la disposition', '🔒', 'lock');
+      const toggle = layoutButton('Déverrouiller la disposition', null, 'lock');
+      paintLock(toggle, false);
       toggle.setAttribute('aria-pressed', 'false');
       toggle.onclick = () => setEditing(editing === key ? null : key);
       toolbar.append(toggle);
-      panel.prepend(toolbar);
+      const heading = panel.querySelector(':scope > .section-title');
+      if (heading) heading.append(toolbar);
+      else panel.prepend(toolbar);
     }
   }
 
@@ -167,8 +187,10 @@ export function initializeTileLayout() {
     const {group,card,operation,x,y,span} = pointer;
     if (Math.abs(event.clientX-x)+Math.abs(event.clientY-y)<7 && !pointer.changed) return;
     if (operation === 'resize') {
-      const delta = event.clientX-x, threshold = group.clientWidth/5;
-      const next = Math.abs(delta) < threshold ? span : delta > 0 ? '2' : '1';
+      const threshold = Math.min(140, group.clientWidth / 5);
+      const crossedColumn = Math.abs(event.clientX - x) >= threshold;
+      const otherSpan = span === '1' ? '2' : '1';
+      const next = crossedColumn ? otherSpan : span;
       card.dataset.layoutSpan = next;
       pointer.changed = next !== span;
       return;
@@ -241,7 +263,7 @@ export function initializeTileLayout() {
       button.setAttribute('aria-label',label);
       button.setAttribute('aria-pressed',String(active));
       button.title = label;
-      button.textContent = active ? '🔓' : '🔒';
+      paintLock(button, active);
     }
     for (const [id,group] of groups) if (group.isConnected) apply(group,id);
   }
