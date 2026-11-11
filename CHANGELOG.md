@@ -1,5 +1,10 @@
 # Changements
 
+## 1.12.2 — 2026-11-12
+
+- Reprend la maquette des commandes courantes avec le schéma de la Kobra S1. Affiche et transmet le réglage de Circulation sur une échelle de 0 à 100 %, au repos et en impression. Partage les détails de la tâche entre Imprimante et Historique (#323).
+- Aligne les formulaires Discord des alertes et des bilans sur la maquette. L’adresse du webhook est masquée par défaut. Son affichage exige une nouvelle confirmation du mot de passe web et sa valeur est retirée du champ lorsqu’on la masque ou qu’on quitte la page (#324).
+
 ## 1.12.1 — 2026-11-11
 
 - Clarifie l’état des alertes et des bilans Discord. Le formulaire confirme qu’une adresse est enregistrée et la garde masquée (#319).
