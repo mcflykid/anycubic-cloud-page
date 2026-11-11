@@ -47,6 +47,8 @@ jobs:
         with:
           python-version: '3.13'
       - run: docker build -t anycubic-cloud-page:test .
+      - name: Vérifier que les archives de référence restent hors de l’image
+        run: docker run --rm --network none --entrypoint python anycubic-cloud-page:test -c "from pathlib import Path; assert not Path('/app/web/vendor').exists()"
       - run: docker run --rm --network none --entrypoint python anycubic-cloud-page:test -m unittest discover -s app -p 'test_*.py' -q
       - name: Démarrage, PUID/PGID, droits, appdata et redémarrage sans mots de passe
         run: python scripts/ci_compose.py "${{ matrix.variant }}"
