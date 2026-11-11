@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Affiche un seul repère de section active dans Apple Design et agrandit le visuel de l’imprimante (#244).
+
 - Place le journal historique dans Historique. La cloche présente uniquement les messages Cloud et s’ouvre avec la découpe animée de Burbuja (#243, #248).
 
 - Place le fichier en tête du formulaire d’envoi et montre l’ordre des bobines lors d’une demande d’impression. Le contour animé suit la requête en cours (#241, #248).
