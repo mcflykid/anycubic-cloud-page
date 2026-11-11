@@ -347,6 +347,10 @@
     "Print preview",
     "Vista previa de la impresión"
   ],
+  "Aperçu en attente": [
+    "Preview waiting for data",
+    "Vista previa en espera de datos"
+  ],
   "Aperçu du modèle en cours": [
     "Current model preview",
     "Vista previa del modelo actual"
@@ -4082,5 +4086,145 @@
   "La détection IA signale une forme qui peut correspondre à une accumulation de filament. Cette alerte ne confirme pas un arrêt.": [
     "AI detection reported a shape that may be a buildup of filament. This alert does not confirm that the printer stopped.",
     "La detección mediante IA ha señalado una forma que podría ser una acumulación de filamento. Esta alerta no confirma que la impresora se haya detenido."
+  ],
+  "Résumé": [
+    "Overview",
+    "Resumen"
+  ],
+  "Accueil": [
+    "Home",
+    "Inicio"
+  ],
+  "Appareils": [
+    "Devices",
+    "Dispositivos"
+  ],
+  "Impressions": [
+    "Printing",
+    "Impresión"
+  ],
+  "Suivi": [
+    "Monitoring",
+    "Seguimiento"
+  ],
+  "Configuration": [
+    "Configuration",
+    "Configuración"
+  ],
+  "Ouvrir l’imprimante": [
+    "Open printer",
+    "Abrir la impresora"
+  ],
+  "Ouvrir l’ACE": [
+    "Open ACE",
+    "Abrir ACE"
+  ],
+  "Connexion, apparence et configuration de l’atelier.": [
+    "Connection, appearance and workshop configuration.",
+    "Conexión, apariencia y configuración del taller."
+  ],
+  "Conteneur": [
+    "Container",
+    "Contenedor"
+  ],
+  "Niveau des journaux": [
+    "Log level",
+    "Nivel de registro"
+  ],
+  "Format des journaux": [
+    "Log format",
+    "Formato de registro"
+  ],
+  "Les paramètres du conteneur se règlent dans Compose.": [
+    "Container settings are configured in Compose.",
+    "Los ajustes del contenedor se configuran en Compose."
+  ],
+  "Guide d’installation": [
+    "Installation guide",
+    "Guía de instalación"
+  ],
+  "Journaux du conteneur": [
+    "Container logs",
+    "Registros del contenedor"
+  ],
+  "Fuseau horaire": [
+    "Time zone",
+    "Zona horaria"
+  ],
+  "Sections de l’atelier": [
+    "Workshop sections",
+    "Secciones del taller"
+  ],
+  "Déverrouiller la disposition": [
+    "Unlock layout",
+    "Desbloquear la disposición"
+  ],
+  "Verrouiller la disposition": [
+    "Lock layout",
+    "Bloquear la disposición"
+  ],
+  "Déplacer avant": [
+    "Move earlier",
+    "Mover antes"
+  ],
+  "Déplacer après": [
+    "Move later",
+    "Mover después"
+  ],
+  "Redimensionner cette tuile": [
+    "Resize this tile",
+    "Cambiar tamaño de la tarjeta"
+  ],
+  "Disposition restaurée.": [
+    "Layout restored.",
+    "Disposición restaurada."
+  ],
+  "Sauvegarde de disposition invalide.": [
+    "Invalid layout backup.",
+    "Copia de disposición no válida."
+  ],
+  "Sauvegarde des dispositions": [
+    "Layout backup",
+    "Copia de las disposiciones"
+  ],
+  "Les positions et tailles des tuiles sont enregistrées dans ce navigateur.": [
+    "Tile positions and sizes are saved in this browser.",
+    "Las posiciones y tamaños de las tarjetas se guardan en este navegador."
+  ],
+  "Exporter la disposition": [
+    "Export layout",
+    "Exportar disposición"
+  ],
+  "Restaurer les dispositions d’origine": [
+    "Restore default layouts",
+    "Restaurar disposiciones originales"
+  ],
+  "Importer une disposition": [
+    "Import a layout",
+    "Importar una disposición"
+  ],
+  "Studio": [
+    "Studio",
+    "Studio"
+  ],
+  "Aperçu agrandi et suivi du travail au premier plan.": [
+    "Large preview with the print job front and center.",
+    "Vista previa ampliada y trabajo de impresión en primer plano."
+  ],
+  "Observatoire": [
+    "Observatory",
+    "Observatorio"
+  ],
+  "Mesures alignées et supervision en grille.": [
+    "Aligned readings and a monitoring grid.",
+    "Mediciones alineadas y supervisión en cuadrícula."
+  ],
+  "Verrière": [
+    "Glasshouse",
+    "Invernadero"
+  ],
+  "Navigation en panneaux vitrés et cartes aérées.": [
+    "Glass navigation panels and spacious cards.",
+    "Paneles de navegación translúcidos y tarjetas espaciosas."
   ]
 }

@@ -10,19 +10,19 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('data-style','standard');
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
- await expect(page.locator('#interface-style option')).toHaveCount(7);
+ await expect(page.locator('#interface-style option')).toHaveCount(10);
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 
-test('Apple Design garde neuf sections accessibles sans débordement horizontal',async({page})=>{
+test('Apple Design garde dix sections accessibles sans débordement horizontal',async({page})=>{
  await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page);
  const tabs=page.locator('#atelier-tabs');
  await expect(page.locator('#section-menu-toggle')).toBeVisible();
  await expect(tabs).toBeHidden();
  await page.locator('#section-menu-toggle').click();
  await expect(tabs).toHaveAttribute('data-open','true');
- await expect(tabs.locator('button')).toHaveCount(9);
- await expect(tabs.getByRole('button')).toHaveCount(9);
+ await expect(tabs.locator('button')).toHaveCount(10);
+ await expect(tabs.getByRole('button')).toHaveCount(10);
  expect(await tabs.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
  const settings=tabs.locator('[data-tab="settings"]');

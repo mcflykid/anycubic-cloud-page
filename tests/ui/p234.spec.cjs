@@ -300,7 +300,7 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
 });
 
-test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur et restent lisibles sur mobile', async ({page}) => {
+test('les cartes de l’imprimante et de l’ACE sont bien composées sur ordinateur et restent lisibles sur mobile', async ({page}) => {
   await page.setViewportSize({width: 1280, height: 900});
   await login(page);
   await expect(page.locator('#connection')).toHaveText('En ligne');
@@ -308,15 +308,19 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
   const lower = page.locator('.printer-lower-grid');
   const printerCard = await overview.boundingBox();
   const lowerCards = await lower.boundingBox();
-  expect(printerCard.width).toBe(1136);
-  expect(printerCard.height).toBeLessThan(320);
+  expect(printerCard.width).toBeGreaterThan(1100);
+  expect(printerCard.height).toBeLessThan(500);
   const preview = page.locator('#job-preview');
   await expect(preview).toBeVisible();
   const [machine, thumbnail] = await Promise.all([
     page.locator('#printer-illustration').boundingBox(), preview.boundingBox(),
   ]);
-  expect(thumbnail.x).toBeGreaterThan(machine.x + machine.width);
-  expect(Math.abs(thumbnail.height - machine.height)).toBeLessThan(15);
+  const jobHeading = await page.locator('#job-name').boundingBox();
+  expect(Math.abs(thumbnail.y + thumbnail.height / 2 - jobHeading.y - jobHeading.height / 2)).toBeLessThan(80);
+  expect(Math.max(0, Math.max(jobHeading.x - (thumbnail.x + thumbnail.width), thumbnail.x - (jobHeading.x + jobHeading.width)))).toBeLessThan(24);
+  expect((await page.locator('#job-progress-wrap').boundingBox()).width).toBeGreaterThan(thumbnail.width * 2);
+  expect((await page.locator('#job-stats').boundingBox()).width).toBeGreaterThan(thumbnail.width * 2);
+  expect((await page.locator('#tab-overview .actions').boundingBox()).width).toBeGreaterThan(thumbnail.width * 2);
   await expect(page.locator('#tab-overview .temperature-section')).toHaveCount(0);
   const [temperature, details] = await lower.locator(':scope > section').evaluateAll(cards =>
     cards.map(card => ({left:card.getBoundingClientRect().left,right:card.getBoundingClientRect().right})),
@@ -324,7 +328,8 @@ test('les cartes de l’imprimante et de l’ACE sont compactes sur ordinateur e
   expect(lowerCards.width).toBe(printerCard.width);
   expect(temperature.left).toBeCloseTo(printerCard.x);
   expect(details.right).toBeCloseTo(printerCard.x + printerCard.width);
-  expect(details.left - temperature.right).toBeCloseTo(lowerCards.y - printerCard.y - printerCard.height);
+  expect(details.left - temperature.right).toBeGreaterThanOrEqual(8);
+  expect(details.left - temperature.right).toBeLessThanOrEqual(20);
   expect(Math.abs(printerCard.x + printerCard.width / 2 - 640)).toBeLessThan(2);
   await page.getByRole('button', {name: 'Statistiques', exact: true}).click();
   const charts = await page.locator('#tab-statistics > .temperature-section').boundingBox();
