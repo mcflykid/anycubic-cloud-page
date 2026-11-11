@@ -4,9 +4,9 @@ import asyncio
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
-from notification_delivery import Delivery, cloud_events
+from notification_delivery import Delivery, cloud_events, private_json
 from notification_discord import DiscordConfig, DiscordResult, discord_url, format_message
 
 
@@ -67,27 +67,41 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_baseline_and_restart_never_send_old_or_duplicate_results(self):
         """L’historique de démarrage et les tâches déjà vues restent silencieux."""
         old = cloud_events("scope", [fixture_row("1", 99, alarm_code=200)], [])
-        self.delivery.observe(old)
+        await self.delivery.observe(old)
         self.clock = 112
         recent = cloud_events("scope", [fixture_row("2", alarm_code=200)], [])
-        self.delivery.observe(recent)
-        self.delivery.observe(recent)
+        await self.delivery.observe(recent)
+        await self.delivery.observe(recent)
         await self.delivery.join()
         self.send.assert_awaited_once()
         await self.delivery.close()
         other = Delivery(self.root / "state", self.send, clock=lambda: self.clock)
         self.addAsyncCleanup(other.close)
         other.configure(self.config)
-        other.observe(old + recent)
+        await other.observe(old + recent)
         await other.join()
         self.send.assert_awaited_once()
 
+    async def test_parallel_observations_commit_once_off_the_event_loop(self):
+        """Le verrou de stockage sérialise les écritures et préserve le dédoublonnage."""
+        await self.delivery.observe([])
+        self.clock = 112
+        recent = cloud_events("scope", [fixture_row(alarm_code=200)], [])
+        with patch("notification_delivery.asyncio.to_thread", wraps=asyncio.to_thread) as offload:
+            await asyncio.gather(self.delivery.observe(recent), self.delivery.observe(recent))
+            await self.delivery.join()
+
+        self.send.assert_awaited_once()
+        self.assertEqual(offload.await_count, 3)
+        for call in offload.await_args_list:
+            self.assertIs(call.args[0], private_json)
+
     async def test_ambiguous_delivery_is_never_retried(self):
         """Un résultat incertain est conservé et ne déclenche aucun nouvel essai."""
-        self.delivery.observe([])
+        await self.delivery.observe([])
         self.clock = 112
         self.send.return_value = DiscordResult("uncertain")
-        self.delivery.observe(cloud_events("scope", [fixture_row(alarm_code=200)], []))
+        await self.delivery.observe(cloud_events("scope", [fixture_row(alarm_code=200)], []))
         await self.delivery.join()
         self.send.assert_awaited_once()
         self.assertEqual(self.delivery.last_outcome, "uncertain")
@@ -119,10 +133,10 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0)
 
         self.delivery.wait = wait
-        self.delivery.observe([])
+        await self.delivery.observe([])
         self.clock = 112
         self.send.side_effect = [DiscordResult("retry", 429, 2), DiscordResult("sent", 200)]
-        self.delivery.observe(cloud_events("scope", [fixture_row(alarm_code=200)], []))
+        await self.delivery.observe(cloud_events("scope", [fixture_row(alarm_code=200)], []))
         await self.delivery.join()
         self.assertEqual(self.send.await_count, 2)
         self.assertEqual(sleeps, [2])
@@ -153,9 +167,9 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
             return DiscordResult("retry", 429, 2)
 
         self.send.side_effect = send
-        self.delivery.observe([])
+        await self.delivery.observe([])
         self.clock = 112
-        self.delivery.observe(cloud_events("scope", [fixture_row(alarm_code=200)], []))
+        await self.delivery.observe(cloud_events("scope", [fixture_row(alarm_code=200)], []))
         await started.wait()
         self.delivery.configure(DiscordConfig())
         release.set()

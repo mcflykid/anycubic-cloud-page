@@ -2,7 +2,7 @@
 
 import asyncio
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 import hashlib
 import json
@@ -172,6 +172,16 @@ def read_config(path):
     return DiscordConfig.parse(value)
 
 
+async def finish_transaction(operation):
+    """Attend la fin du remplacement même si la requête qui l’a déclenché disparaît."""
+    transaction = asyncio.create_task(operation)
+    try:
+        return await asyncio.shield(transaction)
+    except asyncio.CancelledError:
+        await asyncio.gather(transaction, return_exceptions=True)
+        raise
+
+
 class Delivery:
     """Admet uniquement des événements nouveaux et envoie au plus un résultat certain par tâche."""
 
@@ -191,6 +201,9 @@ class Delivery:
         self.queue = deque()
         self.worker = None
         self.send_lock = asyncio.Lock()
+        self.observe_lock = asyncio.Lock()
+        self.storage_lock = asyncio.Lock()
+        self.settings_lock = asyncio.Lock()
         self.rows = {}
         try:
             self.restore()
@@ -232,26 +245,46 @@ class Delivery:
             self.ready = False
             self.queue.clear()
 
-    def persist(self, changes):
-        """Écrit le nouvel état avant d’effectuer un appel sortant."""
-        cutoff = self.clock() - _RETENTION
-        rows = {key: row for key, row in self.rows.items() if row[1] >= cutoff}
-        rows.update(changes)
-        try:
-            if len(rows) > _MAX_ROWS:
-                raise OSError("État de livraison saturé.")
-            private_json(self.path, rows)
-        except OSError:
-            self.last_outcome = "unavailable"
-            log_event(
-                _LOG,
-                logging.ERROR,
-                "notification_storage_unavailable",
-                message="État de livraison Discord indisponible",
-            )
-            return False
-        self.rows = rows
-        return True
+    async def save_config(self, path, config):
+        """Sérialise le remplacement privé et son application en mémoire."""
+        async def commit():
+            async with self.settings_lock:
+                try:
+                    await asyncio.to_thread(private_json, path, asdict(config))
+                except OSError:
+                    # Le remplacement peut précéder une erreur de synchronisation.
+                    self.configure(DiscordConfig())
+                    raise
+                self.configure(config)
+
+        await finish_transaction(commit())
+
+    async def persist(self, changes):
+        """Écrit l’état hors de la boucle tout en sérialisant les transactions de livraison."""
+        async def commit():
+            async with self.storage_lock:
+                if self.last_outcome == "unavailable":
+                    return False
+                cutoff = self.clock() - _RETENTION
+                rows = {key: row for key, row in self.rows.items() if row[1] >= cutoff}
+                rows.update(changes)
+                try:
+                    if len(rows) > _MAX_ROWS:
+                        raise OSError("État de livraison saturé.")
+                    await asyncio.to_thread(private_json, self.path, rows)
+                except OSError:
+                    self.last_outcome = "unavailable"
+                    log_event(
+                        _LOG,
+                        logging.ERROR,
+                        "notification_storage_unavailable",
+                        message="État de livraison Discord indisponible",
+                    )
+                    return False
+                self.rows = rows
+                return True
+
+        return await finish_transaction(commit())
 
     async def observe_cloud(self, scope, page, rows, read_legacy):
         """Réutilise le journal de compte et borne les compléments destinés aux alarmes ambiguës."""
@@ -264,7 +297,7 @@ class Delivery:
             self.queue.clear()
         revision = self.revision
         if page == "legacy":
-            self.observe(cloud_events(scope, [], rows))
+            await self.observe(cloud_events(scope, [], rows), revision)
             return
         legacy = []
         now = self.clock()
@@ -292,37 +325,42 @@ class Delivery:
                     error_type=type(error).__name__,
                 )
         if self.revision == revision:
-            self.observe(cloud_events(scope, rows, legacy))
+            await self.observe(cloud_events(scope, rows, legacy), revision)
 
-    def observe(self, events):
-        """Établit le point de départ sur la première page valide, puis met les résultats inédits en file."""
-        if not self.config.enabled or self.last_outcome == "unavailable":
-            return
-        now = int(self.clock())
-        if not self.ready:
-            self.baseline = max(
-                (event.timestamp for event in events if event.timestamp <= now + 60), default=now
-            )
-            self.baseline = max(now, self.baseline)
-            self.ready = True
-            seen = {
-                event.key: ["suppressed", now] for event in events if event.key not in self.rows
-            }
-            if seen:
-                self.persist(seen)
-            return
-        entries = [
-            event
-            for event in events
-            if event.key not in self.rows
-            and self.baseline < event.timestamp <= now + 60
-            and now - event.timestamp < _TTL
-        ][: max(0, _MAX_QUEUE - len(self.queue))]
-        if not entries or not self.persist({event.key: ["pending", now] for event in entries}):
-            return
-        self.queue.extend((self.revision, event) for event in entries)
-        if self.worker is None or self.worker.done():
-            self.worker = asyncio.create_task(self.run())
+    async def observe(self, events, revision=None):
+        """Établit le point de départ et sérialise l’admission pour éviter les doublons."""
+        if revision is None:
+            revision = self.revision
+        async with self.observe_lock:
+            if revision != self.revision or not self.config.enabled or self.last_outcome == "unavailable":
+                return
+            now = int(self.clock())
+            if not self.ready:
+                self.baseline = max(
+                    (event.timestamp for event in events if event.timestamp <= now + 60), default=now
+                )
+                self.baseline = max(now, self.baseline)
+                self.ready = True
+                seen = {
+                    event.key: ["suppressed", now] for event in events if event.key not in self.rows
+                }
+                if seen:
+                    await self.persist(seen)
+                return
+            entries = [
+                event
+                for event in events
+                if event.key not in self.rows
+                and self.baseline < event.timestamp <= now + 60
+                and now - event.timestamp < _TTL
+            ][: max(0, _MAX_QUEUE - len(self.queue))]
+            if not entries or not await self.persist({event.key: ["pending", now] for event in entries}):
+                return
+            if revision != self.revision:
+                return
+            self.queue.extend((revision, event) for event in entries)
+            if self.worker is None or self.worker.done():
+                self.worker = asyncio.create_task(self.run())
 
     async def run(self):
         """Dépile les événements sans bloquer le suivi Cloud ni rejouer un résultat ambigu."""
@@ -347,7 +385,7 @@ class Delivery:
             if self.last_outcome == "unavailable":
                 return
             outcome = "failed" if result.outcome == "retry" else result.outcome
-            if not self.persist({event.key: [outcome, int(self.clock())]}):
+            if not await self.persist({event.key: [outcome, int(self.clock())]}):
                 return
             self.last_outcome = outcome
 
@@ -366,7 +404,10 @@ class Delivery:
                 if now + delay >= expires:
                     return None
                 if not delay:
-                    if not self.persist({event.key: ["sending", int(now)]}):
+                    if not await self.persist({event.key: ["sending", int(now)]}):
+                        return None
+                    # Un réglage peut changer pendant l’écriture du témoin d’envoi.
+                    if revision != self.revision or self.clock() >= expires:
                         return None
                     result = await self.send(config, event)
                     self.note(result, attempt)

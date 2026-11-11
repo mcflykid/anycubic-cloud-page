@@ -1,6 +1,5 @@
 """Expose le réglage Discord authentifié et rattache son canal au cycle de vie du serveur."""
 
-from dataclasses import asdict
 import asyncio
 from functools import partial
 import html
@@ -12,7 +11,7 @@ from urllib.parse import parse_qs
 import aiohttp
 from aiohttp import web
 
-from notification_delivery import Delivery, private_json, read_config
+from notification_delivery import Delivery, read_config
 from notification_discord import DiscordConfig, send_discord
 from operational_logging import log_event
 from web_assets import build_web_assets
@@ -161,12 +160,9 @@ async def discord_settings(request):
             )
         return discord_page(delivery, "Discord n’a pas confirmé le message de test.", 502)
     try:
-        private_json(request.app[CONFIG_KEY], asdict(config))
+        await delivery.save_config(request.app[CONFIG_KEY], config)
     except OSError:
-        # Une synchronisation peut échouer après le remplacement. Suspendre les envois jusqu’au prochain enregistrement.
-        delivery.configure(DiscordConfig())
         return discord_page(delivery, "Impossible d’enregistrer le réglage Discord.", 503)
-    delivery.configure(config)
     return discord_page(
         delivery, "Webhook supprimé." if operation == "delete" else "Réglage Discord enregistré."
     )
