@@ -4366,5 +4366,61 @@
   "Développer les sections": [
     "Expand sections",
     "Expandir secciones"
+  ],
+  "{0} bobine chargée": [
+    "{0} loaded spool",
+    "{0} bobina cargada"
+  ],
+  "{0} bobines chargées": [
+    "{0} loaded spools",
+    "{0} bobinas cargadas"
+  ],
+  "Séchage à {0}": [
+    "Drying at {0}",
+    "Secado a {0}"
+  ],
+  "{0} restantes": [
+    "{0} remaining",
+    "{0} restantes"
+  ],
+  "Bobines": [
+    "Spools",
+    "Bobinas"
+  ],
+  "Suivi en direct": [
+    "Live monitoring",
+    "Seguimiento en directo"
+  ],
+  "Suivi suspendu": [
+    "Monitoring paused",
+    "Seguimiento suspendido"
+  ],
+  "Suivi de l’imprimante": [
+    "Printer monitoring",
+    "Seguimiento de la impresora"
+  ],
+  "Déconnecter le suivi en direct ? Cette action n’arrête pas l’impression.": [
+    "Disconnect live monitoring? This does not stop printing.",
+    "¿Desconectar el seguimiento en directo? Esto no detiene la impresión."
+  ],
+  "Nom affiché dans le compte Anycubic": [
+    "Name shown in the Anycubic account",
+    "Nombre mostrado en la cuenta de Anycubic"
+  ],
+  "Surveillance des défauts par la caméra": [
+    "Camera-based defect monitoring",
+    "Detección de defectos mediante la cámara"
+  ],
+  "Une mise à jour proposée par Anycubic s’installe lorsque l’imprimante est libre.": [
+    "An update offered by Anycubic installs when the printer is idle.",
+    "Las actualizaciones de Anycubic se instalan cuando la impresora está libre."
+  ],
+  "Ces paramètres se règlent dans le fichier Compose.": [
+    "These settings are configured in the Compose file.",
+    "Estos ajustes se configuran en el archivo Compose."
+  ],
+  "Un code temporaire est demandé après le mot de passe.": [
+    "A temporary code is requested after the password.",
+    "Se pide un código temporal después de la contraseña."
   ]
 }

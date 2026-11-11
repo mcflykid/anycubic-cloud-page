@@ -1,0 +1,126 @@
+/* Même grille pour l’imprimante et les modules ACE, y compris avec deux modules. */
+#tab-summary { container: summary / inline-size; }
+#tab-summary .atelier-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--atelier-space-4);
+}
+#tab-summary .atelier-summary-grid > .atelier-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  box-shadow: none;
+}
+#tab-summary .atelier-card-header h3 { margin: 0; font: var(--atelier-card-title); font-weight: var(--atelier-semibold); }
+#tab-summary .atelier-card-footer { justify-content: center; }
+#tab-summary .atelier-card-footer button { justify-self: auto; min-height: var(--atelier-control); }
+.summary-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: var(--atelier-space-4);
+}
+.summary-device-image {
+  flex: 0 0 var(--atelier-device-image);
+  width: var(--atelier-device-image);
+  height: var(--atelier-device-image);
+  object-fit: contain;
+  border-radius: var(--atelier-control-radius);
+}
+.summary-device-information {
+  display: grid;
+  flex: 1 1 15rem;
+  min-inline-size: 0;
+  gap: var(--atelier-space-3);
+}
+.summary-job-heading {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--atelier-job-thumbnail);
+  gap: var(--atelier-space-3);
+}
+.summary-ace-heading {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+}
+.summary-job-heading h4 {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+  overflow-wrap: anywhere;
+}
+#tab-summary p { margin: 0; color: var(--atelier-muted); font: var(--atelier-label); }
+#tab-summary #summary-preview {
+  flex: none;
+  width: var(--atelier-job-thumbnail);
+  height: var(--atelier-job-thumbnail);
+  object-fit: contain;
+  border-radius: var(--atelier-control-radius);
+}
+#tab-summary .atelier-progress-group label { flex-direction: row; }
+#tab-summary .atelier-progress-group progress {
+  appearance: none;
+  height: var(--atelier-progress);
+  border: 0;
+  border-radius: var(--atelier-control-radius);
+  background: var(--atelier-line);
+  overflow: hidden;
+}
+#tab-summary progress::-webkit-progress-bar { background: var(--atelier-line); }
+#tab-summary progress::-webkit-progress-value { background: var(--atelier-accent); }
+#tab-summary progress::-moz-progress-bar { background: var(--atelier-accent); }
+.summary-spools {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--atelier-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.summary-spools li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--atelier-space-1);
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+  overflow-wrap: anywhere;
+}
+.summary-spools strong {
+  grid-column: 2;
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.summary-spool-color {
+  width: var(--atelier-space-3);
+  height: var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: 50%;
+}
+.summary-ace-device + .summary-ace-device {
+  margin-block-start: var(--atelier-space-4);
+  padding-block-start: var(--atelier-space-4);
+  border-block-start: var(--atelier-rule) solid var(--atelier-line);
+}
+@container summary (min-width: 900px) {
+  #tab-summary .atelier-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+    row-gap: 0;
+  }
+  #tab-summary .atelier-summary-grid > .atelier-card {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+  }
+}

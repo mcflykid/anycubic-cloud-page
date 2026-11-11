@@ -92,3 +92,54 @@ button.atelier-control-icon {
   border-radius: 50%;
   background: var(--atelier-normal);
 }
+
+.atelier-status[data-state="running"]::before { background: var(--atelier-accent); }
+.atelier-status[data-state="paused"]::before {
+  background: var(--atelier-warning);
+  border-radius: 0;
+}
+.atelier-status.offline::before {
+  background: transparent;
+  border: var(--atelier-active-rule) solid var(--atelier-error);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+.atelier-measures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--atelier-space-2) var(--atelier-space-5);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.atelier-measures > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--atelier-space-2);
+}
+.atelier-measures dt { color: var(--atelier-muted); font: var(--atelier-label); }
+.atelier-measures dd { margin: 0; font-weight: var(--atelier-semibold); }
+.atelier-progress-group { display: grid; gap: var(--atelier-space-1); }
+.atelier-progress-group[hidden] { display: none; }
+.atelier-progress-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--atelier-space-3);
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.atelier-progress-group strong {
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.atelier-progress-group progress {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--atelier-progress);
+  margin: 0;
+  accent-color: var(--atelier-accent);
+}

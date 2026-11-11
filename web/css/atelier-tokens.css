@@ -51,3 +51,7 @@
 @media (pointer: coarse) {
   :root { --atelier-control: var(--atelier-touch-control); }
 }
+:root {
+  --atelier-device-image: 128px;
+  --atelier-job-thumbnail: 56px;
+}

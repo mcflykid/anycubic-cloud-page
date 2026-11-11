@@ -67,6 +67,7 @@ test('le journal en lecture seule applique les filtres à l’export',async({pag
  }}));
  await login(page);
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
+ await page.locator('#settings-logs-open').click();
  await page.getByText('Journal des commandes',{exact:true}).click();
  await expect(page.locator('#journal-entries')).toContainText('light · confirmée');
  await page.locator('#journal-filters select[name=printer]').selectOption('fixture');
@@ -191,7 +192,9 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   const desktopStyle = await style.boundingBox();
   expect(desktopStyle.y).toBeCloseTo(desktopTheme.y);
   expect(desktopStyle.x).toBeGreaterThan(desktopTheme.x + desktopTheme.width);
-  await expect(page.getByText('La déconnexion du suivi n’arrête pas l’impression.')).toHaveCSS('text-align', 'center');
+  await page.getByRole('button', {name: 'Déconnecter', exact:true}).click();
+  await expect(page.locator('#confirm-text')).toContainText('Cette action n’arrête pas l’impression.');
+  await page.locator('#confirm-no').click();
   await page.setViewportSize({width:360,height:800});
   expect((await style.boundingBox()).y).toBeGreaterThan((await theme.boundingBox()).y);
   await page.setViewportSize({width:1280,height:900});

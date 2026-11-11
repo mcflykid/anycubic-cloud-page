@@ -109,6 +109,7 @@ html[data-style] .workshop-frame #printer-accessory {
   box-sizing: border-box;
 }
 html[data-style] .workshop-frame .atelier-navigation {
+  display: block;
   background: var(--atelier-surface);
   padding: 0 var(--frame-gutter);
   border-block-end: var(--atelier-rule) solid var(--atelier-line);
