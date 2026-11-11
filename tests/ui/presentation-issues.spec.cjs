@@ -33,14 +33,14 @@ test('Le menu mobile garde dix sections accessibles sans débordement horizontal
 
 test('les statistiques regroupent température, ACE et filaments en trois zones adaptatives',async({page})=>{
  await login(page); await page.getByRole('button',{name:'Statistiques',exact:true}).click();
- await expect(page.locator('.statistics-grid > section')).toHaveCount(3);
+ await expect(page.locator('.atelier-statistics-grid > section')).toHaveCount(3);
  await expect(page.locator('#statistics-printer #chart-nozzle')).toBeVisible();
  await expect(page.locator('#statistics-ace #chart-ace')).toBeVisible();
  await expect(page.locator('#statistics-filament #chart-filament .temperature-card')).toHaveCount(4);
- const positions=await page.locator('.statistics-grid > section').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}}));
+ const positions=await page.locator('.atelier-statistics-grid > section').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}}));
  expect(positions[0].y).toBeCloseTo(positions[1].y,0); expect(positions[2].y).toBeGreaterThan(positions[0].y);
  await page.setViewportSize({width:390,height:800});
- expect(await page.locator('.statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ expect(await page.locator('.atelier-statistics-grid').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 
 test('les mesures absentes gardent les cartes',async({page})=>{
@@ -51,14 +51,14 @@ test('les mesures absentes gardent les cartes',async({page})=>{
  });
  await login(page);
  const metrics=page.locator('#temperatures');
- await expect(metrics.locator('dd')).toHaveCount(5);
+ await expect(metrics.locator('td')).toHaveCount(4);
  await expect(metrics).toContainText('—');
 });
 
 test('l’avertissement des axes reste en bas de la carte sur ordinateur et mobile',async({page})=>{
  await login(page); await page.getByRole('button',{name:'Caméra',exact:true}).click();
- const warning=page.locator('.axis-card>.settings-help'), card=page.locator('.axis-card');
- const measure=()=>warning.evaluate(el=>({bottom:el.getBoundingClientRect().bottom,card:el.closest('.axis-card').getBoundingClientRect()}));
+ const warning=page.locator('.camera-warning > .settings-help'), card=page.locator('.camera-command-card');
+ const measure=()=>warning.evaluate(el=>({bottom:el.getBoundingClientRect().bottom,card:el.closest('.camera-command-card').getBoundingClientRect()}));
  let result=await measure(); expect(Math.abs(result.bottom-result.card.bottom)).toBeLessThan(40);
  await page.setViewportSize({width:390,height:800}); result=await measure();
  expect(Math.abs(result.bottom-result.card.bottom)).toBeLessThan(40);

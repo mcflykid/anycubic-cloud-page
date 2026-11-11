@@ -1,0 +1,157 @@
+/* L’historique reprend les commandes et les colonnes du tableau de fichiers. */
+#tab-history { container: history / inline-size; font: var(--atelier-text); }
+#tab-history:not([hidden]) { display: block; }
+.history-toolbar {
+  display: grid;
+  align-items: end;
+  gap: var(--atelier-space-4);
+  inline-size: 100%;
+  margin-block-end: var(--atelier-space-4);
+}
+#history-status-label { color: var(--atelier-muted); font: var(--atelier-label); }
+.history-toolbar #history-period-open { justify-content: flex-start; font-weight: var(--atelier-regular); }
+#tab-history #tasks-section {
+  display: block;
+  min-inline-size: 0;
+}
+#tasks-page { margin: 0; }
+.history-table-region { min-inline-size: 0; }
+.history-table :is(.history-table-start, .history-table-status, .history-table-duration) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.history-table-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--atelier-space-4);
+  min-inline-size: 0;
+}
+.history-table .files-identity-heading {
+  padding-inline-start: calc(2 * var(--atelier-space-4) + var(--atelier-file-thumbnail));
+}
+.history-table .task-thumbnail {
+  flex: none;
+  width: var(--atelier-file-thumbnail);
+  height: var(--atelier-file-thumbnail);
+  min-height: 0;
+  padding: 0;
+  border-radius: var(--atelier-control-radius);
+}
+.history-table .task-thumbnail > span {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 0;
+  gap: 0;
+}
+.history-table .task-thumbnail > span::before {
+  inline-size: var(--atelier-space-5);
+  block-size: var(--atelier-space-5);
+}
+.history-table .task-thumbnail [hidden] { display: none; }
+.history-status-3::before {
+  background: var(--atelier-warning);
+  border-radius: 0;
+}
+:is(.history-status-0, .history-status-1)::before { background: var(--atelier-accent); }
+.history-table-footer { flex-wrap: wrap; }
+.history-footer-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--atelier-space-3);
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.history-table-footer > :only-child { margin-inline: 0; }
+#tab-history .history-table-loading:not([hidden]) {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 0;
+}
+#tab-history .history-table-loading .task-history-item {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--atelier-space-4);
+  min-block-size: var(--atelier-file-thumbnail);
+  padding: var(--atelier-space-2) var(--atelier-space-4);
+  border: 0;
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: 0;
+}
+@container history (min-width: 1040px) {
+  .history-toolbar {
+    grid-template-columns: auto repeat(3, minmax(0, 1fr)) auto;
+  }
+}
+@container history (min-width: 690px) and (max-width: 1039px) {
+  .history-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container history (max-width: 689px) {
+  .history-toolbar .files-sources { flex-wrap: wrap; }
+  .history-table, .history-table :is(thead, tbody) { display: block; }
+  .history-table tr {
+    display: grid;
+    grid-template-columns: var(--atelier-control) repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border-block-end: var(--atelier-rule) solid var(--atelier-line);
+  }
+  .history-table thead th:not(.files-selection-cell) {
+    position: absolute;
+    clip-path: inset(50%);
+  }
+  .history-table tr > :is(th, td) {
+    width: auto;
+    min-width: 0;
+    border: 0;
+  }
+  .history-table tr > td:nth-child(2) { grid-column: 2 / -1; }
+  .history-table tr > td:nth-child(3) { grid-column: 2; }
+  .history-table tr > td:last-child { grid-column: 1 / -1; }
+  .history-table :is(.history-table-start, .history-table-status) { white-space: normal; }
+  .history-table .files-row-actions { max-inline-size: none; }
+}
+#tab-history .history-table #tasks-list {
+  display: table-row-group;
+  max-block-size: none;
+  padding: 0;
+  overflow: visible;
+}
+@container history (max-width: 689px) {
+  #tab-history .history-table #tasks-list { display: block; }
+}
+
+@container history (min-width: 690px) {
+  .history-table .files-row-actions { flex-wrap: nowrap; }
+}
+#tab-history .history-table .task-thumbnail {
+  width: var(--atelier-file-thumbnail);
+  height: var(--atelier-file-thumbnail);
+  min-height: 0;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+#tab-history .history-table .files-identity-heading {
+  padding-inline-start: calc(var(--atelier-file-thumbnail) + var(--atelier-space-4));
+}
+#tab-history .history-toolbar input { min-height: var(--atelier-control); }
+#tab-history .history-table-region #tasks-loading:not([hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+#tab-history .history-table .task-thumbnail { min-width: 0; }
+#tab-history .history-table .task-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#tab-history .history-table .task-thumbnail img[hidden] { display: none; }
+@container history (min-width: 690px) {
+  .history-table :is(th, td):nth-child(3) { width: 12%; }
+  .history-table :is(th, td):nth-child(4) { width: 13%; }
+  .history-table :is(th, td):nth-child(5) { width: 6%; }
+}

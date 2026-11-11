@@ -152,7 +152,7 @@ async function main() {
       ['settings','07-reglages.png'],
     ]) {
       await openSection(page, tab);
-      if (tab === 'history') await page.locator('#tasks-list > li').first().waitFor();
+      if (tab === 'history') await page.locator('#tasks-list > tr').first().waitFor();
       if (tab === 'fleet') await page.locator('#monitor-grid .monitor-card').first().waitFor();
       await photo(page, filename);
       if (tab === 'files') await captureCloudFolders(page);

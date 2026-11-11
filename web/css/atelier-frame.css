@@ -258,3 +258,7 @@ html[data-style] .workshop-frame .printer-footer {
 @media (max-width: 760px) {
   .workshop-frame .portal-nav { --atelier-control: var(--atelier-touch-control); }
 }
+
+@media (min-width: 761px) and (pointer: fine) {
+  .workshop-frame .printer-footer a { min-height: 0; }
+}

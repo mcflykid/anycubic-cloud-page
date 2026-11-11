@@ -217,23 +217,12 @@ function showTab(name) {
     files.renderFiles();
     files.loadFiles();
   }
+  if (name === 'upload') void files.loadCloudStorage();
   if (name === 'history') history.loadTasks();
   if (name === 'statistics' && printerCatalogueReady) void loadTemperatures();
   if (name === 'fleet') { void loadFleet(); void loadMonitoring(); }
   if (name === 'settings') settings.enter();
-  if (name === 'camera') {
-    timelapses.loadTimelapse();
-    if (workshopState.snapshot?.demo) {
-      const image = node('img');
-      image.src = $('printer-illustration').src;
-      image.alt = tr('Illustration de l’imprimante');
-      $('camera-video').classList.add('demo-camera');
-      $('camera-video').replaceChildren(
-        image,
-        node('p', tr('Zone vidéo · Démonstration sans flux caméra')),
-      );
-    }
-  }
+  if (name === 'camera') timelapses.loadTimelapse();
   if (name !== 'camera') void camera.close();
 }
 // Les onglets restent inactifs jusqu’au chargement des modules et de leurs gestionnaires.

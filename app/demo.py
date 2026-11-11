@@ -81,6 +81,7 @@ PARAMS = {
 }
 PRINTER = {
     "name": "Kobra S1 · Démonstration",
+    "camera_light": False,
     "machine_name": "Anycubic Kobra S1",
     "printer_online": True,
     "is_available": True,
@@ -172,7 +173,7 @@ FILES = [
 
 
 async def demo_index(request):
-    """Renvoie l’interface marquée comme démonstration, avec une caméra purement illustrative."""
+    """Renvoie l’interface marquée comme démonstration, sans session caméra réelle."""
     html = render_page(
         home_url(os.environ.get("HOME_URL", "/imprimante.html")),
         display_timezone(),
@@ -183,10 +184,6 @@ async def demo_index(request):
     )
     if ACCESS_KEY not in request.app:
         html = re.sub(r'<form action="/logout".*?</form>', "", html)
-    html = html.replace(
-        '<div id="camera-video"></div>',
-        '<div id="camera-video" class="demo-camera"><img src="/imprimante-api/ui/icons/kobra-s1-ace2pro.png" alt="Illustration de l’imprimante"><p>Zone vidéo · Démonstration sans flux caméra</p></div>',
-    )
     return web.Response(text=html, content_type="text/html")
 
 

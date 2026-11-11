@@ -12,7 +12,7 @@ test('les fichiers tardifs ne changent pas de source et la dernière lecture rep
  await page.getByRole('button',{name:'Clé USB',exact:true}).click();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);release();
  await expect(page.getByText('courant-usb.gcode',{exact:true})).toBeVisible();
  await expect(page.locator('#files-loading')).toBeHidden();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);
- await page.getByRole('button',{name:'Supprimer',exact:true}).click();await page.locator('#confirm-yes').click();await expect.poll(()=>commands.length).toBe(1);
+ await page.locator('#file-rows').getByRole('button',{name:'Supprimer',exact:true}).click();await page.locator('#confirm-yes').click();await expect.poll(()=>commands.length).toBe(1);
  expect(commands[0].action).toBe('delete-usb');expect(commands[0].name).toBe('courant-usb.gcode');
 });
 /** Le chemin et le cloud courants sont relus après une consultation en attente. */
@@ -21,7 +21,7 @@ test('un changement de dossier puis de cloud ne perd pas la nouvelle lecture',as
  await page.route('**/imprimante-api/files/local?**',async route=>{reads++;if(reads===1){entered();await gate;}const path=new URL(route.request().url()).searchParams.get('path');await route.fulfill({json:{files:[{name:path==='/nouveau'?'nouveau.gcode':'ancien.gcode'}],path}});});
  await login(page);await page.getByRole('button',{name:'Fichiers',exact:true}).click();await waiting;await page.locator('#file-path').fill('/nouveau');await page.locator('#files-form').evaluate(f=>f.requestSubmit());release();
  await expect(page.getByText('nouveau.gcode',{exact:true})).toBeVisible();await expect(page.getByText('ancien.gcode',{exact:true})).toHaveCount(0);expect(reads).toBe(2);
- await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();await expect(page.locator('#file-rows')).not.toContainText('nouveau.gcode');await expect(page.locator('#files-state')).toContainText('fichier(s)');
+ await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();await expect(page.locator('#file-rows')).not.toContainText('nouveau.gcode');await expect(page.locator('#files-state')).toContainText(/\d+ fichiers?/);
 });
 /** Un choix Cloud effectué pendant la réponse locale doit déclencher sa propre lecture. */
 test('le cloud choisi pendant une lecture locale est chargé après la réponse tardive',async({page})=>{
@@ -127,4 +127,24 @@ test('les miniatures précèdent les noms et se chargent une à la fois',async({
  expect(maxConcurrent).toBe(1);
  await page.keyboard.press('Escape');
  await expect(page.locator('.file-preview-dialog')).toHaveCount(0);
+});
+
+test('l’ordre des bobines se règle dans la confirmation du fichier choisi', async ({ page }) => {
+ const commands = [];
+ await page.route('**/imprimante-api/command', route => {
+  commands.push(route.request().postDataJSON());
+  return route.fulfill({json:{ok:true,message:'Simulation uniquement'}});
+ });
+ await login(page, 'files');
+ await page.locator('[data-source=cloud]').click();
+ const row = page.locator('#file-rows tr').first();
+ await row.getByRole('button', {name:'Imprimer',exact:true}).click();
+ const dialog = page.locator('#confirm-dialog');
+ await expect(dialog).toContainText('Kobra S1 · Démonstration');
+ await expect(dialog).toContainText('Vérifiez que le plateau est libre.');
+ await dialog.locator('#file-slots').fill('1, 3, 2');
+ expect(commands).toHaveLength(0);
+ await dialog.getByRole('button', {name:'Confirmer',exact:true}).click();
+ await expect.poll(() => commands.length).toBe(1);
+ expect(commands[0]).toMatchObject({action:'print-cloud',slots:[1,3,2]});
 });

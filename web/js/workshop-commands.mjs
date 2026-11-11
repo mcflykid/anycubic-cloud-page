@@ -84,7 +84,9 @@ export function createCommands(request, refresh) {
       notify(tr('Attendez la découverte des imprimantes avant une commande.'), true);
       return null;
     }
-    if (question && !(await confirmAction(question))) return null;
+    const filePrint = ['print-cloud', 'print-local', 'print-usb'].includes(action);
+    if (question && !(await confirmAction(question, filePrint))) return null;
+    if (filePrint) data = { ...data, slots: slots($('file-slots').value) };
     if (action === 'idle-settings') data = { ...data, confirmed: !!question };
     if (target !== workshopState.selectedPrinter) {
       notify(tr('La cible a changé : commande annulée.'), true);

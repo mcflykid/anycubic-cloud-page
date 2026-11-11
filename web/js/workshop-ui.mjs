@@ -167,7 +167,7 @@ initializeTheme();
 
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
-  ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
+  ['aurora', 'Surfaces lumineuses et accents violets.'],
   ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
   ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
 ];
@@ -303,10 +303,11 @@ export function message(text, error = false) {
   $('message').classList.toggle('error', error);
 }
 /** Renvoie une promesse booléenne ; une fermeture du dialogue annule l’action physique proposée. */
-export function confirmAction(text) {
+export function confirmAction(text, showFileSlots = false) {
   return new Promise((resolve) => {
     const d = $('confirm-dialog');
     set('confirm-text', text);
+    $('file-mapping-form').hidden = !showFileSlots;
     d.showModal();
     let settled = false;
     const settle = (value) => {
