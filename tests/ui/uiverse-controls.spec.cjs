@@ -24,6 +24,8 @@ test('le curseur des stockages suit le bouton actif au clavier et sur mobile', a
   await expect.poll(async () => Math.abs((await glider.boundingBox()).x - (await cloud.boundingBox()).x)).toBeLessThan(1);
   const bounds = await cloud.boundingBox();
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(async () => Math.abs((await glider.boundingBox()).x - (await cloud.boundingBox()).x)).toBeLessThan(1);
 });
 
 test('le relais ACE reste un choix local jusqu’à son application', async ({ page }) => {
