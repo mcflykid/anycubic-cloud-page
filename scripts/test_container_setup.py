@@ -107,6 +107,15 @@ class Setup(unittest.TestCase):
         self.assertEqual((self.secrets / "web-password").read_bytes(), web)
         self.assertEqual(self.prepares, 1)
 
+    def test_saved_account_can_restart_with_different_email_case(self):
+        """La casse du Compose ne rend pas un compte enregistré inconnu au redémarrage."""
+        self.run_setup()
+        account_path = self.secrets / "anycubic-account"
+        before = account_path.read_bytes()
+        self.run_setup({"ANYCUBIC_EMAIL": "Fixture@Example.Test"})
+        self.assertEqual(account_path.read_bytes(), before)
+        self.assertEqual(self.prepares, 1)
+
     def test_changed_email_requires_password(self):
         """Un autre email ne réutilise pas implicitement les secrets du compte enregistré."""
         self.run_setup()

@@ -79,7 +79,8 @@ def initialize(
         )
     if password and not email:
         raise ValueError("Renseignez ANYCUBIC_EMAIL avec ANYCUBIC_PASSWORD.")
-    if email and not password and (not saved_account or saved_account["email"] != email):
+    # Le compte existant a déjà été comparé sans distinction de casse.
+    if email and not password and not saved_account:
         raise ValueError("Renseignez le mot de passe pour ce compte Anycubic non enregistré.")
     if not (email and password) and not token and not saved_account and not saved_token:
         raise ValueError("Renseignez le compte Anycubic dans le Compose ou le fichier .env.")
