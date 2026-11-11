@@ -18,6 +18,24 @@
   --motion-tile-stagger: 24ms;
   --motion-ease: cubic-bezier(.18,.72,.28,1);
   --ease: cubic-bezier(.2,.65,.3,1);
+  /* Les affichages hors texte courant conservent leur échelle propre. */
+  --atelier-micro-size: 11px;
+  --atelier-machine-responsive-size: clamp(2rem, 5vw, 3.4rem);
+  --atelier-job-title-size: 1.9rem;
+  --atelier-reset-code-size: 32px;
+  --atelier-display-size: 1.8rem;
+  --atelier-illustration-size: 2.5rem;
+  --atelier-compact-tab-size: clamp(var(--atelier-micro-size), .78vw, var(--atelier-label-size));
+  --atelier-brand-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  --atelier-document-title-size: clamp(2rem, 4.2vw, 3.25rem);
+  --atelier-brand-mobile-size: 2.125rem;
+  --atelier-monitor-value-size: clamp(var(--atelier-title-size), 2vw, var(--atelier-display-size));
+  --atelier-workshop-title-size: clamp(var(--atelier-machine-size), 3vw, 2.35rem);
+  --atelier-reading-font: 1rem/1.6 var(--atelier-font);
+  --atelier-swatch-border: #0002;
+  --atelier-video-idle: #161618;
+  --atelier-backdrop: #0005;
+  --atelier-relay-texture: #a5aab0;
   --atelier-regular: 400;
   --atelier-semibold: 600;
   --atelier-machine-size: 28px;

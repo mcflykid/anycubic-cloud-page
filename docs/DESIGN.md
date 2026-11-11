@@ -40,15 +40,15 @@ Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](desi
 
 Le test de mise en page ouvre les dix sections du jeu de démonstration à 1 366 × 768 et 1 920 × 1 080, dans les quatre styles et les deux modes de couleur. Il vérifie que la page tient dans la fenêtre. Les tests sur téléphone vérifient l’absence de débordement horizontal. Les [captures](../screenshots/README.md) sont produites à partir d’un serveur de démonstration.
 
-Le contrôle CI couvre toutes les feuilles CSS de l’atelier. Les tailles de texte de l’interface, les marges et écarts de l’échelle commune, les rayons fixes, les ombres et les palettes claire et sombre passent par le référentiel. Les composants peuvent garder leurs dimensions propres, par exemple pour les illustrations et les zones de tracé. Les nouvelles feuilles `atelier-*.css` ont aussi un contrôle de leurs autres longueurs et couleurs littérales.
+Le contrôle CI couvre toutes les feuilles CSS de l’atelier. Les tailles de texte de l’interface, les marges et écarts de l’échelle commune, les rayons fixes, les ombres et les palettes claire et sombre passent par le référentiel. Les composants peuvent garder leurs dimensions propres, par exemple pour les illustrations et les zones de tracé. Les exceptions de priorité CSS sont recensées et justifiées dans le test. Les nouvelles feuilles `atelier-*.css` ont aussi un contrôle de leurs autres longueurs et couleurs littérales.
 
 L’inventaire compare les déclarations de `web/css/` avant la refonte et après l’adoption du référentiel. Les références de variables, les seuils de média et les couleurs des SVG incorporés sont exclus.
 
 | Valeurs distinctes | Avant | Après |
 | --- | ---: | ---: |
-| Tailles et interlignes écrits dans les déclarations de texte | 75 | 26 |
+| Tailles et interlignes écrits dans les déclarations de texte | 75 | 6 |
 | Rayons | 28 | 3 |
 | Marges et écarts | 56 | 24 |
 | Marges intérieures | 58 | 15 |
 | Ombres | 50 | 11 |
-| Couleurs littérales | 301 | 78 |
+| Couleurs littérales | 301 | 69 |
