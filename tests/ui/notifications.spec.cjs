@@ -121,7 +121,11 @@ test('le panneau Burbuja supporte un changement d’avis et le mouvement réduit
 });
 
 test('le pictogramme sans aperçu reste au centre de la miniature de la cloche', async ({ page }) => {
-  await page.route('**/extras/notification-preview?*', (route) => route.fulfill({ json: { image: null } }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('**/extras/notification-preview?*', (route) => {
+    const key = new URL(route.request().url()).searchParams.get('key');
+    return key.endsWith('1') ? route.fulfill({ json: { image: null } }) : route.fallback();
+  });
   await openWorkshop(page);
   await page.locator('#notifications-toggle').click();
   const miniature = page.locator('#notifications-panel .task-thumbnail').first();
@@ -143,4 +147,7 @@ test('le pictogramme sans aperçu reste au centre de la miniature de la cloche',
   expect(Math.abs(geometry.centerX)).toBeLessThan(1);
   expect(Math.abs(geometry.centerY)).toBeLessThan(1);
   expect(geometry.width).toBeLessThan(geometry.available);
+  const image = page.locator('#notifications-panel .task-thumbnail').nth(1).locator('img');
+  await expect(image).toBeVisible();
+  await expect(image).toHaveCSS('object-fit', 'contain');
 });
