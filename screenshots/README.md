@@ -21,12 +21,14 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [14-statistiques.png](14-statistiques.png) | Mesures par appareil et par emplacement. |
 | [15-journal.png](15-journal.png) | Journal historique depuis l’onglet Historique. |
 | [16-fiche-erreur.png](16-fiche-erreur.png) | Fiche locale du code 10115. |
-| [17-six-styles.jpg](17-six-styles.jpg) | Comparaison des six styles. |
+| [17-six-styles.jpg](17-six-styles.jpg) | Comparaison des six styles avant Prisme. |
 | [18-code-temporaire.png](18-code-temporaire.png) | Étape de vérification, formulaire vide. |
 | [19-resume-sombre.png](19-resume-sombre.png) | Résumé en mode sombre. |
 | [20-supervision-sombre.png](20-supervision-sombre.png) | Supervision en mode sombre. |
 | [21-resume-mobile.png](21-resume-mobile.png) | Résumé sur téléphone. |
 | [22-detail-supervision.png](22-detail-supervision.png) | Détail des relevés dans Parc et santé. |
+| [23-prisme-sombre.png](23-prisme-sombre.png) | Prisme sur ordinateur, en mode sombre. |
+| [24-prisme-mobile.png](24-prisme-mobile.png) | Prisme sur téléphone, en mode sombre. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 

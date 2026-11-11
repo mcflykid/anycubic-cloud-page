@@ -55,7 +55,7 @@ The language selector next to the notification bell remembers French, English or
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
 
-In **Settings → Appearance**, choose one of six styles, including Glasshouse. Light, dark and system mode are independent. Use the lock on supported tabs to move and resize cards. Settings lets you export, import or reset your layouts. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
+In **Settings → Appearance**, choose one of seven styles, including Glasshouse and Prism. Light, dark and system mode are independent. Use the lock on supported tabs to move and resize cards. Settings lets you export, import or reset your layouts. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
 
 ## Offline demo
 

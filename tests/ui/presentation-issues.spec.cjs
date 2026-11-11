@@ -10,7 +10,7 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
  await login(page);
  await expect(page.locator('html')).toHaveAttribute('data-style','standard');
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
- await expect(page.locator('#interface-style option')).toHaveCount(6);
+ await expect(page.locator('#interface-style option')).toHaveCount(7);
  await expect(page.locator('#interface-style')).toHaveValue('standard');
 });
 

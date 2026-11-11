@@ -198,8 +198,14 @@ async function main() {
     await page.setViewportSize(mobile);
     await openSection(page, 'summary');
     await photo(page, '21-resume-mobile.png');
+    await page.evaluate(() => localStorage.setItem('cloud-page-style', 'prism'));
+    await page.reload();
+    await openSection(page, 'summary');
+    await photo(page, '24-prisme-mobile.png');
+    await page.setViewportSize(desktop);
+    await photo(page, '23-prisme-sombre.png');
     await captureTotp(page, browser, base);
-    console.log('23 captures de démonstration produites, sans compte réel.');
+    console.log('25 captures de démonstration produites, sans compte réel.');
   } finally {
     if (browser) await browser.close();
     server.kill('SIGTERM');
