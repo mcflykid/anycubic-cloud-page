@@ -1,5 +1,9 @@
 # Changements
 
+## 1.7.1 — 2026-11-11
+
+- Répare l’envoi des fichiers locaux vers le Cloud : la mesure de taille utilisait une fonction inexistante et échouait avant le transfert. Le chemin réel de lecture et le cycle de réservation, transfert simulé et libération sont couverts par des tests sans commande physique (#166).
+
 ## 1.7.0 — 2026-11-11
 
 - Catalogue exploratoire de vingt styles, avec galerie et descriptions traduites, palettes et compositions différentes. Anchor Pop, Turn Over, Card Deal, Drum Roll, Outline Trace et Tile Build proposent six effets CSS ; Tile Build adopte une grille bento adaptative. Les animations réduites et le mode clair/sombre sont respectés (#143).

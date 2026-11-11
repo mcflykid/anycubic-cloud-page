@@ -2,6 +2,8 @@
 
 import asyncio
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 from functools import partial
@@ -13,6 +15,51 @@ from anycubic_cloud_api.exceptions.exceptions import AnycubicFileNotFoundError
 
 class CloudUploadCleanup(unittest.IsolatedAsyncioTestCase):
     """La réservation est libérée dans les cas d’échec et d’annulation."""
+
+    async def test_local_file_measurement_uses_real_async_stat(self):
+        """Le chemin multipart doit être mesurable sans remplacer aiofiles par un faux lecteur."""
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "fixture.gcode"
+            path.write_bytes(b"; fixture, aucun envoi\n")
+            upload = AnycubicCloudUpload(api_parent=SimpleNamespace(), full_file_path=str(path))
+            await upload.async_check_path_is_valid()
+            await upload.async_measure_file()
+            self.assertEqual(upload.file_size, path.stat().st_size)
+
+    async def test_local_upload_streams_file_and_releases_reservation(self):
+        """Le parcours fichier complet mesure puis transfère sans conserver les octets en mémoire."""
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "fixture.gcode"
+            content = b"; aucun ordre, transport simule\n"
+            path.write_bytes(content)
+
+            async def receive(*, final_url, put_data):
+                self.assertEqual(final_url, "https://example.test/upload")
+                self.assertEqual(put_data.read(), content)
+
+            api = SimpleNamespace(
+                get_user_cloud_store=AsyncMock(
+                    side_effect=[
+                        SimpleNamespace(available_bytes=1024),
+                        SimpleNamespace(available_bytes=1024 - len(content)),
+                    ]
+                ),
+                _lock_storage_space=AsyncMock(
+                    return_value={"id": 42, "preSignUrl": "https://example.test/upload"}
+                ),
+                _fetch_aws_put_resp=AsyncMock(side_effect=receive),
+                _claim_file_upload_from_aws=AsyncMock(return_value=99),
+                _unlock_storage_space=AsyncMock(),
+                _log_to_debug=Mock(),
+            )
+            upload = AnycubicCloudUpload(api, full_file_path=str(path))
+            self.assertEqual(await upload.async_process_upload(), 99)
+            api._lock_storage_space.assert_awaited_once_with(
+                file_size=len(content), file_name="fixture.gcode", is_temp_file=False
+            )
+            api._unlock_storage_space.assert_awaited_once_with(42, is_delete_cos=False)
+            api._fetch_aws_put_resp.assert_awaited_once()
+            self.assertIsNone(upload.file_bytes)
 
     async def test_failure_and_cancellation_release_quota(self):
         """Un échec du PUT ne valide pas le fichier et demande le nettoyage."""
