@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrastre · Moxen</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=general-sans@400,500,600&display=swap">
+<link rel="stylesheet" href="arrastre.css">
+<!-- ?tema=claro para verla sobre fondo claro -->
+<script>if (/[?&]tema=claro/.test(location.search)) document.documentElement.dataset.tema = 'claro';</script>
+</head>
+<body>
+  <main class="ar-escena">
+    <!-- data-arrastre: la zona. Siente el puntero antes de que llegue (se
+         inclina, se ilumina y abre el abanico de hojas); su propio borde es
+         la barra de progreso total y los archivos caen dentro volando. -->
+    <div class="ar-zona" data-arrastre tabindex="0" role="button" aria-label="Subir archivos: arrástralos aquí o haz clic para elegirlos">
+      <div class="ar-bandeja">
+        <span class="ar-luz" aria-hidden="true"></span>
+        <svg class="ar-borde" aria-hidden="true"><rect class="ar-guiones"/><rect class="ar-continuo"/><rect class="ar-progreso" pathLength="1"/></svg>
+      </div>
+
+      <div class="ar-vacio">
+        <!-- tres hojas en abanico; se abren al acercarte -->
+        <div class="ar-abanico" aria-hidden="true"><div class="ar-flota">
+          <span class="ar-hoja-vacia"></span><span class="ar-hoja-vacia"></span><span class="ar-hoja-vacia"></span>
+          <span class="ar-flecha"><svg viewBox="0 0 24 24"><path d="M12 17V6.5M7.5 11 12 6.5l4.5 4.5"/></svg></span>
+        </div></div>
+        <p class="ar-titulo"><span class="ar-reposo">Arrastra tus archivos aquí</span><span class="ar-encima">Suéltalos, ya los tengo</span></p>
+        <p class="ar-detalle">o haz clic para elegirlos · hasta 20 MB</p>
+      </div>
+
+      <ul class="ar-lista" aria-live="polite"></ul>
+      <!-- las hojas que vuelan y luego se quedan como ícono de cada fila -->
+      <div class="ar-vuelo" aria-hidden="true"></div>
+      <span class="ar-pulso" aria-hidden="true"></span>
+      <input type="file" multiple hidden>
+    </div>
+
+    <div class="ar-pie">
+      <span class="ar-estado" data-arrastre-estado><i class="ar-estado-icono"></i><span class="ar-estado-texto">Ningún archivo todavía</span></span>
+      <button class="ar-limpia" type="button" data-arrastre-limpia>Quitar todo</button>
+    </div>
+  </main>
+
+  <!-- los degradados del papel, compartidos por todas las hojas -->
+  <svg class="ar-defs" width="0" height="0" aria-hidden="true">
+    <linearGradient id="ar-papel" x1="0" y1="0" x2=".35" y2="1"><stop class="ar-papel-0" offset="0"/><stop class="ar-papel-1" offset="1"/></linearGradient>
+    <linearGradient id="ar-doblez" x1="0" y1="1" x2="1" y2="0"><stop class="ar-doblez-0" offset="0"/><stop class="ar-doblez-1" offset="1"/></linearGradient>
+  </svg>
+
+  <script src="arrastre.js"></script>
+  <script>
+    /* En la demostración, un clic simula tres archivos y, al terminar, la
+       zona se vacía sola. Sin `simula`, el clic abre el selector de
+       archivos de siempre. */
+    const zona = Arrastre(document.querySelector('[data-arrastre]'), {
+      simula: [
+        { name: 'propuesta.pdf', size: 2.4e6 },
+        { name: 'logo.svg', size: 4.8e4 },
+        { name: 'capturas.zip', size: 1.8e7 },
+      ],
+      vuelve: 1500,
+    });
+    document.querySelector('[data-arrastre-limpia]').addEventListener('click', () => zona.limpia());
+  </script>
+</body>
+</html>
