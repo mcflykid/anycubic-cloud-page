@@ -9,6 +9,7 @@ from datetime import datetime
 from command_journal import dispatch_command
 from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from printer_values import integer
+from request_validation import json_object
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
     AnycubicProjectOrderRequest,
@@ -1047,7 +1048,7 @@ async def load(req):
             result = await e.storage()
         elif section == "tasks":
             result = await e.task_list(
-                max(1, min(1000, int(req.query.get("page", 1)))),
+                integer(req.query.get("page", 1), 1, 1000),
                 all_printers=req.query.get("device") == "all",
             )
         elif section == "task":
@@ -1064,7 +1065,7 @@ async def load(req):
             if not TIMELAPSE_GALLERY_ENABLED:
                 raise web.HTTPNotFound()
             result = await e.videos(
-                max(1, min(1000, int(req.query.get("page", 1)))),
+                integer(req.query.get("page", 1), 1, 1000),
                 clean_text(req.query.get("keyword"), 120),
             )
         else:
@@ -1075,7 +1076,7 @@ async def load(req):
 async def downloads(req):
     """Renvoie les liens temporaires de la sélection ; lève ValueError sans cible prête."""
     e = req.get("selected_engine", req.app["extras"].e).extras
-    d = await req.json()
+    d = await json_object(req)
     async with e.e.lock:
         if not e.e.printer or not e.e.api:
             raise ValueError("Connexion Anycubic en cours")

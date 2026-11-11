@@ -10,10 +10,10 @@ import {
   single,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=f016ab469b8c';
-import { workshopState } from './workshop-state.mjs?v=d023298e5d0e';
-import { definition } from './workshop-overview.mjs?v=46a93c98af7f';
-import { api } from './workshop-api.mjs?v=e977ef8c01f7';
+} from './workshop-ui.mjs?v=a2ec47cbeacf';
+import { workshopState } from './workshop-state.mjs?v=99955b5e5cf1';
+import { definition } from './workshop-overview.mjs?v=917302d982a5';
+import { api } from './workshop-api.mjs?v=7f92df3bffc3';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
@@ -64,27 +64,6 @@ export function createSettings(request, command, camera) {
     void command('idle-settings', { [data.get('fan')]: data.get('value') },
       tr('Régler ce ventilateur au repos ?'), controlFeedback);
   };
-  let axisQueryPending = false;
-  $('axis-query').onclick = async () => {
-    if (axisQueryPending) return;
-    axisQueryPending = true;
-    $('axis-query').disabled = true;
-    const target = workshopState.selectedPrinter;
-    set('axis-position', tr('Lecture des coordonnées…'));
-    try {
-      const data = await request('/axis-position');
-      if (target !== workshopState.selectedPrinter) return;
-      const p = data.position;
-      set('axis-position', p
-        ? `${formatText('X : {0} mm · Y : {1} mm · Z : {2} mm', fmt(p.x), fmt(p.y), fmt(p.z))} · ${date(data.updated_at)}`
-        : tr('L’imprimante ne fournit pas de position complète.'));
-    } catch (error) {
-      set('axis-position', error.message);
-    } finally {
-      axisQueryPending = false;
-      if (workshopState.snapshot?.printer) updateNativeControls(workshopState.snapshot.printer);
-    }
-  };
   $('rename-form').onsubmit = (e) => {
     e.preventDefault();
     command(
@@ -116,7 +95,6 @@ export function createSettings(request, command, camera) {
   }
   /** Conditionne axes et IA aux capacités annoncées et à une imprimante disponible. */
   function updateNativeControls(p) {
-    $('axis-query').disabled = axisQueryPending || !workshopState.snapshot?.ok || !p.printer_online || p.is_busy || p.job_in_progress || !p.axis_query_supported;
     const limits = p.idle_limits || {};
     const idle = workshopState.snapshot?.ok && p.printer_online && p.is_available && !p.is_busy && !p.job_in_progress && Object.keys(limits).length;
     $('idle-controls').hidden = !idle;

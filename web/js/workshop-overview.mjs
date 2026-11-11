@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=f016ab469b8c';
-import { workshopState } from './workshop-state.mjs?v=d023298e5d0e';
+} from './workshop-ui.mjs?v=a2ec47cbeacf';
+import { workshopState } from './workshop-state.mjs?v=99955b5e5cf1';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -172,7 +172,6 @@ function renderHardware(printer) {
   set('ace-model', aceName);
   set('firmware-printer-model', model);
   set('firmware-ace-model', aceName);
-  set('chart-ace-name', box ? generation || tr('Module ACE') : tr('Module ACE'));
   setImage('settings-printer-illustration', printerImage, printerFallback);
   $('ace-illustration').hidden = !box;
   setImage(

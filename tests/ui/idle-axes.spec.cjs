@@ -1,20 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
 
-test('la lecture des coordonnées ne lance aucun déplacement',async({page})=>{
-  let commands=0;
-  await page.route('**/imprimante-api/command',r=>{commands++;return r.abort();});
-  await login(page);
-  await page.locator('[data-tab=camera]').click();
-  await page.locator('#axis-query').click();
-  await expect(page.locator('#axis-position')).toContainText('47');
-  await expect(page.locator('#axis-position')).toContainText('250');
-  expect(commands).toBe(0);
-  await page.route('**/imprimante-api/axis-position',r=>r.fulfill({status:409,json:{message:'Position indisponible'}}));
-  await page.locator('#axis-query').click();
-  await expect(page.locator('#axis-position')).toHaveText('Position indisponible');
-});
-
 test('le préchauffage respecte les limites reçues et demande confirmation',async({page})=>{
   const sent=[];
   await page.route('**/imprimante-api/command',r=>{sent.push(r.request().postDataJSON());return r.fulfill({json:{ok:true,message:'Réglage fictif reçu'}});});

@@ -17,14 +17,35 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
         """Remplace le moteur par une doublure locale et le temps par une valeur déterministe."""
-        self.printer = types.SimpleNamespace(get_camera_session=AsyncMock())
+        self.printer = types.SimpleNamespace(
+            get_camera_session=AsyncMock(return_value=types.SimpleNamespace(data={"fixture": True}))
+        )
         self.engine = types.SimpleNamespace(
-            printer=self.printer, camera=None, last_session=0, lock=asyncio.Lock()
+            printer=self.printer,
+            camera=None,
+            last_session=0,
+            lock=asyncio.Lock(),
+            command_lock=asyncio.Lock(),
+            camera_viewers=set(),
+            camera_viewer_expiries={},
+            camera_expiry_task=None,
+            camera_close_task=None,
         )
         self.request = types.SimpleNamespace(headers={"Origin": "http://localhost:8080"})
         self.patch_engine = patch.object(adapter, "engine", self.engine)
         self.patch_engine.start()
         self.addCleanup(self.patch_engine.stop)
+
+    async def asyncTearDown(self):
+        """Annule les délais caméra de test pour ne laisser aucune tâche différée."""
+        for task in (
+            getattr(self.engine, "camera_expiry_task", None),
+            getattr(self.engine, "camera_close_task", None),
+        ):
+            if task and not task.done():
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
 
     async def test_connection_failure_retries_once_without_delay(self):
         """Une coupure de transport autorise une seconde lecture, sans temporisation cloud inventée."""
@@ -37,6 +58,34 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
             sleep.assert_not_awaited()
         self.assertEqual(self.printer.get_camera_session.await_count, 2)
         self.assertTrue(json.loads(response.body)["fixture"])
+
+    async def test_camera_open_waits_for_physical_command_guard(self):
+        """L’ouverture Cloud de la caméra ne chevauche pas une autre commande machine."""
+        await self.engine.command_lock.acquire()
+        task = asyncio.create_task(adapter.camera(self.request))
+        await asyncio.sleep(0)
+        self.printer.get_camera_session.assert_not_awaited()
+        self.engine.command_lock.release()
+        await task
+        self.printer.get_camera_session.assert_awaited_once()
+
+    async def test_new_session_deadline_replaces_a_later_expiry_timer(self):
+        """Un nouveau viewer à échéance courte réveille le minuteur déjà endormi."""
+        engine = adapter.Engine()
+        engine.camera_viewers.update(("a" * 36, "b" * 36))
+        engine.camera_viewer_expiries = {"a" * 36: 1000}
+        adapter.schedule_camera_expiry(engine)
+        previous = engine.camera_expiry_task
+        engine.camera_viewer_expiries["b" * 36] = 800
+        adapter.schedule_camera_expiry(engine)
+        current = engine.camera_expiry_task
+        self.assertIsNot(previous, current)
+        await asyncio.sleep(0)
+        self.assertTrue(previous.cancelled())
+        current.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await current
+        engine.camera_expiry_task = None
 
     async def test_wrapped_transport_timeout_is_recognized(self):
         """L’erreur de parsing générique du client conserve le contexte d’un délai de transport."""
@@ -140,6 +189,52 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
                 await adapter.camera(request)
         engine.printer.get_camera_session.assert_not_awaited()
         self.assertIsNone(engine.camera_close_task)
+
+    def test_viewer_deadline_uses_the_authenticated_web_session_expiry(self):
+        """Un flux garde la durée permise par la session sans survivre à son expiration."""
+        request = types.SimpleNamespace(
+            get=lambda key, default=None: 10_000 if key == "session_expires" else default
+        )
+        with patch.object(adapter.time, "monotonic", return_value=100):
+            self.assertEqual(adapter.camera_viewer_deadline(request), 10_000)
+        near_expiry = types.SimpleNamespace(
+            get=lambda key, default=None: 110 if key == "session_expires" else default
+        )
+        with patch.object(adapter.time, "monotonic", return_value=100):
+            self.assertEqual(adapter.camera_viewer_deadline(near_expiry), 110)
+
+    async def test_abandoned_legacy_and_expired_viewers_are_pruned(self):
+        """L’ancien client et un onglet abandonné cessent de compter à leur échéance."""
+        engine = adapter.Engine()
+        engine.camera_viewers.update(("legacy", "a" * 36, "b" * 36))
+        engine.camera_viewer_expiries = {
+            "legacy": 9,
+            "a" * 36: 11,
+            "b" * 36: 20,
+        }
+        with patch.object(adapter.time, "monotonic", return_value=12):
+            adapter.prune_camera_viewers(engine)
+        self.assertEqual(engine.camera_viewers, {"b" * 36})
+        self.assertEqual(engine.camera_viewer_expiries, {"b" * 36: 20})
+
+    async def test_expiry_schedules_close_when_no_viewer_renews(self):
+        """La tâche d’échéance ferme le flux si aucun identifiant ne renouvelle sa session."""
+        engine = adapter.Engine()
+        engine.printer = types.SimpleNamespace(id=42)
+        engine.api = types.SimpleNamespace(_send_anycubic_order=AsyncMock())
+        viewer = "a" * 36
+        engine.camera_viewers.add(viewer)
+        engine.camera_viewer_expiries[viewer] = 9
+        with (
+            patch.object(adapter.time, "monotonic", return_value=10),
+            patch.object(adapter.asyncio, "sleep", new_callable=AsyncMock),
+        ):
+            await adapter.expire_camera_viewers(engine)
+            await asyncio.sleep(0)
+        self.assertNotIn(viewer, engine.camera_viewers)
+        self.assertIsNotNone(engine.camera_close_task)
+        await engine.camera_close_task
+        engine.api._send_anycubic_order.assert_awaited_once()
 
     def test_tls_error_takes_precedence_over_transport_context(self):
         """Une panne TLS ne devient pas réessayable parce qu’elle comporte une cause de connexion."""

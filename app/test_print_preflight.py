@@ -1,6 +1,7 @@
 """Refus explicites de lancement pendant une mise à jour confirmée."""
 
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 from print_preflight import ensure_firmware_ready
 from printer_commands import execute_command
@@ -8,6 +9,36 @@ from printer_commands import execute_command
 
 class FirmwarePreflightTests(unittest.IsolatedAsyncioTestCase):
     """Une proposition de mise à jour ne vaut pas mise à jour en cours."""
+
+    async def test_task_settings_require_an_active_project(self):
+        """Un projet historique terminé ne suffit pas pour envoyer des réglages de tâche."""
+        from unittest.mock import AsyncMock
+
+        for active in (False, True):
+            printer = SimpleNamespace(
+                connected_ace_units=0,
+                latest_project=SimpleNamespace(id=10),
+                latest_project_print_in_progress=active,
+            )
+            api = SimpleNamespace(
+                _send_order_change_print_settings=AsyncMock(return_value="accepted")
+            )
+            if active:
+                result = await execute_command(
+                    SimpleNamespace(printer=printer, api=api),
+                    "settings",
+                    {"target_nozzle_temp": 200},
+                )
+                self.assertIn("acceptée", result)
+                api._send_order_change_print_settings.assert_awaited_once()
+            else:
+                with self.assertRaisesRegex(ValueError, "impression active"):
+                    await execute_command(
+                        SimpleNamespace(printer=printer, api=api),
+                        "settings",
+                        {"target_nozzle_temp": 200},
+                    )
+                api._send_order_change_print_settings.assert_not_awaited()
 
     async def test_updating_printer_sends_no_start_command(self):
         """Les parcours Cloud et supports locaux refusent avant tout appel de lancement."""
@@ -71,7 +102,7 @@ class FirmwarePreflightTests(unittest.IsolatedAsyncioTestCase):
         from anycubic_cloud_api.const.enums import AnycubicOrderID
         from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest
         from anycubic_cloud_api.api.mqtt import AnycubicMQTTAPI
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import AsyncMock
 
         printer = SimpleNamespace(id=7, fw_version=SimpleNamespace(is_updating=True))
         api = object.__new__(CloudPageAPI)

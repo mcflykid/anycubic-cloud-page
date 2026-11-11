@@ -38,7 +38,7 @@ dialog{width:min(90%,480px);max-height:90dvh;overflow:auto;padding:28px;border:1
 @media(max-width:760px){.printer-shell{--panel-pad:20px}.tab-panel{padding:24px 0 28px}.section-title{gap:16px;flex-wrap:wrap}.tab-panel>.section-title{margin-bottom:20px}.tab-panel h2,.camera-heading h2{font-size:1.4rem}.overview-grid,.ace-overview,#tab-overview>.overview-grid{grid-template-columns:1fr;padding:20px;gap:20px;min-height:0}.overview-grid .product,#tab-overview .product{min-height:0;height:220px}.overview-grid .product img,#tab-overview .product img{height:220px}.overview-content h2{font-size:1.5rem}.printer-lower-grid{grid-template-columns:1fr}.printer-lower-grid>section,.printer-lower-grid>section+section{padding:20px}.printer-lower-grid h2{font-size:1.15rem}.stats{gap:12px}.stats dd{font-size:1.05rem}.stats dt{font-size:.75rem}.slot{padding:18px}.storage-tabs{gap:8px}.storage-tabs button{flex:1 1 130px;font-size:.8rem;padding:10px}.file-toolbar{flex-wrap:wrap;padding:18px;gap:10px}.file-toolbar label{flex:1 0 100%}.file-toolbar button{flex:1;font-size:.8rem}.upload-options{grid-template-columns:1fr;gap:12px}.upload-file{padding:18px}.upload-file input[type=file]{width:100%;font-size:.75rem}.print-history{padding:0 18px}.history-entry h3{font-size:.88rem}.settings-layout{gap:18px}.settings-title{margin-bottom:20px}}
 @media(max-width:380px){.printer-shell{padding-left:18px;padding-right:18px}.slots{grid-template-columns:1fr}.job-heading{align-items:flex-start}.job-heading #job-preview{width:64px;height:64px;flex-basis:64px}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.metrics,.detail-list{grid-template-columns:1fr}}
 
-.temperature-section{margin-top:28px}.temperature-section>.section-title{align-items:flex-end;margin-bottom:20px}.temperature-section h2{font-size:1.2rem;margin-bottom:8px}.temperature-section .section-title p{margin:0;max-width:70ch;font-size:.85rem}.chart-period{flex:0 0 195px;font-size:.8rem}.chart-period select{font-size:.85rem}.temperature-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.temperature-card{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--panel-radius);padding:20px}.temperature-card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.temperature-card-title h4{font-size:.95rem;margin:0}.temperature-card-title strong{font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums}.temperature-plot{position:relative;min-height:160px}.temperature-plot svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}.chart-axis{font:11px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;fill:var(--muted)}.chart-legend{display:flex;gap:14px;justify-content:center;font-size:.72rem;color:var(--muted);margin:6px 0 0}.chart-tooltip{position:absolute;top:0;right:0;z-index:1;background:var(--text);color:var(--surface);border-radius:7px;padding:6px 9px;font-size:.75rem;pointer-events:none}.chart-tooltip[hidden]{display:none}.temperature-plot>.muted{font-size:.85rem;padding-top:40px;text-align:center}@media(max-width:1000px){.temperature-charts{grid-template-columns:1fr}.temperature-plot svg{max-height:210px}.temperature-card{padding:20px}}@media(max-width:760px){.temperature-section>.section-title{align-items:flex-start;flex-direction:column}.chart-period{flex-basis:auto;width:100%}.temperature-section h2{font-size:1.15rem}.temperature-charts{gap:18px}}
+.temperature-section{margin-top:28px}.temperature-section>.section-title{align-items:flex-end;margin-bottom:20px}.temperature-section h2{font-size:1.2rem;margin-bottom:8px}.temperature-section .section-title p{margin:0;max-width:70ch;font-size:.85rem}.chart-period{display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0;font-size:.8rem}.chart-period select{width:auto;max-width:195px;min-width:0;font-size:.85rem}.chart-period button{flex:none;white-space:nowrap}.temperature-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.temperature-card{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--panel-radius);padding:20px}.temperature-card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.temperature-card-title h4{font-size:.95rem;margin:0}.temperature-card-title strong{font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums}.temperature-plot{position:relative;min-height:160px}.temperature-plot svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}.chart-axis{font:11px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;fill:var(--muted)}.chart-legend{display:flex;gap:14px;justify-content:center;font-size:.72rem;color:var(--muted);margin:6px 0 0}.chart-tooltip{position:absolute;top:0;right:0;z-index:1;background:var(--text);color:var(--surface);border-radius:7px;padding:6px 9px;font-size:.75rem;pointer-events:none}.chart-tooltip[hidden]{display:none}.temperature-plot>.muted{font-size:.85rem;padding-top:40px;text-align:center}@media(max-width:1000px){.temperature-charts{grid-template-columns:1fr}.temperature-plot svg{max-height:210px}.temperature-card{padding:20px}}@media(max-width:760px){.temperature-section>.section-title{align-items:flex-start;flex-direction:column}.chart-period{flex-basis:auto;width:100%}.temperature-section h2{font-size:1.15rem}.temperature-charts{gap:18px}}
 
 .history-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.history-read{flex-shrink:0;font-size:.75rem;min-height:40px;padding:8px 12px}.history-entry{align-items:center}@media(max-width:500px){.history-read{margin-left:48px}.history-toolbar{width:100%}.history-toolbar button{flex:1;font-size:.8rem}}
 
@@ -202,7 +202,9 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .axis-z button:last-child{border-end-start-radius:22px;border-end-end-radius:22px}
 
 @media(max-width:520px){
- .nav-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+ /* Sur téléphone, toutes les actions restent atteignables sous l’identité de l’atelier. */
+ .printer-shell .portal-nav{row-gap:4px;padding-block:8px}
+ .nav-actions{flex-wrap:wrap;justify-content:flex-start;max-width:100%;margin-inline-start:0}
 }
 
 
@@ -504,7 +506,8 @@ dialog{background:var(--surface);color:var(--text)}
 [data-style="apple"] :is(.atelier-tabs,.statistics-panel,.temperature-card,.slot,.form-panel,.camera-controls,.axis-card){background-color:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:saturate(135%) blur(14px);-webkit-backdrop-filter:saturate(135%) blur(14px);box-shadow:inset 0 1px 0 light-dark(#ffffffd9,#ffffff1c),0 8px 24px #10243e0d}
 [data-style="apple"] .spool-actions{justify-content:center}
 [data-style="apple"] .spool-actions button{border-radius:999px;background:linear-gradient(160deg,var(--apple-glass),var(--apple-tint));border:1px solid color-mix(in srgb,var(--line) 75%,transparent);box-shadow:inset 0 1px 0 light-dark(#fff,#ffffff24),0 3px 8px #10243e16}
-[data-style="apple"] :is(.atelier-tabs button,.spool-actions button):hover{filter:brightness(1.04);transform:translateY(-1px)}
+[data-style="apple"] .atelier-tabs button:hover{filter:brightness(1.04)}
+[data-style="apple"] .spool-actions button:hover{filter:brightness(1.04);transform:translateY(-1px)}
 [data-style="apple"] :is(.atelier-tabs button,.spool-actions button):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){[data-style="apple"] body{background-attachment:scroll,scroll,scroll}[data-style="apple"] :is(.atelier-tabs button,.spool-actions button){transition:none;transform:none}}
 @supports not (backdrop-filter:blur(1px)){[data-style="apple"] :is(.atelier-tabs,.statistics-panel,.temperature-card,.slot,.form-panel,.camera-controls,.axis-card){background-color:var(--surface)}}
@@ -599,26 +602,6 @@ dialog{background:var(--surface);color:var(--text)}
   }
 }
 
-/* Galerie des styles : ses aperçus reprennent les couleurs du vrai thème sans style inline. */
-.theme-browser{margin:18px 0 0;border:1px solid var(--line);border-radius:var(--panel-radius);background:var(--surface);overflow:hidden}
-.theme-browser>summary{padding:14px 16px;font-weight:650;cursor:pointer}
-.theme-browser>p{margin:0;padding:0 16px 14px;color:var(--muted);max-width:72ch}
-#theme-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:10px;padding:0 14px 14px}
-#theme-gallery button[data-theme-choice]{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:2px 10px;align-items:center;text-align:left;min-width:0;min-height:72px;padding:10px;border:1px solid var(--line);border-radius:var(--panel-radius);background:var(--surface);color:var(--text)}
-#theme-gallery button[data-theme-choice]:hover{border-color:var(--accent)}
-#theme-gallery button[data-theme-choice]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-#theme-gallery button[data-theme-choice][aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 28%,transparent)}
-#theme-gallery .theme-preview{grid-row:1/3;display:flex;align-items:center;gap:3px;width:34px;height:34px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
-#theme-gallery .theme-swatch{display:block;width:7px;height:22px;border-radius:4px;background:var(--theme-swatch,var(--accent))}
-#theme-gallery strong{font-size:.85rem;line-height:1.2}
-#theme-gallery small{color:var(--muted);font-size:.72rem;line-height:1.25}
-#theme-gallery [data-theme-choice="standard"]{--theme-swatch:light-dark(#276b50,#9ad8bb)}
-#theme-gallery [data-theme-choice="apple"]{--theme-swatch:light-dark(#005bce,#9fc7ff)}
-#theme-gallery [data-theme-choice="detailed"]{--theme-swatch:light-dark(#165787,#a2d6ff)}
-#theme-gallery [data-theme-choice="blueprint"]{--theme-swatch:light-dark(#1455a0,#9ecbff)}
-#theme-gallery [data-theme-choice="aurora"]{--theme-swatch:light-dark(#7357c8,#c0b0ff)}
-#theme-gallery [data-theme-choice="ocean"]{--theme-swatch:light-dark(#087b91,#74e5ee)}
-
 /* Les effets d’interaction sont légers et se désactivent ensemble si le mouvement est réduit. */
 @media(prefers-reduced-motion:reduce){
   :root[data-style] *, :root[data-style] *::before, :root[data-style] *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
@@ -665,10 +648,14 @@ dialog{background:var(--surface);color:var(--text)}
 @media(hover:none),(pointer:coarse){.notification-error-tooltip{position:static;visibility:visible;opacity:1;display:block;flex-basis:100%;width:auto;max-width:100%;box-shadow:none;margin:2px 0;padding:8px 10px}}
 
 /* Le parc reprend les surfaces du thème et garde une lecture sans commandes. */
-.fleet-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;margin-block:20px}.fleet-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius,16px);padding:20px;overflow-wrap:anywhere}.fleet-card h4{margin-top:0}.fleet-alert{color:light-dark(#9d3024,#ffb0a6);font-weight:600}#fleet-events{line-height:1.8}
+.fleet-cards{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-block:20px}.fleet-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius,16px);padding:20px;overflow-wrap:anywhere}.fleet-summary{display:flex;align-items:center;gap:clamp(6px,1.4vw,18px);white-space:nowrap;min-width:0}
+.fleet-summary h4{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.fleet-summary .fleet-age{margin-inline-start:auto}
+.fleet-age-short{display:none}
+@media(max-width:620px){.fleet-summary{font-size:.8rem}.fleet-age-full{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.fleet-age-short{display:inline}}.fleet-alert{color:light-dark(#9d3024,#ffb0a6);font-weight:600}#fleet-events{line-height:1.8}
 
 /* Les réglages au repos restent distincts de ceux du projet actif. */
-#idle-controls{margin-block:20px}#idle-controls form{margin-block:16px;display:grid;gap:12px}.control-hidden{display:none!important}.axis-position-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+#idle-controls{margin-block:20px}#idle-controls form{margin-block:16px;display:grid;gap:12px}.control-hidden{display:none!important}
 
 /* Les neuf sections restent visibles sur ordinateur; le petit écran les regroupe dans un menu divulgable. */
 .atelier-navigation{display:contents}
@@ -676,8 +663,10 @@ dialog{background:var(--surface);color:var(--text)}
 #atelier-tabs{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px;min-width:0;overflow:visible;padding:5px 0 12px}
 #atelier-tabs>button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:68px;padding:8px 5px;text-align:center;white-space:normal;overflow-wrap:anywhere;font-size:clamp(.68rem,.78vw,.82rem);line-height:1.2}
 #atelier-tabs>button .ui-icon{flex:0 0 19px;width:19px;height:19px}
-[data-style="apple"] #atelier-tabs{display:flex;flex-wrap:wrap;justify-content:center;overflow:visible}
-[data-style="apple"] #atelier-tabs>button{flex:1 1 9rem;max-width:12rem;flex-direction:row;gap:7px}
+@media(min-width:761px){
+  [data-style="apple"] #atelier-tabs{align-items:stretch;padding:7px}
+  [data-style="apple"] #atelier-tabs>button{border-radius:999px}
+}
 [data-style="detailed"] #atelier-tabs>button{min-height:74px;border-radius:4px}
 [data-style="aurora"] #atelier-tabs>button{width:auto;min-width:0}
 #spool-dialog-preview .spool-rfid-mark{color:light-dark(#35453b,#d5e5d9)}
@@ -699,13 +688,20 @@ dialog{background:var(--surface);color:var(--text)}
 /* Blueprint est un plan de travail indexé; son rail latéral peut se réduire aux repères. */
 #blueprint-nav-toggle{display:none}
 #atelier-tabs[data-style="blueprint"]{counter-reset:blueprint-tab}
-[data-style="blueprint"] #atelier-tabs>button{counter-increment:blueprint-tab;position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);justify-items:start;gap:8px;padding:9px;border:1px solid transparent;border-left:3px solid transparent;text-align:left;background:transparent}
+[data-style="blueprint"] #atelier-tabs>button{counter-increment:blueprint-tab;position:relative;display:grid;grid-template-columns:22px 19px minmax(0,1fr);align-items:center;justify-items:start;gap:8px;padding:9px;border:1px solid transparent;border-left:3px solid transparent;text-align:left;background:transparent}
 [data-style="blueprint"] #atelier-tabs>button::before{content:counter(blueprint-tab,decimal-leading-zero);color:var(--muted);font:600 .7rem ui-monospace,monospace}
 [data-style="blueprint"] #atelier-tabs>button[aria-current="page"]{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent)}
 [data-style="blueprint"] #atelier-tabs>button>span{min-width:0;overflow:visible;text-overflow:clip;white-space:normal;line-height:1.25}
 [data-style="blueprint"] #blueprint-nav-toggle{grid-area:toggle;display:flex;align-items:center;gap:10px;justify-self:stretch;margin:4px 0 8px;padding:8px 12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--text);font:600 .78rem ui-monospace,monospace;text-align:left}
 @media(min-width:960px){[data-style="blueprint"] .printer-shell{grid-template-areas:"portal portal" "title title" "toggle message" "tabs main" "footer footer"}[data-style="blueprint"] #atelier-tabs{grid-area:tabs} [data-style="blueprint"] #blueprint-nav-toggle{grid-area:toggle}[data-style="blueprint"] #message{grid-area:message}.printer-shell.blueprint-sidebar-collapsed{grid-template-columns:72px minmax(0,1fr)}[data-style="blueprint"] .printer-shell.blueprint-sidebar-collapsed #atelier-tabs>button{grid-template-columns:1fr;justify-items:center;gap:4px;min-height:54px;padding:7px 3px}[data-style="blueprint"] .printer-shell.blueprint-sidebar-collapsed #atelier-tabs>button>span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}[data-style="blueprint"] .printer-shell.blueprint-sidebar-collapsed #blueprint-nav-toggle{justify-content:center;padding-inline:6px}[data-style="blueprint"] .printer-shell.blueprint-sidebar-collapsed .blueprint-toggle-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}[data-style="blueprint"] .printer-shell.blueprint-sidebar-collapsed #atelier-tabs>button:hover>span,[data-style="blueprint"] .printer-shell.blueprint-sidebar-collapsed #atelier-tabs>button:focus-visible>span{position:absolute;left:calc(100% + 8px);z-index:5;width:max-content;height:auto;padding:6px 9px;margin:0;overflow:visible;clip:auto;border:1px solid var(--line);background:var(--surface);color:var(--text)}}
 @media(min-width:961px){[data-style="blueprint"] #atelier-tabs{grid-template-columns:minmax(0,1fr)}[data-style="aurora"] #atelier-tabs{display:flex;flex-direction:column;align-items:stretch;overflow:visible}}
+
+/* Sous le seuil du rail, les tuiles gardent toute leur largeur pour les libellés. */
+@media(max-width:960px){
+  [data-style="blueprint"] #atelier-tabs>button{display:flex;justify-content:center;text-align:center;padding-inline:5px}
+  [data-style="blueprint"] #atelier-tabs>button::before{display:none}
+  [data-style="blueprint"] #blueprint-nav-toggle{display:none}
+}
 
 /* Aurore compose quatre cartes réordonnables et conserve le même tableau après rechargement. */
 [data-style="aurora"] #tab-overview>.overview-grid,[data-style="aurora"] #tab-overview>.printer-lower-grid{display:none}
@@ -732,10 +728,13 @@ dialog{background:var(--surface);color:var(--text)}
 @media(max-width:620px){[data-style="aurora"] #aurora-bento{grid-template-columns:minmax(0,1fr)}[data-style="aurora"] .aurora-widget-machine,[data-style="aurora"] .aurora-widget-job,[data-style="aurora"] .aurora-widget-temperatures,[data-style="aurora"] .aurora-widget-details{grid-column:1;grid-row:auto}[data-style="aurora"] .aurora-widget{padding:14px;border-radius:18px}}
 
 /* Apple et Océan partagent un repère actif translucide qui suit la section choisie. */
+@media(min-width:761px){
+  :is([data-style="apple"],[data-style="ocean"]) #atelier-tabs{position:relative}
+}
 #atelier-tabs .atelier-active-indicator{position:absolute;z-index:0;top:0;left:0;pointer-events:none;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 18%,var(--surface));box-shadow:0 5px 20px color-mix(in srgb,var(--accent) 18%,transparent),inset 0 1px 0 #ffffff70;opacity:0;transition:transform .34s cubic-bezier(.2,.8,.2,1),width .34s cubic-bezier(.2,.8,.2,1),height .22s ease,opacity .16s ease}
 [data-style="apple"] #atelier-tabs .atelier-active-indicator,[data-style="ocean"] #atelier-tabs .atelier-active-indicator{opacity:1}
 [data-style="apple"] #atelier-tabs>button,[data-style="ocean"] #atelier-tabs>button{position:relative;z-index:1}
-[data-style="apple"] #atelier-tabs>button[aria-current="page"],[data-style="ocean"] #atelier-tabs>button[aria-current="page"]{background:transparent;border-color:transparent}
+[data-style="apple"] #atelier-tabs>button[aria-current="page"],[data-style="ocean"] #atelier-tabs>button[aria-current="page"]{background:transparent;border-color:transparent;color:var(--text)}
 [data-style="ocean"] #atelier-tabs .atelier-active-indicator{border-radius:999px;background:color-mix(in srgb,var(--accent) 20%,var(--surface));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent),0 8px 22px color-mix(in srgb,var(--accent) 20%,transparent)}
 @media(prefers-reduced-motion:reduce){#atelier-tabs .atelier-active-indicator{transition:none!important}}
 
@@ -749,14 +748,14 @@ dialog{background:var(--surface);color:var(--text)}
 
 /* En statistiques, température et humidité restent côte à côte pour l’ACE. */
 #statistics-ace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:12px}
-#statistics-ace>h3{grid-column:1/-1}
+#statistics-ace>h3{grid-column:1/-1;margin-bottom:0!important}
 #statistics-ace>.ace-temperature{grid-column:1;grid-row:2}
 #statistics-ace>.ace-temperature{grid-template-columns:minmax(0,1fr)}
-#statistics-ace>h4{display:none}
+#statistics-other-ace{grid-column:1/-1}.ace-chart-groups>section+section{margin-top:16px}
 #statistics-ace>#chart-humidity{grid-column:2;grid-row:2;grid-template-columns:minmax(0,1fr)}
-@media(max-width:760px){#statistics-ace{grid-template-columns:minmax(0,1fr)}#statistics-ace>.ace-temperature,#statistics-ace>h4,#statistics-ace>#chart-humidity{grid-column:1;grid-row:auto}}
+@media(max-width:760px){#statistics-ace{grid-template-columns:minmax(0,1fr)}#statistics-ace>.ace-temperature,#statistics-ace>#chart-humidity{grid-column:1;grid-row:auto}}
 
-/* Les titres et valeurs ACE occupent les mêmes rangées pour aligner les courbes malgré un nom long. */
+/* Les titres et valeurs ACE occupent les mêmes rangées pour aligner les courbes. */
 #statistics-ace .temperature-card-title{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(2.4em,auto) auto;align-items:start;gap:4px 10px;min-height:4rem}
 #statistics-ace .temperature-card-title h4{align-self:start}
 #statistics-ace .temperature-card-title strong{grid-column:1/-1;justify-self:start}

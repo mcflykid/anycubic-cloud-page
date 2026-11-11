@@ -7,7 +7,7 @@ Version **1.7.0**. [Changelog](CHANGELOG.md).
 [![Latest release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
 [![Open issues](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
 [![Closed issues](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
-[![Milestone 1.4.1](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/3)](https://github.com/mcflykid/anycubic-cloud-page/milestone/3)
+[![Upcoming release](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/9)](https://github.com/mcflykid/anycubic-cloud-page/milestone/9)
 [![Last commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
 
 [Français / full screenshot gallery](README.md) · [Cloud authentication and token recovery](docs/CLOUD-CONNECTION.md) · [Compatibility](docs/COMPATIBILITY.md)
@@ -34,7 +34,7 @@ The image follows `latest`; pin a published image tag in compose.yaml if you nee
 
 ## Work tracking
 
-[Open issues](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) describe proposed fixes and improvements. The [upcoming release milestone](https://github.com/mcflykid/anycubic-cloud-page/milestone/8) groups work for the next release and its acceptance criteria.
+[Open issues](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) describe proposed fixes and improvements. The [upcoming release milestone](https://github.com/mcflykid/anycubic-cloud-page/milestone/9) groups work for the next release and its acceptance criteria.
 
 ## Screens
 
@@ -49,11 +49,12 @@ The language selector next to the notification bell remembers French, English or
 | Camera | Agora video, zoom, lights and guarded axis controls | [View](screenshots/05-camera.png) |
 | History | Status/date/name filters, preview cards, details and confirmed cloud history removal; notifications in the top-bar bell | [View](screenshots/06-historique.png) |
 | Statistics | Local charts for the past 24 hours covering temperatures, ACE humidity and estimated remaining filament by slot | — |
+| Fleet and health | Availability and freshness of monitored printers | — |
 | Settings | Connection, AI settings and update eligibility | [View](screenshots/07-reglages.png) |
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
 
-In **Settings → Appearance**, choose the default, Apple Design, Minimalist, Detailed, Halloween or Christmas style. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
+In **Settings → Appearance**, choose Default, Apple Design, Detailed, Blueprint, Aurora, Ocean or Laboratory. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
 
 ## Offline demo
 

@@ -1,14 +1,29 @@
 """Vérifie les refus de publication et la composition des notes de release."""
 
 import io
+import re
 import unittest
 import urllib.error
+from pathlib import Path
 from unittest.mock import patch
 from release_metadata import release_metadata, require_unpublished
 
 
 class ReleaseMetadataTests(unittest.TestCase):
     """Protège la validation du tag et l’historique associé à chaque release."""
+
+    def test_external_workflow_references_use_full_commit_with_version(self):
+        """Un tag amont mobile ne change pas le code chargé par les workflows."""
+        workflows = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+        for filename in ("ci.yml", "publish.yml"):
+            refs = re.findall(
+                r"^\s*(?:-\s+)?uses:\s*([^\n]+)", (workflows / filename).read_text(), re.M
+            )
+            external = [ref for ref in refs if not ref.startswith("./")]
+            self.assertTrue(external)
+            for ref in external:
+                with self.subTest(workflow=filename, ref=ref):
+                    self.assertRegex(ref, r"^[^@\s]+@[a-f0-9]{40}\s+#\s+v\d+\.\d+\.\d+$")
 
     def test_notes_include_current_and_earlier_versions(self):
         """La release conserve les anciens titres et laisse les versions suivantes hors des notes."""

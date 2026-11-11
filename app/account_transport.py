@@ -82,16 +82,17 @@ class AccountTransport:
         self.mqtt_thread.start()
 
     async def restart(self, api, start):
-        """Attend l’arrêt du fil avant de redémarrer le suivi avec les nouveaux jetons."""
+        """Attend l’arrêt du fil ; renvoie True si le suivi redémarre sans client concurrent."""
         async with self.mqtt_auth_lock:
             if self.api is not api or not self.mqtt_auth_pending:
-                return
+                return False
             api.disconnect_mqtt()
             thread = self.mqtt_thread
             if thread and thread.is_alive():
                 await asyncio.to_thread(thread.join, 3)
             if self.api is not api or (thread and thread.is_alive()):
-                return
+                return False
             self.mqtt_thread = None
             self.mqtt_auth_pending = False
             start()
+            return True

@@ -1,4 +1,4 @@
-import { $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=f016ab469b8c';
+import { signalChange, $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=a2ec47cbeacf';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** Décrit les unités et la provenance des neuf séries rendues dans le panneau local. */
@@ -226,7 +226,7 @@ function ensureCard(host, key, onOpen) {
   const graph = node('span', null, 'monitor-card-graph');
   button.append(graph);
   button.setAttribute('aria-haspopup', 'dialog');
-  button.onclick = () => onOpen(key);
+  button.onclick = () => onOpen(key, button);
   host.append(button);
   return button;
 }
@@ -234,7 +234,13 @@ function ensureCard(host, key, onOpen) {
 /** Met à jour une carte et son graphique à partir des seules valeurs reçues. */
 function updateCard(button, key, data) {
   const value = SERIES[key].value(data);
-  button.querySelector('.monitor-card-value').textContent = displayValue(key, value);
+  const current = button.querySelector('.monitor-card-value');
+  const label = displayValue(key, value);
+  if (current.textContent !== label) {
+    const hasPreviousMeasure = current.textContent !== '—';
+    current.textContent = label;
+    if (hasPreviousMeasure && label !== '—') signalChange(current);
+  }
   const context = button.querySelector('.monitor-card-context');
   context.textContent = key === 'requests'
     ? formatText('{0} requêtes sur {1} s', fmt(data.http?.requests_window), fmt(Math.min(number(data.http?.window_seconds) ?? 0, number(data.system?.uptime_seconds) ?? 0)))
@@ -293,11 +299,18 @@ export function createMonitoring(request) {
   /** Renvoie les données du détail seulement après un choix et un relevé. */
   function detailData() { return selected && lastData; }
 
-  /** Ouvre la métrique sélectionnée depuis un bouton de carte au clavier ou à la souris. */
-  function selectCard(key) {
+  /** La fenêtre s’ouvre depuis la carte activée et garde le focus natif du dialogue. */
+  function selectCard(key, button) {
     selected = key;
     updateDetail();
-    if (!dialog.open) dialog.showModal();
+    if (dialog.open) return;
+    const origin = button.getBoundingClientRect();
+    dialog.removeAttribute('data-card-origin');
+    dialog.showModal();
+    const target = dialog.getBoundingClientRect();
+    dialog.style.setProperty('--monitor-origin-x', `${origin.x + origin.width / 2 - target.x - target.width / 2}px`);
+    dialog.style.setProperty('--monitor-origin-y', `${origin.y + origin.height / 2 - target.y - target.height / 2}px`);
+    dialog.dataset.cardOrigin = '';
   }
 
   /** Rafraîchit le détail, ses états accessibles et un graphique basé sur l’historique réel. */

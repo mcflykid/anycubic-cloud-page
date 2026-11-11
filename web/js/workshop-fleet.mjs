@@ -1,4 +1,4 @@
-import { $, node, tr, formatText, date } from './workshop-ui.mjs?v=f016ab469b8c';
+import { $, node, tr, formatText, date } from './workshop-ui.mjs?v=a2ec47cbeacf';
 
 /** La vue n’active aucune machine et ne permet aucune commande ni sélection implicite. */
 export function createFleet(request) {
@@ -15,10 +15,20 @@ export function createFleet(request) {
       const cards = (data.items || []).map((row) => {
         const card = node('article');
         card.className = 'fleet-card';
-        card.append(node('h4', row.name), node('p', tr(labels[row.state] || labels.unknown)));
-        card.append(node('p', Number.isFinite(row.age_seconds)
-          ? formatText('Dernière mesure il y a {0} s.', row.age_seconds)
-          : tr('Aucune mesure fraîche disponible.')));
+        const summary = node('div', null, 'fleet-summary');
+        const name = node('h4', row.name);
+        name.title = row.name;
+        const hasAge = Number.isFinite(row.age_seconds);
+        const ageLabel = hasAge ? formatText('Dernière mesure il y a {0} s.', row.age_seconds)
+          : tr('Aucune mesure fraîche disponible.');
+        const age = node('span', null, 'fleet-age');
+        age.title = ageLabel;
+        age.append(node('span', ageLabel, 'fleet-age-full'));
+        const short = node('span', hasAge ? `${row.age_seconds} s` : '—', 'fleet-age-short');
+        short.setAttribute('aria-hidden', 'true');
+        age.append(short);
+        summary.append(name, node('span', tr(labels[row.state] || labels.unknown)), age);
+        card.append(summary);
         if (row.job_in_progress === true) card.append(node('p', tr('Impression en cours')));
         if (row.alerts?.length) {
           const alert = node('p', tr('Problème de connexion observé depuis au moins trois minutes.'));

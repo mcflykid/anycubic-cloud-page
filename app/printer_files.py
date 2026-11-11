@@ -5,6 +5,7 @@ import asyncio
 import base64
 import contextlib
 import hashlib
+import logging
 import re
 import time
 import uuid
@@ -13,6 +14,40 @@ from printer_values import filepath, safeget, serial
 from cloud_extras import key, number, download_preview
 from anycubic_cloud_api.data_models.files import AnycubicCloudFile
 from command_journal import dispatch_command
+from operational_logging import log_event
+
+
+def log_axis_rejection(reason):
+    """Ne journalise que la catégorie du rejet, sans identifiant ni réponse brute."""
+    log_event(
+        logging.getLogger("cloud_page.axes"),
+        logging.INFO,
+        "axis_query_mqtt_rejected",
+        message="Rapport MQTT de position écarté",
+        reply_rejection=reason,
+    )
+
+
+LOCAL_PREVIEW_TTL = 60
+
+
+def local_preview_key(source, name, path):
+    """Renvoie la même clé source/chemin que la lecture pour invalider un fichier supprimé."""
+    return source, "/".join(x for x in [filepath(path).strip("/"), str(name)] if x)
+
+
+def invalidate_local_preview(target, source, name, path):
+    """Supprime l’aperçu après l’acquittement de l’effacement par le transport machine."""
+    target.preview_cache.pop(local_preview_key(source, name, path), None)
+
+
+def invalidate_folder_previews(target, source, folder):
+    """Invalide les aperçus du dossier lors d’une nouvelle lecture de ses métadonnées."""
+    prefix = folder.strip("/")
+    prefix = prefix + "/" if prefix else ""
+    stale = [key for key in target.preview_cache if key[0] == source and key[1].startswith(prefix)]
+    for stale_key in stale:
+        target.preview_cache.pop(stale_key, None)
 
 
 class MQTTReplies:
@@ -28,10 +63,13 @@ class MQTTReplies:
     def receive(self, payload):
         """Transfère une réponse du fil MQTT sans modifier les attentes depuis ce fil."""
         identifier = payload.get("msgid")
+        is_axis_query = (payload.get("type"), payload.get("action")) == ("axis", "query")
+        valid_id = type(identifier) in (int, str) and 0 < len(str(identifier)) <= 128
+        if is_axis_query and (not valid_id or not self.loop):
+            log_axis_rejection("identifier" if not valid_id else "outside_window")
         if (
             self.loop
-            and type(identifier) in (int, str)
-            and 0 < len(str(identifier)) <= 128
+            and valid_id
             and isinstance(payload.get("type"), str)
             and isinstance(payload.get("action"), str)
         ):
@@ -41,12 +79,20 @@ class MQTTReplies:
     def _deliver(self, payload, received):
         key = (payload.get("type"), payload.get("action"), str(payload["msgid"]))
         waiter = self.pending.get(key)
+        axis_key = ("axis", "query", key[2])
+        if key != axis_key and axis_key in self.pending:
+            log_axis_rejection("kind_action")
         if waiter is not None and not waiter.done():
             waiter.set_result(payload)
         elif self.opening:
             self.early[key] = (received, payload)
             if len(self.early) > 24:
                 self.early.pop(next(iter(self.early)))
+        elif key[:2] == ("axis", "query"):
+            awaiting_axis = any(item[:2] == key[:2] for item in self.pending)
+            log_axis_rejection(
+                "identifier" if awaiting_axis and waiter is None else "outside_window"
+            )
 
     async def ask(self, kind, action, send, timeout, *, on_phase=None):
         """Attend la réponse corrélée ; le callback facultatif reçoit les phases et délais écoulés."""
@@ -61,6 +107,21 @@ class MQTTReplies:
                 on_phase("cloud_ack", (time.monotonic() - started) * 1000)
             key = (kind, action, str(identifier))
             cached = self.early.pop(key, None)
+            if key[:2] == ("axis", "query"):
+                # Avant l’accusé Cloud, la référence attendue n’est pas encore connue.
+                if any(
+                    other[:2] == key[:2] and received >= started
+                    for other, (received, _) in self.early.items()
+                ):
+                    log_axis_rejection("identifier")
+                other_shape = any(
+                    other[:2] != key[:2] and other[2] == key[2] and received >= started
+                    for other, (received, _) in self.early.items()
+                )
+                if other_shape:
+                    log_axis_rejection("kind_action")
+                if cached and cached[0] < started:
+                    log_axis_rejection("outside_window")
             if cached and cached[0] >= started:
                 if on_phase:
                     on_phase("mqtt_reply", (time.monotonic() - started) * 1000)
@@ -114,12 +175,18 @@ async def direct_request(target, kind, action, data):
 
 async def local_preview(target, source, name, path):
     """Renvoie une image locale en ligne ou None ; lève ValueError si le chemin ou la réponse est invalide."""
-    filename = "/".join(x for x in [filepath(path).strip("/"), str(name)] if x)
+    cachekey = local_preview_key(source, name, path)
+    filename = cachekey[1]
     if ".." in filename.split("/") or "\x00" in filename:
         raise ValueError("Nom de fichier invalide")
-    cachekey = (source, filename)
-    if cachekey in target.preview_cache:
-        return target.preview_cache[cachekey]
+    cached = target.preview_cache.get(cachekey)
+    if cached:
+        created, image = cached
+        if time.monotonic() - created < LOCAL_PREVIEW_TTL:
+            target.preview_cache.pop(cachekey)
+            target.preview_cache[cachekey] = cached
+            return image
+        target.preview_cache.pop(cachekey)
     # La consultation native Slicer 1239 reçoit son aperçu par MQTT, pas dans la réponse HTTP.
     from anycubic_cloud_api.data_models.orders import AnycubicProjectOrderRequest
 
@@ -152,7 +219,7 @@ async def local_preview(target, source, name, path):
                             + ";base64,"
                             + encoded
                         )
-                        target.preview_cache[cachekey] = image
+                        target.preview_cache[cachekey] = (time.monotonic(), image)
                         while len(target.preview_cache) > 20:
                             target.preview_cache.pop(next(iter(target.preview_cache)))
                         return image
@@ -245,6 +312,7 @@ async def read_files(target, source, path):
             ]
     setter = p._set_local_file_list if source == "local" else p._set_udisk_file_list
     setter(records, file_path=canonical)
+    invalidate_folder_previews(target, source, canonical)
     rows = p.local_file_list_object if source == "local" else p.udisk_file_list_object
     return {"files": rows, "path": canonical}
 

@@ -7,7 +7,7 @@ import {
   set,
   timeZone,
   tr,
-} from './workshop-ui.mjs?v=f016ab469b8c';
+} from './workshop-ui.mjs?v=a2ec47cbeacf';
 
 /** Crée un élément SVG avec attributs ; son texte reste littéral pour ne pas interpréter de balisage cloud. */
 function chartElement(tag, attributes, text) {
@@ -136,26 +136,44 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
   host.append(legend);
 }
 
-/** Associe chaque série historique au modèle de son boîtier, même si un autre ACE est sélectionné. */
-function renderAceCharts(host, rows, hours, filament, boxes) {
-  const series = new Map();
+/** Garde l’identité du boîtier au-dessus de ses courbes, y compris pour les anciens relevés. */
+function aceChartName(boxes, box) {
+  const model = boxes.find((entry) => String(entry.box_id) === box)?.model;
+  const number = Number(box) + 1;
+  if (!model) return `ACE ${number}`;
+  return boxes.filter((entry) => entry.model === model).length > 1 ? `${model} · ${number}` : model;
+}
+
+/** Regroupe humidité et emplacements par identifiant pour éviter de mélanger les séries de deux ACE. */
+function renderAceCharts(rows, hours, boxes) {
+  const humidity = $('chart-humidity'), other = $('statistics-other-ace'), filament = $('chart-filament');
+  const primary = String(boxes[0]?.box_id ?? 0);
+  const slots = new Map(), humidBoxes = new Set();
   for (const row of rows) {
-    for (const [box, readings] of Object.entries(row.ace_boxes)) {
-      if (!filament && Number.isFinite(readings.humidity)) series.set(box, [box, null]);
-      if (filament) {
-        for (const [slot, data] of Object.entries(readings.slots)) {
-          if (Number.isFinite(data.remaining)) series.set(`${box}:${slot}`, [box, slot]);
-        }
+    for (const [box, reading] of Object.entries(row.ace_boxes)) {
+      if (Number.isFinite(reading.humidity)) humidBoxes.add(box);
+      for (const [slot, spool] of Object.entries(reading.slots)) {
+        if (!Number.isFinite(spool.remaining)) continue;
+        if (!slots.has(box)) slots.set(box, new Set());
+        slots.get(box).add(slot);
       }
     }
   }
-  host.replaceChildren();
-  if (!series.size) host.append(node('p', tr('En attente des premiers relevés.'), 'muted'));
-  for (const [box, slot] of [...series.values()].sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
-    const moduleModel = boxes.find((entry) => String(entry.box_id) === String(box))?.model;
-    const moduleName = moduleModel || `ACE ${Number(box) + 1}`;
-    const title = `${moduleName}${filament ? ' · ' + formatText('Emplacement {0}', slot) : ' · Humidité'}`,
-      card = node('article', null, 'temperature-card'),
+  for (const host of [humidity, other, filament]) host.replaceChildren();
+  const empty = () => node('p', tr('En attente des premiers relevés.'), 'muted');
+  const ordered = (values) => [...values].sort((a, b) => Number(a) - Number(b));
+
+  function group(host, box) {
+    const section = node('section'), charts = node('div', null, 'temperature-charts');
+    section.append(node('h4', aceChartName(boxes, box), 'ace-chart-group-name'), charts);
+    host.append(section);
+    return charts;
+  }
+
+  function chart(host, box, slot) {
+    const isHumidity = slot === undefined;
+    const title = isHumidity ? tr('Humidité') : formatText('Emplacement {0}', slot);
+    const card = node('article', null, 'temperature-card'),
       heading = node('div', null, 'temperature-card-title'),
       current = node('strong'),
       plot = node('div', null, 'temperature-plot');
@@ -164,19 +182,25 @@ function renderAceCharts(host, rows, hours, filament, boxes) {
     host.append(card);
     const points = rows.map(({time, ace_boxes}) => {
       const reading = ace_boxes[box], spool = reading?.slots[slot];
-      return {
-        time,
-        value: filament ? spool?.remaining : reading?.humidity,
-        material: filament ? spool?.material : null,
-      };
+      return { time, value: isHumidity ? reading?.humidity : spool?.remaining, material: spool?.material };
     });
     renderChart(plot, current, title, points, hours, 'value', ' %', 100,
-      filament ? temperatures.ace[1] : temperatures.bed[1]);
+      isHumidity ? temperatures.bed[1] : temperatures.ace[1]);
   }
+
+  if (humidBoxes.delete(primary)) chart(humidity, primary);
+  else humidity.append(empty());
+  for (const box of ordered(humidBoxes)) chart(group(other, box), box);
+  other.hidden = !humidBoxes.size;
+  for (const box of ordered(slots.keys())) {
+    const charts = group(filament, box);
+    for (const slot of ordered(slots.get(box))) chart(charts, box, slot);
+  }
+  if (!slots.size) filament.append(empty());
 }
 
 /** Lie courbes, modèles de boîtiers et export à la cible et à la période des requêtes. */
-export function createTemperatureLoader(request, getPrinter = () => '', getBoxes = () => []) {
+export function createTemperatureLoader(request, getPrinter = () => '', getHardware = () => null) {
   let sequence = 0;
   const exportButton = $('temperature-export');
   if (exportButton) exportButton.onclick = async () => {
@@ -215,12 +239,11 @@ export function createTemperatureLoader(request, getPrinter = () => '', getBoxes
           title = plot.previousElementSibling.querySelector('h4').textContent;
         renderChart(plot, $(`temperature-${key}-current`), title, data.readings, hours, key, ' °C', top, color);
       }
-      const aceRows = data.readings.filter((row) => row.ace_boxes);
-      const boxes = getBoxes() || [];
-      const firstModel = boxes[0]?.model;
-      $('chart-ace-name').textContent = firstModel || tr('Module ACE');
-      renderAceCharts($('chart-humidity'), aceRows, hours, false, boxes);
-      renderAceCharts($('chart-filament'), aceRows, hours, true, boxes);
+      const hardware = getHardware();
+      const boxes = hardware?.boxes || [];
+      set('statistics-printer-name', hardware?.name || hardware?.machine_name || tr('Imprimante'));
+      set('statistics-ace-name', boxes.length ? aceChartName(boxes, String(boxes[0].box_id ?? 0)) : tr('ACE'));
+      renderAceCharts(data.readings.filter((row) => row.ace_boxes), hours, boxes);
       set(
         'temperature-note',
         tr(

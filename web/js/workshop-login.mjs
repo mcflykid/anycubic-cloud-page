@@ -1,4 +1,4 @@
-import { tr } from './workshop-ui.mjs?v=f016ab469b8c';
+import { tr } from './workshop-ui.mjs?v=a2ec47cbeacf';
 
 /** Préserve le POST serveur et les gestionnaires de mots de passe en ajoutant un retour accessible. */
 export function initializeLogin() {

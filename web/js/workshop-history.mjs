@@ -1,5 +1,6 @@
 import {
   $,
+  beginListLoading,
   confirmAction,
   date,
   fmt,
@@ -10,13 +11,14 @@ import {
   node,
   serverText,
   set,
+  signalChange,
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=f016ab469b8c';
-import { workshopState } from './workshop-state.mjs?v=d023298e5d0e';
-import { slots, filamentAdvice } from './workshop-commands.mjs?v=6ffb7326b8fe';
-import { definition } from './workshop-overview.mjs?v=46a93c98af7f';
+} from './workshop-ui.mjs?v=a2ec47cbeacf';
+import { workshopState } from './workshop-state.mjs?v=99955b5e5cf1';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=75782c47466d';
+import { definition } from './workshop-overview.mjs?v=917302d982a5';
 import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs?v=b7032b1dcfc1';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
@@ -70,12 +72,15 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Conserve le compteur reçu par le statut, sans ajouter un intervalle de requêtes. */
   function updateNoticeCount(count) {
+    const previous = noticeUnread;
     noticeUnread = count == null
       ? noticeRows.filter((item) => item.unread).length
       : Math.max(0, Number(count) || 0);
     const displayed = fmt(noticeUnread);
     const plural = noticeUnread > 1 ? 's' : '';
-    $('notifications-dot').hidden = !noticeUnread;
+    const badge = $('notifications-dot');
+    badge.hidden = !noticeUnread;
+    if (noticeUnread > previous) signalChange(badge);
     $('notifications-filter-dot').hidden = !noticeUnread;
     set('notifications-title', formatText('Messages ({0})', displayed));
     $('notifications-toggle').setAttribute(
@@ -714,8 +719,10 @@ export function createHistory(request, command, selectedBox) {
       tasksPage = 1;
       taskRows = [];
     }
-    set('tasks-state', tr('Chargement des impressions…'));
-    $('tasks-state').hidden = false;
+    const stopLoading = beginListLoading($('tasks-list'), $('tasks-loading'), () => {
+      set('tasks-state', tr('Chargement des impressions…'));
+      $('tasks-state').hidden = false;
+    });
     try {
       const d = await request(`/extras/tasks?page=${tasksPage}&device=all`);
       if (generation !== tasksGeneration) return;
@@ -742,6 +749,8 @@ export function createHistory(request, command, selectedBox) {
       if (generation !== tasksGeneration) return;
       set('tasks-state', e.message);
       $('tasks-state').hidden = false;
+    } finally {
+      stopLoading();
     }
   }
   /** L’onglet d’historique est distinct du centre de messages de la cloche. */

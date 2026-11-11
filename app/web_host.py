@@ -131,13 +131,13 @@ def set_session_cookie(response, name, token, remaining, secure):
 
 
 def client_address(request):
-    """Résout le premier pair non fiable depuis la droite de X-Forwarded-For ; sans proxy déclaré, ignore l’en-tête."""
+    """Résout le pair non fiable depuis la droite et regroupe IPv6 par /64."""
     remote = request.remote or "unknown"
     trusted = request.app[TRUSTED_PROXIES_KEY]
     try:
         peer = ipaddress.ip_address(remote)
         if not any(peer in network for network in trusted):
-            return remote
+            return rate_limit_address(peer)
         chain = [
             ipaddress.ip_address(part.strip())
             for part in request.headers.get("X-Forwarded-For", "").split(",")
@@ -146,9 +146,16 @@ def client_address(request):
             if not any(peer in network for network in trusted):
                 break
             peer = candidate
-        return str(peer)
+        return rate_limit_address(peer)
     except ValueError:
         return remote
+
+
+def rate_limit_address(address):
+    """Regroupe les adresses IPv6 voisines pour limiter le contournement par rotation d’interface."""
+    if address.version == 6:
+        return str(ipaddress.ip_network(f"{address}/64", strict=False))
+    return str(address)
 
 
 def credentials():
@@ -256,6 +263,7 @@ async def access_control(request, handler):
                     state.sessions[key] = session
                     migration = (token, max(1, int(session.expires - time.monotonic())))
                 request[SESSION_DIGEST_KEY] = key
+                request["session_expires"] = session.expires
                 response = await handler(request)
     except web.HTTPException as error:
         response = web.Response(body=error.body, status=error.status, headers=error.headers)
