@@ -28,18 +28,33 @@ export function createSettings(request, command, camera) {
     ))
       button.disabled = true;
     set('control-light-state', tr('État inconnu'));
+    $('control-view-idle').hidden = true;
+    if (currentControlView === 'idle') showControlView('monitor');
   }
-  function showControlView(settings) {
-    $('controls-monitor').hidden = settings;
-    $('settings-form').hidden = !settings;
-    $('idle-controls').classList.toggle('control-hidden', settings);
-    $('control-view-monitor').setAttribute('aria-pressed', String(!settings));
-    $('control-view-settings').setAttribute('aria-pressed', String(settings));
+  const controlViews = {monitor: 'controls-monitor', idle: 'idle-controls', settings: 'settings-form'};
+  const idleFan = $('idle-fan-form');
+  let currentControlView = 'monitor';
+
+  /** Préserve la vue des mesures si l’imprimante cesse d’être disponible au repos. */
+  function showControlView(view) {
+    currentControlView = view;
+    for (const [name, panel] of Object.entries(controlViews)) {
+      $(panel).hidden = name !== view;
+      $(`control-view-${name}`).setAttribute('aria-pressed', String(name === view));
+    }
   }
-  $('control-view-monitor').onclick = () => showControlView(false);
-  $('control-view-settings').onclick = () => showControlView(true);
+
+  /** Affiche la vitesse lue sans remplacer la valeur préparée pour la commande. */
+  function updateIdleFanReading() {
+    const printer = workshopState.snapshot?.printer;
+    set('idle-fan-current', formatText('Vitesse actuelle : {0}', fmt(printer?.[idleFan.elements.fan.value], ' %')));
+  }
+
+  for (const view of Object.keys(controlViews))
+    $(`control-view-${view}`).onclick = () => showControlView(view);
+  idleFan.elements.fan.onchange = updateIdleFanReading;
   $('controls-open').onclick = () => {
-    showControlView(false);
+    showControlView('monitor');
     controlFeedback('');
     $('controls-dialog').showModal();
   };
@@ -58,11 +73,11 @@ export function createSettings(request, command, camera) {
     void command('idle-settings', Object.fromEntries(new FormData(event.target)),
       tr('Appliquer ces températures à l’imprimante au repos ? Vérifiez le plateau et les matériaux présents.'), controlFeedback);
   };
-  $('idle-fan-form').onsubmit = (event) => {
+  idleFan.onsubmit = (event) => {
     event.preventDefault();
     const data = new FormData(event.target);
     void command('idle-settings', { [data.get('fan')]: data.get('value') },
-      tr('Régler ce ventilateur au repos ?'), controlFeedback);
+      formatText('Régler le ventilateur « {0} » à {1} % ?', idleFan.elements.fan.selectedOptions[0].textContent, data.get('value')), controlFeedback);
   };
   $('rename-form').onsubmit = (e) => {
     e.preventDefault();
@@ -97,7 +112,9 @@ export function createSettings(request, command, camera) {
   function updateNativeControls(p) {
     const limits = p.idle_limits || {};
     const idle = workshopState.snapshot?.ok && p.printer_online && p.is_available && !p.is_busy && !p.job_in_progress && Object.keys(limits).length;
-    $('idle-controls').hidden = !idle;
+    $('control-view-idle').hidden = !idle;
+    if (!idle && currentControlView === 'idle') showControlView('monitor');
+    updateIdleFanReading();
     for (const form of [$('idle-temperature-form'), $('idle-fan-form')])
       for (const field of form.querySelectorAll('input,select,button')) field.disabled = !idle;
     for (const name of ['target_nozzle_temp', 'target_hotbed_temp']) {

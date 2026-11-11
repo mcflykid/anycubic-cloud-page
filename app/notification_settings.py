@@ -118,7 +118,18 @@ def discord_page(delivery, message="", status=200, *, report=False):
         "unavailable": "État de livraison indisponible.",
     }
     feedback = f'<p role="status">{html.escape(message)}</p>' if message else ""
-    configured = "Webhook enregistré." if config.url else "Aucun webhook enregistré."
+    configured = (
+        "Webhook enregistré. Son adresse est masquée."
+        if config.url
+        else "Aucun webhook enregistré."
+    )
+    state = "Canal actif" if config.enabled else "Canal désactivé"
+    state_name = "active" if config.enabled else "inactive"
+    url_hint = (
+        "Laissez ce champ vide pour garder l’adresse actuelle."
+        if config.url
+        else "Collez ici l’adresse du webhook du salon Discord."
+    )
     last = labels.get(delivery.last_outcome, "")
     last_delivery = f"<p>{last}</p>" if last else ""
     enabled = " checked" if config.enabled else ""
@@ -136,7 +147,7 @@ def discord_page(delivery, message="", status=200, *, report=False):
         if report
         else (
             f'<label class="check"><input type="checkbox" name="include_filename"{include_filename}> '
-            "Inclure le nom du fichier</label>"
+            "<span>Inclure le nom du fichier</span></label>"
         )
     )
     other_path = PATH if report else REPORT_PATH
@@ -146,21 +157,25 @@ def discord_page(delivery, message="", status=200, *, report=False):
     body = f"""<h1>{title}</h1>
 <p>{introduction}</p>
 <p><a href="{other_path}">{other_title}</a></p>
+<div class="discord-status">
+<p class="discord-state" data-state="{state_name}">{state}</p>
 <p>{configured}</p>
 {last_delivery}
+</div>
 {feedback}
 <form method="post" action="{action}">
 <label for="discord-url">Adresse du webhook Discord</label>
 <input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" aria-describedby="discord-url-hint">
-<p id="discord-url-hint" class="muted">Laissez vide pour conserver le webhook enregistré.</p>
+<p id="discord-url-hint" class="muted">{url_hint}</p>
 <label for="discord-language">Langue du message</label>
 <select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option></select>
 <div class="discord-options">
-<label class="check"><input type="checkbox" name="enabled"{enabled}> {activation}</label>
+<label class="check"><input type="checkbox" name="enabled"{enabled}> <span>{activation}</span></label>
 {filename}
 </div>
 <label for="discord-password">Mot de passe web</label>
-<input id="discord-password" type="password" name="password" maxlength="2048" required autocomplete="current-password">
+<input id="discord-password" type="password" name="password" maxlength="2048" required autocomplete="current-password" aria-describedby="discord-password-hint">
+<p id="discord-password-hint" class="muted">Requis uniquement pour modifier les réglages ou envoyer un test.</p>
 <div class="actions">
 <button class="primary" type="submit" name="operation" value="save">Enregistrer</button>
 <button type="submit" name="operation" value="test">Envoyer un test</button>

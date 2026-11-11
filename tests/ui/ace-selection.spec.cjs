@@ -1,5 +1,5 @@
 const {test, expect}=require('@playwright/test');
-const {login}=require('./helpers.cjs');
+const {login,openSection}=require('./helpers.cjs');
 
 test('le second ACE garde ses bobines et sa cible, puis se replie s’il disparaît', async({page})=>{
   let second=true;
@@ -31,4 +31,40 @@ test('le second ACE garde ses bobines et sa cible, puis se replie s’il dispara
   await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
   await expect(page.locator('#ace-selector')).toBeHidden();
   await expect(page.locator('#spools .ace-spool-copy strong').first()).toContainText('PLA');
+});
+
+test('les bobines et les commandes ACE restent alignées en mode sombre', async ({page}) => {
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    data.printer.boxes[0].spools[3].spool_loaded = false;
+    await route.fulfill({json: data});
+  });
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await login(page, 'ace');
+  await page.locator('html').evaluate(el => el.dataset.theme = 'dark');
+  const spools = page.locator('#spools .spool-illustration');
+  await expect(spools).toHaveCount(3);
+  await expect(spools.first()).toHaveAttribute('aria-hidden', 'true');
+  expect((await spools.first().boundingBox()).width).toBeLessThanOrEqual(32);
+  await expect(page.locator('#spools .ace-spool-empty')).toHaveCount(1);
+  const drying = page.locator('#go-drying'), spool = page.locator('#go-spool');
+  const relayState = page.locator('#ace-relay-state'), relayButton = page.locator('#ace-relay-open');
+  for (const width of [1920, 390]) {
+    await page.setViewportSize({width, height: 900});
+    expect((await drying.boundingBox()).y).toBeCloseTo((await spool.boundingBox()).y, 0);
+    const stateBox = await relayState.boundingBox(), relayBox = await relayButton.boundingBox();
+    expect(relayBox.y).toBeGreaterThanOrEqual(stateBox.y + stateBox.height);
+    expect(relayBox.x).toBeCloseTo(stateBox.x, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  await drying.click();
+  const toggle = await page.locator('#dry-toggle').boundingBox();
+  const status = await page.locator('#drying-state').boundingBox();
+  expect(status.y).toBeGreaterThanOrEqual(toggle.y + toggle.height);
+  await page.keyboard.press('Escape');
+  await openSection(page, 'camera');
+  const help = page.locator('[data-context-help="camera"]');
+  const header = await help.locator('..').boundingBox();
+  const button = await help.boundingBox();
+  expect(Math.abs(button.x + button.width / 2 - (header.x + header.width / 2))).toBeLessThanOrEqual(1);
 });

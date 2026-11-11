@@ -9,7 +9,7 @@ Mise à jour le 11 novembre 2026. Voir les [versions publiées](https://github.c
 - Le catalogue conserve Par défaut, Aurore et Laboratoire. Voir le [guide des styles](THEMES.md).
 - Les essais sur la Kobra S1 Combo suivent le cadre [#214](https://github.com/mcflykid/anycubic-cloud-page/issues/214), avec vérification de l’état et remise en état après chaque essai. Toute impression complète, mise à jour de firmware ou réinitialisation est exclue.
 
-## Version finale 1.12.0
+## Version 1.12.1
 
 Les [changements](../CHANGELOG.md) couvrent les trois styles, les réglages Discord, le catalogue d’erreurs et l’aide contextuelle. Les [essais de clôture](CLOSURE.md) documentent les validations et les preuves à réunir si une investigation reprend.
 

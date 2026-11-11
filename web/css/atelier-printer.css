@@ -75,10 +75,6 @@
   text-align: left;
   font-weight: var(--atelier-semibold);
 }
-#printer-fans {
-  border-block-start: var(--atelier-rule) solid var(--atelier-line);
-  padding-block-start: var(--atelier-space-3);
-}
 .printer-materials { margin-block-start: var(--atelier-space-4); }
 #tab-overview .atelier-measures .metric-icon { display: none; }
 @container printer (min-width: 900px) {

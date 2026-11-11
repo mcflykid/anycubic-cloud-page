@@ -155,17 +155,17 @@ export function createAce(command, refresh) {
       ['Humidité', fmt(box.humidity, ' %')],
     ]);
     $('spools').replaceChildren(
-      ...spools.map((spool) => {
+      ...spools.map((spool, index) => {
         const row = node('article', null, 'ace-spool-row'),
-          color = node('span', null, 'summary-spool-color'),
           copy = node('div', null, 'ace-spool-copy'),
           remaining = node('div', null, 'ace-spool-remaining'),
           edit = node('button', tr(spool.rfid === true ? 'Voir' : 'Modifier'), 'atelier-control');
         const variant = filamentVariant(spool);
-        const palette = spoolColors(variant?.band ? [...spool.color, ...variant.band] : spool.color);
-        if (palette.length > 1) color.style.backgroundImage = 'linear-gradient(90deg,' + palette.join(',') + ')';
-        else if (palette.length) color.style.backgroundColor = palette[0];
-        color.setAttribute('aria-hidden', 'true');
+        const winding = variant?.band ? [...spool.color, ...variant.band] : spool.color;
+        const illustration = spool.spool_loaded === true
+          ? spoolIllustration(winding, `ace-row-${index}`, false)
+          : node('span', '—', 'ace-spool-empty');
+        illustration.setAttribute('aria-hidden', 'true');
         const title = formatText('Emplacement {0}', spool.display_slot ?? spool.slot);
         copy.append(node('strong', title + ' · ' + (spool.material_type || tr('Non renseigné'))));
         if (typeof spool.rfid === 'boolean')
@@ -182,7 +182,7 @@ export function createAce(command, refresh) {
         }
         edit.type = 'button';
         edit.onclick = () => openSpool(spool.local_slot || spool.slot);
-        row.append(color, copy, remaining, edit);
+        row.append(illustration, copy, remaining, edit);
         return row;
       }),
     );

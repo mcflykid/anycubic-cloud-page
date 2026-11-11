@@ -7,10 +7,13 @@ test('Discord se configure, se teste et se retire sans réafficher le webhook',a
   await login(page);
   await page.locator('[data-tab=settings]').click();
   await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
+  await page.setViewportSize({width:390,height:844});
+  await page.emulateMedia({colorScheme:'dark'});
   const password=page.getByLabel('Mot de passe web');
   const address=page.getByLabel('Adresse du webhook Discord');
   const enabled=page.getByRole('checkbox',{name:'Activer les notifications Discord'});
   await expect(enabled).not.toBeChecked();
+  await expect(page.getByText('Canal désactivé',{exact:true})).toBeVisible();
   await address.fill(fixture);
   await password.fill('ui-fixture-password');
   await page.getByRole('button',{name:'Envoyer un test'}).click();
@@ -23,7 +26,14 @@ test('Discord se configure, se teste et se retire sans réafficher le webhook',a
   await page.getByRole('button',{name:'Enregistrer',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('Réglage Discord enregistré.');
   await expect(enabled).toBeChecked();
+  await expect(page.getByText('Canal actif',{exact:true})).toBeVisible();
+  await expect(page.getByText('Webhook enregistré. Son adresse est masquée.',{exact:true})).toBeVisible();
   await expect(address).toBeEmpty();
+  const checkbox=await enabled.boundingBox();
+  const label=await page.getByText('Activer les notifications Discord',{exact:true}).boundingBox();
+  expect(checkbox.width).toBeLessThan(26);
+  expect(label.x-checkbox.x-checkbox.width).toBeLessThan(20);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   expect(await page.content()).not.toContain(fixture);
   await password.fill('ui-fixture-password');
   await page.getByRole('button',{name:'Supprimer le webhook'}).click();

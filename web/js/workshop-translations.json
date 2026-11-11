@@ -5034,5 +5034,49 @@
   "Aide": [
     "Help",
     "Ayuda"
+  ],
+  "Webhook enregistré. Son adresse est masquée.": [
+    "Webhook saved. Its address is hidden.",
+    "Webhook guardado. Su dirección está oculta."
+  ],
+  "Canal actif": [
+    "Channel enabled",
+    "Canal activo"
+  ],
+  "Canal désactivé": [
+    "Channel disabled",
+    "Canal desactivado"
+  ],
+  "Laissez ce champ vide pour garder l’adresse actuelle.": [
+    "Leave this field empty to keep the current address.",
+    "Deja este campo vacío para conservar la dirección actual."
+  ],
+  "Collez ici l’adresse du webhook du salon Discord.": [
+    "Paste the Discord channel’s webhook URL here.",
+    "Pega aquí la dirección del webhook del canal de Discord."
+  ],
+  "Requis uniquement pour modifier les réglages ou envoyer un test.": [
+    "Required only to change settings or send a test.",
+    "Solo se requiere para cambiar la configuración o enviar una prueba."
+  ],
+  "Vitesse cible (%)": [
+    "Target speed (%)",
+    "Velocidad objetivo (%)"
+  ],
+  "0 à 100": [
+    "0 to 100",
+    "0 a 100"
+  ],
+  "0 °C coupe la chauffe.": [
+    "0 °C turns heating off.",
+    "0 °C apaga la calefacción."
+  ],
+  "Vitesse actuelle : {0}": [
+    "Current speed: {0}",
+    "Velocidad actual: {0}"
+  ],
+  "Régler le ventilateur « {0} » à {1} % ?": [
+    "Set the “{0}” fan to {1}%?",
+    "¿Ajustar el ventilador «{0}» al {1} %?"
   ]
 }

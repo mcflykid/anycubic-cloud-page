@@ -16,6 +16,12 @@
 }
 .camera-workspace .atelier-status { min-inline-size: 0; }
 .camera-workspace [hidden] { display: none; }
+/* Des colonnes latérales égales gardent l’aide centrée quel que soit le libellé d’état. */
+.camera-feed-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.camera-feed-header #camera-state { justify-self: end; }
 #camera-state.atelier-status {
   min-block-size: 0;
   padding: 0;

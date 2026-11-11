@@ -8,7 +8,7 @@ Un contrôle Cloud en lecture seule sur une S1 2.7.2.7 confirme que `free_temp_l
 
 ## Températures et ventilation
 
-Dans **Commandes courantes → Mesures et éclairage**, les réglages au repos apparaissent seulement si la S1 est libre, en ligne et fournit ses limites. Les champs vides ne changent rien. Le zéro coupe la chauffe de la cible choisie. Aucun profil de matériau ni préchauffage automatique n’est proposé.
+La vue **Commandes courantes → Réglages au repos** apparaît seulement si la S1 est libre, en ligne et fournit ses limites. Le formulaire de ventilation affiche la vitesse actuelle sous la cible à saisir. Les champs vides ne changent rien. Le zéro coupe la chauffe de la cible choisie. Aucun profil de matériau ni préchauffage automatique n’est proposé.
 
 Le formulaire de température envoie l’ordre `1216` sous la forme imprimante : `order_id` texte, `printer_id` numérique, `data`, sans `project_id`. `type` vaut 0 pour la buse seule, 1 pour le plateau seul et 2 pour les deux. Les champs de la cible non choisie sont nuls selon ce contrat; `type` détermine les cibles modifiées. Les températures respectent les limites `free_temp_limit`, distinctes des limites d’impression `temp_limit`.
 

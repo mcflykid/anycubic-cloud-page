@@ -28,18 +28,26 @@
 .ace-module-body [hidden] { display: none; }
 .ace-relay-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--atelier-space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--atelier-space-2);
   padding-block-start: var(--atelier-space-3);
   border-block-start: var(--atelier-rule) solid var(--atelier-line);
 }
 .ace-module-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: auto repeat(2, minmax(0, 1fr));
   gap: var(--atelier-space-2);
 }
-#tab-ace .ace-module-actions button { white-space: normal; }
+#tab-ace .ace-module-actions button {
+  block-size: auto;
+  padding-block: var(--atelier-space-1);
+  white-space: normal;
+}
+#tab-ace .ace-module-actions .context-help-trigger {
+  inline-size: var(--atelier-control);
+  min-block-size: var(--atelier-control);
+}
 .ace-spool-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) minmax(0, .65fr) auto;
@@ -49,6 +57,13 @@
   padding: var(--atelier-space-3) var(--atelier-space-4);
 }
 .ace-spool-row + .ace-spool-row { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+.ace-spool-row :is(.spool-illustration, .ace-spool-empty) {
+  display: grid;
+  place-items: center;
+  width: var(--atelier-space-6);
+  height: var(--atelier-space-6);
+}
+.ace-spool-empty { color: var(--atelier-muted); }
 .ace-spool-copy { min-width: 0; overflow-wrap: anywhere; }
 .ace-spool-copy strong,
 .ace-spool-remaining strong { font-weight: var(--atelier-semibold); }
@@ -77,10 +92,11 @@
     grid-row: span 3;
     grid-template-rows: subgrid;
   }
+  /* Le relais reste près des autres commandes quand la liste des bobines est plus haute. */
+  .ace-module-body { grid-template-rows: 1fr auto; }
 }
 @container ace (max-width: 420px) {
   .ace-spool-row { gap: var(--atelier-space-2); }
-  .ace-module-actions { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Les commandes du formulaire de séchage gardent une marge sur les écrans étroits. */
@@ -90,3 +106,11 @@
 #dry-dialog #dry-form > #auto-feed-save {
   margin-inline: 0;
 }
+
+#dry-dialog .drying-status {
+  display: grid;
+  justify-items: start;
+  gap: var(--atelier-space-2);
+}
+#dry-dialog .drying-status p { margin: 0; }
+#dry-dialog .drying-status #dry-toggle { padding-inline: 0; }
