@@ -66,7 +66,9 @@ def qr_image(secret):
 
     issuer = "Anycubic Cloud Page"
     label = quote(issuer, safe="")
-    uri = f"otpauth://totp/{label}?{urlencode({'secret': secret, 'issuer': issuer})}"
+    # Certains lecteurs traitent un signe plus comme un caractère littéral dans une URI otpauth.
+    query = urlencode({"secret": secret, "issuer": issuer}, quote_via=quote)
+    uri = f"otpauth://totp/{label}?{query}"
     return segno.make_qr(uri).png_data_uri(scale=5, border=4)
 
 

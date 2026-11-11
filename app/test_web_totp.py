@@ -15,7 +15,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from printer_registry import select_printer
 from web_host import ACCESS_KEY, COOKIE_NAME, access_control, install_access
-from web_totp import TotpConfig, TotpStore, code_at, matching_step, recovery_digest
+from web_totp import TotpConfig, TotpStore, code_at, matching_step, qr_image, recovery_digest
 
 FIXTURE_TIME = 1_700_000_000
 FIXTURE_ORIGIN = "http://localhost:8080"
@@ -40,6 +40,14 @@ class TotpCodes(unittest.TestCase):
         self.assertIsNone(
             matching_step(FIXTURE_SECRET, code_at(FIXTURE_SECRET, step - 2), FIXTURE_TIME)
         )
+
+    def test_qr_issuer_uses_uri_escaped_spaces(self):
+        """L’émetteur reste lisible pour les lecteurs qui ne décodent pas le signe plus."""
+        with patch("segno.make_qr") as qr:
+            qr_image(FIXTURE_SECRET)
+        uri = qr.call_args.args[0]
+        self.assertIn("issuer=Anycubic%20Cloud%20Page", uri)
+        self.assertNotIn("+", uri)
 
 
 class TotpBoundary(unittest.IsolatedAsyncioTestCase):
