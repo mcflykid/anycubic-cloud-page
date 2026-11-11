@@ -350,11 +350,13 @@
         <p>Un code temporaire est demandé après le mot de passe.</p>
       </div>
     </section>
+    <section class="atelier-card settings-discord" aria-labelledby="settings-discord-title" <!-- DISCORD_CARD_VISIBILITY -->>
+      <header class="atelier-card-header"><h2 id="settings-discord-title">Notifications Discord</h2></header>
+      <div class="atelier-card-body">
+        <div class="settings-factor"><span class="atelier-status" data-state="<!-- DISCORD_BADGE_STATE -->"><!-- DISCORD_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></div>
+      </div>
+    </section>
   </div>
-  <section class="atelier-card settings-discord" aria-labelledby="settings-discord-title" <!-- DISCORD_CARD_VISIBILITY -->>
-    <header class="atelier-card-header"><h2 id="settings-discord-title">Notifications Discord</h2><span class="atelier-status" data-state="<!-- DISCORD_BADGE_STATE -->"><!-- DISCORD_STATE --></span></header>
-    <footer class="atelier-card-footer"><p>Recevez un message après une impression terminée ou échouée.</p><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></footer>
-  </section>
 <div class="section-title extras-settings-heading" hidden><div><h3>Réglages de la machine</h3><p id="device-options-state" class="muted">Lisez les options disponibles sur votre imprimante.</p></div><button id="device-options-load" type="button">Lire les options</button></div>
 <div class="extras-settings-grid" hidden>
 <section class="form-panel"><h3>◎ Calibrations</h3><p class="muted" id="calibration-help">Les calibrations disponibles dépendent du modèle et du firmware.</p><form id="calibration-form"><fieldset disabled id="calibration-fields"><div id="calibration-choices"></div><button type="submit">Démarrer</button></fieldset></form></section>
