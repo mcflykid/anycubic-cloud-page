@@ -4326,5 +4326,21 @@
   "Le réglage a changé. Actualisez la page.": [
     "The setting changed. Refresh the page.",
     "La configuración ha cambiado. Actualiza la página."
+  ],
+  "Connexion occupée. Réessayez dans un instant.": [
+    "Sign-in is busy. Try again in a moment.",
+    "El inicio de sesión está ocupado. Vuelve a intentarlo en un momento."
+  ],
+  "Trop de tentatives. Réessayez dans un instant.": [
+    "Too many attempts. Try again in a moment.",
+    "Demasiados intentos. Vuelve a intentarlo en un momento."
+  ],
+  "Codes temporaires suspendus. Utilisez un code de secours ou attendez.": [
+    "Temporary codes are paused. Use a recovery code or wait.",
+    "Los códigos temporales están en pausa. Usa un código de recuperación o espera."
+  ],
+  "Trop de codes refusés. Recommencez la connexion.": [
+    "Too many rejected codes. Start signing in again.",
+    "Demasiados códigos rechazados. Vuelve a iniciar sesión."
   ]
 }

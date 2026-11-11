@@ -130,6 +130,7 @@ class TotpEnrollment:
 
     expires: float
     secret: str
+    failures: int = 0
 
 
 class AccessState:
@@ -683,21 +684,14 @@ async def totp_settings(request):
             return web.Response(status=rejection)
         state.prune()
         config = current_totp(request)
-        _, expected, fingerprint = credentials()
-        session = state.sessions.get(key)
-        if session is None or not hmac.compare_digest(session.fingerprint, fingerprint):
-            raise web.HTTPUnauthorized(text="Session expirée.")
+
+        def render_refusal(message, status):
+            return totp_settings_page(store, config, message, status)
+
+        session, refusal = confirm_web_password(request, form.get("password", ""), render=render_refusal)
+        if refusal is not None:
+            return refusal
         now = state.clock()
-        failures, until = state.failures.get(client, (0, now + FAILURE_SECONDS))
-        if failures >= FAILURE_LIMIT:
-            response = totp_settings_page(
-                store, config, "Trop de tentatives. Réessayez dans quelques minutes.", 429
-            )
-            response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
-            return response
-        if not hmac.compare_digest(form.get("password", "").encode(), expected.encode()):
-            state.record_failure(client, failures, until)
-            return totp_settings_page(store, config, "Mot de passe web incorrect.", 403)
         stage = form.get("stage")
         if stage == "prepare" and config is None:
             enrollment = TotpEnrollment(now + ENROLLMENT_SECONDS, new_secret())
@@ -711,8 +705,10 @@ async def totp_settings(request):
                 )
             step = matching_step(enrollment.secret, form.get("code", ""), time.time())
             if step is None:
-                state.record_failure(client, failures, until)
-                # Le QR et la clé restent limités à la réponse initiale de préparation.
+                # L’inscription provisoire borne aussi ses essais sans toucher au quota de connexion.
+                enrollment.failures += 1
+                if enrollment.failures >= TOTP_CHALLENGE_LIMIT:
+                    state.enrollments.pop(key, None)
                 return totp_settings_page(
                     store, config, "Code invalide. Recommencez la préparation.", 400
                 )
@@ -784,29 +780,42 @@ async def reauthenticate(request):
         or not isinstance(password, str)
     ):
         return web.json_response({"message": "Demande de confirmation invalide."}, status=400)
+    session, refusal = confirm_web_password(request, password)
+    if refusal is not None:
+        return refusal
+    token = secrets.token_urlsafe(32)
+    session.ticket = ActionTicket(
+        session_digest(token), action, printer, time.monotonic() + REAUTH_SECONDS
+    )
+    return web.json_response({"confirmation": token})
+
+
+def password_refusal(message, status):
+    """Présente les refus de confirmation aux clients JSON."""
+    return web.json_response({"message": message}, status=status)
+
+
+def confirm_web_password(request, password, *, render=password_refusal):
+    """Vérifie le mot de passe et applique le même quota pour toutes les actions authentifiées."""
     session = active_session(request)
     if session is None:
-        return web.json_response({"message": "Session expirée."}, status=401)
+        return None, render("Session expirée.", 401)
+    _, expected, fingerprint = credentials()
+    if not hmac.compare_digest(fingerprint, session.fingerprint):
+        return None, render("Session expirée.", 401)
     now = time.monotonic()
     if session.reauth_until <= now:
         session.reauth_failures = 0
         session.reauth_until = now + FAILURE_SECONDS
     if session.reauth_failures >= FAILURE_LIMIT:
-        return web.json_response(
-            {"message": "Trop de tentatives. Réessayez dans quelques minutes."},
-            status=429,
-            headers={"Retry-After": str(max(1, int(session.reauth_until - now) + 1))},
-        )
-    _, expected, fingerprint = credentials()
-    if not hmac.compare_digest(fingerprint, session.fingerprint):
-        return web.json_response({"message": "Session expirée."}, status=401)
+        refusal = render("Trop de tentatives. Réessayez dans quelques minutes.", 429)
+        refusal.headers["Retry-After"] = str(max(1, int(session.reauth_until - now) + 1))
+        return None, refusal
     if not hmac.compare_digest(password.encode(errors="surrogatepass"), expected.encode()):
         session.reauth_failures += 1
-        return web.json_response({"message": "Mot de passe web incorrect."}, status=403)
+        return None, render("Mot de passe web incorrect.", 403)
     session.reauth_failures = 0
-    token = secrets.token_urlsafe(32)
-    session.ticket = ActionTicket(session_digest(token), action, printer, now + REAUTH_SECONDS)
-    return web.json_response({"confirmation": token})
+    return session, None
 
 
 def consume_action_ticket(request, action, token):

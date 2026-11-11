@@ -633,6 +633,26 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(second, timeout=1)
         self.assertEqual(entered, ["suivante"])
 
+    async def test_settings_and_sensitive_actions_share_confirmation_quota(self):
+        """Les deux écrans partagent le quota de leur session, sans épuiser celui de connexion."""
+        self.assertEqual((await self.sign_in()).status, 303)
+        for _ in range(4):
+            self.assertEqual((await self.confirm_action(password="wrong")).status, 403)
+        invalid = await self.client.post(
+            "/imprimante-api/security",
+            data={"stage": "prepare", "password": "wrong"},
+            headers={"Origin": self.origin},
+        )
+        self.assertEqual(invalid.status, 403)
+        refusal = await self.confirm_action()
+        self.assertEqual(refusal.status, 429)
+        self.assertIn("Retry-After", refusal.headers)
+        self.assertFalse(self.app[ACCESS_KEY].failures)
+
+        self.app[ACCESS_KEY].sessions.clear()
+        expired = await self.confirm_action()
+        self.assertEqual(expired.status, 401)
+
     async def test_login_queue_is_bounded_and_skips_a_closed_client(self):
         """Une place abandonnée ne retarde pas le prochain client admis."""
         state = self.app[ACCESS_KEY]
