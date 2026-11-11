@@ -915,7 +915,7 @@
     font-size: .72rem;
   }
 
-  #tab-statistics .temperature-charts,
+  #tab-statistics :is(#statistics-printer, #statistics-ace) .temperature-charts,
   #tab-statistics #chart-humidity,
   #tab-statistics #statistics-other-ace {
     display: contents;
@@ -979,28 +979,9 @@
     font-size: .66rem;
   }
 
+  /* Chaque groupe ACE garde sa propre grille d’emplacements. */
   #tab-statistics #chart-filament {
-    display: grid;
     grid-area: filaments;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  #tab-statistics #chart-filament .temperature-card {
-    min-width: 0;
-  }
-
-  /* Les emplacements de filament sont aplatis pour rejoindre leur quadrillage dédié. */
-  #tab-statistics #statistics-filament > section {
-    display: contents;
-  }
-
-  #tab-statistics #chart-filament > section {
-    display: contents;
-  }
-
-  #tab-statistics #chart-filament > section > h4 {
-    grid-column: 1 / -1;
   }
 
   #tab-statistics .temperature-card {
@@ -1084,7 +1065,7 @@
     grid-column: 1 / -1;
   }
 
-  #tab-statistics .temperature-charts,
+  #tab-statistics :is(#statistics-printer, #statistics-ace) .temperature-charts,
   #tab-statistics #chart-humidity,
   #tab-statistics #statistics-other-ace {
     display: grid;
@@ -1106,17 +1087,6 @@
 
   #tab-statistics #chart-filament {
     grid-area: auto;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  #tab-statistics #statistics-filament > section,
-  #tab-statistics #chart-filament > section {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    min-width: 0;
-    gap: 8px;
-    align-content: start;
   }
 
   #tab-statistics .temperature-card {
@@ -1535,17 +1505,12 @@
     display: block;
   }
 
-  #tab-statistics .temperature-charts,
+  #tab-statistics :is(#statistics-printer, #statistics-ace) .temperature-charts,
   #tab-statistics #chart-humidity,
   #tab-statistics #statistics-other-ace {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-  }
-
-  #tab-statistics .statistics-grid #chart-filament {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   #tab-fleet #monitor-grid.monitor-grid,

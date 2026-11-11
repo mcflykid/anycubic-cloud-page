@@ -7,6 +7,7 @@
 - Sépare les courbes Buse et Plateau dans les statistiques (#238).
 - Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
 - Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
+- Aligne les quatre courbes de filament sur une rangée par ACE sur ordinateur (#264).
 
 - Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
 - Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).

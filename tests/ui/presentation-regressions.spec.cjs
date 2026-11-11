@@ -48,6 +48,51 @@ test('la caméra et ses commandes partagent la même largeur sur grand écran', 
   await expect(page.locator('.axis-step-control label').last()).toHaveCSS('white-space', 'nowrap');
 });
 
+async function filamentRows(page) {
+  const groups = page.locator('#chart-filament > section');
+  return groups.evaluateAll(sections => sections.map(section => {
+    const cards = Array.from(section.querySelectorAll('.temperature-card'), card => {
+      const {left, right, top, bottom} = card.getBoundingClientRect();
+      return {left, right, top, bottom};
+    });
+    return cards;
+  }));
+}
+
+function expectSingleFilamentRow(cards) {
+  expect(cards).toHaveLength(4);
+  for (const [index, card] of cards.entries()) {
+    expect(Math.abs(card.top - cards[0].top)).toBeLessThan(2);
+    if (index) expect(card.left).toBeGreaterThanOrEqual(cards[index - 1].right - 1);
+  }
+}
+
+test('les quatre graphiques de chaque ACE ont leur propre ligne', async ({page}) => {
+  await page.setViewportSize({width: 1366, height: 768});
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch();
+    const data = await response.json();
+    const [ace] = data.printer.boxes;
+    data.printer.boxes.push({...ace, box_id: 1, model: 'ACE Mini'});
+    await route.fulfill({response, json: data});
+  });
+  await page.route('**/imprimante-api/temperatures?*', async route => {
+    const response = await route.fetch();
+    const data = await response.json();
+    for (const reading of data.readings) {
+      reading.ace_boxes[1] = reading.ace_boxes[0];
+    }
+    await route.fulfill({response, json: data});
+  });
+  await login(page, 'statistics');
+  await expect(page.locator('#chart-filament .ace-chart-group-name')).toHaveText(['ACE 2 Pro', 'ACE Mini']);
+  await expect(page.locator('#chart-filament .temperature-card svg')).toHaveCount(8);
+  const [first, second] = await filamentRows(page);
+  expectSingleFilamentRow(first);
+  expectSingleFilamentRow(second);
+  expect(second[0].top).toBeGreaterThan(first[0].bottom);
+});
+
 const styles = ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
 
 for (const style of styles) {
@@ -70,6 +115,15 @@ for (const style of styles) {
         const overlapX = Math.min(nozzle.x + nozzle.width, bed.x + bed.width) - Math.max(nozzle.x, bed.x);
         const overlapY = Math.min(nozzle.y + nozzle.height, bed.y + bed.height) - Math.max(nozzle.y, bed.y);
         expect(Math.min(overlapX, overlapY)).toBeLessThanOrEqual(1);
+        await expect(page.locator('#chart-filament .temperature-card svg')).toHaveCount(4);
+        const [filament] = await filamentRows(page);
+        if (width > 400) {
+          expectSingleFilamentRow(filament);
+        } else {
+          // Sur téléphone, les graphiques se replient et restent dans la largeur de l’écran.
+          expect(filament.at(-1).top).toBeGreaterThan(filament[0].top);
+          expect(filament.every(card => card.left >= 0 && card.right <= width)).toBe(true);
+        }
 
         await openSection(page, 'history');
         const cards = page.locator('#tasks-list > li');
