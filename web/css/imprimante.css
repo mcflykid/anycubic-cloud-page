@@ -202,7 +202,9 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .axis-z button:last-child{border-end-start-radius:22px;border-end-end-radius:22px}
 
 @media(max-width:520px){
- .nav-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+ /* Sur téléphone, toutes les actions restent atteignables sous l’identité de l’atelier. */
+ .printer-shell .portal-nav{row-gap:4px;padding-block:8px}
+ .nav-actions{flex-wrap:wrap;justify-content:flex-start;max-width:100%;margin-inline-start:0}
 }
 
 

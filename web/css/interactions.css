@@ -22,9 +22,6 @@
 /* Les entrées se déclenchent à l’ouverture d’un panneau ou d’une fenêtre.
    Les relevés et rafraîchissements ne déplacent pas la surface de travail. */
 :root[data-style] {
-  --motion-fast: 180ms;
-  --motion-panel: 240ms;
-  --motion-ease: cubic-bezier(.18,.72,.28,1);
   --section-entry: section-fade;
   --section-entry-duration: 220ms;
   --heading-entry: heading-rise;
