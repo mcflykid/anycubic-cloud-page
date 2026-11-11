@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import (
     Any,
     Literal,
@@ -55,6 +56,7 @@ from ..exceptions.exceptions import (
     AnycubicDataParsingError,
     AnycubicFileNotFoundError,
     AnycubicGcodeParsingError,
+    AnycubicOrderRefused,
 )
 from ..models.cloud_upload import AnycubicCloudUpload
 from .base import AnycubicAPIBase
@@ -421,8 +423,11 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         if resp is None or resp.get('data') is None:
             if resp is not None and resp.get('data') is None and error_message == AnycubicServerMessage.FILE_NOT_FOUND:
                 raise AnycubicFileNotFoundError(ErrorsFileNotFound.in_cloud)
-            else:
-                raise AnycubicAPIError(ErrorsGeneral.send_order_fail.format(error_message))
+            code = resp.get('code') if resp else None
+            # Un statut HTTP ou une phrase d’erreur ne suffit pas à identifier un code de la machine.
+            if type(code) in (str, int) and re.fullmatch(r'[1-9][0-9]{4}', str(code)):
+                raise AnycubicOrderRefused(str(code))
+            raise AnycubicAPIError(ErrorsGeneral.send_order_fail.format(error_message))
 
         data: str | None = resp['data'].get('msgid')
 

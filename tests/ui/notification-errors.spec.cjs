@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const {login}=require('./helpers.cjs');
+const {login,openSection}=require('./helpers.cjs');
 
 test('le code Slicer est expliqué au survol et au clavier, sa fiche reste indépendante de l’ouverture du message',async({page})=>{
  const slicer={source:'slicer',unread:1,has_more:false,items:[{
@@ -102,4 +102,48 @@ test('un code inconnu montre le message constructeur sans inventer une cause ni 
  await expect(sheet).toContainText('Message constructeur de démonstration.');
  await expect(sheet.getByRole('listitem')).toHaveCount(0);
  await expect(sheet.getByRole('link')).toHaveCount(0);
+});
+
+test('la même fiche décrit le code du détail historique en espagnol', async ({page}) => {
+  await page.route('**/imprimante-api/extras/task?*', route => route.fulfill({json:{
+    name:'Pieza de prueba', reason_code:'10113',
+    reason:'Failed to verify the downloaded file', parameters:{},
+  }}));
+  await login(page, 'summary');
+  await page.evaluate(() => localStorage.setItem('cloud-page-language', 'es'));
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+  await openSection(page, 'history');
+  await page.locator('.history-detail').first().click();
+  await page.locator('#past-task-error').click();
+  const sheet = page.locator('#notification-error-dialog');
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText('Falló la comprobación de integridad del archivo descargado');
+  await expect(sheet).toContainText('Modelos documentados');
+  await expect(sheet.locator('#notification-error-source')).toHaveAttribute('href', 'https://wiki.anycubic.com/en/error-codes/10113-code/s1');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#past-task-dialog')).toBeVisible();
+});
+
+test('un refus de commande codé reçoit son libellé sans nouvelle tentative', async ({page}) => {
+  let attempts = 0;
+  await page.route('**/imprimante-api/command', route => {
+    attempts++;
+    return route.fulfill({status:409, json:{
+      ok:false, message:'Ordre refusé par Anycubic.', reason_code:'10113',
+    }});
+  });
+  await login(page);
+  const message = await page.evaluate(async () => {
+    const {createRequest} = await import('/imprimante-api/ui/js/workshop-api.mjs');
+    try {
+      await createRequest(() => null)('/command', {method:'POST', body:'{}'});
+    } catch (error) {
+      return error.message;
+    }
+    return '';
+  });
+  expect(message).toContain('Code d’erreur : 10113');
+  expect(message).toContain('Intégrité du fichier téléchargé non vérifiée');
+  expect(attempts).toBe(1);
 });

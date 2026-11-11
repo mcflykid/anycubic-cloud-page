@@ -1,3 +1,4 @@
+import { errorSheet, isDeviceErrorCode } from './workshop-error-catalogue.mjs';
 import { formatText, serverText, tr } from './workshop-ui.mjs';
 export const api = '/imprimante-api';
 
@@ -67,11 +68,15 @@ export function createRequest(getPrinter) {
       const fallback = read
         ? 'Échec de la lecture auprès d’Anycubic.'
         : 'Le service a refusé la demande ou n’a pas confirmé son résultat. Vérifiez l’état avant de réessayer.';
-      const error = new Error(
-        diagnosticText(data.message
-          ? serverText(data.message, fallback)
-          : formatText('Erreur {0}', response.status)),
-      );
+      const detail = data.message
+        ? serverText(data.message, fallback)
+        : formatText('Erreur {0}', response.status);
+      const code = data.reason_code;
+      const sheet = errorSheet(code);
+      const description = isDeviceErrorCode(code)
+        ? [detail, formatText('Code d’erreur : {0}', code), sheet && tr(sheet.title)].filter(Boolean).join(' · ')
+        : detail;
+      const error = new Error(diagnosticText(description));
       error.cameraReason = data.camera_error;
       error.cameraPresenceExpired = path === '/camera-presence' && response.status === 400;
       error.diagnosticId = /^[a-f0-9]{32}$/.test(diagnosticId || '') ? diagnosticId : null;

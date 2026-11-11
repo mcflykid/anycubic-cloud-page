@@ -1,0 +1,175 @@
+{
+  "10113": {
+    "description": "L’empreinte du fichier reçu par l’imprimante ne correspond pas à celle annoncée par le Cloud.",
+    "models": [
+      "Kobra S1"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/10113-code/s1",
+    "steps": [
+      "Vérifiez que le transfert du fichier s’est terminé et que la connexion de l’imprimante est stable.",
+      "Si le code revient avec le même fichier, relevez sa provenance et l’heure du transfert pour le diagnostic."
+    ],
+    "title": "Intégrité du fichier téléchargé non vérifiée"
+  },
+  "10114": {
+    "description": "L’imprimante a signalé que cette action n’était pas disponible dans son état actuel.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code10114-the-current-device-status-does-not-support-this-operation",
+    "steps": [
+      "Vérifiez l’état sur l’écran de l’imprimante et attendez la fin de la transition en cours avant de décider de relancer l’action."
+    ],
+    "title": "Action incompatible avec l’état de l’imprimante"
+  },
+  "10115": {
+    "description": "Le fichier peut être endommagé à la suite d’un tranchage interrompu ou être dans un format incorrect.",
+    "models": [
+      "Kobra S1",
+      "Kobra 3",
+      "Kobra 3 V2",
+      "Kobra X",
+      "Kobra 3 Max",
+      "Kobra 3 Max V2"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes#code10115-the-device-cannot-parse-the-file",
+    "steps": [
+      "Vérifiez le fichier réellement sélectionné et sa provenance : Cloud, mémoire de l’imprimante ou clé USB. Un modèle brut doit être tranché avant d’être utilisé comme fichier d’impression.",
+      "Retranchez le modèle avec le profil de votre imprimante et enregistrez le résultat sur l’ordinateur avant de le transférer.",
+      "Si le problème revient, notez le format, la source et la version du micrologiciel pour le diagnostic."
+    ],
+    "title": "L’imprimante ne peut pas lire ce fichier"
+  },
+  "10414": {
+    "description": "La Kobra S1 signale une erreur système. Le code seul ne désigne pas une pièce en panne.",
+    "models": [
+      "Kobra S1"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/10414-code/s1",
+    "steps": [
+      "Relevez le code et l’état de l’imprimante avant toute intervention. Consultez la procédure officielle correspondant à votre équipement."
+    ],
+    "title": "Erreur système signalée par l’imprimante"
+  },
+  "10801": {
+    "description": "Le téléchargement peut avoir expiré ou l’imprimante peut avoir perdu son accès à Internet.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code10801-firmware-download-failed",
+    "steps": [
+      "Vérifiez la connexion Cloud sur l’écran de l’imprimante et confirmez qu’aucune mise à jour n’est en cours."
+    ],
+    "title": "Téléchargement du micrologiciel échoué"
+  },
+  "11402": {
+    "description": "L’imprimante n’a pas pu établir la connexion vidéo dans le délai prévu.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code11402-network-connection-timed-out",
+    "steps": [
+      "Vérifiez séparément l’état de la connexion Cloud et le résultat de l’ouverture de la caméra. Une imprimante en ligne peut encore avoir un flux indisponible."
+    ],
+    "title": "Délai réseau de la caméra dépassé"
+  },
+  "11404": {
+    "description": "Anycubic indique qu’un délai réseau peut empêcher le démarrage du flux.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code11404-video-stream-startup-failed",
+    "steps": [
+      "Vérifiez si l’imprimante est connectée au Cloud, puis consultez l’état de la session dans l’onglet Caméra."
+    ],
+    "title": "Le flux vidéo n’a pas démarré"
+  },
+  "11511": {
+    "description": "La tête d’impression n’a pas détecté l’arrivée attendue du filament pendant l’alimentation.",
+    "models": [
+      "Kobra S1 Combo",
+      "Kobra S1 ACE 2 Pro",
+      "Kobra 3 Combo",
+      "Kobra 3 V2 Combo",
+      "Kobra X Combo",
+      "Kobra 3 Max Combo",
+      "Kobra 3 Max V2 Combo"
+    ],
+    "source": "https://wiki.anycubic.com/fr/error-codes",
+    "steps": [
+      "Identifiez l’emplacement utilisé et observez si la bobine ou le trajet du filament présente un blocage visible.",
+      "Si le trajet semble libre, consultez la procédure du modèle concerné avant de reprendre."
+    ],
+    "title": "Alimentation du filament anormale"
+  },
+  "11512": {
+    "description": "La tête d’impression détecte toujours du filament alors que le retrait aurait dû se terminer.",
+    "models": [
+      "Kobra S1 Combo",
+      "Kobra S1 ACE 2 Pro",
+      "Kobra 3 Combo",
+      "Kobra 3 V2 Combo",
+      "Kobra X Combo",
+      "Kobra 3 Max Combo",
+      "Kobra 3 Max V2 Combo"
+    ],
+    "source": "https://wiki.anycubic.com/fr/error-codes",
+    "steps": [
+      "Repérez l’emplacement concerné et la partie du trajet où le filament est encore visible.",
+      "Suivez les vérifications de votre modèle avant d’essayer de retirer le filament ou de reprendre l’impression."
+    ],
+    "title": "Retrait du filament anormal"
+  },
+  "11518": {
+    "description": "La Kobra S1 signale une anomalie d’alimentation qui peut correspondre à un blocage ou à une résistance excessive.",
+    "models": [
+      "Kobra S1"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/11518-code/s1",
+    "steps": [
+      "Notez le matériau et l’emplacement en cours, puis inspectez visuellement le trajet du filament.",
+      "Consultez le guide Kobra S1 si le filament reste bloqué ou si le code revient."
+    ],
+    "title": "Blocage du filament détecté"
+  },
+  "11530": {
+    "description": "L’ACE 2 Pro signale une anomalie du chauffage PTC et a interrompu le séchage.",
+    "models": [
+      "Kobra S1 ACE 2 Pro"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/11530-code/s1-v2",
+    "steps": [
+      "Vérifiez l’état affiché sur l’appareil et laissez le séchage arrêté.",
+      "Consultez la fiche officielle de l’ACE 2 Pro avant toute intervention sur le chauffage."
+    ],
+    "title": "Anomalie du chauffage de l’ACE"
+  },
+  "11801": {
+    "description": "La caméra signale une accumulation de filament qui peut correspondre à une impression ratée. Une forme similaire peut aussi déclencher une fausse alerte.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code11801-detected-messy-printing-offried-noodles-task-has-been-paused",
+    "steps": [
+      "Vérifiez l’état réel de l’impression et observez la pièce avant de prendre une décision."
+    ],
+    "title": "Anomalie de type spaghetti détectée"
+  },
+  "11802": {
+    "description": "La caméra a signalé un objet possible avant l’impression. Un plateau inhabituel, sale ou mal éclairé peut aussi déclencher une fausse alerte.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code11802-foreign-object-detected-check-print-area-is-clean",
+    "steps": [
+      "Inspectez la zone d’impression à l’arrêt. Vérifiez qu’elle est dégagée et que la caméra voit correctement le plateau."
+    ],
+    "title": "Objet signalé sur le plateau"
+  },
+  "11812": {
+    "description": "La détection IA signale une forme qui peut correspondre à une accumulation de filament. Cette alerte ne confirme pas un arrêt.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/home/knowledge-sharing/ai-detection#h-33-relevant-error-codes",
+    "steps": [
+      "Vérifiez l’état réel de l’impression et observez la pièce avant de prendre une décision."
+    ],
+    "title": "Défaut d’impression possible détecté"
+  },
+  "11830": {
+    "description": "Un espace local insuffisant peut empêcher une impression ou la création d’un timelapse.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes#code11830-the-device-may-not-have-enough-remaining-storage-space-which-may-cause-the-print-or-delayed-photo-video-generation-to-fail",
+    "steps": [
+      "Consultez le stockage local sur l’imprimante et sauvegardez les fichiers à conserver avant de libérer de l’espace."
+    ],
+    "title": "Espace de stockage de l’imprimante insuffisant"
+  }
+}
