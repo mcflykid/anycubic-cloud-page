@@ -4363,10 +4363,6 @@
     "Lote · Moxen",
     "Lote · Moxen"
   ],
-  "Zone de dépôt et contour d’envoi d’après": [
-    "File drop zone and upload outline based on",
-    "Zona de depósito y contorno de subida basados en"
-  ],
   "Arrastre · Moxen": [
     "Arrastre · Moxen",
     "Arrastre · Moxen"
@@ -4374,5 +4370,13 @@
   "Remesa · Moxen": [
     "Remesa · Moxen",
     "Remesa · Moxen"
+  ],
+  "Inclinaison de la zone de dépôt d’après": [
+    "File drop zone tilt based on",
+    "Inclinación de la zona de depósito basada en"
+  ],
+  "Contour d’envoi d’après": [
+    "Upload outline based on",
+    "Contorno de subida basado en"
   ]
 }
