@@ -1,5 +1,6 @@
 import {
   $,
+  beginListLoading,
   bytes,
   confirmAction,
   fmt,
@@ -8,10 +9,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=00bb8ecf6593';
-import { workshopState, setBusy } from './workshop-state.mjs?v=5f58442116d3';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=cb785be5460a';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=9fd96b302998';
+} from './workshop-ui.mjs?v=6e2c4d34ac3d';
+import { workshopState, setBusy } from './workshop-state.mjs?v=7eedcabd6732';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=df92888cf9c3';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=eed7e6ad7c00';
 
 import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
 
@@ -233,13 +234,12 @@ export function createFiles(request, command) {
     };
     filePending = true;
     renderFiles();
+    const stopLoading = beginListLoading($('file-rows'), $('files-loading'), () => {
+      if (generation !== fileGeneration || !currentFileContext(context)) return false;
+      set('files-state', context.source === 'cloud'
+        ? tr('Chargement du cloud…') : tr('Lecture du dossier sur l’imprimante…'));
+    });
     try {
-      set(
-        'files-state',
-        context.source === 'cloud'
-          ? tr('Chargement du cloud…')
-          : tr('Lecture du dossier sur l’imprimante…'),
-      );
       const result = await request(
         context.source === 'cloud'
           ? `/files/cloud?page=${context.page}` +
@@ -278,6 +278,7 @@ export function createFiles(request, command) {
         set('files-state', tr('Liste indisponible.'));
       }
     } finally {
+      stopLoading();
       filePending = false;
       if (fileReload) {
         fileReload = false;

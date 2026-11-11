@@ -1,5 +1,6 @@
 import {
   $,
+  beginListLoading,
   confirmAction,
   date,
   fmt,
@@ -13,10 +14,10 @@ import {
   timeZone,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=00bb8ecf6593';
-import { workshopState } from './workshop-state.mjs?v=5f58442116d3';
-import { slots, filamentAdvice } from './workshop-commands.mjs?v=cb785be5460a';
-import { definition } from './workshop-overview.mjs?v=851f4d50665b';
+} from './workshop-ui.mjs?v=6e2c4d34ac3d';
+import { workshopState } from './workshop-state.mjs?v=7eedcabd6732';
+import { slots, filamentAdvice } from './workshop-commands.mjs?v=df92888cf9c3';
+import { definition } from './workshop-overview.mjs?v=1b83b7ff98cf';
 import { notificationErrorCatalogue } from './workshop-error-catalogue.mjs?v=b7032b1dcfc1';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
@@ -714,8 +715,10 @@ export function createHistory(request, command, selectedBox) {
       tasksPage = 1;
       taskRows = [];
     }
-    set('tasks-state', tr('Chargement des impressions…'));
-    $('tasks-state').hidden = false;
+    const stopLoading = beginListLoading($('tasks-list'), $('tasks-loading'), () => {
+      set('tasks-state', tr('Chargement des impressions…'));
+      $('tasks-state').hidden = false;
+    });
     try {
       const d = await request(`/extras/tasks?page=${tasksPage}&device=all`);
       if (generation !== tasksGeneration) return;
@@ -742,6 +745,8 @@ export function createHistory(request, command, selectedBox) {
       if (generation !== tasksGeneration) return;
       set('tasks-state', e.message);
       $('tasks-state').hidden = false;
+    } finally {
+      stopLoading();
     }
   }
   /** L’onglet d’historique est distinct du centre de messages de la cloche. */

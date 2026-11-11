@@ -1,5 +1,5 @@
-import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=00bb8ecf6593';
-import { workshopState, setBusy } from './workshop-state.mjs?v=5f58442116d3';
+import { $, confirmAction, message, set, tr } from './workshop-ui.mjs?v=6e2c4d34ac3d';
+import { workshopState, setBusy } from './workshop-state.mjs?v=7eedcabd6732';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {

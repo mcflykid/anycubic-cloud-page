@@ -181,6 +181,26 @@ await initializeLanguage();
 
 /** Fournit la locale réellement chargée pour les nombres, les dates et la recherche. */
 export const locale = locales[language];
+const pendingLists = new WeakMap();
+
+/** Diffère le squelette et réserve l’état occupé à la dernière lecture de la liste. */
+export function beginListLoading(list, skeleton, announce) {
+  pendingLists.get(list)?.();
+  list.setAttribute('aria-busy', 'true');
+  const timer = setTimeout(() => {
+    if (announce() !== false) skeleton.hidden = list.childElementCount !== 0;
+  }, 240);
+  const stop = () => {
+    if (pendingLists.get(list) !== stop) return;
+    clearTimeout(timer);
+    skeleton.hidden = true;
+    list.removeAttribute('aria-busy');
+    pendingLists.delete(list);
+  };
+  pendingLists.set(list, stop);
+  return stop;
+}
+
 /** Insère des valeurs littérales dans les confirmations, sans interpréter leur contenu. */
 export const formatText = (label, ...values) =>
   tr(label).replace(/\{(\d+)\}/g, (_, index) => String(values[index] ?? ''));
