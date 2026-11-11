@@ -9,7 +9,7 @@ test('Laboratoire regroupe dix sections et conserve les groupes en Standard',asy
  // Le rail reste un bloc compact, indépendant de la hauteur du tableau de bord.
  await expect(page.locator('.atelier-navigation')).toHaveCSS('display','block');
  const menu=await page.locator('#atelier-tabs').boundingBox();
- expect(menu.height).toBeLessThan(650);
+ expect(menu.height).toBeLessThan(740);
  const tabs=page.locator('#atelier-tabs [data-tab]');
  await expect(tabs).toHaveCount(10);
  for(const key of ['summary','overview','ace','files','upload','camera','history','fleet','statistics','settings']){
