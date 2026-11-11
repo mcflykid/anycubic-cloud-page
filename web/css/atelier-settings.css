@@ -117,3 +117,11 @@
   text-decoration: underline;
   font: var(--atelier-text);
 }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  html[data-style] .workshop-frame #atelier > #tab-settings { padding-block: var(--atelier-space-1); }
+  #tab-settings .settings-firmware-row { padding-block: var(--atelier-space-2); }
+  #tab-settings .atelier-settings-row + .atelier-settings-row { margin-block-start: var(--atelier-space-3); }
+  #tab-settings .settings-factor, #tab-settings .settings-container-links,
+  #tab-settings #theme-description { margin-block: var(--atelier-space-2) 0; }
+}

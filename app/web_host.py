@@ -24,7 +24,10 @@ APP_VERSION = json.loads((ROOT.parent / "package.json").read_text())["version"]
 PUBLIC_ASSETS = {
     "/css/landing.css",
     "/css/imprimante.css",
-    "/css/lab.css",
+    "/css/atelier-tokens.css",
+    "/css/atelier-access.css",
+    "/css/fonts/Inter-Regular.woff2",
+    "/css/fonts/Inter-SemiBold.woff2",
     "/css/visual-states.css",
     "/icons/cloud-page.svg",
     # Ces visuels sont des fichiers publics du dépôt ; une session expirée ne doit pas servir une page de connexion à leur place.

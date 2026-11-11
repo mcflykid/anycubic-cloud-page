@@ -96,3 +96,12 @@
   max-height: none;
 }
 #tab-statistics #statistics-ace .temperature-card-title { min-height: 0; }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  #tab-statistics .statistics-toolbar { margin-block-end: var(--atelier-space-2); }
+  #tab-statistics .atelier-statistics-grid > .atelier-card .temperature-card { min-height: 0; }
+  #tab-statistics .atelier-card .temperature-plot { min-height: 0; }
+  #tab-statistics .atelier-card .temperature-plot svg {
+    max-height: calc(2 * var(--atelier-control));
+  }
+}

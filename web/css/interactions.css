@@ -39,16 +39,6 @@
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none; }
 }
-:root[data-style="aurora"] {
-  --section-entry-duration: 340ms;
-  --heading-entry: heading-spring;
-  --dialog-entry: dialog-pop;
-}
-:root[data-style="lab"] {
-  --section-entry-duration: 320ms;
-  --heading-entry: heading-deal;
-  --dialog-entry: dialog-pop;
-}
 
 @media (prefers-reduced-motion:no-preference) {
   #atelier > .tab-panel:not([hidden]) {
@@ -63,15 +53,6 @@
   }
   dialog[open]::backdrop {
     animation: backdrop-fade var(--motion-panel) ease-out;
-  }
-  [data-style="lab"] #tab-statistics:not([hidden]) .atelier-statistics-grid > section {
-    animation: heading-deal 320ms ease-out backwards;
-  }
-  [data-style="lab"] #tab-statistics:not([hidden]) .atelier-statistics-grid > section:nth-child(2) {
-    animation-delay: 45ms;
-  }
-  [data-style="lab"] #tab-statistics:not([hidden]) .atelier-statistics-grid > section:nth-child(3) {
-    animation-delay: 90ms;
   }
 }
 

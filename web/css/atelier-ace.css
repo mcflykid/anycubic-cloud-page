@@ -82,3 +82,11 @@
   .ace-spool-row { gap: var(--atelier-space-2); }
   .ace-module-actions { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Les commandes du formulaire de séchage gardent une marge sur les écrans étroits. */
+#dry-dialog #dry-form {
+  padding: var(--atelier-space-3);
+}
+#dry-dialog #dry-form > #auto-feed-save {
+  margin-inline: 0;
+}

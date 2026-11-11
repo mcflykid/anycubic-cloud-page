@@ -52,9 +52,11 @@ test('Laboratoire mobile ouvre les groupes et reste sans débordement',async({pa
 /** Les ressources du thème doivent être accessibles avant authentification, sans publier celles de l’atelier. */
 test('Laboratoire habille aussi la connexion et ses champs restent utilisables',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('cloud-page-style','lab'));
+ await page.emulateMedia({colorScheme:'light'});
  await page.goto('/login');
  await expect(page.locator('html')).toHaveAttribute('data-style','lab');
- await expect(page.locator('.login-card')).toHaveCSS('border-top-width','3px');
+ await expect(page.locator('.login-card')).toHaveCSS('background-color','rgb(255, 255, 255)');
+ await expect(page.locator('.login-card')).toHaveCSS('color','rgb(20, 47, 51)');
  await expect(page.getByRole('button',{name:'Afficher',exact:true})).toBeEnabled();
  await page.screenshot({path:'test-results/login-lab.png',fullPage:true});
  await page.getByLabel('Mot de passe',{exact:true}).fill('fixture-only');

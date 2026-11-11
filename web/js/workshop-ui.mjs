@@ -168,8 +168,8 @@ initializeTheme();
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
   ['aurora', 'Surfaces lumineuses et accents violets.'],
-  ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
-  ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
+  ['lab', 'Palette bleu-vert et menu latéral repliable sur ordinateur.'],
+  ['glasshouse', 'Surfaces bleutées et accent indigo.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */

@@ -92,3 +92,37 @@ html[data-style] #tab-fleet #monitor-grid.monitor-grid {
   #tab-fleet #monitor-grid .monitor-card { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
   #tab-fleet #monitor-grid .monitor-card:not(:nth-child(3n+1)) { border-inline-start: 0; }
 }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  #tab-fleet #fleet-cards .fleet-card { padding-block: var(--atelier-space-1); }
+  #tab-fleet #fleet-events-empty { margin: 0; }
+  #tab-fleet #monitoring {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin-block-start: var(--atelier-space-3);
+  }
+  #tab-fleet #monitoring > .atelier-card-header {
+    justify-content: start;
+    align-content: center;
+  }
+  #tab-fleet #monitor-grid { grid-column: 1 / -1; }
+  #tab-fleet .monitor-settings {
+    justify-content: end;
+    align-items: center;
+    padding-block: var(--atelier-space-2);
+  }
+  #tab-fleet .monitor-settings label { flex-direction: row; align-items: center; }
+  #tab-fleet #monitor-grid .monitor-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
+    gap: var(--atelier-space-1) var(--atelier-space-3);
+    padding-block: var(--atelier-space-1);
+  }
+  #tab-fleet .monitor-card-graph {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+    inline-size: var(--atelier-device-image);
+    block-size: var(--atelier-control);
+  }
+}
