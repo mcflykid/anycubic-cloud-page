@@ -1,4 +1,4 @@
-import { formatText, tr } from './workshop-ui.mjs?v=544c79feee4e';
+import { tr } from './workshop-ui.mjs?v=f51999168421';
 
 /** Gère la navigation responsive et les dispositions locales des thèmes Blueprint et Aurore. */
 export function initializeWorkshopNavigation() {
@@ -153,160 +153,26 @@ export function initializeWorkshopNavigation() {
     const overview = document.getElementById('tab-overview');
     if (!overview) return;
     const entries = [
-      ['machine', tr('Imprimante'), overview.querySelector('.overview-grid .product')],
-      ['job', tr('Travail en cours'), overview.querySelector('.overview-grid .overview-content')],
-      ['temperatures', tr('Températures'), overview.querySelector('.printer-lower-grid > section:first-child')],
-      ['details', tr('Détails'), overview.querySelector('.printer-lower-grid > section:last-child')],
-    ].filter(([, , element]) => element);
+      ['machine', overview.querySelector('.overview-grid .product')],
+      ['job', overview.querySelector('.overview-grid .overview-content')],
+      ['temperatures', overview.querySelector('.printer-lower-grid > section:first-of-type')],
+      ['details', overview.querySelector('.printer-lower-grid > section:last-of-type')],
+    ].filter(([, element]) => element);
     bento = document.createElement('div');
     bento.id = 'aurora-bento';
     bento.className = 'aurora-bento';
-    const toolbar = document.createElement('div');
-    toolbar.className = 'aurora-bento-toolbar';
-    const reset = document.createElement('button');
-    reset.type = 'button';
-    reset.className = 'aurora-layout-reset';
-    reset.textContent = tr('Réinitialiser la disposition');
-    const status = document.createElement('p');
-    status.className = 'aurora-layout-status';
-    status.setAttribute('role', 'status');
-    status.setAttribute('aria-live', 'polite');
-    toolbar.append(reset, status);
-    bento.append(toolbar);
-    overview.prepend(bento);
-    // Les commentaires repères rétablissent les sections à leur place quand le style change.
-    const key = 'cloud-page-layout:aurora';
-    const defaults = entries.map(([name]) => name);
-    // Valide la préférence locale avant d’insérer les cartes pour tolérer les versions partielles.
-    const readOrder = () => {
-      try {
-        const saved = JSON.parse(localStorage.getItem(key) || 'null');
-        if (!Array.isArray(saved)) return [...defaults];
-        const valid = [...new Set(saved.filter(name => defaults.includes(name)))];
-        return [...valid, ...defaults.filter(name => !valid.includes(name))];
-      } catch { return [...defaults]; }
-    };
-    const cards = new Map();
-    for (const [name, label, element] of entries) {
+    for (const [name, element] of entries) {
+      // Les repères rétablissent les éléments à leur place à la sortie d’Aurore.
       const marker = document.createComment(`aurora:${name}`);
-      element.parentNode.insertBefore(marker, element);
+      element.before(marker);
       const card = document.createElement('article');
       card.className = `aurora-widget aurora-widget-${name}`;
       card.dataset.widget = name;
-      const controls = document.createElement('div');
-      controls.className = 'aurora-widget-controls';
-      const handle = document.createElement('button');
-      handle.type = 'button';
-      handle.className = 'aurora-drag-handle';
-      handle.setAttribute('aria-label', formatText('Déplacer {0} par glisser-déposer', label));
-      handle.title = tr('Déplacer cette tuile');
-      handle.textContent = '⠿';
-      const up = document.createElement('button');
-      up.type = 'button';
-      up.className = 'aurora-move-up';
-      up.setAttribute('aria-label', formatText('Déplacer {0} vers le haut', label));
-      up.textContent = '↑';
-      const down = document.createElement('button');
-      down.type = 'button';
-      down.className = 'aurora-move-down';
-      down.setAttribute('aria-label', formatText('Déplacer {0} vers le bas', label));
-      down.textContent = '↓';
-      controls.append(handle, up, down);
-      card.append(controls, element);
+      card.append(element);
       bento.append(card);
-      cards.set(name, {card, marker, element, label});
-      bentoItems.push({card, marker, element});
-      up.onclick = () => move(card, -1, true);
-      down.onclick = () => move(card, 1, true);
-      installPointerDrag(handle, card);
+      bentoItems.push({marker, element});
     }
-    const list = () => [...bento.querySelectorAll('.aurora-widget')];
-    const persist = () => {
-      try { localStorage.setItem(key, JSON.stringify(list().map(card => card.dataset.widget))); } catch {}
-      updateControls();
-    };
-    const updateControls = () => {
-      for (const [index, card] of list().entries()) {
-        card.querySelector('.aurora-move-up').disabled = index === 0;
-        card.querySelector('.aurora-move-down').disabled = index === list().length - 1;
-      }
-    };
-    const arrange = order => {
-      for (const name of order) {
-        const card = cards.get(name)?.card;
-        if (card) bento.append(card);
-      }
-      updateControls();
-    };
-    const announce = card => {
-      const index = list().indexOf(card) + 1;
-      status.textContent = formatText('{0} · {1}/{2}', cards.get(card.dataset.widget)?.label || '', index, list().length);
-    };
-    // L’animation FLIP conserve les positions visuelles; les mouvements sont annulés en mode réduit.
-    const flip = action => {
-      const before = new Map(list().map(card => [card, card.getBoundingClientRect()]));
-      // Repartir de la position visible si un déplacement est encore en cours.
-      for (const card of list()) card.getAnimations().forEach(animation => animation.cancel());
-      action();
-      if (!reducedMotion.matches) {
-        for (const card of list()) {
-          const old = before.get(card), next = card.getBoundingClientRect();
-          if (!old) continue;
-          const dx = old.left - next.left, dy = old.top - next.top;
-          if (dx || dy) {
-            card.animate([{transform: `translate(${dx}px,${dy}px)`}, {transform: 'translate(0,0)'}], {
-              duration: 270, easing: 'cubic-bezier(.2,.78,.25,1)',
-            });
-          }
-        }
-      }
-    };
-    function move(card, direction, save) {
-      const current = list().indexOf(card), next = Math.max(0, Math.min(list().length - 1, current + direction));
-      if (next === current) return;
-      flip(() => direction < 0 ? bento.insertBefore(card, list()[next]) : bento.insertBefore(card, list()[next].nextSibling));
-      if (save) persist();
-      announce(card);
-    }
-    // Le glissement au pointeur complète les commandes haut/bas accessibles au clavier.
-    function installPointerDrag(handle, card) {
-      let drag = null;
-      handle.addEventListener('pointerdown', event => {
-        if (event.button !== 0 || !event.isPrimary) return;
-        drag = {pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
-          original: list().map(item => item.dataset.widget), moved: false};
-        handle.setPointerCapture(event.pointerId);
-        card.classList.add('is-dragging');
-      });
-      document.addEventListener('pointermove', event => {
-        if (!drag || event.pointerId !== drag.pointerId) return;
-        if (Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) > 5) drag.moved = true;
-        if (!drag.moved) return;
-        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.aurora-widget');
-        if (!target || target === card || target.parentElement !== bento) return;
-        const rect = target.getBoundingClientRect();
-        flip(() => bento.insertBefore(card, event.clientY < rect.top + rect.height / 2 ? target : target.nextSibling));
-      });
-      const finish = (event, cancelled) => {
-        if (!drag || event.pointerId !== drag.pointerId) return;
-        const previous = drag.original;
-        drag = null;
-        card.classList.remove('is-dragging');
-        if (cancelled) arrange(previous);
-        else if (previous.join(',') !== list().map(item => item.dataset.widget).join(',')) {
-          persist();
-          announce(card);
-        }
-      };
-      document.addEventListener('pointerup', event => finish(event, false));
-      document.addEventListener('pointercancel', event => finish(event, true));
-    }
-    reset.onclick = () => {
-      arrange(defaults);
-      try { localStorage.removeItem(key); } catch {}
-      status.textContent = tr('Disposition d’origine restaurée.');
-    };
-    arrange(readOrder());
+    overview.prepend(bento);
   }
   // Replace chaque élément avant son repère afin de quitter Aurore sans déplacer le contenu.
   function restoreAuroraBento() {
