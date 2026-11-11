@@ -60,3 +60,27 @@ test('la sauvegarde contient uniquement les dispositions et un fichier invalide 
   for await (const chunk of stream) chunks.push(chunk);
   expect(JSON.parse(Buffer.concat(chunks).toString())).toEqual(valid);
 });
+
+test('le glissement tactile atteint les cartes sous le premier écran', async ({browser}) => {
+  const context = await browser.newContext({viewport:{width:390,height:760},hasTouch:true,reducedMotion:'reduce'});
+  try {
+    const page = await context.newPage();
+    await login(page, 'summary');
+    const panel = page.locator('#tab-summary');
+    const cards = panel.locator('[data-layout-card]');
+    await panel.locator('[data-layout-action=lock]').tap();
+    const handle = cards.first().locator('[data-layout-action=drag]');
+    await handle.scrollIntoViewIfNeeded();
+    const from = await handle.boundingBox();
+    const input = await context.newCDPSession(page);
+    // Le contact reste près du bord inférieur jusqu’à ce que la seconde carte remonte.
+    await input.send('Input.dispatchTouchEvent', {type:'touchStart',touchPoints:[{x:from.x+from.width/2,y:from.y+from.height/2}]});
+    await input.send('Input.dispatchTouchEvent', {type:'touchMove',touchPoints:[{x:195,y:747}]});
+    await expect(cards.first()).toHaveAttribute('data-layout-card','ace');
+    await input.send('Input.dispatchTouchEvent', {type:'touchEnd',touchPoints:[]});
+    await page.reload();
+    await expect(cards.first()).toHaveAttribute('data-layout-card','ace');
+  } finally {
+    await context.close();
+  }
+});
