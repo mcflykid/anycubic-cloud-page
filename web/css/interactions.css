@@ -136,3 +136,59 @@
 @keyframes measure-in-b { from { opacity:.65; translate:0 4px; } }
 @keyframes badge-in-a { 45% { scale:1.5; } }
 @keyframes badge-in-b { 45% { scale:1.5; } }
+
+/* Contour repris de Moxen Remesa https://moxen.cl/recursos/remesa/ */
+.upload-file { position: relative; }
+
+.upload-progress-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.upload-file[aria-busy="true"] .upload-progress-outline { visibility: visible; }
+
+.upload-progress-outline rect {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .upload-file[aria-busy="true"] .upload-progress-outline rect {
+    animation: upload-outline-flow 2.6s linear infinite;
+  }
+
+  .upload-file[data-upload-motion-paused] .upload-progress-outline rect {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes upload-outline-flow { to { stroke-dashoffset: -2; } }
+
+/* Lumière de proximité reprise de Moxen Arrastre https://moxen.cl/recursos/arrastre/ */
+.upload-drop-light-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.upload-drop-light {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
+}
