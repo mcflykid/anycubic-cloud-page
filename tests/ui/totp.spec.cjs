@@ -36,6 +36,12 @@ test('l’atelier active le facteur et se reconnecte avec un secours',async({pag
     await guest.getByLabel('Mot de passe',{exact:true}).fill('ui-fixture-password');
     await guest.getByRole('button',{name:'Se connecter',exact:true}).click();
     await expect(guest.getByRole('heading',{name:'Vérifier la connexion'})).toBeVisible();
+    const card = guest.locator('.login-card');
+    for (const width of [1440, 390]) {
+      await guest.setViewportSize({width, height:844});
+      const bounds = await card.boundingBox();
+      expect(bounds.x + bounds.width / 2).toBeCloseTo(width / 2, 0);
+    }
     expect((await guest.request.get('/imprimante-api/status')).status()).toBe(401);
     await guest.getByLabel('Code temporaire ou de secours').fill(recovery);
     await guest.getByRole('button',{name:'Vérifier le code'}).click();
