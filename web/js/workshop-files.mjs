@@ -9,10 +9,10 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=6bba29467760';
-import { workshopState, setBusy } from './workshop-state.mjs?v=2846980f62ef';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=88f7ec646ec9';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=872292fadd24';
+} from './workshop-ui.mjs?v=e3a401985858';
+import { workshopState, setBusy } from './workshop-state.mjs?v=9c67b13bd97a';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=8457f5134585';
+import { createFileThumbnails } from './workshop-file-previews.mjs?v=0c0ffb4fb034';
 
 import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
 

@@ -1,10 +1,10 @@
-import { $ } from './workshop-ui.mjs?v=6bba29467760';
+import { $ } from './workshop-ui.mjs?v=e3a401985858';
 
 /** État commun à la page et à ses commandes. Les sélections et caches propres aux panneaux restent dans leurs modules. */
 export const workshopState = {
   snapshot: null,
   selectedPrinter: '',
-  currentTab: 'overview',
+  currentTab: 'summary',
   busy: false,
 };
 

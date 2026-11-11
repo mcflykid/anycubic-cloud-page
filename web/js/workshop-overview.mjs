@@ -9,8 +9,8 @@ import {
   set,
   tr,
   valueUnit,
-} from './workshop-ui.mjs?v=6bba29467760';
-import { workshopState } from './workshop-state.mjs?v=2846980f62ef';
+} from './workshop-ui.mjs?v=e3a401985858';
+import { workshopState } from './workshop-state.mjs?v=9c67b13bd97a';
 
 export let previewJob = null;
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
@@ -190,7 +190,7 @@ export function createOverview(request) {
   /** Réessaie un aperçu indisponible avec un délai borné et ignore les réponses d’un ancien projet. */
   function renderJobPreview(printer) {
     const key = printer.job_name && JSON.stringify([workshopState.selectedPrinter, printer.command_project, printer.job_name]);
-    const image = $('job-preview'), status = $('job-preview-state');
+    const image = $('job-preview'), summaryImage = $('summary-preview'), status = $('job-preview-state');
     const showStatus = (state, text) => {
       status.dataset.previewState = state;
       status.textContent = tr(text);
@@ -200,6 +200,7 @@ export function createOverview(request) {
     };
     if (!key || previewJob?.key !== key) {
       image.hidden = true;
+      summaryImage.hidden = true;
       image.onerror = null;
       status.hidden = true;
       status.removeAttribute('aria-busy');
@@ -227,6 +228,7 @@ export function createOverview(request) {
           image.onerror = () => {
             if (previewJob !== current) return;
             image.hidden = true;
+            summaryImage.hidden = true;
             current.done = true;
             showStatus('unavailable', 'Aperçu indisponible');
           };
@@ -238,6 +240,8 @@ export function createOverview(request) {
           };
           image.src = result.image;
           image.hidden = false;
+          summaryImage.src = result.image;
+          summaryImage.hidden = false;
           current.done = true;
           status.hidden = true;
           status.removeAttribute('aria-busy');
