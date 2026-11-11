@@ -93,6 +93,14 @@ def history_entry(row):
         "User Initiated": "Pause demandée par l’utilisateur",
         "Abnormal consumables, please reload consumables": "Problème de filament. Rechargez le filament.",
     }.get(reason, reason)
+    # Le Cloud répète parfois le résultat déjà traduit dans le détail.
+    if title == "Impression terminée" and reason.casefold().rstrip(". ") in {
+        "print complete",
+        "print completed",
+        "printing completed",
+        "impression terminée",
+    }:
+        reason = ""
     alarm_code = normalize_error_code(row.get("alarm_code"))
     # 200 est l’événement « impression terminée » du journal natif, pas un refus de fichier.
     reason_code = (
