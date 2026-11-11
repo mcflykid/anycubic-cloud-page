@@ -2084,7 +2084,7 @@ def purge_abandoned_uploads(state_dir):
                 if not path.is_dir() or path.stat().st_mtime > cutoff:
                     continue
                 if any(
-                    child.name != "payload.gcode"
+                    child.name not in {"payload.gcode", "payload.stl", "payload.3mf"}
                     or child.is_symlink()
                     or not child.is_file()
                     or child.stat().st_mtime > cutoff

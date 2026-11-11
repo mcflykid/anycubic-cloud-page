@@ -293,23 +293,32 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
     async def test_purge_only_abandoned_upload_directories(self):
         """Un lien, une entrée étrangère et un transfert récent restent hors du nettoyage."""
         root = self.engine.state_dir
-        old = root / "upload-oldfile1"
+        old = [root / f"upload-oldfile{index}" for index in range(1, 4)]
         fresh = root / "upload-newfile1"
         foreign = root / "upload-foreign1"
-        for folder in (old, fresh, foreign):
+        malformed = root / "upload-badfile1"
+        for folder in (*old, fresh, foreign, malformed):
             folder.mkdir()
-        (old / "payload.gcode").write_text("G28")
+        for folder, extension in zip(old, ("gcode", "stl", "3mf"), strict=True):
+            (folder / f"payload.{extension}").write_text("fixture")
         (foreign / "other").write_text("conserver")
+        (malformed / "payload.exe").write_text("conserver")
         link = root / "upload-symbolic"
         link.symlink_to(foreign, target_is_directory=True)
         age = time.time() - 86401
-        for path in (old, old / "payload.gcode", foreign):
+        for path in (
+            *old,
+            *(folder / next(folder.iterdir()).name for folder in old),
+            foreign,
+            malformed,
+        ):
             os.utime(path, (age, age))
         adapter.purge_abandoned_uploads(root)
-        self.assertFalse(old.exists())
+        self.assertTrue(all(not folder.exists() for folder in old))
         self.assertTrue(fresh.exists())
         self.assertTrue(link.is_symlink())
         self.assertTrue((foreign / "other").exists())
+        self.assertTrue(malformed.exists())
 
     async def test_upload_timeout_does_not_reserve_or_upload(self):
         """Vérifie que une attente expirée n’effectue ni transfert ni réservation de résultat."""
