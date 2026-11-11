@@ -1,3 +1,4 @@
+import { circulationPercent } from './workshop-current-controls.mjs';
 import {
   $,
   fmt,
@@ -18,7 +19,7 @@ export function definition(target, values) {
     ...values.map(([label, value]) => {
       const div = node('div');
       const title = node('dt', tr(label));
-      if (['temperatures', 'details', 'ace-stats', 'control-metrics', 'task-file', 'task-parameters'].includes(target))
+      if (['temperatures', 'details', 'ace-stats', 'task-file', 'task-parameters'].includes(target))
         decorateMetric(title, metricIcons[label]);
       div.append(title, node('dd', value));
       return div;
@@ -29,6 +30,7 @@ const metricPaths = {
   nozzle: 'M6 3h12v6l-6 5-6-5zM12 14v4m-6 3h12',
   bed: 'M3 13h18v4H3zM6 17v4m12-4v4M8 9V5m4 4V3m4 6V5',
   ace: 'M3 6h18v12H3zM6 10h12m-12 4h2m2 0h2m2 0h2m2 0h2',
+  light: 'M8 18h8m-6 3h4M9 15c0-3-3-3-3-7a6 6 0 0 1 12 0c0 4-3 4-3 7z',
   fan: 'M12 12c-3-2-7-1-7 2 0 2 4 3 7-2 3 2 7 1 7-2 0-2-4-3-7 2 1 3 0 6-2 6',
   gauge: 'M4 16a8 8 0 1 1 16 0M12 15l3-4',
   model: 'M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4m-8 4v10',
@@ -60,7 +62,7 @@ const metricIcons = {
   'Plateau actuel / cible': 'bed',
   'Ventilation pièce': 'fan',
   'Ventilation auxiliaire': 'fan',
-  'Ventilation enceinte': 'fan',
+  Circulation: 'fan',
   Modèle: 'model',
   Micrologiciel: 'settings',
   'Temps total': 'clock',
@@ -149,6 +151,9 @@ function renderHardware(printer) {
   const printerImage = s1Combo ? 'kobra-s1-ace2pro.png' : illustration || 'printer.svg';
   const printerFallback = s1Combo ? illustration : illustration ? 'printer.svg' : null;
   setImage('printer-illustration', printerImage, printerFallback);
+  $('controls-s1-diagram').toggleAttribute('hidden', illustration !== 'kobra-s1.svg');
+  $('controls-illustration').hidden = illustration === 'kobra-s1.svg';
+  if (illustration !== 'kobra-s1.svg') setImage('controls-illustration', printerImage, printerFallback);
   setImage('summary-printer-image', printerImage, printerFallback);
   set('ace-model', aceName);
   set('firmware-printer-model', model);
@@ -276,19 +281,6 @@ export function createOverview(request) {
         p.job_current_layer == null ? '—' : `${p.job_current_layer} / ${p.job_total_layers ?? '—'}`,
       ],
     ]);
-    const measurements = [
-      [
-        'Buse actuelle / cible',
-        `${fmt(p.curr_nozzle_temp, ' °C')} / ${fmt(p.target_nozzle_temp, ' °C')}`,
-      ],
-      [
-        'Plateau actuel / cible',
-        `${fmt(p.curr_hotbed_temp, ' °C')} / ${fmt(p.target_hotbed_temp, ' °C')}`,
-      ],
-      ['Ventilation pièce', fmt(p.fan_speed_pct, ' %')],
-      ['Ventilation auxiliaire', fmt(p.aux_fan_speed_pct, ' %')],
-      ['Ventilation enceinte', fmt(p.box_fan_level)],
-    ];
     for (const [id, value] of [
       ['printer-nozzle-current', p.curr_nozzle_temp], ['printer-nozzle-target', p.target_nozzle_temp],
       ['printer-bed-current', p.curr_hotbed_temp], ['printer-bed-target', p.target_hotbed_temp],
@@ -296,19 +288,8 @@ export function createOverview(request) {
     definition('printer-fans', [
       ['Pièce', fmt(p.fan_speed_pct, ' %')],
       ['Auxiliaire', fmt(p.aux_fan_speed_pct, ' %')],
-      ['Enceinte', fmt(p.box_fan_level)],
+      ['Circulation', fmt(circulationPercent(p.box_fan_level), ' %')],
     ]);
-    definition('control-metrics', measurements);
-    set(
-      'control-light-state',
-      p.camera_light === true
-        ? tr('Allumé')
-        : p.camera_light === false
-          ? tr('Éteint')
-          : tr('État inconnu'),
-    );
-    for (const id of ['control-light-on', 'control-light-off'])
-      $(id).disabled = !workshopState.snapshot.ok || !p.printer_online;
     definition('details', [
       ['Modèle', p.machine_name || '—'],
       ['Micrologiciel', fmt(p.firmware)],
@@ -329,42 +310,11 @@ export function createOverview(request) {
         (action === 'pause' && p.job_is_paused) ||
         (action === 'resume' && !p.job_is_paused);
     renderFirmware(p);
-    set(
-      'settings-availability',
-      workshopState.snapshot.ok && p.job_in_progress
-        ? tr('Réglages disponibles')
-        : tr('Disponibles pendant une impression'),
-    );
-    $('settings-form')
-      .querySelectorAll('input,select,button')
-      .forEach((e) => (e.disabled = !workshopState.snapshot.ok || !p.job_in_progress));
     if (!$('rename-form').dataset.loaded) {
       $('rename-form').elements.name.value = p.name || '';
       $('rename-form').dataset.loaded = 'yes';
     }
 
-    const modes = p.speed_modes || [];
-    if (JSON.stringify(modes) !== $('speed-mode').dataset.values) {
-      const previous = $('speed-mode').value;
-      $('speed-mode').replaceChildren(
-        new Option(tr('Ne pas modifier'), ''),
-        ...modes.map(
-          (m) =>
-            new Option(
-              { Quiet: tr('Silencieux'), Standard: 'Standard', Sport: 'Sport' }[
-                m.description ?? m.name ?? m.label
-              ] ||
-                m.description ||
-                m.name ||
-                m.label ||
-                String(m.mode ?? m.value ?? m.code),
-              m.mode ?? m.value ?? m.code ?? m.id,
-            ),
-        ),
-      );
-      $('speed-mode').value = previous;
-      $('speed-mode').dataset.values = JSON.stringify(modes);
-    }
   }
   /** N’autorise une mise à jour que si la machine est libre et la disponibilité explicitement annoncée. */
   function renderFirmware(p) {

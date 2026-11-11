@@ -35,6 +35,11 @@ Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](desi
 | Parc et santé | [parc.html](design/maquette/parc.html) |
 | Statistiques | [statistiques.html](design/maquette/statistiques.html) |
 | Réglages | [reglages.html](design/maquette/reglages.html) |
+| Commandes courantes | [commandes-courantes.html](design/maquette/commandes-courantes.html) |
+| Détails de la tâche | [details-tache.html](design/maquette/details-tache.html) |
+| Notifications Discord | [notifications-discord.html](design/maquette/notifications-discord.html) |
+
+Les [captures des maquettes à 1 440 px](design/maquette/images/) complètent les pages HTML.
 
 ## Vérification
 

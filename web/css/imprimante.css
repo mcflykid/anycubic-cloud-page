@@ -352,7 +352,6 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 #task-file{grid-template-columns:repeat(4,minmax(0,1fr))}
 #task-parameters{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:480px){#task-file{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.control-views{display:flex;flex-wrap:wrap;gap:var(--atelier-space-2);margin:0 0 var(--atelier-space-3)}
 #controls-dialog .metrics{margin:var(--atelier-space-3) 0 var(--atelier-space-4);gap:var(--atelier-space-3)}
 #controls-dialog .settings-groups{gap:var(--atelier-space-3)}
 #controls-dialog .settings-groups legend{margin-bottom:var(--atelier-space-2)}
@@ -361,7 +360,6 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 @media(max-width:540px){
   #task-file{grid-template-columns:repeat(2,minmax(0,1fr))}
   #controls-dialog .settings-groups{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .control-views>button{flex:1 1 auto}
 }
 
 /* Les contrôles natifs suivent également le thème choisi pour les cartes. */
@@ -460,39 +458,6 @@ dialog{background:var(--surface);color:var(--text)}
 .fleet-summary .fleet-age{margin-inline-start:auto}
 .fleet-age-short{display:none}
 @media(max-width:620px){.fleet-summary{font-size:var(--atelier-label-size)}.fleet-age-full{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.fleet-age-short{display:inline}}.fleet-alert{color:var(--atelier-error);font-weight:600}#fleet-events{line-height:1.8}
-
-/* Les formulaires partagent les colonnes malgré la longueur différente de leurs boutons. */
-#idle-controls:not([hidden]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  column-gap: var(--atelier-space-3);
-}
-#idle-controls > :is(h3, form) { grid-column: 1 / -1; }
-#idle-controls h3 { margin: 0 0 var(--atelier-space-3); }
-#idle-controls form {
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: end;
-  row-gap: var(--atelier-space-2);
-}
-#idle-controls form + form {
-  border-block-start: var(--atelier-rule) solid var(--atelier-line);
-  padding-block-start: var(--atelier-space-3);
-  margin-block-start: var(--atelier-space-3);
-}
-#idle-controls form > p { grid-column: 1 / -1; margin: 0; }
-.idle-fan-summary :is(h4, p) { margin: 0; }
-.idle-fan-summary h4 { font-size: var(--atelier-text-size); }
-@media (max-width: 580px) {
-  #idle-controls:not([hidden]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #idle-temperature-form > button { grid-column: 1 / -1; }
-  #idle-controls form + form { margin-block-start: var(--atelier-space-2); }
-  #idle-controls .idle-fan-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-    column-gap: var(--atelier-space-2);
-  }
-  .idle-fan-form > button { padding-inline: var(--atelier-space-2); }
-}
 
 /* Les neuf sections restent visibles sur ordinateur; le petit écran les regroupe dans un menu divulgable. */
 .atelier-navigation{display:contents}

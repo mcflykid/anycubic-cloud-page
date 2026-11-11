@@ -7,76 +7,19 @@ import {
   mins,
   node,
   set,
-  single,
   tr,
-  valueUnit,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
-import { definition } from './workshop-overview.mjs';
 import { api } from './workshop-api.mjs';
+import { createCurrentControls } from './workshop-current-controls.mjs';
+import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mjs';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
   let deviceOptions = null,
     resetTicket = null,
     resetDeadline = 0;
-  const controlFeedback = (text) => set('control-feedback', text);
-  /** Refuse les nouvelles commandes lorsque le serveur n’a plus d’état utilisable. */
-  function disableQuickControls() {
-    for (const button of $('controls-dialog').querySelectorAll(
-      'form input,form select,form button,#control-light-on,#control-light-off',
-    ))
-      button.disabled = true;
-    set('control-light-state', tr('État inconnu'));
-    $('control-view-idle').hidden = true;
-    if (currentControlView === 'idle') showControlView('monitor');
-  }
-  const controlViews = {monitor: 'controls-monitor', idle: 'idle-controls', settings: 'settings-form'};
-  const idleControls = $('idle-controls');
-  const idleFans = idleControls.querySelectorAll('.idle-fan-form');
-  let currentControlView = 'monitor';
-
-  /** Préserve la vue des mesures si l’imprimante cesse d’être disponible au repos. */
-  function showControlView(view) {
-    currentControlView = view;
-    for (const [name, panel] of Object.entries(controlViews)) {
-      $(panel).hidden = name !== view;
-      $(`control-view-${name}`).setAttribute('aria-pressed', String(name === view));
-    }
-  }
-
-  for (const view of Object.keys(controlViews))
-    $(`control-view-${view}`).onclick = () => showControlView(view);
-  $('controls-open').onclick = () => {
-    showControlView('monitor');
-    controlFeedback('');
-    $('controls-dialog').showModal();
-  };
-  $('settings-form').onsubmit = (e) => {
-    e.preventDefault();
-    controlFeedback('');
-    void command(
-      'settings',
-      Object.fromEntries(new FormData(e.target)),
-      tr('Appliquer ces réglages à l’impression active ?'),
-      controlFeedback,
-    );
-  };
-  $('idle-temperature-form').onsubmit = (event) => {
-    event.preventDefault();
-    void command('idle-settings', Object.fromEntries(new FormData(event.target)),
-      tr('Appliquer ces températures à l’imprimante au repos ? Vérifiez le plateau et les matériaux présents.'), controlFeedback);
-  };
-  // Chaque formulaire envoie uniquement la cible du ventilateur indiqué dans sa confirmation.
-  for (const form of idleFans) {
-    form.onsubmit = (event) => {
-      event.preventDefault();
-      const { name, value } = form.querySelector('input');
-      const label = form.querySelector('h4').textContent;
-      void command('idle-settings', { [name]: value },
-        formatText('Régler le ventilateur « {0} » à {1} % ?', label, value), controlFeedback);
-    };
-  }
+  const currentControls = createCurrentControls(command);
   $('rename-form').onsubmit = (e) => {
     e.preventDefault();
     command(
@@ -85,43 +28,12 @@ export function createSettings(request, command, camera) {
       tr('Renommer l’imprimante dans le compte Anycubic ?'),
     );
   };
-  for (const [id, enabled] of [
-    ['light-on', true],
-    ['light-off', false],
-    ['control-light-on', true],
-    ['control-light-off', false],
-  ]) {
-    const feedback = id.startsWith('control-') ? controlFeedback : undefined;
-    $(id).onclick = () => {
-      feedback?.('');
-      void command(
-        'light',
-        { enabled, light_type: 3 },
-        tr(
-          enabled
-            ? 'Allumer l’éclairage de l’imprimante ?'
-            : 'Éteindre l’éclairage de l’imprimante ?',
-        ),
-        feedback,
-      );
-    };
-  }
+  for (const [id, enabled] of [['light-on', true], ['light-off', false]])
+    $(id).onclick = () => command('light', { enabled, light_type: 3 },
+      tr(enabled ? 'Allumer l’éclairage de l’imprimante ?' : 'Éteindre l’éclairage de l’imprimante ?'));
   /** Conditionne axes et IA aux capacités annoncées et à une imprimante disponible. */
   function updateNativeControls(p) {
-    const limits = p.idle_limits || {};
-    const idle = workshopState.snapshot?.ok && p.printer_online && p.is_available && !p.is_busy && !p.job_in_progress && Object.keys(limits).length;
-    $('control-view-idle').hidden = !idle;
-    if (!idle && currentControlView === 'idle') showControlView('monitor');
-    for (const field of idleControls.querySelectorAll('input,button')) field.disabled = !idle;
-    for (const form of idleFans) {
-      const name = form.querySelector('input').name;
-      form.querySelector('.idle-fan-current').textContent = formatText('Vitesse actuelle : {0}', fmt(p[name], ' %'));
-    }
-    for (const name of ['target_nozzle_temp', 'target_hotbed_temp']) {
-      const input = $('idle-temperature-form').elements[name], pair = limits[name];
-      input.disabled = !idle || !pair;
-      if (pair) { input.min = pair[0]; input.max = pair[1]; }
-    }
+    currentControls.render(p);
     // L’état affiché vient de l’imprimante, y compris lorsqu’il est inconnu.
     const light = p.camera_light;
     set('camera-light-state', tr(light === true ? 'Allumé' : light === false ? 'Éteint' : 'État inconnu'));
@@ -147,82 +59,46 @@ export function createSettings(request, command, camera) {
     $('ai-open').dataset.tooltip = $('ai-open').disabled
       ? tr('Réglages disponibles lorsque l’imprimante est libre.')
       : tr('Régler la détection du filament enchevêtré et des objets étrangers.');
-    if ($('task-dialog').open) renderTaskDetails();
+    if ($('past-task-dialog').open && !$('past-task-extra').dataset.history) renderTaskDetails();
     if ($('ai-dialog').open && aiLoaded) {
       $('ai-form').querySelector('fieldset').disabled = !p.is_available || p.job_in_progress;
     }
   }
-  /** Affiche uniquement les paramètres de tranche transmis par le serveur et les données connues du projet courant. */
+  /** Alimente la fenêtre commune avec les données du projet courant sans compléter les valeurs absentes. */
   function renderTaskDetails() {
     const p = workshopState.snapshot?.printer,
       d = p?.task_details;
     if (!d) return;
-    set('task-name', p.job_name || tr('Tâche en cours'));
-    set(
-      'task-progress',
-      formatText(
-        '{0} · {1} / {2} couches · {3} restantes',
-        fmt(p.job_progress, ' %'),
-        p.job_current_layer ?? '—',
-        p.job_total_layers ?? '—',
-        mins(p.job_time_remaining),
-      ),
-    );
-    if (!$('job-preview').hidden) {
-      $('task-preview').src = $('job-preview').src;
-      $('task-preview').hidden = false;
-    } else $('task-preview').hidden = true;
-    const params = d.parameters || {},
-      time = d.estimated_time
-        ? String(d.estimated_time)
-            .replace(/(\d+)h/g, '$1 h ')
-            .replace(/(\d+)m/g, '$1 min ')
-            .replace(/(\d+)s/g, '$1 s')
-            .replace(/\s+/g, ' ')
-            .trim()
-        : '—';
-    definition('task-file', [
-      [
-        'Dimensions',
-        d.dimensions?.every((v) => v != null)
-          ? d.dimensions.map((v) => fmt(v)).join(' × ') + ' mm'
-          : '—',
-      ],
-      ['Couches', fmt(d.layers)],
-      ['Temps estimé', time],
-      ['Filament estimé', fmt(d.material_grams, ' g')],
-    ]);
-    const yes = (v) =>
-      v == null ? '—' : [true, 1, '1', 'true'].includes(single(v)) ? tr('Activé') : tr('Désactivé');
-    definition('task-parameters', [
-      ['Hauteur de couche', valueUnit(params.layer_height, ' mm')],
-      ['Remplissage', valueUnit(params.fill_density, ' %')],
-      ['Supports', yes(params.enable_support)],
-      [
-        'Adhérence au plateau',
-        params.brim_type == null
-          ? '—'
-          : {
-              no_brim: tr('Sans bordure'),
-              auto_brim: 'Automatique',
-              outer_only: tr('Bordure externe'),
-              inner_only: tr('Bordure interne'),
-              outer_and_inner: tr('Bordures interne et externe'),
-            }[params.brim_type] || tr('Activée'),
-      ],
-      ['Buse', valueUnit(params.temperature, ' °C')],
-      ['Plateau', valueUnit(params.bed_temperature, ' °C')],
-      ['Ventilation maximale', valueUnit(params.fan_max_speed, ' %')],
-      ['Rétraction', valueUnit(params.filament_retract_length, ' mm')],
-      ['Parois', valueUnit(params.perimeters)],
-      ['Largeur de paroi', valueUnit(params.perimeter_extrusion_width, ' mm')],
-      ['Vitesse de paroi externe', valueUnit(params.outer_wall_speed, ' mm/s')],
-      ['Déplacements', valueUnit(params.travel_speed, ' mm/s')],
-    ]);
+    const state = {
+      printing: tr('Impression en cours'),
+      paused: tr('Impression en pause'),
+      finished: tr('Impression terminée'),
+      completed: tr('Impression terminée'),
+    }[p.job_state] || tr('État inconnu');
+    set('past-task-name', p.job_name || tr('Tâche en cours'));
+    $('past-task-state').querySelector('span').textContent = state;
+    $('past-task-state').dataset.state = p.job_state === 'paused' ? 'paused' : 'active';
+    const image = $('past-task-preview'), fallback = $('past-task-preview-state');
+    image.hidden = $('job-preview').hidden;
+    if (!image.hidden) image.src = $('job-preview').src;
+    fallback.hidden = !image.hidden;
+    $('past-task-extra').hidden = true;
+    renderTaskBands({
+      progress: p.job_progress,
+      currentLayer: p.job_current_layer,
+      totalLayers: p.job_total_layers,
+      layers: d.layers,
+      remainingSeconds: p.job_time_remaining == null ? null : Number(p.job_time_remaining) * 60,
+      dimensions: d.dimensions,
+      estimatedTime: d.estimated_time || null,
+      materialGrams: d.material_grams,
+      parameters: d.parameters || {},
+    });
   }
   $('task-details-open').onclick = () => {
+    delete $('past-task-extra').dataset.history;
     renderTaskDetails();
-    $('task-dialog').showModal();
+    $('past-task-dialog').showModal();
   };
   let aiLoaded = false;
   let aiLoading = false;
@@ -587,5 +463,5 @@ export function createSettings(request, command, camera) {
     if (!deviceOptions) loadDeviceOptions();
   }
 
-  return { disableQuickControls, updateNativeControls, enter };
+  return { disableQuickControls: currentControls.disable, updateNativeControls, enter };
 }

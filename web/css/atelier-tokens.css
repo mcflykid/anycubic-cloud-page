@@ -33,6 +33,17 @@
   --atelier-workshop-title-size: clamp(var(--atelier-machine-size), 3vw, 2.35rem);
   --atelier-reading-font: 1rem/1.6 var(--atelier-font);
   --atelier-swatch-border: #0002;
+  --atelier-detail-dialog-width: 960px;
+  --atelier-controls-device: 304px;
+  --atelier-controls-diagram-width: 320px;
+  --atelier-controls-illustration: 255px;
+  --atelier-controls-mobile-illustration: 128px;
+  --atelier-controls-label: 140px;
+  --atelier-controls-unit: 40px;
+  --atelier-controls-stroke: 1.5px;
+  --atelier-controls-nozzle: light-dark(#C2410C, #FB9C70);
+  --atelier-controls-part: light-dark(#1D4ED8, #86AAFF);
+  --atelier-controls-auxiliary: light-dark(#7C3AED, #BD9EFF);
   --atelier-video-idle: #161618;
   --atelier-backdrop: #0005;
   --atelier-relay-texture: #a5aab0;

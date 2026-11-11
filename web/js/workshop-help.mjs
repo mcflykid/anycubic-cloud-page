@@ -36,7 +36,7 @@ const fieldHelp = {
   target_hotbed_temp: tr('Température cible du plateau, entre 0 et 120 °C.'),
   fan_speed_pct: tr('Ventilation de la pièce, entre 0 et 100 %. '),
   aux_fan_speed_pct: tr('Ventilateur auxiliaire, entre 0 et 100 %. '),
-  box_fan_level: tr('Niveau de ventilation de l’enceinte accepté par Anycubic, de 0 à 3.'),
+  box_fan_level: tr('Vitesse du ventilateur de circulation affichée en pourcentage.'),
   print_speed_mode: tr('Mode de vitesse appliqué à l’impression en cours.'),
   slots: tr('Numéros des bobines de l’ACE, dans l’ordre des couleurs du G-code.'),
   mode: tr('Choisir entre conserver le fichier dans le cloud et lancer son impression.'),

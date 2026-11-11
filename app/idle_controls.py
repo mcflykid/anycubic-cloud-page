@@ -51,6 +51,20 @@ def idle_limits(target):
     return result
 
 
+def print_limits(project):
+    """Renvoie les limites constructeur reçues pour le projet, si elles sont valides."""
+    result = {}
+    for field, suffix, cap in (
+        ("target_nozzle_temp", "nozzle", 320),
+        ("target_hotbed_temp", "hotbed", 120),
+    ):
+        lower = getattr(project, f"temp_min_{suffix}", None)
+        upper = getattr(project, f"temp_max_{suffix}", None)
+        if type(lower) is int and type(upper) is int and 0 <= lower <= upper <= cap:
+            result[field] = [lower, upper]
+    return result
+
+
 def idle_request(target, values):
     """Valide une seule famille de réglages ; refuse toute limite inconnue ou donnée ambiguë."""
     limits = idle_limits(target)
@@ -58,7 +72,8 @@ def idle_request(target, values):
         raise ValueError("Préchauffage non annoncé pour cette imprimante")
     clean = {key: value for key, value in values.items() if value not in ("", None)}
     temperatures = {"target_nozzle_temp", "target_hotbed_temp"}
-    fans = {"fan_speed_pct", "aux_fan_speed_pct"}
+    # Le client Slicer traite les trois ventilateurs de la S1 sur l’échelle 0–100.
+    fans = {"fan_speed_pct", "aux_fan_speed_pct", "box_fan_level"}
     if clean and clean.keys() <= temperatures:
         parsed = {}
         for key, value in clean.items():
@@ -76,7 +91,6 @@ def idle_request(target, values):
         return IdleOrder(
             1221, target.printer.id, {key: integer(value, 0, 100) for key, value in clean.items()}
         )
-    # L’unité du troisième ventilateur diffère entre clients : ne pas ajouter une échelle supposée.
     raise ValueError("Choisissez les températures ou un seul ventilateur")
 
 

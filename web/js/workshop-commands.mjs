@@ -68,9 +68,9 @@ export function createCommands(request, refresh) {
   }
   /** Renvoie le résultat ou null ; question demande confirmation et request_id empêche une répétition côté serveur. */
   async function command(action, data = {}, question, feedback) {
-    const notify = (text, error) => {
+    const notify = (text, error, sheet) => {
       message(text, error);
-      feedback?.(text);
+      feedback?.(text, sheet);
     };
     if (workshopState.busy) {
       notify(tr('Une opération est déjà en cours.'), true);
@@ -88,7 +88,7 @@ export function createCommands(request, refresh) {
     const filePrint = ['print-cloud', 'print-local', 'print-usb'].includes(action);
     if (question && !(await confirmAction(question, filePrint))) return null;
     if (filePrint) data = { ...data, slots: slots($('file-slots').value) };
-    if (action === 'idle-settings') data = { ...data, confirmed: !!question };
+    if (action === 'idle-settings') data = { ...data, confirmed: !!question || data.confirmed === true };
     if (target !== workshopState.selectedPrinter) {
       notify(tr('La cible a changé : commande annulée.'), true);
       return null;
@@ -111,7 +111,7 @@ export function createCommands(request, refresh) {
       await refresh();
       return d;
     } catch (e) {
-      notify(e.message, true);
+      notify(e.message, true, e.errorSheet);
       if (e.errorSheet) {
         const help = $('message-error-help');
         help.hidden = false;

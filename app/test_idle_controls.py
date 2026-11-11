@@ -46,10 +46,17 @@ class IdleControlsTests(unittest.IsolatedAsyncioTestCase):
                     "data": {"type": kind, "target_nozzle_temp": nozzle, "target_hotbed_temp": bed},
                 },
             )
-        self.assertEqual(
-            idle_request(target, {"fan_speed_pct": 20}).order_request_data,
-            {"order_id": "1221", "printer_id": 7, "data": {"fan_speed_pct": 20}},
-        )
+        for key, value in (
+            ("fan_speed_pct", 20),
+            ("aux_fan_speed_pct", 35),
+            ("box_fan_level", 33),
+            ("box_fan_level", 0),
+        ):
+            with self.subTest(key=key, value=value):
+                self.assertEqual(
+                    idle_request(target, {key: value}).order_request_data,
+                    {"order_id": "1221", "printer_id": 7, "data": {key: value}},
+                )
 
     def test_unknown_limits_model_and_invalid_values_never_send(self):
         """Pas de bornes par défaut, de conversion booléenne ni de requête ambiguë."""
@@ -58,6 +65,9 @@ class IdleControlsTests(unittest.IsolatedAsyncioTestCase):
             {"target_hotbed_temp": 111},
             {"target_nozzle_temp": True},
             {"fan_speed_pct": 101},
+            {"box_fan_level": 101},
+            {"box_fan_level": -1},
+            {"box_fan_level": 33, "fan_speed_pct": 20},
             {"fan_speed_pct": 20, "target_hotbed_temp": 30},
             {"fan_speed_pct": 20, "aux_fan_speed_pct": 30},
             {"task_settings": {}},

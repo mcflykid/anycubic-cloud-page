@@ -1,0 +1,166 @@
+/* La grille du formulaire sert aussi de repère à l’extrémité des traits. */
+#controls-dialog {
+  width: min(var(--atelier-detail-dialog-width), calc(100% - var(--atelier-space-6)));
+  max-width: none;
+  padding: 0;
+  border-radius: var(--atelier-card-radius);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  box-shadow: none;
+}
+#controls-dialog::backdrop {
+  background: var(--atelier-backdrop);
+  backdrop-filter: none;
+}
+.current-controls-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+#controls-dialog :is(h2, form, p, label) { margin: 0; }
+.current-controls-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--atelier-controls-device) minmax(0, 1fr);
+  padding: var(--atelier-space-4);
+}
+.current-controls-device { min-width: 0; }
+.current-controls-device:has(#controls-s1-diagram:not([hidden])) {
+  margin-inline-start: calc(-1 * var(--atelier-space-4));
+  margin-block-start: calc(-1 * var(--atelier-space-4));
+}
+.current-controls-device :is(img, svg) {
+  display: block;
+  width: min(100%, var(--atelier-controls-illustration));
+  height: auto;
+}
+#controls-s1-diagram {
+  width: min(100%, var(--atelier-controls-diagram-width));
+  stroke: var(--atelier-muted);
+  stroke-width: var(--atelier-controls-stroke);
+}
+#controls-s1-diagram .diagram-case { fill: var(--atelier-bg); }
+#controls-s1-diagram .diagram-interior { fill: var(--atelier-surface); }
+#controls-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#controls-connectors polyline {
+  fill: none;
+  stroke: var(--organ-color);
+  stroke-width: var(--atelier-controls-stroke);
+  stroke-dasharray: var(--atelier-space-1) var(--atelier-space-1);
+}
+#controls-connectors circle {
+  fill: var(--organ-color);
+  stroke: var(--atelier-surface);
+  stroke-width: var(--atelier-controls-stroke);
+}
+#controls-dialog [data-organ="nozzle"] { --organ-color: var(--atelier-controls-nozzle); }
+#controls-dialog [data-organ="part"] { --organ-color: var(--atelier-controls-part); }
+#controls-dialog [data-organ="auxiliary"] { --organ-color: var(--atelier-controls-auxiliary); }
+#controls-dialog [data-organ="circulation"] { --organ-color: var(--atelier-accent); }
+#controls-dialog [data-organ="bed"] { --organ-color: var(--atelier-warning); }
+.current-controls-rows { display: grid; row-gap: var(--atelier-space-2); }
+.current-control-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--atelier-controls-label) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--atelier-space-4);
+  min-block-size: var(--atelier-control);
+}
+.current-control-separator:not(:first-child) { margin-block-start: var(--atelier-space-2); }
+.current-control-separator:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(-1 * var(--atelier-space-2));
+  border-block-start: var(--atelier-rule) solid var(--atelier-line);
+}
+#controls-dialog :is(label, .current-control-label) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--atelier-space-2);
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+}
+.current-control-row .metric-icon {
+  flex-shrink: 0;
+  color: var(--organ-color, var(--atelier-muted));
+}
+.current-control-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--atelier-controls-unit);
+  align-items: center;
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+#controls-dialog :is(input, select) {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  block-size: var(--atelier-control);
+  min-height: var(--atelier-control);
+  margin: 0;
+  padding: 0 var(--atelier-space-3);
+}
+#controls-dialog input {
+  block-size: calc(var(--atelier-control) - 2 * var(--atelier-rule));
+  min-height: calc(var(--atelier-control) - 2 * var(--atelier-rule));
+  border: 0;
+  background: none;
+}
+.current-reading {
+  padding-inline: var(--atelier-space-2);
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.current-unit {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  border-inline-start: var(--atelier-rule) solid var(--atelier-line);
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.current-light,
+.current-light > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2);
+}
+#controls-dialog [hidden] { display: none; }
+#controls-dialog .atelier-status[data-state="unknown"]::before {
+  background: none;
+  border: var(--atelier-active-rule) solid var(--atelier-muted);
+}
+.current-controls-feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--atelier-space-2);
+  padding: 0 var(--atelier-space-4) var(--atelier-space-3);
+}
+.current-controls-feedback:not(:has(p:not(:empty))) { display: none; }
+#controls-dialog footer p { color: var(--atelier-muted); font: var(--atelier-label); }
+@media (max-width: 900px) {
+  .current-controls-body { grid-template-columns: minmax(0, 1fr); }
+  .current-controls-device:has(#controls-s1-diagram:not([hidden])) { margin: 0; }
+  .current-controls-device :is(img, #controls-s1-diagram) { width: var(--atelier-controls-mobile-illustration); margin-inline: auto; }
+  #controls-connectors { display: none; }
+}
+@media (max-width: 550px) {
+  .current-control-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--atelier-space-1);
+    padding-block: var(--atelier-space-2);
+  }
+  .current-controls-header, #controls-dialog footer { gap: var(--atelier-space-2); }
+  .current-controls-header h2 { grid-column: 1 / -1; }
+  #controls-dialog footer { align-items: flex-start; flex-direction: column; }
+}
