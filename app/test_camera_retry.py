@@ -250,7 +250,7 @@ class CameraRetry(unittest.IsolatedAsyncioTestCase):
         with (
             patch.object(adapter.time, "monotonic", return_value=100),
             patch.object(adapter.time, "time", return_value=100),
-            patch.object(adapter, "schedule_camera_expiry") as schedule,
+            patch("camera_sessions.schedule_camera_expiry") as schedule,
         ):
             await adapter.camera(request)
             schedule.assert_called_once_with(self.engine)

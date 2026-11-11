@@ -24,7 +24,7 @@ class CloudRequestLoggingTests(unittest.IsolatedAsyncioTestCase):
                 "_fetch_api_resp",
                 new=AsyncMock(return_value=response),
             ) as base_call,
-            patch("server.log_event") as emit,
+            patch("printer_engine.log_event") as emit,
         ):
             result = await api._fetch_api_resp(
                 API_ENDPOINT.printer_info,
@@ -59,7 +59,7 @@ class CloudRequestLoggingTests(unittest.IsolatedAsyncioTestCase):
                 "_fetch_api_resp",
                 new=AsyncMock(return_value=response),
             ),
-            patch("server.log_event") as emit,
+            patch("printer_engine.log_event") as emit,
         ):
             await api._fetch_api_resp(custom)
 
@@ -80,7 +80,7 @@ class CloudRequestLoggingTests(unittest.IsolatedAsyncioTestCase):
                 "_fetch_api_resp",
                 new=AsyncMock(side_effect=error),
             ) as base_call,
-            patch("server.log_event") as emit,
+            patch("printer_engine.log_event") as emit,
         ):
             with self.assertRaises(AnycubicHTTPUnauthorized):
                 await api._fetch_api_resp(API_ENDPOINT.printer_info)
