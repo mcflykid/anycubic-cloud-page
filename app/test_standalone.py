@@ -73,6 +73,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
                 state_dir=pathlib.Path(self.temp.name),
                 api=SimpleNamespace(upload_file_to_cloud=AsyncMock()),
                 command_lock=asyncio.Lock(),
+                upload_lock=asyncio.Lock(),
                 lock=asyncio.Lock(),
                 action=AsyncMock(return_value="Acceptée fictivement"),
                 event=lambda *args: None,
@@ -314,6 +315,19 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rows[0]["parameters"], {"name": "fixture.gcode"})
         self.assertNotIn("fixture-secret-error", str(rows))
 
+    async def test_non_string_command_action_is_rejected_before_cloud(self):
+        """Une action JSON non textuelle reçoit 400 avant tout appel au moteur Cloud."""
+        await self.sign_in()
+        engine = self.engines[printer_key(1)]
+        response = await self.client.post(
+            "/imprimante-api/sensitive-fixture",
+            json={"request_id": str(uuid.uuid4()), "action": ["pause"]},
+            headers={"Origin": self.origin, "X-Printer-Key": printer_key(1)},
+        )
+        self.assertEqual(response.status, 400)
+        self.assertEqual((await response.json())["message"], "Action invalide.")
+        engine.action.assert_not_awaited()
+
     async def test_command_distinguishes_validation_from_failure_after_dispatch(self):
         """Un refus reste local et une panne après envoi conserve la déduplication."""
         await self.sign_in()
@@ -445,6 +459,29 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
             (await self.sign_in(headers={"X-Forwarded-For": "192.0.2.99, 192.0.2.1"})).status, 429
         )
         self.assertEqual((await self.sign_in(headers={"X-Forwarded-For": "invalid"})).status, 303)
+
+    async def test_ipv6_proxy_quota_groups_the_same_subnet(self):
+        """Des adresses distinctes du même /64 partagent le quota du client derrière proxy."""
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        for index in range(5):
+            response = await self.sign_in(
+                password="wrong",
+                headers={"X-Forwarded-For": f"2001:db8:42::{index + 1}"},
+            )
+            self.assertEqual(response.status, 401)
+        response = await self.sign_in(headers={"X-Forwarded-For": "2001:db8:42::abcd"})
+        self.assertEqual(response.status, 429)
+
+    async def test_partially_invalid_forwarded_chain_uses_http_peer(self):
+        """Une chaîne incomplète ne laisse pas le proxy choisir le compteur d’une autre adresse."""
+        self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        for _ in range(5):
+            response = await self.sign_in(
+                password="wrong",
+                headers={"X-Forwarded-For": "2001:db8:42::1, invalid"},
+            )
+            self.assertEqual(response.status, 401)
+        self.assertEqual((await self.sign_in()).status, 429)
 
     async def test_health_stays_public_even_without_secret(self):
         """La supervision reste indépendante du secret ; les routes privées échouent fermées."""

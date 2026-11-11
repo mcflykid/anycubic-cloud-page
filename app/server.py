@@ -24,6 +24,7 @@ from idle_controls import idle_limits
 from ace_telemetry import ace2_pro_telemetry
 from printer_axes import is_allowed as axis_query_allowed, query_axis_position
 from account_transport import AccountTransport
+from request_validation import json_object
 from printer_values import integer, now, safeget, serial
 from printer_commands import execute_command, slot_indices
 import printer_files
@@ -70,6 +71,7 @@ FIELDS = json.loads((ROOT / "fields.json").read_text())
 COMMAND_READ_WAIT_SECONDS = 30
 UPLOAD_LIMIT = 100 * 1024 * 1024
 UPLOAD_STAGING = asyncio.Lock()
+CAMERA_VIEWER_TTL = 120
 OPS_LOG = logging.getLogger("cloud_page.server")
 HTTP_LOG = logging.getLogger("cloud_page.http")
 MONITORING_KEY = web.AppKey("monitoring", Monitoring)
@@ -335,10 +337,14 @@ class Engine:
         self.camera_stage = -1
         self.transport = AccountTransport()
         self.camera_viewers = set()
+        self.camera_viewer_expiries = {}
+        self.camera_expiry_task = None
         self.camera_departures = collections.OrderedDict()
         self.camera_owner = None
         self.camera_close_task = None
         self.command_lock = asyncio.Lock()
+        self.upload_lock = asyncio.Lock()
+        self.mqtt_reconnect_task = None
         self.notifications = AccountNotifications()
         self.extras = None
         self.notifications_error = None
@@ -485,11 +491,37 @@ class Engine:
         self.event("Cloud", "Session renouvelée automatiquement")
         if self.api is api and self.printer and not self.reconnect_required:
             self.transport.mqtt_auth_pending = True
-            asyncio.create_task(self.restart_mqtt_auth(api))
+            previous = self.mqtt_reconnect_task
+            if previous is None or previous.done():
+                self.mqtt_reconnect_task = asyncio.create_task(self.restart_mqtt_auth(api))
 
     async def restart_mqtt_auth(self, api):
         """Relance le suivi du compte après le renouvellement de session."""
-        await self.transport.restart(api, self.mqtt_start)
+        try:
+            restarted = await self.transport.restart(api, self.mqtt_start)
+            if not restarted and self.api is api and self.transport.mqtt_auth_pending:
+                self.event("MQTT", "Reconnexion différée, le suivi précédent reste actif")
+                log_event(
+                    OPS_LOG,
+                    logging.WARNING,
+                    "mqtt_reconnect_deferred",
+                    message="Le suivi MQTT précédent ne s’est pas arrêté avant la reconnexion",
+                    reason="previous_thread_active",
+                )
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            self.event("MQTT", "Reconnexion indisponible (" + type(error).__name__ + ")")
+            log_event(
+                OPS_LOG,
+                logging.WARNING,
+                "mqtt_reconnect_failed",
+                message="La reconnexion MQTT après renouvellement a échoué",
+                error_type=type(error).__name__,
+            )
+        finally:
+            if self.mqtt_reconnect_task is asyncio.current_task():
+                self.mqtt_reconnect_task = None
 
     async def refresh_printer_details(self):
         """Partage un relevé HTTP entre le modèle et les capacités pour éviter deux états divergents."""
@@ -1251,7 +1283,7 @@ async def history(req):
 async def history_read(req):
     """Renvoie la confirmation de lecture ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
-    data = await req.json()
+    data = await json_object(req)
     if data.get("all") is not True and not re.fullmatch(r"[a-f0-9]{20}", str(data.get("key", ""))):
         raise ValueError("Notification invalide")
     if not engine.api:
@@ -1266,7 +1298,7 @@ async def history_read(req):
 async def history_delete(req):
     """Renvoie la confirmation d’effacement ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
-    data = await req.json()
+    data = await json_object(req)
     async with audit_command(req, engine, "history-delete", None, {}) as audit:
         if data.get("all") is not True and not re.fullmatch(
             r"[a-f0-9]{20}", str(data.get("key", ""))
@@ -1435,13 +1467,19 @@ async def command_journal(request):
 
 
 @contextlib.asynccontextmanager
-async def command_operation(req, *, require_model=True):
+async def command_operation(req, *, require_model=True, bypass_read_lock=False):
     # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
     """Cède le verrou API à une seule opération ; lève ValueError si attente trop longue ou client parti."""
     engine = request_engine(req)
     if engine.command_lock.locked():
         raise ValueError("Une opération est en cours. Réessayez après sa fin.")
     async with engine.command_lock:
+        if bypass_read_lock:
+            if req.transport is None or req.transport.is_closing():
+                raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
+            verify_printer_target(req, engine, require_model=require_model)
+            yield
+            return
         try:
             await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
         except asyncio.TimeoutError:
@@ -1457,13 +1495,38 @@ async def command_operation(req, *, require_model=True):
             engine.lock.release()
 
 
+@contextlib.asynccontextmanager
+async def storage_upload_operation(req, engine):
+    """Sérialise les transferts de stockage Cloud et vérifie leur cible avant le réseau."""
+    if engine.upload_lock.locked():
+        raise ValueError("Un envoi de fichier est déjà en cours")
+    async with engine.upload_lock:
+        try:
+            await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
+        except asyncio.TimeoutError:
+            raise CommandWaitExpired(
+                "La consultation Anycubic prend trop de temps. Aucun fichier envoyé ; réessayez dans quelques secondes."
+            ) from None
+        try:
+            if req.transport is None or req.transport.is_closing():
+                raise ValueError("La demande a été interrompue. Aucun fichier envoyé.")
+            verify_printer_target(req, engine)
+            if not engine.api:
+                raise ValueError("Connexion en cours")
+        finally:
+            engine.lock.release()
+        yield
+
+
 async def command(req):
     """Renvoie le résultat mémorisé par request_id ; rejette une demande invalide sans répéter une commande connue."""
     engine = request_engine(req)
-    d = await req.json()
+    d = await json_object(req)
     requestid = str(d.pop("request_id", ""))
     valid_id = re.fullmatch(r"[a-zA-Z0-9-]{16,80}", requestid)
     name = d.pop("action", None)
+    if not isinstance(name, str):
+        raise ValueError("Action invalide.")
     ticket = d.pop("confirmation", None)
     if requestid in engine.commands:
         previous = engine.commands[requestid]
@@ -1473,7 +1536,11 @@ async def command(req):
     async with audit_command(req, engine, name, requestid if valid_id else None, d) as audit:
         if not valid_id:
             raise ValueError("Identifiant de commande manquant")
-        async with command_operation(req, require_model=name != "presets"):
+        async with command_operation(
+            req,
+            require_model=name != "presets",
+            bypass_read_lock=name in {"pause", "cancel"},
+        ):
             if requestid in engine.commands:
                 audit.clear()
                 previous = engine.commands[requestid]
@@ -1590,39 +1657,98 @@ async def camera(req):
         raise ValueError("Session vidéo invalide")
     if not engine.printer:
         raise ValueError("Connexion en cours")
-    async with engine.lock:
-        verify_printer_target(req, engine)
-        if viewer and engine.camera_departures.get(viewer, 0) > time.monotonic():
-            raise ValueError("Cet onglet a déjà fermé sa session vidéo")
-        if viewer and len(engine.camera_viewers) >= 32 and viewer not in engine.camera_viewers:
-            raise ValueError("Trop de sessions vidéo ouvertes")
-        if (
-            not engine.camera
-            or time.time() - engine.last_session > 5
-            or (viewer and engine.camera_owner != viewer)
-        ):
-            engine.camera_message_id = None
-            engine.camera_diagnostic = None
-            engine.camera_stage = -1
-            try:
-                session = await engine.printer.get_camera_session()
-            except Exception as error:
-                # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
-                if not camera_transport_failure(error):
-                    raise
-                session = await engine.printer.get_camera_session()
-            if session is None:
-                raise ValueError("Caméra indisponible")
-            engine.camera = session.data
-            engine.camera_message_id = getattr(session, "msg_id", None)
-            engine.last_session = time.time()
-        if viewer:
-            engine.camera_owner = viewer
-            engine.camera_viewers.add(viewer)
-        elif hasattr(engine, "camera_viewers"):
-            # Un client ancien sans référence de spectateur ne permet pas de confirmer son départ.
-            engine.camera_viewers.add("legacy")
-        return web.json_response(engine.camera, headers={"Cache-Control": "no-store"})
+    async with engine.command_lock:
+        async with engine.lock:
+            verify_printer_target(req, engine)
+            prune_camera_viewers(engine)
+            if viewer and engine.camera_departures.get(viewer, 0) > time.monotonic():
+                raise ValueError("Cet onglet a déjà fermé sa session vidéo")
+            if viewer and len(engine.camera_viewers) >= 32 and viewer not in engine.camera_viewers:
+                raise ValueError("Trop de sessions vidéo ouvertes")
+            if (
+                not engine.camera
+                or time.time() - engine.last_session > 5
+                or (viewer and engine.camera_owner != viewer)
+            ):
+                engine.camera_message_id = None
+                engine.camera_diagnostic = None
+                engine.camera_stage = -1
+                try:
+                    session = await engine.printer.get_camera_session()
+                except Exception as error:
+                    # Aucun délai de déduplication cloud n’est établi ; une erreur durable ne justifie pas une seconde demande.
+                    if not camera_transport_failure(error):
+                        raise
+                    session = await engine.printer.get_camera_session()
+                if session is None:
+                    raise ValueError("Caméra indisponible")
+                engine.camera = session.data
+                engine.camera_message_id = getattr(session, "msg_id", None)
+                engine.last_session = time.time()
+            if viewer:
+                engine.camera_owner = viewer
+                engine.camera_viewers.add(viewer)
+            elif hasattr(engine, "camera_viewers"):
+                # L’échéance évite qu’une interface ancienne garde la caméra réservée après sa déconnexion.
+                engine.camera_viewers.add("legacy")
+                viewer = "legacy"
+            engine.camera_viewer_expiries[viewer] = camera_viewer_deadline(req)
+            schedule_camera_expiry(engine)
+            if engine.camera_close_task and not engine.camera_close_task.done():
+                engine.camera_close_task.cancel()
+            return web.json_response(engine.camera, headers={"Cache-Control": "no-store"})
+
+
+def camera_viewer_deadline(request):
+    """Borne le spectateur à l’expiration fixe de sa session web authentifiée."""
+    now_monotonic = time.monotonic()
+    expires = request.get("session_expires") if hasattr(request, "get") else None
+    if isinstance(expires, (int, float)) and not isinstance(expires, bool):
+        return max(now_monotonic, expires)
+    return now_monotonic + CAMERA_VIEWER_TTL
+
+
+def prune_camera_viewers(engine):
+    """Retire les onglets dont la session web n’a pas renouvelé son échéance."""
+    now_monotonic = time.monotonic()
+    expired = [
+        viewer
+        for viewer, deadline in engine.camera_viewer_expiries.items()
+        if deadline <= now_monotonic
+    ]
+    for viewer in expired:
+        engine.camera_viewer_expiries.pop(viewer, None)
+        engine.camera_viewers.discard(viewer)
+
+
+def schedule_camera_expiry(engine):
+    """Recalcule l’échéance la plus proche quand un onglet rejoint une autre session web."""
+    task = engine.camera_expiry_task
+    if task and not task.done():
+        task.cancel()
+    engine.camera_expiry_task = asyncio.create_task(expire_camera_viewers(engine))
+
+
+async def expire_camera_viewers(engine):
+    """Attend l’échéance la plus proche et programme la fermeture si aucun onglet ne revient."""
+    try:
+        while engine.camera_viewer_expiries:
+            deadline = min(engine.camera_viewer_expiries.values())
+            await asyncio.sleep(max(0, deadline - time.monotonic()))
+            async with engine.lock:
+                prune_camera_viewers(engine)
+                if not engine.camera_viewer_expiries:
+                    if engine.printer:
+                        previous = engine.camera_close_task
+                        if previous and not previous.done():
+                            previous.cancel()
+                        engine.camera_close_task = asyncio.create_task(
+                            close_idle_camera(engine, str(engine.printer.id))
+                        )
+                    return
+    finally:
+        if engine.camera_expiry_task is asyncio.current_task():
+            engine.camera_expiry_task = None
 
 
 async def close_idle_camera(engine, target):
@@ -1672,6 +1798,12 @@ async def camera_close(req):
             engine.camera_departures.popitem(last=False)
         if viewer in engine.camera_viewers:
             engine.camera_viewers.remove(viewer)
+            engine.camera_viewer_expiries.pop(viewer, None)
+            if not engine.camera_viewers:
+                expiry = engine.camera_expiry_task
+                if expiry and not expiry.done():
+                    expiry.cancel()
+                engine.camera_expiry_task = None
             if not engine.camera_viewers and engine.printer:
                 previous = engine.camera_close_task
                 if previous and not previous.done():
@@ -1685,7 +1817,7 @@ async def camera_close(req):
 async def print_preflight(req):
     """Prépare les avertissements de bobines sans envoyer de commande à la machine."""
     engine = request_engine(req)
-    data = await req.json()
+    data = await json_object(req)
     if not isinstance(data, dict):
         raise ValueError("Métadonnées de filament invalides")
     ensure_firmware_ready(engine.printer)
@@ -1776,7 +1908,12 @@ async def upload_operation(req, engine, audit):
             if (previous := await recorded_command(req, rid)) is not None:
                 audit.clear()
                 return previous
-            async with command_operation(req):
+            operation = (
+                storage_upload_operation(req, engine)
+                if mode == "upload"
+                else command_operation(req)
+            )
+            async with operation:
                 if rid in engine.commands:
                     audit.clear()
                     previous = engine.commands[rid]
@@ -1986,7 +2123,7 @@ def purge_abandoned_uploads(state_dir):
                 if not path.is_dir() or path.stat().st_mtime > cutoff:
                     continue
                 if any(
-                    child.name != "payload.gcode"
+                    child.name not in {"payload.gcode", "payload.stl", "payload.3mf"}
                     or child.is_symlink()
                     or not child.is_file()
                     or child.stat().st_mtime > cutoff
@@ -2010,11 +2147,16 @@ async def cleanup(app):
     )
     registry = app["printer_registry"]
     for selected in [engine, *registry.entries.values()]:
-        task = selected.camera_close_task
-        if task and not task.done():
-            task.cancel()
+        reconnect = selected.mqtt_reconnect_task
+        if reconnect and not reconnect.done():
+            reconnect.cancel()
             with contextlib.suppress(asyncio.CancelledError):
-                await task
+                await reconnect
+        for task in (selected.camera_expiry_task, selected.camera_close_task):
+            if task and not task.done():
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
     await registry.close()
     app["temperature_task"].cancel()
     with contextlib.suppress(asyncio.CancelledError):
@@ -2034,7 +2176,7 @@ async def cleanup(app):
 async def preview(req):
     """Renvoie une image validée ou None ; lève ValueError si la connexion manque."""
     engine = request_engine(req)
-    d = await req.json()
+    d = await json_object(req)
     url = None
     async with engine.lock:
         if not engine.api or not engine.printer:

@@ -67,6 +67,7 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
             state_dir=pathlib.Path(staging.name),
             lock=asyncio.Lock(),
             command_lock=asyncio.Lock(),
+            upload_lock=asyncio.Lock(),
             commands={},
             action=AsyncMock(return_value="accepted"),
             event=Mock(),
@@ -81,12 +82,12 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
         adapter.engine = self.previous
         adapter.COMMAND_READ_WAIT_SECONDS = self.timeout
 
-    def req(self, rid="command-test-0001"):
+    def req(self, rid="command-test-0001", action="light"):
         """Renvoie une requête de commande fictive avec identifiant stable pour tester la déduplication."""
         return SimpleNamespace(
             headers={},
             transport=SimpleNamespace(is_closing=lambda: False),
-            json=AsyncMock(return_value={"request_id": rid, "action": "light", "enabled": True}),
+            json=AsyncMock(return_value={"request_id": rid, "action": action, "enabled": True}),
         )
 
     def upload_req(self, rid="upload-test-00001"):
@@ -292,52 +293,76 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
     async def test_purge_only_abandoned_upload_directories(self):
         """Un lien, une entrée étrangère et un transfert récent restent hors du nettoyage."""
         root = self.engine.state_dir
-        old = root / "upload-oldfile1"
+        old = [root / f"upload-oldfile{index}" for index in range(1, 4)]
         fresh = root / "upload-newfile1"
         foreign = root / "upload-foreign1"
-        for folder in (old, fresh, foreign):
+        malformed = root / "upload-badfile1"
+        for folder in (*old, fresh, foreign, malformed):
             folder.mkdir()
-        (old / "payload.gcode").write_text("G28")
+        for folder, extension in zip(old, ("gcode", "stl", "3mf"), strict=True):
+            (folder / f"payload.{extension}").write_text("fixture")
         (foreign / "other").write_text("conserver")
+        (malformed / "payload.exe").write_text("conserver")
         link = root / "upload-symbolic"
         link.symlink_to(foreign, target_is_directory=True)
         age = time.time() - 86401
-        for path in (old, old / "payload.gcode", foreign):
+        for path in (
+            *old,
+            *(folder / next(folder.iterdir()).name for folder in old),
+            foreign,
+            malformed,
+        ):
             os.utime(path, (age, age))
         adapter.purge_abandoned_uploads(root)
-        self.assertFalse(old.exists())
+        self.assertTrue(all(not folder.exists() for folder in old))
         self.assertTrue(fresh.exists())
         self.assertTrue(link.is_symlink())
         self.assertTrue((foreign / "other").exists())
+        self.assertTrue(malformed.exists())
 
     async def test_upload_timeout_does_not_reserve_or_upload(self):
         """Vérifie que une attente expirée n’effectue ni transfert ni réservation de résultat."""
         adapter.COMMAND_READ_WAIT_SECONDS = 0.01
         await self.engine.lock.acquire()
-        with self.assertRaisesRegex(ValueError, "Aucune commande envoyée"):
+        with self.assertRaisesRegex(ValueError, "Aucun fichier envoyé"):
             await adapter.upload(self.upload_req())
         self.engine.api.upload_file_to_cloud.assert_not_awaited()
         self.assertFalse(self.engine.commands)
         self.assertFalse(self.engine.command_lock.locked())
         self.engine.lock.release()
 
-    async def test_upload_and_command_share_operation_guard(self):
-        """Vérifie que les transferts et commandes partagent le même verrou d’opération."""
-        entered = asyncio.Event()
-        finish = asyncio.Event()
+    async def test_upload_and_long_read_allow_one_pause_but_no_second_command(self):
+        """Le stockage Cloud et une lecture longue cèdent à une seule commande physique prioritaire."""
+        upload_entered = asyncio.Event()
+        finish_upload = asyncio.Event()
+        command_entered = asyncio.Event()
+        finish_command = asyncio.Event()
 
         async def upload(**kwargs):
-            """Simule un transfert suspendu afin de vérifier son exclusion avec les commandes."""
-            entered.set()
-            await finish.wait()
+            """Maintient un transfert fictif en vol pendant le test des verrous."""
+            upload_entered.set()
+            await finish_upload.wait()
+
+        async def command(action, data):
+            """Maintient l’ordre fictif actif afin d’éprouver l’exclusion entre deux commandes."""
+            command_entered.set()
+            await finish_command.wait()
+            return "accepted"
 
         self.engine.api.upload_file_to_cloud.side_effect = upload
+        self.engine.action.side_effect = command
         task = asyncio.create_task(adapter.upload(self.upload_req()))
-        await entered.wait()
+        await upload_entered.wait()
+        await self.engine.lock.acquire()
+        pause = asyncio.create_task(adapter.command(self.req(action="pause")))
+        await command_entered.wait()
         with self.assertRaisesRegex(ValueError, "opération est en cours"):
-            await adapter.command(self.req())
-        self.engine.action.assert_not_awaited()
-        finish.set()
+            await adapter.command(self.req(rid="second-command-0001", action="cancel"))
+        self.assertEqual(self.engine.action.await_count, 1)
+        finish_command.set()
+        await pause
+        self.engine.lock.release()
+        finish_upload.set()
         await task
 
     async def test_large_upload_stages_in_bounded_chunks(self):

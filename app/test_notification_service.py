@@ -79,6 +79,69 @@ class NotificationSourceTests(unittest.IsolatedAsyncioTestCase):
             await service.delete(api, row["key"])
         self.assertEqual(api._fetch_api_resp.await_count, 4)
 
+    async def test_legacy_list_survives_missing_or_malformed_count_data(self):
+        """Le compteur absent ou illisible ne rend pas indisponible une liste de notifications valide."""
+        for counts in (
+            None,
+            {"code": 1, "data": [None, {"type": 1, "count": "unknown", "newcount": True}]},
+            TimeoutError("fixture"),
+        ):
+            with self.subTest(counts=type(counts).__name__):
+                service = AccountNotifications()
+                api = SimpleNamespace(
+                    _fetch_api_resp=AsyncMock(
+                        side_effect=[
+                            {"code": 1, "data": [{"id": 10, "project_name": "Tâche fixture"}]},
+                            counts if isinstance(counts, BaseException) else counts,
+                        ]
+                    )
+                )
+                if counts is None:
+                    api._fetch_api_resp.side_effect = [
+                        {"code": 1, "data": [{"id": 10, "project_name": "Tâche fixture"}]},
+                        {"code": 1, "data": None},
+                    ]
+                elif isinstance(counts, dict):
+                    api._fetch_api_resp.side_effect = [
+                        {"code": 1, "data": [{"id": 10, "project_name": "Tâche fixture"}]},
+                        counts,
+                    ]
+                result = await service.page(api, 1, "legacy")
+                self.assertEqual(len(result["items"]), 1)
+                self.assertIsNone(result["total"])
+                self.assertIsNone(result["unread"])
+
+    async def test_legacy_count_accepts_bounded_decimal_strings_only(self):
+        """Garde la compatibilité des compteurs chaîne sans accepter booléens ni fractions."""
+        from notification_service import notification_count
+
+        for raw, expected in (
+            ("42", 42),
+            ("0", 0),
+            (42, 42),
+            (True, None),
+            ("4.2", None),
+            ("2147483648", None),
+        ):
+            with self.subTest(raw=raw):
+                self.assertEqual(notification_count(raw), expected)
+
+    async def test_malformed_mutation_confirmations_are_not_reported_as_success(self):
+        """Une confirmation non objet ne vide aucun cache et ne simule pas une acceptation."""
+        for operation in ("read", "delete"):
+            service = AccountNotifications()
+            service.keys["a" * 20] = 10
+            api = SimpleNamespace(_fetch_api_resp=AsyncMock(return_value=[]))
+            with (
+                self.subTest(operation=operation),
+                self.assertRaisesRegex(ValueError, "n’a pas confirmé"),
+            ):
+                if operation == "read":
+                    await service.mark_read(api, "a" * 20)
+                else:
+                    await service.delete(api, "a" * 20)
+            self.assertIn("a" * 20, service.keys)
+
     async def test_legacy_remains_available_if_slicer_is_refused(self):
         """Préserve la liste historique quand la route du slicer refuse le compte."""
         service = AccountNotifications()
