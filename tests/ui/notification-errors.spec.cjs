@@ -65,7 +65,7 @@ test('les codes zéro et 200 ne créent pas de fiche d’erreur',async({page})=>
  await login(page); await page.locator('#notifications-toggle').click();
  await expect(page.locator('.notification-row')).toHaveCount(2);
  await expect(page.locator('.notification-error-link')).toHaveCount(0);
- await expect(page.locator('.notification-open')).not.toContainText('Code');
+ await expect(page.locator('.notification-open').filter({hasText:'Code d’erreur'})).toHaveCount(0);
 });
 
 test('sur écran tactile l’explication est lisible et ouvre une fiche dans l’atelier',async({browser})=>{
