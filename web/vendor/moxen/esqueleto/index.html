@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esqueleto · Moxen</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=general-sans@400,500,600&display=swap">
+<link rel="stylesheet" href="esqueleto.css">
+<!-- ?tema=claro para verla sobre fondo claro -->
+<script>if (/[?&]tema=claro/.test(location.search)) document.documentElement.dataset.tema = 'claro';</script>
+</head>
+<body>
+  <main class="eq-escena">
+    <!-- data-esqueleto: el contenido real ya está; esqueleto.js mide cada
+         [data-hueso] y le dibuja encima su hueso, línea a línea -->
+    <section class="eq-fila" data-esqueleto>
+      <article class="eq-tarjeta">
+        <div class="eq-arte" data-hueso><img src="img/arq-curvo.jpg" alt="" width="640" height="427"></div>
+        <span class="eq-tema" data-hueso>Guía</span>
+        <h2 class="eq-titulo" data-hueso="texto">Cómo elegir la arquitectura de tu app</h2>
+        <footer class="eq-pie"><span class="eq-avatar" data-hueso><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.4 6.1 6.1 2.4-6.1 2.4L12 20.5l-2.4-6.1L3.5 12l6.1-2.4z"/></svg></span><span data-hueso="texto">Equipo de producto</span><span class="eq-min" data-hueso="texto">6 min</span></footer>
+      </article>
+      <article class="eq-tarjeta">
+        <div class="eq-arte" data-hueso><img src="img/teclado-madera.jpg" alt="" width="640" height="408"></div>
+        <span class="eq-tema" data-hueso>Caso</span>
+        <h2 class="eq-titulo" data-hueso="texto">Interfaces que se entienden a la primera</h2>
+        <footer class="eq-pie"><span class="eq-avatar" data-hueso><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.4 6.1 6.1 2.4-6.1 2.4L12 20.5l-2.4-6.1L3.5 12l6.1-2.4z"/></svg></span><span data-hueso="texto">Estudio de diseño</span><span class="eq-min" data-hueso="texto">4 min</span></footer>
+      </article>
+      <article class="eq-tarjeta">
+        <div class="eq-arte" data-hueso><img src="img/vidrio.jpg" alt="" width="640" height="360"></div>
+        <span class="eq-tema" data-hueso>Nota</span>
+        <h2 class="eq-titulo" data-hueso="texto">Automatizar sin perder el control</h2>
+        <footer class="eq-pie"><span class="eq-avatar" data-hueso><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.4 6.1 6.1 2.4-6.1 2.4L12 20.5l-2.4-6.1L3.5 12l6.1-2.4z"/></svg></span><span data-hueso="texto">Equipo editorial</span><span class="eq-min" data-hueso="texto">5 min</span></footer>
+      </article>
+    </section>
+    <p class="eq-pista">Haz clic para recargar.</p>
+  </main>
+
+  <script src="esqueleto.js"></script>
+  <script>
+    const fila = Esqueleto(document.querySelector('[data-esqueleto]'));
+    let relojes = [];
+    function recarga() {
+      relojes.forEach(clearTimeout);
+      fila.carga();
+      relojes = [setTimeout(fila.muestra, 2600), setTimeout(fila.carga, 6700), setTimeout(recarga, 7500)];
+    }
+    recarga();
+    document.querySelector('.eq-escena').addEventListener('click', recarga);
+  </script>
+</body>
+</html>
