@@ -15,11 +15,10 @@ import {
   signalChange,
   timeZone,
   tr,
-  valueUnit,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { slots, filamentAdvice } from './workshop-commands.mjs';
-import { definition } from './workshop-overview.mjs';
+import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mjs';
 import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from './workshop-error-catalogue.mjs';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
@@ -831,26 +830,31 @@ export function createHistory(request, command, selectedBox) {
       await loadTasks();
     }
   };
-  /** Affiche détails, diagnostic et aperçu d’une tâche, sans interpréter une donnée absente comme une valeur nulle. */
+  /** Ouvre la fenêtre commune et conserve les actions disponibles dans l’historique. */
   async function openPastTask(t) {
-    const dialog = $('past-task-dialog');
+    const dialog = $('past-task-dialog'), extra = $('past-task-extra');
     pastTaskKey = t.key;
+    extra.dataset.history = 'true';
+    extra.hidden = true;
     set('past-task-name', t.name);
-    set('past-task-state', tr('Chargement des détails…'));
+    $('past-task-state').querySelector('span').textContent = tr('Chargement des détails…');
+    $('past-task-state').dataset.state = 'active';
     set('past-task-reason', '');
-    $('past-task-preview').hidden = true;
-    set('past-task-preview-state', tr('Chargement de l’aperçu…'));
-    $('past-task-preview-state').dataset.previewState = 'loading';
-    $('past-task-preview-state').hidden = false;
+    const image = $('past-task-preview'), fallback = $('past-task-preview-state');
+    image.hidden = true;
+    image.removeAttribute('src');
+    fallback.hidden = false;
     $('past-task-diagnostic').hidden = true;
+    $('past-task-materials').hidden = true;
+    $('past-task-material-list').replaceChildren();
     $('past-task-help').hidden = true;
     $('past-task-error').hidden = true;
     $('past-task-error').onclick = null;
     $('past-task-data').replaceChildren();
+    $('task-detail-progress').replaceChildren();
     $('past-task-parameters').replaceChildren();
     const selected = t.printer_key === workshopState.selectedPrinter;
-    const rate = $('past-task-rate'),
-      reprint = $('past-task-reprint');
+    const rate = $('past-task-rate'), reprint = $('past-task-reprint');
     rate.hidden = !selected || t.status_code !== 2;
     rate.disabled = t.evaluated === true;
     reprint.hidden = !selected || !t.can_reprint;
@@ -876,66 +880,37 @@ export function createHistory(request, command, selectedBox) {
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;
     taskPreview(t).then((src) => {
-      const image = $('past-task-preview'), previewState = $('past-task-preview-state');
       if (!current()) return;
-      if (!src) {
-        set('past-task-preview-state', tr('Aperçu indisponible'));
-        previewState.dataset.previewState = 'unavailable';
-        return;
-      }
-      image.onload = () => {
-        if (!current()) return;
-        image.hidden = false;
-        previewState.hidden = true;
-      };
-      image.onerror = () => {
-        if (!current()) return;
-        image.hidden = true;
-        set('past-task-preview-state', tr('Aperçu indisponible'));
-        previewState.dataset.previewState = 'unavailable';
-        previewState.hidden = false;
-      };
+      if (!src) return;
+      image.onload = () => { if (current()) { image.hidden = false; fallback.hidden = true; } };
+      image.onerror = () => { if (current()) { image.hidden = true; fallback.hidden = false; } };
       image.src = src;
     });
     try {
       const d = await request('/extras/task?key=' + encodeURIComponent(t.key));
       if (!current()) return;
-      set('past-task-state', tr(t.status));
-      $('past-task-diagnostic').hidden = !(d.reason || d.reason_code || d.help_url);
+      $('past-task-state').querySelector('span').textContent = tr(t.status);
+      $('past-task-state').dataset.state = t.status_code === 3 ? 'stopped' : 'active';
+      const hasDiagnostic = !!(d.reason || d.reason_code || d.help_url);
+      $('past-task-diagnostic').hidden = !hasDiagnostic;
       set(
         'past-task-reason',
         [
           d.reason && serverText(d.reason, 'Pas de diagnostic traduit pour cet événement.'),
           d.reason_code && tr('Code') + ' ' + d.reason_code,
-        ]
-          .filter(Boolean)
-          .join(' · '),
+        ].filter(Boolean).join(' · '),
       );
-      const help = $('past-task-help');
-      const error = $('past-task-error');
       const hasCode = isDeviceErrorCode(d.reason_code);
-      const source = safeErrorSource(d.help_url);
+      const error = $('past-task-error');
       error.hidden = !hasCode;
-      error.onclick = hasCode ? () => openErrorSheet({ ...d, printer: t.printer, name: d.name || t.name }) : null;
+      error.onclick = hasCode ? () => openErrorSheet({...d, printer:t.printer, name:d.name || t.name}) : null;
+      const help = $('past-task-help');
+      const source = safeErrorSource(d.help_url);
       help.hidden = !source || hasCode;
       if (!help.hidden) help.href = source;
-      const dims = d.dimensions,
-        params = d.parameters || {};
-      definition('past-task-data', [
-        [
-          tr('Dimensions'),
-          dims ? ['length', 'width', 'height'].map((k) => fmt(dims[k])).join(' × ') + ' mm' : '—',
-        ],
-        [tr('Couches'), fmt(d.layers)],
-        [tr('Durée rapportée'), mins(d.reported_minutes)],
-        [tr('Temps estimé'), d.estimated_seconds == null ? '—' : mins(d.estimated_seconds / 60)],
-        [tr('Filament estimé'), fmt(d.material_grams, ' g')],
-      ]);
       if (d.materials?.length) {
-        const details = node('details'),
-          list = node('ul');
-        details.append(node('summary', tr('Filaments estimés par matière')), list);
-        for (const { material, grams, color } of d.materials) {
+        const list = $('past-task-material-list');
+        for (const {material, grams, color} of d.materials) {
           const row = node('li');
           if (color) {
             const swatch = node('span', null, 'material-color');
@@ -943,73 +918,25 @@ export function createHistory(request, command, selectedBox) {
             swatch.setAttribute('aria-hidden', 'true');
             row.append(swatch);
           }
-          row.append(
-            document.createTextNode(
-              [material || tr('Matière non renseignée'), color, fmt(grams, ' g')]
-                .filter(Boolean)
-                .join(' · '),
-            ),
-          );
+          row.append(document.createTextNode([material || tr('Matière non renseignée'), color, fmt(grams, ' g')].filter(Boolean).join(' · ')));
           list.append(row);
         }
-        $('past-task-parameters').append(details);
+        $('past-task-materials').hidden = false;
       }
-      const groups = [
-        [
-          tr('Général'),
-          [
-            [tr('Hauteur de couche'), 'layer_height', ' mm'],
-            ['Remplissage', 'fill_density', ' %'],
-            ['Supports', 'enable_support'],
-            [tr('Adhérence'), 'brim_type'],
-          ],
-        ],
-        [
-          tr('Températures et ventilation'),
-          [
-            [tr('Buse'), 'temperature', ' °C'],
-            [tr('Plateau'), 'bed_temperature', ' °C'],
-            [tr('Ventilation maximale'), 'fan_max_speed', ' %'],
-          ],
-        ],
-        [
-          tr('Extrusion et parois'),
-          [
-            [tr('Rétraction'), 'filament_retract_length', ' mm'],
-            [tr('Nombre de parois'), 'perimeters'],
-            [tr('Largeur des parois'), 'perimeter_extrusion_width', ' mm'],
-          ],
-        ],
-        [
-          'Vitesses',
-          [
-            [tr('Paroi externe'), 'outer_wall_speed', ' mm/s'],
-            [tr('Déplacement'), 'travel_speed', ' mm/s'],
-          ],
-        ],
-      ];
-      for (const [title, fields] of groups) {
-        const available = fields.filter(([, key]) => params[key] != null);
-        if (!available.length) continue;
-        const details = node('details'),
-          list = node('dl', null, 'task-data');
-        details.append(node('summary', title), list);
-        for (const [label, key, unit] of available) {
-          const value = params[key];
-          const row = node('div');
-          row.append(
-            node('dt', label),
-            node(
-              'dd',
-              typeof value === 'boolean' ? (value ? tr('Oui') : tr('Non')) : valueUnit(value, unit),
-            ),
-          );
-          list.append(row);
-        }
-        $('past-task-parameters').append(details);
-      }
+      const params = d.parameters || {};
+      renderTaskBands({
+        progress: t.progress,
+        layers: d.layers,
+        layerCountDisplay: d.layers == null ? null : t.status_code === 2 ? `${fmt(d.layers)} / ${fmt(d.layers)}` : fmt(d.layers),
+        remainingSeconds: t.status_code === 2 ? 0 : null,
+        dimensions: d.dimensions,
+        estimatedSeconds: d.estimated_seconds,
+        materialGrams: d.material_grams,
+        parameters: params,
+      });
+      extra.hidden = !hasDiagnostic && !d.materials?.length && rate.hidden && reprint.hidden && !$('past-task-actions-state').textContent;
     } catch (e) {
-      if (current()) set('past-task-state', e.message);
+      if (current()) $('past-task-state').querySelector('span').textContent = e.message;
     }
   }
   /** Vérifie l’éligibilité cloud avant d’autoriser l’envoi d’une note sur la tâche sélectionnée. */

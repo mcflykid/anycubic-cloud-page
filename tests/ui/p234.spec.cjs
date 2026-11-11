@@ -44,8 +44,8 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await login(page);
  await openSection(page,'history');
  await page.getByRole('button',{name:'Voir le détail',exact:true}).first().click();
- await expect(page.locator('#past-task-data')).toContainText('Durée rapportée');
- await expect(page.locator('#past-task-parameters')).toContainText('Filaments estimés par matière');
+ await expect(page.locator('#past-task-data')).toContainText('Dimensions');
+ await expect(page.locator('#past-task-materials')).toContainText('Filaments estimés par matière');
  await page.getByRole('button',{name:'Évaluer',exact:true}).click();
  await expect(page.locator('#rating-form fieldset')).toBeEnabled();
  const three=page.getByRole('radio',{name:'3 ★',exact:true});
@@ -459,28 +459,70 @@ test('les réglages équilibrent les cartes sur ordinateur et les empilent sur m
   expect(await connection.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 
-test('les détails de la tâche gardent leurs pictogrammes et tiennent dans une fenêtre de bureau', async ({page}) => {
-  await page.setViewportSize({width: 1050, height: 720});
+test('les détails de la tâche partagent trois bandes et trois axes sans défilement', async ({browser}) => {
+  const baseURL = 'http://127.0.0.1:' + (process.env.UI_PORT || '8765');
+  const page = await browser.newPage({baseURL, viewport:{width:1440,height:860}});
+  const longFileName = '1108-1151-Support montre petit 1_plate(01)_PLA_0.2_3h21m55s '.repeat(4);
+  const fullParameters = {layer_height:0.2, perimeters:3, perimeter_extrusion_width:0.42, fill_density:15, enable_support:false, brim_type:'outer_only', temperature:215, bed_temperature:55, fan_max_speed:100, filament_retract_length:0, outer_wall_speed:65, travel_speed:390};
+  let activeParameters = fullParameters;
+  await page.route('**/imprimante-api/status', async route => { const response = await route.fetch(); const data = await response.json(); Object.assign(data.printer,{job_name:longFileName,job_progress:100,job_current_layer:178,job_total_layers:178,job_time_remaining:0}); Object.assign(data.printer.task_details,{dimensions:[236.2,82,35.6],layers:178,estimated_time:'3h21m55s',material_grams:92.1,parameters:activeParameters}); await route.fulfill({response,json:data}); });
+  await page.route('**/imprimante-api/extras/task?*', async route => { const response = await route.fetch(); const data = await response.json(); Object.assign(data,{dimensions:{length:236.2,width:82,height:35.6},layers:178,estimated_seconds:12115,material_grams:92.1,parameters:activeParameters}); await route.fulfill({response,json:data}); });
   await login(page);
-  const open = page.getByRole('button', {name: 'Détails', exact: true});
-  await expect(open).toBeEnabled();
-  await open.click();
-  const dialog = page.locator('#task-dialog');
-  await expect(dialog.locator('#task-file dt .metric-icon')).toHaveCount(4);
-  await expect(dialog.locator('#task-parameters dt .metric-icon')).toHaveCount(12);
-  const scroller = dialog.locator('.task-scroll');
-  expect(await scroller.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
-  // L’animation d’entrée déplace toute la fenêtre avant le contrôle du défilement.
-  await dialog.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)));
-  await page.setViewportSize({width:390,height:480});
-  const close = dialog.getByRole('button', {name:'Fermer les détails de la tâche',exact:true});
-  const before = await close.boundingBox();
-  const bottomGap = await scroller.evaluate(el => {
-    el.scrollTop = el.scrollHeight;
-    return el.getBoundingClientRect().bottom - el.lastElementChild.getBoundingClientRect().bottom;
-  });
-  expect(bottomGap).toBeGreaterThanOrEqual(16);
-  expect((await close.boundingBox()).y).toBe(before.y);
+  const dialog = page.locator('#past-task-dialog');
+  for (const [index, [locale, labels]] of [
+    ['fr', ['Hauteur de couche', 'Parois', 'Largeur de paroi']],
+    ['en', ['Layer height', 'Walls', 'Wall width']],
+    ['es', ['Altura de capa', 'Paredes', 'Ancho de pared']],
+  ].entries()) {
+    if (index) {
+      await page.evaluate(locale => localStorage.setItem('cloud-page-language', locale), locale);
+      await page.reload({waitUntil:'domcontentloaded'});
+    }
+    await expect(page.locator('#interface-language')).toHaveValue(locale);
+    await openSection(page, 'overview');
+    await page.locator('#task-details-open').click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.task-detail-band')).toHaveCount(3);
+    await expect(dialog.locator('#past-task-data .task-detail-metric')).toHaveCount(3);
+    await expect(dialog.locator('#past-task-parameters .task-detail-parameters-column')).toHaveCount(3);
+    await expect(dialog.locator('#past-task-parameters .task-detail-metric')).toHaveCount(12);
+    await expect.poll(() => dialog.locator('#past-task-name').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+    for (const label of labels) await expect(dialog).toContainText(label);
+    expect(await dialog.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth && [...el.querySelectorAll('dt,dd')].every(item => getComputedStyle(item).whiteSpace === 'nowrap'))).toBe(true);
+    if (locale === 'fr') {
+      await expect(dialog.locator('#past-task-name')).toHaveCSS('text-overflow','ellipsis');
+      const axes = await dialog.locator('.task-detail-band').evaluateAll(bands => bands.map(band => [...band.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
+      const parameterAxes = await dialog.locator('.task-detail-parameters-column').evaluateAll(columns => columns.map(column => [...column.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
+      for (let column = 0; column < 3; column++) {
+        const expected = axes[0][column];
+        expect(Math.abs(axes[1][column] - expected)).toBeLessThan(2);
+        for (const axis of parameterAxes[column]) expect(Math.abs(axis - expected)).toBeLessThan(2);
+      }
+      await page.setViewportSize({width:390,height:844});
+      expect(await dialog.locator('.task-detail-parameter-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(1);
+      expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+      await page.setViewportSize({width:1440,height:860});
+      await dialog.locator('.dialog-close').click();
+      await openSection(page, 'history');
+      await page.getByRole('button', {name:'Voir le détail',exact:true}).first().click();
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator('#task-dialog-title')).toHaveText('Détails de la tâche');
+      await expect(dialog.locator('.task-detail-band')).toHaveCount(3);
+      await dialog.locator('.dialog-close').click();
+      await openSection(page, 'overview');
+    } else {
+      await dialog.locator('.dialog-close').click();
+    }
+  }
+  activeParameters = {travel_speed:390};
+  await page.reload({waitUntil:'domcontentloaded'});
+  await openSection(page, 'overview');
+  await page.locator('#task-details-open').click();
+  await expect(dialog.locator('.task-detail-parameters-column')).toHaveCount(1);
+  await expect(dialog.locator('.task-detail-parameters-column')).toHaveAttribute('data-column','3');
+  await expect(dialog.locator('.task-detail-parameters-column .task-detail-metric')).toHaveCount(1);
+  await page.close();
 });
 
 test('les dossiers Cloud limitent le déplacement à la sélection de la page', async ({page}) => {

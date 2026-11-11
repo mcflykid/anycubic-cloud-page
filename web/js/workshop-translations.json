@@ -5118,5 +5118,9 @@
   "Appliquer ces réglages à l’imprimante au repos ? Vérifiez le plateau et les matériaux présents.": [
     "Apply these settings while the printer is idle? Check the bed and loaded materials.",
     "¿Aplicar estos ajustes con la impresora en reposo? Comprueba la cama y los materiales cargados."
+  ],
+  "Parois": [
+    "Walls",
+    "Paredes"
   ]
 }
