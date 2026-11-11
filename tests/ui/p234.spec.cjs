@@ -506,6 +506,8 @@ test('les détails de la tâche gardent leurs pictogrammes et tiennent dans une 
   await expect(dialog.locator('#task-parameters dt .metric-icon')).toHaveCount(12);
   const scroller = dialog.locator('.task-scroll');
   expect(await scroller.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+  // L’animation d’entrée déplace toute la fenêtre avant le contrôle du défilement.
+  await dialog.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)));
   await page.setViewportSize({width:390,height:480});
   const close = dialog.getByRole('button', {name:'Fermer les détails de la tâche',exact:true});
   const before = await close.boundingBox();
