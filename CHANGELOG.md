@@ -1,6 +1,22 @@
 # Changements
 
-## À venir
+## 1.9.0 — 2026-11-11
+
+### Atelier
+
+- Ouvre l’atelier sur **Résumé**, qui réunit l’impression en cours, les températures et l’état de l’ACE. Regroupe les dix onglets par usage et place **Statistiques** avant **Réglages** (#227).
+- Ajoute **Studio**, **Observatoire** et **Verrière** aux sept styles existants. Tous donnent accès aux mêmes données et commandes en clair comme en sombre (#230).
+- Permet de déplacer et de redimensionner les cartes après ouverture du cadenas. La disposition est mémorisée par onglet dans le navigateur et peut être exportée, importée ou réinitialisée depuis **Réglages** (#229).
+- Réorganise la cloche, rapproche l’aperçu du nom de fichier en style **Par défaut** et aère les graphiques de **Parc et santé** dans **Laboratoire** sur grand écran (#216).
+- Distingue les aperçus absents ou indisponibles, les listes vides et les états de chargement ou d’erreur de la caméra (#228).
+- Harmonise les transitions, les chargements de listes et les signaux de changement réel. Respecte la préférence de réduction des animations (#195, #196, #197, #198, #199, #200).
+
+### Fiabilité et sécurité
+
+- Expire les sessions de visionnage caméra abandonnées et laisse passer pause et annulation pendant les lectures longues et les transferts de stockage. Les ordres physiques restent sérialisés (#183, #184).
+- Nettoie les transferts STL et 3MF abandonnés, valide les paramètres avant appel au Cloud et exige une impression active pour modifier les réglages d’une tâche (#185, #187, #188).
+- Renforce les quotas IPv6 derrière un proxy, fiabilise les réponses de notification et invalide les aperçus des fichiers mémoire ou USB modifiés (#186, #189, #190).
+- Suit les échecs de reconnexion MQTT, compare sans distinction de casse l’adresse du compte enregistré et épingle les actions GitHub externes par empreinte (#191, #192, #193).
 
 - Retire la lecture des coordonnées dans Caméra → Déplacer ainsi que sa route et son diagnostic. Les commandes de déplacement restent disponibles (#167).
 - L’ouverture et la fermeture de la caméra laissent passer pause et annulation pendant l’attente d’une lecture. Le verrou d’envoi continue de sérialiser les ordres machine (#206).

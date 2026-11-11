@@ -1,10 +1,10 @@
-# Les sept styles de l’atelier
+# Les dix styles de l’atelier
 
-Suivi : #162.
+Suivi #162, #229 et #230.
 
-Les sept styles partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style. Le choix est mémorisé dans ce navigateur; une ancienne préférence pour un style retiré revient à **Par défaut**.
+Les dix styles partagent les fonctions, les données et les confirmations de l’atelier. Le mode clair, sombre ou système reste indépendant du style. Le choix est mémorisé dans ce navigateur; une ancienne préférence pour un style retiré revient à **Par défaut**.
 
-Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste. La description sous la liste présente le style sélectionné. Les transitions signalent l’ouverture des sections et des fenêtres. Le Laboratoire anime aussi l’arrivée des cartes de statistiques en cascade. Dans le monitoring, la fenêtre de détail part de la carte ouverte. L’atelier s’inspire du détail animé d’[Instrumental](https://moxen.cl/recursos/instrumental/) et du réagencement des cartes de [Parrilla](https://moxen.cl/recursos/parrilla/).
+Dans **Réglages → Apparence**, choisir l’un des dix styles dans la liste. La description sous la liste présente le style sélectionné. Les transitions signalent l’ouverture des sections et des fenêtres. Le Laboratoire anime aussi l’arrivée des cartes de statistiques en cascade. Dans le monitoring, la fenêtre de détail part de la carte ouverte. L’atelier s’inspire du détail animé d’[Instrumental](https://moxen.cl/recursos/instrumental/) et du réagencement des cartes de [Parrilla](https://moxen.cl/recursos/parrilla/).
 
 | Style | Disposition | Interaction caractéristique |
 |---|---|---|
@@ -14,17 +14,20 @@ Dans **Réglages → Apparence**, choisir l’un des sept styles dans la liste. 
 | Blueprint | Index vertical numéroté, quadrillage et colonne de travail. | Le panneau latéral se replie en rail d’icônes; le nom complet reste accessible au focus et au pointeur. |
 | Aurore | Tableau bento avec machine, travail, températures et détails. | Les cartes se déplacent par glissement ou par commandes haut/bas; l’ordre est mémorisé localement et peut être réinitialisé. |
 | Océan | Cartes espacées et surfaces turquoise. | Le repère actif suit les sections avec un mouvement fluide. |
-| Laboratoire | Les groupes d’onglets et les compositions expérimentales permettent de comparer plusieurs parcours. | Navigation par usage, avec variantes à explorer. |
+| Laboratoire | Cartes de supervision plus espacées sur grand écran. | Les graphiques s’adaptent à la largeur disponible. |
+| Studio | Résumé centré sur l’aperçu de l’impression. | Le projet courant occupe le premier plan. |
+| Observatoire | Mesures alignées et supervision en grille. | Les valeurs et les courbes se lisent ensemble. |
+| Verrière | Panneaux translucides et cartes aérées. | Les commandes de navigation restent regroupées par usage. |
 
-Sur téléphone, les neuf sections s’ouvrent depuis un bouton **Sections** dans une grille de neuf tuiles. Elles entrent en vague puis se replient dans l’ordre inverse; le nom de la section choisie reste près du bouton. Le réglage système de réduction des animations retire ces effets et les déplacements de cartes.
+Sur téléphone, les dix sections s’ouvrent depuis un bouton **Sections** dans une grille de tuiles. Elles entrent en vague puis se replient dans l’ordre inverse; le nom de la section choisie reste près du bouton. Le réglage système de réduction des animations retire ces effets et les déplacements de cartes.
 
-Le tableau Aurore n’enregistre que l’ordre des quatre cartes de la page atelier, dans le stockage local du navigateur. Le bouton **Réinitialiser la disposition** restaure leur ordre d’origine. Le glissement fonctionne au pointeur ou au toucher; les boutons de déplacement permettent aussi la réorganisation au clavier.
+Ouvrez le cadenas d’un onglet à cartes pour modifier l’ordre et la largeur de ses cartes au pointeur, au toucher ou au clavier. La disposition est mémorisée dans ce navigateur et suit les cartes communes lorsque vous changez de style. Sur téléphone, la grille tient sur une colonne. Dans **Réglages → Sauvegarde des dispositions**, vous pouvez exporter ou importer la disposition et restaurer les dispositions d’origine.
 
 Les comportements de grille réarrangeable s’inspirent de motifs d’interface comme les widgets qui se dégagent puis se replacent, décrits dans [Parrilla chez Moxen](https://moxen.cl/recursos/parrilla/). Aucun code ni composant du site n’a été repris; sa page indique que les téléchargements comprennent une licence propre à chaque animation.
 
 ## Comparaison avec la version 1.8.0
 
-Les neuf onglets et la connexion ont été capturés dans les sept styles. Chaque vue utilise la même démonstration à 1 249 px en clair et en sombre, puis à 390 px en clair. Les [planches avant/après](../screenshots/README.md#comparaison-des-sept-styles) montrent un écran représentatif par style.
+La comparaison historique couvre les neuf onglets et la connexion dans les sept styles de l’époque. Chaque vue utilise la même démonstration à 1 249 px en clair et en sombre, puis à 390 px en clair. Les [planches avant/après](../screenshots/README.md#comparaison-des-sept-styles) montrent un écran représentatif par style.
 
 | Style | Point à corriger dans la version 1.8.0 | Direction et changements |
 | --- | --- | --- |
