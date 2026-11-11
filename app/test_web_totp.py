@@ -104,7 +104,9 @@ class TotpBoundary(unittest.IsolatedAsyncioTestCase):
 
     async def first_factor(self, client=None, address=None):
         """Soumet les identifiants de démonstration sans fournir de second facteur."""
-        return await self.post(client=client, address=address, username="admin", password=FIXTURE_PASSWORD)
+        return await self.post(
+            client=client, address=address, username="admin", password=FIXTURE_PASSWORD
+        )
 
     def enable_fixture(self):
         """Écrit une configuration validée avec un code de secours encore disponible."""
@@ -216,7 +218,9 @@ class TotpBoundary(unittest.IsolatedAsyncioTestCase):
             for index in range(3):
                 address = f"192.0.2.{index + 1}"
                 self.assertEqual((await self.first_factor(address=address)).status, 200)
-                self.assertEqual((await self.post(address=address, stage="totp", code="wrong")).status, 401)
+                self.assertEqual(
+                    (await self.post(address=address, stage="totp", code="wrong")).status, 401
+                )
 
             address = "192.0.2.99"
             await self.first_factor(address=address)
@@ -225,12 +229,16 @@ class TotpBoundary(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(reply.status, 429)
             self.assertIn("Retry-After", reply.headers)
             self.assertEqual(len(state.sessions), 0)
-            self.assertEqual((await self.post(address=address, stage="totp", code=FIXTURE_RECOVERY)).status, 303)
+            self.assertEqual(
+                (await self.post(address=address, stage="totp", code=FIXTURE_RECOVERY)).status, 303
+            )
             self.assertFalse(self.store.read().recovery)
 
             state.totp_window_until = state.clock() - 1
             await self.first_factor(address=address)
-            self.assertEqual((await self.post(address=address, stage="totp", code=current)).status, 303)
+            self.assertEqual(
+                (await self.post(address=address, stage="totp", code=current)).status, 303
+            )
 
     async def test_compose_recovery_disables_even_a_corrupt_factor(self):
         """Le démarrage de secours supprime l’état TOTP et rend le mot de passe suffisant."""

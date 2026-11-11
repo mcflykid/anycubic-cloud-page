@@ -177,7 +177,10 @@ class AccessState:
     async def login_slot(self, client, connected=lambda: True):
         """Borne les demandes admises et libère leur place même après une annulation."""
         pending = self.login_pending.get(client, 0)
-        if pending >= LOGIN_QUEUE_PER_CLIENT or sum(self.login_pending.values()) >= LOGIN_QUEUE_LIMIT:
+        if (
+            pending >= LOGIN_QUEUE_PER_CLIENT
+            or sum(self.login_pending.values()) >= LOGIN_QUEUE_LIMIT
+        ):
             yield 429
             return
         self.login_pending[client] = pending + 1
@@ -429,7 +432,9 @@ async def read_login_form(request):
     return {key: values[0] for key, values in form.items()}
 
 
-def limited_response(render, until, now, message="Trop de tentatives. Réessayez dans quelques minutes."):
+def limited_response(
+    render, until, now, message="Trop de tentatives. Réessayez dans quelques minutes."
+):
     """Indique la durée restante du quota sans révéler les identifiants présentés."""
     response = render(message, 429)
     response.headers["Retry-After"] = str(max(1, int(until - now) + 1))
@@ -525,7 +530,9 @@ async def login(request):
     async with state.login_slot(client, lambda: request_connected(request)) as rejection:
         if rejection == 429:
             now = state.clock()
-            return limited_response(render, now, now, "Connexion occupée. Réessayez dans un instant.")
+            return limited_response(
+                render, now, now, "Connexion occupée. Réessayez dans un instant."
+            )
         if rejection:
             return web.Response(status=rejection)
         state.prune()
@@ -550,7 +557,9 @@ async def login(request):
             recovery = bool(RECOVERY_FORMAT.fullmatch(code.upper()))
             if not recovery and state.totp_failures >= TOTP_FAILURE_LIMIT:
                 return limited_response(
-                    totp_login_page, state.totp_window_until, now,
+                    totp_login_page,
+                    state.totp_window_until,
+                    now,
                     "Codes temporaires suspendus. Utilisez un code de secours ou attendez.",
                 )
             next_config = config.consume(code, time.time())
@@ -677,7 +686,9 @@ async def totp_settings(request):
     key = request.get(SESSION_DIGEST_KEY)
     async with state.login_slot(client, lambda: request_connected(request)) as rejection:
         if rejection == 429:
-            response = totp_settings_page(store, config, "Trop de tentatives. Réessayez dans un instant.", 429)
+            response = totp_settings_page(
+                store, config, "Trop de tentatives. Réessayez dans un instant.", 429
+            )
             response.headers["Retry-After"] = "1"
             return response
         if rejection:
@@ -688,7 +699,9 @@ async def totp_settings(request):
         def render_refusal(message, status):
             return totp_settings_page(store, config, message, status)
 
-        session, refusal = confirm_web_password(request, form.get("password", ""), render=render_refusal)
+        session, refusal = confirm_web_password(
+            request, form.get("password", ""), render=render_refusal
+        )
         if refusal is not None:
             return refusal
         now = state.clock()

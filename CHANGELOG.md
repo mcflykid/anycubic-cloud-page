@@ -10,6 +10,7 @@
 - Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
 - Lorsque le seuil global est atteint, les tentatives de connexion sont vérifiées l’une après l’autre avec une seconde d’attente. Les identifiants valides restent acceptés et le quota par adresse reste prioritaire (#212).
+- Ajoute la connexion facultative à deux facteurs, les codes de secours à usage unique et la récupération opérateur (#221).
 - Borne l’attente de connexion et applique des quotas distincts au mot de passe et aux codes temporaires. Les confirmations d’actions sensibles partagent un quota par session (#249, #250, #251).
 
 ## 1.9.0 — 2026-11-11
