@@ -428,6 +428,15 @@
     padding: 8px 10px;
   }
 
+  /* Le Cloud masque les commandes de dossier : les trois champs visibles remplissent la barre. */
+  #tab-files #files-form:has(> #file-path-label[hidden]) {
+    grid-template-columns: auto minmax(0, 1fr) minmax(140px, .36fr);
+  }
+
+  #tab-files #files-form:has(> #file-path-label[hidden]) > label {
+    grid-column: auto;
+  }
+
   #files-form label {
     min-width: 0;
     margin: 0;

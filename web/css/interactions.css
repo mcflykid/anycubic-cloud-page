@@ -3,7 +3,7 @@
 .file-selection-gutter input { margin:0!important; cursor:inherit; }
 #file-rows tr td { transition:background-color .16s; }
 #file-rows tr.file-selected td { background:color-mix(in srgb,var(--accent) 10%,var(--surface)); }
-#file-rows tr.file-selected td:first-child { box-shadow:inset 3px 0 var(--accent); }
+
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { position:fixed; bottom:max(18px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:25; display:flex; width:max-content; max-width:calc(100vw - 28px); padding:12px 18px; margin:0; border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:0 12px 40px #0003; animation:selection-rise .2s ease-out; }
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk .check { flex-basis:auto; }
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk button { flex:0 1 auto; }
@@ -136,6 +136,67 @@
 @keyframes measure-in-b { from { opacity:.65; translate:0 4px; } }
 @keyframes badge-in-a { 45% { scale:1.5; } }
 @keyframes badge-in-b { 45% { scale:1.5; } }
+
+/* Compteur et barre contextuelle repris de Moxen Lote https://moxen.cl/recursos/lote/ */
+#tab-files { --selection-spring: cubic-bezier(.34, 1.56, .64, 1); }
+
+@supports (animation-timing-function: linear(0, 1)) {
+  #tab-files { --selection-spring: linear(0.0000, 0.0494, 0.1330, 0.2699, 0.3912, 0.5433, 0.6575, 0.7842, 0.8698, 0.9558, 1.0187, 1.0540, 1.0817, 1.0929, 1.0963, 1.0927, 1.0828, 1.0723, 1.0578, 1.0460, 1.0322, 1.0201, 1.0120, 1.0038, 0.9989, 0.9946, 0.9924, 0.9910, 0.9907, 0.9911, 0.9921, 0.9931, 0.9945, 0.9957, 0.9970, 0.9979, 0.9989, 0.9995, 1.0001, 1.0005, 1); }
+}
+
+.selection-count {
+  display: inline-flex;
+  align-items: center;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+#cloud-selection-digits { display: flex; }
+.selection-digit { display: block; height: 1em; overflow: hidden; }
+
+.selection-digit-strip {
+  display: block;
+  line-height: 1;
+  transform: translateY(calc(var(--d, 0) * -1em));
+  transition: transform .8s var(--selection-spring);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+#file-rows tr.file-selected td { transition-delay: var(--selection-wave-delay, 0ms); }
+
+#file-rows tr:has(input[data-selection]) td:first-child { position: relative; }
+
+#file-rows tr:has(input[data-selection]) td:first-child::after {
+  content: "";
+  position: absolute;
+  inset: 14px auto 14px 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform .45s var(--selection-spring) var(--selection-wave-delay, 0ms);
+  pointer-events: none;
+}
+
+#file-rows tr.file-selected td:first-child::after { transform: scaleY(1); }
+
+#cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk {
+  animation: selection-slide .75s var(--selection-spring), selection-appear .2s ease-out;
+  transform-origin: 50% 100%;
+}
+
+@keyframes selection-slide {
+  from { translate: 0 26px; scale: .94; }
+  to { translate: 0 0; scale: 1; }
+}
+
+@keyframes selection-appear { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .selection-digit-strip,
+  #file-rows tr.file-selected td,
+  #file-rows tr:has(input[data-selection]) td:first-child::after { transition: none; }
+  #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { animation: none; }
 
 /* Contour repris de Moxen Remesa https://moxen.cl/recursos/remesa/ */
 .upload-file { position: relative; }
