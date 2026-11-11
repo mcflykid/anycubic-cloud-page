@@ -161,4 +161,6 @@ Dans **Réglages → Sécurité**, ouvrez la configuration de la connexion à de
 
 Sur une installation distante, effectuez cette configuration via HTTPS. Gardez l’horloge du serveur et celle du téléphone synchronisées. Le code d’activation est déjà utilisé. Attendez le code suivant si vous vous reconnectez immédiatement. Pour désactiver le facteur depuis les Réglages, confirmez avec le mot de passe web.
 
+Après trois codes refusés, ressaisissez le mot de passe pour ouvrir une nouvelle vérification. Après vingt échecs sur des codes temporaires en deux minutes, attendez la fin du délai affiché ou utilisez un code de secours avec votre mot de passe.
+
 Si le téléphone et les codes de secours sont perdus, ajoutez `WEB_TOTP_RESET=true` au fichier d’environnement utilisé par Compose et recréez le service avec `docker compose up -d`. Ce démarrage efface le facteur local et les anciens codes de secours. Retirez ensuite le réglage et recréez à nouveau le service avant de configurer une nouvelle clé. Cette procédure requiert un accès au déploiement et le mot de passe web. Elle n’agit pas sur le compte Anycubic.

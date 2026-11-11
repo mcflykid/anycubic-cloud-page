@@ -9,6 +9,7 @@ from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 from web_assets import UI_PREFIX, build_web_assets
 from web_totp import (
+    RECOVERY_FORMAT,
     TotpConfig,
     TotpStore,
     matching_step,
@@ -85,6 +86,9 @@ LOGIN_QUEUE_LIMIT = 8
 LOGIN_QUEUE_PER_CLIENT = 2
 REAUTH_SECONDS = 120
 LOGIN_CHALLENGE_SECONDS = 180
+TOTP_CHALLENGE_LIMIT = 3
+TOTP_FAILURE_LIMIT = 20
+TOTP_FAILURE_SECONDS = 120
 ENROLLMENT_SECONDS = 300
 SENSITIVE_ACTIONS = frozenset(("firmware", "ace-firmware", "factory-reset"))
 
@@ -117,6 +121,7 @@ class TotpChallenge:
     expires: float
     client: str
     fingerprint: bytes
+    failures: int = 0
 
 
 @dataclass
@@ -143,6 +148,8 @@ class AccessState:
         self.global_failures = 0
         self.global_window_until = 0
         self.global_until = 0
+        self.totp_failures = 0
+        self.totp_window_until = 0
 
     def prune(self):
         """Retire les sessions et compteurs expirés afin de borner la mémoire de l’authentification."""
@@ -157,6 +164,9 @@ class AccessState:
             if value.expires > now and key in self.sessions
         }
         self.failures = {key: value for key, value in self.failures.items() if value[1] > now}
+        if self.totp_window_until <= now:
+            self.totp_failures = 0
+            self.totp_window_until = 0
         if self.global_window_until <= now:
             self.global_failures = 0
             self.global_window_until = 0
@@ -492,7 +502,8 @@ async def login(request):
     client = rate_limit_client(request)
     if request.method in {"GET", "HEAD"}:
         if "recommencer" in request.query:
-            # La navigation retire le cookie de défi sans toucher au quota.
+            # Recommencer invalide l’ancien défi sans réinitialiser les quotas.
+            state.challenges.pop(digest, None)
             response = login_page()
             set_session_cookie(
                 response,
@@ -534,9 +545,23 @@ async def login(request):
                 return login_page(
                     "Vérification expirée. Saisissez de nouveau le mot de passe.", 401
                 )
-            next_config = config.consume(form.get("code", ""), time.time())
+            code = form.get("code", "").strip()
+            recovery = bool(RECOVERY_FORMAT.fullmatch(code.upper()))
+            if not recovery and state.totp_failures >= TOTP_FAILURE_LIMIT:
+                return limited_response(
+                    totp_login_page, state.totp_window_until, now,
+                    "Codes temporaires suspendus. Utilisez un code de secours ou attendez.",
+                )
+            next_config = config.consume(code, time.time())
             if next_config is None:
-                state.record_failure(client, failures, until)
+                challenge.failures += 1
+                if not recovery:
+                    if not state.totp_window_until:
+                        state.totp_window_until = now + TOTP_FAILURE_SECONDS
+                    state.totp_failures += 1
+                if challenge.failures >= TOTP_CHALLENGE_LIMIT:
+                    state.challenges.pop(digest, None)
+                    return login_page("Trop de codes refusés. Recommencez la connexion.", 429)
                 return totp_login_page("Code invalide, expiré ou déjà utilisé.", 401)
             save_totp(request, next_config)
             state.challenges.pop(digest, None)

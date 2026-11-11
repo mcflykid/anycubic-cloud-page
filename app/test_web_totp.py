@@ -3,6 +3,7 @@
 import asyncio
 import base64
 from http.cookies import SimpleCookie
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -14,7 +15,7 @@ from aiohttp import CookieJar, web
 from aiohttp.test_utils import TestClient, TestServer
 
 from printer_registry import select_printer
-from web_host import ACCESS_KEY, COOKIE_NAME, access_control, install_access
+from web_host import ACCESS_KEY, COOKIE_NAME, TRUSTED_PROXIES_KEY, access_control, install_access
 from web_totp import TotpConfig, TotpStore, code_at, matching_step, qr_image, recovery_digest
 
 FIXTURE_TIME = 1_700_000_000
@@ -92,15 +93,18 @@ class TotpBoundary(unittest.IsolatedAsyncioTestCase):
         self.addAsyncCleanup(client.close)
         return client
 
-    async def post(self, path="/login", client=None, **data):
+    async def post(self, path="/login", client=None, address=None, **data):
         """Soumet un formulaire à la frontière d’origine normale."""
+        headers = {"Origin": FIXTURE_ORIGIN}
+        if address:
+            headers["X-Forwarded-For"] = address
         return await (client or self.client).post(
-            path, data=data, headers={"Origin": FIXTURE_ORIGIN}, allow_redirects=False
+            path, data=data, headers=headers, allow_redirects=False
         )
 
-    async def first_factor(self, client=None):
+    async def first_factor(self, client=None, address=None):
         """Soumet les identifiants de démonstration sans fournir de second facteur."""
-        return await self.post(client=client, username="admin", password=FIXTURE_PASSWORD)
+        return await self.post(client=client, address=address, username="admin", password=FIXTURE_PASSWORD)
 
     def enable_fixture(self):
         """Écrit une configuration validée avec un code de secours encore disponible."""
@@ -190,19 +194,43 @@ class TotpBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sorted(response.status for response in replies), [303, 401])
         self.assertEqual(len(self.client.server.app[ACCESS_KEY].sessions), 1)
 
-    async def test_factor_failures_share_the_password_quota(self):
-        """Ressaisir le bon mot de passe ne remet pas à zéro le quota des codes."""
+    async def test_exhausted_challenge_requires_a_new_password_step(self):
+        """Les essais du défi n’épuisent pas le quota distinct du mot de passe."""
         self.enable_fixture()
-        wrong_password = await self.post(username="admin", password="wrong")
-        self.assertEqual(wrong_password.status, 401)
-        for _ in range(4):
-            self.assertEqual((await self.first_factor()).status, 200)
+        await self.first_factor()
+        for _ in range(2):
             self.assertEqual((await self.post(stage="totp", code="wrong")).status, 401)
-        blocked = await self.post(stage="totp", code=FIXTURE_RECOVERY)
+        blocked = await self.post(stage="totp", code="wrong")
         self.assertEqual(blocked.status, 429)
-        self.assertIn("Retry-After", blocked.headers)
-        self.assertEqual(len(self.client.server.app[ACCESS_KEY].sessions), 0)
-        self.assertEqual(self.store.read().recovery, (recovery_digest(FIXTURE_RECOVERY),))
+        self.assertEqual((await self.post(stage="totp", code=FIXTURE_RECOVERY)).status, 401)
+        self.assertEqual((await self.first_factor()).status, 200)
+        self.assertEqual((await self.post(stage="totp", code=FIXTURE_RECOVERY)).status, 303)
+
+    async def test_temporary_codes_have_a_shared_quota_but_recovery_remains_available(self):
+        """Changer d’adresse ne remet pas le quota à zéro ; le secours reste utilisable."""
+        self.enable_fixture()
+        app = self.client.server.app
+        app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        state = app[ACCESS_KEY]
+        with patch("web_host.TOTP_FAILURE_LIMIT", 3):
+            for index in range(3):
+                address = f"192.0.2.{index + 1}"
+                self.assertEqual((await self.first_factor(address=address)).status, 200)
+                self.assertEqual((await self.post(address=address, stage="totp", code="wrong")).status, 401)
+
+            address = "192.0.2.99"
+            await self.first_factor(address=address)
+            current = code_at(FIXTURE_SECRET, FIXTURE_TIME // 30)
+            reply = await self.post(address=address, stage="totp", code=current)
+            self.assertEqual(reply.status, 429)
+            self.assertIn("Retry-After", reply.headers)
+            self.assertEqual(len(state.sessions), 0)
+            self.assertEqual((await self.post(address=address, stage="totp", code=FIXTURE_RECOVERY)).status, 303)
+            self.assertFalse(self.store.read().recovery)
+
+            state.totp_window_until = state.clock() - 1
+            await self.first_factor(address=address)
+            self.assertEqual((await self.post(address=address, stage="totp", code=current)).status, 303)
 
     async def test_compose_recovery_disables_even_a_corrupt_factor(self):
         """Le démarrage de secours supprime l’état TOTP et rend le mot de passe suffisant."""
