@@ -81,11 +81,18 @@ def history_entry(row):
         "Print failed": "Échec de l’impression",
         "Print to paused": "Impression en pause",
     }.get(row.get("title"), "Notification d’impression")
+    # Le Cloud répète parfois le résultat traduit dans la description.
+    repeated_results = (
+        {"print complete", "print completed", "printing completed", "impression terminée"}
+        if title == "Impression terminée"
+        else set()
+    )
     reason = next(
         (
             text
             for value in (row.get("reason_desc"), row.get("reason"))
             if (text := diagnostic_text(value))
+            and text.casefold().rstrip(". ") not in repeated_results
         ),
         "",
     )
@@ -93,14 +100,6 @@ def history_entry(row):
         "User Initiated": "Pause demandée par l’utilisateur",
         "Abnormal consumables, please reload consumables": "Problème de filament. Rechargez le filament.",
     }.get(reason, reason)
-    # Le Cloud répète parfois le résultat déjà traduit dans le détail.
-    if title == "Impression terminée" and reason.casefold().rstrip(". ") in {
-        "print complete",
-        "print completed",
-        "printing completed",
-        "impression terminée",
-    }:
-        reason = ""
     alarm_code = normalize_error_code(row.get("alarm_code"))
     # 200 est l’événement « impression terminée » du journal natif, pas un refus de fichier.
     reason_code = (

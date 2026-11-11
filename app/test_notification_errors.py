@@ -15,7 +15,9 @@ class NotificationErrorTests(unittest.IsolatedAsyncioTestCase):
                 entry = history_entry({"print_status": 2, "reason_desc": reason})
                 self.assertEqual(entry["result"], "Impression terminée")
                 self.assertEqual(entry["reason"], "")
-        entry = history_entry({"print_status": 2, "reason": "Alerte distincte"})
+        entry = history_entry(
+            {"print_status": 2, "reason_desc": "Printing completed", "reason": "Alerte distincte"}
+        )
         self.assertEqual(entry["reason"], "Alerte distincte")
 
     def test_slicer_alarm_code_has_known_title_description_and_official_help(self):

@@ -508,7 +508,7 @@ class CloudExtras:
                 explicit_printer
                 and isinstance(path, str)
                 and "/" in path
-                and path.lower().endswith(".gcode")
+                and path.lower().endswith((".gcode", ".gcode.3mf"))
                 and row.get("print_status") == 2
                 and notification_timestamp(row.get("create_time")) is not None
             ):
