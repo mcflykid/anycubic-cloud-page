@@ -4,6 +4,8 @@
 
 - Réorganise la barre des fichiers Cloud et adapte le compteur à rouleaux et la cascade de sélection de Lote (#242, #248).
 
+- Affiche la grille pendant l’édition des tuiles et indique la case visée. Les cartes se déplacent avec le ressort de Parrilla (#247, #248).
+
 - Illustre la connexion avec une impression couche par couche. La scène reste fixe si les animations sont réduites (#215).
 
 - Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).

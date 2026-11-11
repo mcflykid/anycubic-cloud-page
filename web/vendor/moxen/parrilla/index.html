@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parrilla · Moxen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- una hoja por familia -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="parrilla.css">
+<!-- ?tema=claro (gris y blanco) es el de siempre; ?tema=oscuro es el mismo panel sobre grafito azulado -->
+<script>if (/[?&]tema=claro/.test(location.search)) document.documentElement.dataset.tema = 'claro'; else if (/[?&]tema=oscuro/.test(location.search)) document.documentElement.dataset.tema = 'oscuro';</script>
+</head>
+<body>
+  <!-- parrilla.js construye los widgets de la rejilla (según la lista de la llamada de abajo), la paleta y el panel de datos;
+       aquí está la tarjeta con el sitio de cada cosa. -->
+  <main class="pa-escena" data-parrilla>
+    <div class="pa-fondo" aria-hidden="true"><i class="pa-halo pa-h1"></i><i class="pa-halo pa-h2"></i><i class="pa-grano"></i></div>
+
+    <section class="pa-card" aria-labelledby="pa-titulo">
+      <header class="pa-cab-card">
+        <span class="pa-marca" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="9" rx="2.2"/><rect x="13" y="3.5" width="7.5" height="5" rx="2.2"/><rect x="13" y="10.5" width="7.5" height="10" rx="2.2"/><rect x="3.5" y="14.5" width="7.5" height="6" rx="2.2"/></svg></span>
+        <div class="pa-cab-t">
+          <h1 id="pa-titulo">Panel de operaciones</h1>
+          <p>Arrastra un widget por su cabecera; el tirador de la esquina cambia su tamaño.</p>
+        </div>
+        <div class="pa-acciones">
+          <button class="pa-b pa-b-sec" type="button" data-restaurar>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v5h5"/></svg><span>Restaurar</span>
+          </button>
+          <button class="pa-b pa-b-pri" type="button" data-guardar>
+            <svg class="pa-i-guardar" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+            <svg class="pa-i-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" pathLength="1"/></svg>
+            <span data-guardar-txt>Guardar disposición</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="pa-cuerpo">
+        <div class="pa-izq">
+          <div class="pa-caja" data-caja>
+            <svg class="pa-rejilla" data-rejilla aria-hidden="true"></svg>
+            <i class="pa-encaje" data-encaje aria-hidden="true"></i>
+            <div class="pa-vacio" data-vacio aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>Arrastra un widget aquí</div>
+            <div class="pa-widgets" data-widgets role="list" aria-label="Widgets del panel"></div>
+          </div>
+        </div>
+
+        <aside class="pa-der">
+          <div class="pa-paleta">
+            <h2>Widgets</h2>
+            <p class="pa-der-s">Arrastra uno al panel.</p>
+            <div class="pa-pal-lista" data-paleta></div>
+          </div>
+          <div class="pa-datos">
+            <div class="pa-datos-cab"><h2>Disposición</h2><span class="pa-datos-ok" data-datos-ok><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.8 8.4l2.8 2.8L12.2 5.4" pathLength="1"/></svg>Guardada</span></div>
+            <p class="pa-der-s">Cada widget: [x, y, ancho, alto]</p>
+            <pre class="pa-codigo" data-codigo aria-label="Disposición guardada como datos"></pre>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <p class="pa-oculto" role="status" aria-live="polite" data-vivo></p>
+  </main>
+
+  <script src="parrilla.js"></script>
+  <script>Parrilla(document.querySelector('[data-parrilla]'));</script>
+</body>
+</html>

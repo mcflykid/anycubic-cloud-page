@@ -41,3 +41,5 @@ Les versions 0.4.5 à 0.4.8 de [ljschmitt/hass-anycubic_cloud_v3](https://github
 ## QR de connexion à deux facteurs
 
 [Segno 1.6.6](https://pypi.org/project/segno/), Copyright (c) 2016 - 2025, Lars Heuer, encodeur Python sous licence BSD à trois clauses. Le paquet installé conserve l’avis complet dans son dossier de métadonnées. La dépendance n’est utilisée que pour la génération locale du QR. Aucun service externe ne reçoit la clé.
+
+Le contenu de `web/vendor/` reste soumis aux conditions de ses auteurs et n’est pas couvert par la licence GPL du projet.
