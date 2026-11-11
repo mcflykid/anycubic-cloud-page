@@ -75,7 +75,8 @@ export function createCurrentControls(command) {
     const active = !!printer.job_in_progress;
     const online = workshopState.snapshot?.ok && printer.printer_online === true;
     status.dataset.state = online ? 'ready' : 'unknown';
-    status.textContent = tr(!online ? 'Hors ligne' : active ? 'Impression en cours' : printer.is_available ? 'Au repos' : 'Imprimante occupée');
+    const idle = printer.is_available && !printer.is_busy;
+    status.textContent = tr(!online ? 'Hors ligne' : active ? 'Impression en cours' : idle ? 'Au repos' : 'Imprimante occupée');
     for (const control of form.querySelectorAll('input,select,button[type=submit]'))
       control.disabled = !online;
     const limits = (active ? printer.print_limits : printer.idle_limits) || {};
