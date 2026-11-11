@@ -2,6 +2,8 @@
 
 ## À venir
 
+- Détaille la configuration des journaux, les étapes de session caméra et l’état des transferts avec la référence de requête (#218).
+
 - Sépare les courbes Buse et Plateau dans les statistiques (#238).
 - Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
 - Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
