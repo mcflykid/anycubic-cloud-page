@@ -1,5 +1,5 @@
 const {test, expect} = require('@playwright/test');
-const {login} = require('./helpers.cjs');
+const {login, openSection} = require('./helpers.cjs');
 
 test('les réglages au repos partagent une confirmation et conservent des ordres distincts', async ({page}) => {
   const sent = [];
@@ -79,4 +79,32 @@ test('la barre horizontale centre ses groupes sur ordinateur', async ({page}) =>
     return Math.abs((groups[0].getBoundingClientRect().left + groups[groups.length - 1].getBoundingClientRect().right) / 2 - (bounds.left + bounds.width / 2));
   });
   expect(offset).toBeLessThanOrEqual(1);
+});
+
+test('la vue garde ses lignes et propose les deux actions si l’éclairage est inconnu', async ({page}) => {
+  let active = false;
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    Object.assign(data.printer, {job_in_progress:active, camera_light:null, box_fan_level:2});
+    await route.fulfill({json:data});
+  });
+  await page.setViewportSize({width:1440,height:860});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await login(page);
+  const panel = page.locator('#controls-dialog');
+  const sizes = [];
+  for (const expected of ['Au repos', 'Impression en cours']) {
+    await page.locator('#controls-open').click();
+    await expect(panel.locator('#controls-machine-state')).toHaveText(expected);
+    await expect(panel.locator('#current-circulation-reading')).toContainText('67 %');
+    await expect(panel.locator('#control-light-on')).toBeVisible();
+    await expect(panel.locator('#control-light-off')).toBeVisible();
+    sizes.push(await panel.locator('.current-control-row').evaluateAll(rows =>
+      rows.map(row => ({top:row.offsetTop, height:row.offsetHeight}))));
+    if (active) break;
+    active = true;
+    await page.reload();
+    await openSection(page, 'overview');
+  }
+  expect(sizes[0]).toEqual(sizes[1]);
 });
