@@ -1,5 +1,12 @@
 # Changements
 
+## À venir
+
+- Retire la lecture des coordonnées dans Caméra → Déplacer. Les commandes de déplacement restent disponibles (#167).
+- Les statistiques affichent le nom de la machine et regroupent les courbes sous le nom de chaque ACE. Les commandes CSV et le résumé du parc tiennent sur une ligne.
+- Corrige l’alignement du menu Apple Design, les libellés Blueprint et le repère de sélection Océan. Le style se choisit dans la liste Apparence.
+- Anime les ouvertures de sections et de fenêtres selon le style et la préférence de mouvement. Corrige les marges du séchage dans Laboratoire.
+
 ## 1.8.0 — 2026-11-11
 
 - Six styles conservés et quatorze retirés, avec migration des préférences ; Blueprint et Aurore sont retravaillés. Aurore propose des cartes réordonnables et mémorisées ; Apple et Océan ont un repère de navigation animé. Un septième thème Laboratoire réorganise les neuf sections par usage et explore les compositions de toutes les pages (#162, #174).

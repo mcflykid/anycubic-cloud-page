@@ -7,8 +7,11 @@ test('les fichiers tardifs ne changent pas de source et la dernière lecture rep
  await page.route('**/imprimante-api/files/usb?**',route=>route.fulfill({json:{files:[{name:'courant-usb.gcode',size_mb:1}],path:'/test_model'}}));
  await page.route('**/imprimante-api/command',async route=>{commands.push(route.request().postDataJSON());await route.fulfill({json:{ok:true,message:'Simulation uniquement'}});});
  await login(page);await page.getByRole('button',{name:'Fichiers',exact:true}).click();await waiting;
+ await expect(page.locator('#file-rows')).toHaveAttribute('aria-busy','true');
+ await expect(page.locator('#files-loading')).toBeVisible();
  await page.getByRole('button',{name:'Clé USB',exact:true}).click();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);release();
- await expect(page.getByText('courant-usb.gcode',{exact:true})).toBeVisible();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);
+ await expect(page.getByText('courant-usb.gcode',{exact:true})).toBeVisible();
+ await expect(page.locator('#files-loading')).toBeHidden();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Supprimer',exact:true}).click();await page.locator('#confirm-yes').click();await expect.poll(()=>commands.length).toBe(1);
  expect(commands[0].action).toBe('delete-usb');expect(commands[0].name).toBe('courant-usb.gcode');
 });

@@ -90,18 +90,15 @@ test('la sélection tactile ne lance aucune action et laisse défiler hors goutt
 });
 
 /** Une limitation fournisseur ne doit pas déclencher la reprise prévue pour une panne temporaire du proxy. */
-test('Retry-After interdit la reprise de lecture et les coordonnées restent à un seul essai',async({page})=>{
- let limited=0,axes=0;
+test('Retry-After interdit la reprise de lecture',async({page})=>{
+ let limited=0;
  await page.route('**/imprimante-api/fixture-limited',route=>{limited++;return route.fulfill({status:503,headers:{'Retry-After':'120'},json:{ok:false,message:'Limitation temporaire'}});});
- await page.route('**/imprimante-api/axis-position',route=>{axes++;return route.fulfill({status:504,json:{ok:false,message:'Aucune réponse de coordonnées'}});});
  await login(page);
  const messages=await page.evaluate(async()=>{
   const {createRequest}=await import('/imprimante-api/ui/js/workshop-api.mjs');
   const request=createRequest(()=>'demo-printer'),errors=[];
-  for(const path of ['/fixture-limited','/axis-position']){
-   try{await request(path);}catch(error){errors.push(error.message);}
-  }
+  try{await request('/fixture-limited');}catch(error){errors.push(error.message);}
   return errors;
  });
- expect(limited).toBe(1);expect(axes).toBe(1);expect(messages).toHaveLength(2);
+ expect(limited).toBe(1);expect(messages).toHaveLength(1);
 });

@@ -11,7 +11,7 @@ Version **1.8.0**. [Changements](CHANGELOG.md).
 [![Dernière release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
 [![Issues ouvertes](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
 [![Issues fermées](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
-[![Milestone 1.4.1](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/3)](https://github.com/mcflykid/anycubic-cloud-page/milestone/3)
+[![Prochaine livraison](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/9)](https://github.com/mcflykid/anycubic-cloud-page/milestone/9)
 [![Dernier commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
 
 [English](README.en.md) · [Installation](docs/INSTALLATION.md) · [Connexion cloud et tokens](docs/CLOUD-CONNECTION.md) · [Protocole et découvertes](docs/PROTOCOL.md) · [Compatibilité](docs/COMPATIBILITY.md)
@@ -44,11 +44,11 @@ L’image suit `latest` ; remplacez-la par un tag publié dans compose.yaml pour
 
 ## Suivi des travaux
 
-Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone Prochaine livraison](https://github.com/mcflykid/anycubic-cloud-page/milestone/8) regroupe les prochains correctifs prioritaires et leurs critères de validation.
+Les [issues ouvertes](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) décrivent les corrections et améliorations proposées. La [milestone Prochaine livraison](https://github.com/mcflykid/anycubic-cloud-page/milestone/9) regroupe les prochains correctifs prioritaires et leurs critères de validation.
 
 La fiche d’historique peut proposer une réimpression après confirmation de la cible, du plateau et des bobines. La galerie timelapse est temporairement désactivée. La consultation paginée est testée sur des réponses fictives. La correspondance entre la liste, les miniatures et le téléchargement reste à vérifier sur une vidéo existante.
 
-## Les sept onglets
+## Les neuf onglets
 
 Le sélecteur de langue, placé avant la cloche, mémorise le français, l’anglais ou l’espagnol dans le navigateur. Si le catalogue de traduction ne se charge pas, l’atelier et la connexion utilisent le français.
 
@@ -66,7 +66,7 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 | **Parc et santé** | Résumer la disponibilité et la fraîcheur des machines déjà suivies, avec des alertes de connexion bornées et aucune commande depuis les cartes. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
 
-Dans **Réglages → Apparence**, choisissez Par défaut, Apple Design, Détaillé, Blueprint, Aurore ou Océan. Le mode clair, sombre ou système se règle séparément. Blueprint propose une navigation latérale repliable; Aurore permet de réordonner les cartes de l’atelier et de mémoriser leur disposition locale. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
+Dans **Réglages → Apparence**, choisissez Par défaut, Apple Design, Détaillé, Blueprint, Aurore, Océan ou Laboratoire. Le mode clair, sombre ou système se règle séparément. Blueprint propose une navigation latérale repliable; Aurore permet de réordonner les cartes de l’atelier et de mémoriser leur disposition locale. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
 
 <details>
 <summary><strong>ACE et filaments</strong> — bobines, RFID et séchage</summary>
@@ -179,4 +179,4 @@ La [supervision locale](docs/MONITORING.md) expose neuf cartes détaillables dan
 
 L’[étude de Kobra Mesh Lab et HomeLab Monitor](docs/RESEARCH-IDEAS.md) distingue les idées réutilisables des fonctions qui demandent des données ou des protocoles supplémentaires.
 
-Les commandes courantes de la Kobra S1 proposent aussi des réglages manuels au repos lorsque les limites constructeur sont disponibles. La lecture des coordonnées est une consultation explicite, sans déplacement. Voir [les garanties et limites de ces contrôles](docs/IDLE-AXES.md).
+Les commandes courantes de la Kobra S1 proposent aussi des réglages manuels au repos lorsque les limites constructeur sont disponibles. Voir [les garanties et limites de ces contrôles](docs/IDLE-AXES.md).

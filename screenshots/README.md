@@ -20,3 +20,15 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
 La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les modales sont capturées dans la fenêtre ; les onglets en page entière. Ne jamais utiliser un compte réel pour produire les images publiques.
+
+## Comparaison des sept styles
+
+Chaque planche compare la version 1.8.0 et la revue de l’interface, en clair, en sombre et à 390 px en clair. Les vues sont recadrées pour montrer les changements au même emplacement.
+
+- [Par défaut · Statistiques](design/standard.jpg)
+- [Apple Design · Imprimante](design/apple.jpg)
+- [Détaillé · Parc et santé](design/detailed.jpg)
+- [Blueprint · Imprimante](design/blueprint.jpg)
+- [Aurore · Imprimante](design/aurora.jpg)
+- [Océan · Imprimante](design/ocean.jpg)
+- [Laboratoire · ACE et filaments](design/lab.jpg)

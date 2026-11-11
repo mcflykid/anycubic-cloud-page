@@ -1,4 +1,4 @@
-# Commandes au repos et coordonnées S1
+# Commandes au repos de la Kobra S1
 
 ## Périmètre
 
@@ -16,14 +16,8 @@ Un autre formulaire règle un seul ventilateur par ordre `1221` : pièce ou auxi
 
 La confirmation précède le POST et son absence est refusée côté serveur. Sous les verrous existants, le serveur relit la machine et ses limites, refuse une identité modifiée, une activité ou une mise à jour, puis envoie au maximum un ordre. Une réponse HTTP acceptée ne prouve pas son application matérielle; l’interface le dit. Aucun délai ou refus n’entraîne un rejeu. Les réglages du projet actif gardent leur parcours distinct.
 
-## Coordonnées
-
-Dans **Caméra → Déplacer**, **Lire les coordonnées** effectue une consultation manuelle hors impression. Il n’existe aucun polling automatique supplémentaire. L’ordre `1214` utilise `order_id` numérique, `printer_id`, `project_id: 0`, sans `data`. La réponse `axis/query` doit être corrélée au même `msgid`, à la même machine, avec `state: done` et `code: 200`.
-
-Les trois coordonnées doivent être présentes et finies; zéro reste une valeur valide, contrairement à une valeur absente. La date de réception est affichée. Une réponse absente, partielle, refusée, tardive ou reçue après changement de cible ne devient jamais une position actuelle inventée. Une erreur efface l’ancien affichage. Cette consultation ne déclenche ni mouvement, ni origine, ni réinitialisation. Elle ne prouve pas que chaque axe a été référencé; notamment, l’origine de Z reste une opération distincte.
-
 ## Validation et limites
 
-Les tests utilisent exclusivement des doublures et la démonstration. Ils couvrent les enveloppes, les valeurs limites, la confirmation, les limites JSON encodées, les changements de cible ou de disponibilité après attente, les messages MQTT étrangers, les coordonnées invalides, les délais et l’absence de rejeu. Les tests d’interface vérifient qu’une lecture de position n’envoie aucune commande de déplacement.
+Les tests utilisent des doublures et la démonstration. Ils couvrent les enveloppes, les limites JSON encodées, la confirmation et les changements de cible ou de disponibilité après attente.
 
-Aucune chauffe, ventilation, origine, impression ni modification du firmware n’a été effectuée sur la machine pour valider ce lot. La lecture Cloud confirme le profil annoncé; elle ne vaut pas essai matériel de ces nouveaux parcours. L’application déjà installée n’a pas été modifiée.
+La consultation des coordonnées a été retirée après la 1.8.0. L’onglet Caméra conserve les commandes de déplacement. L’[historique du diagnostic](AXIS-QUERY-RESEARCH.md) décrit les observations Cloud.
