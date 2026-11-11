@@ -314,10 +314,11 @@ async def api(request):
                 ]
             ],
             "notifications": {
-                "items": notices,
+                "source": "slicer",
+                "items": NOTICE_FIXTURES,
                 "page": 1,
-                "total": len(notices),
-                "unread": sum(x["unread"] for x in notices),
+                "total": len(NOTICE_FIXTURES),
+                "unread": sum(x["unread"] for x in NOTICE_FIXTURES),
                 "has_more": False,
             },
             "events": [
@@ -410,11 +411,15 @@ async def api(request):
             "parameters": PARAMS,
         }
     elif path == "history":
+        source = request.query.get("source", "legacy")
+        # Les écritures du journal de démonstration ne modifient pas la cloche Cloud.
+        rows = NOTICE_FIXTURES if source == "slicer" else notices
         d = {
-            "items": notices,
+            "source": source,
+            "items": rows,
             "page": 1,
-            "total": len(notices),
-            "unread": sum(x["unread"] for x in notices),
+            "total": len(rows),
+            "unread": sum(x["unread"] for x in rows),
             "has_more": False,
         }
     elif path == "ai-settings":

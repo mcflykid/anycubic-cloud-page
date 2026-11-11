@@ -1,0 +1,257 @@
+/* Arrastre · Moxen — los estilos del efecto y de la demostración. */
+:root {
+  --ar-fondo: #0a0a0a;
+  --ar-texto: #f4f4f4;
+  --ar-suave: rgba(255, 255, 255, .5);
+  --ar-tenue: rgba(255, 255, 255, .24);
+  --ar-listo: #5c8dff;
+  /* la bandeja: hundida, más oscura arriba, con un labio de luz abajo */
+  --ar-pozo-0: #070707;
+  --ar-pozo-1: #121212;
+  --ar-labio: rgba(255, 255, 255, .07);
+  --ar-guion: rgba(255, 255, 255, .2);
+  --ar-continuo: rgba(255, 255, 255, .55);
+  --ar-luz: rgba(255, 255, 255, .09);
+  /* las fichas de cada archivo */
+  --ar-ficha-0: #1b1b1b;
+  --ar-ficha-1: #141414;
+  --ar-ficha-filo: rgba(255, 255, 255, .08);
+  --ar-ficha-sombra: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 26px -10px rgba(0, 0, 0, .7);
+  --ar-riel: rgba(255, 255, 255, .08);
+  --ar-carga-0: #ffffff;
+  --ar-carga-1: #c9c9c9;
+  /* el papel: blanco con su veta, la esquina doblada más oscura */
+  --ar-papel-0: #fbfbfb;
+  --ar-papel-1: #dedede;
+  --ar-doblez-0: #c2c2c2;
+  --ar-doblez-1: #f2f2f2;
+  --ar-renglon: rgba(0, 0, 0, .2);
+  --ar-sello: #0a0a0a;
+  --ar-papel-sombra: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)) drop-shadow(0 8px 12px rgba(0, 0, 0, .45));
+  --ar-radio: 30px;
+}
+:root[data-tema="claro"] {
+  --ar-fondo: #eeeeee;
+  --ar-texto: #0a0a0a;
+  --ar-suave: rgba(0, 0, 0, .5);
+  --ar-tenue: rgba(0, 0, 0, .26);
+  --ar-listo: #2f62d6;
+  --ar-pozo-0: #e0e0e0;
+  --ar-pozo-1: #ececec;
+  --ar-labio: rgba(255, 255, 255, 1);
+  --ar-guion: rgba(0, 0, 0, .22);
+  --ar-continuo: rgba(0, 0, 0, .5);
+  --ar-luz: rgba(255, 255, 255, .75);
+  --ar-ficha-0: #ffffff;
+  --ar-ficha-1: #f7f7f7;
+  --ar-ficha-filo: rgba(255, 255, 255, 1);
+  --ar-ficha-sombra: 0 0 0 1px rgba(0, 0, 0, .05), 0 1px 2px rgba(0, 0, 0, .06), 0 10px 26px -10px rgba(0, 0, 0, .2);
+  --ar-riel: rgba(0, 0, 0, .08);
+  --ar-carga-0: #2e2e2e;
+  --ar-carga-1: #050505;
+  --ar-papel-sombra: drop-shadow(0 0 .5px rgba(0, 0, 0, .35)) drop-shadow(0 6px 10px rgba(0, 0, 0, .14));
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ar-fondo); color: var(--ar-texto); }
+body { font-family: "General Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+/* ── el efecto ─────────────────────────────────────────────────────── */
+/* La zona se inclina hacia el puntero (el JS le pone el transform). */
+.ar-zona {
+  position: relative; width: min(780px, 100%); height: 440px; border-radius: var(--ar-radio);
+  cursor: pointer; outline: none; will-change: transform; -webkit-tap-highlight-color: transparent;
+}
+.ar-zona.is-ocupada { cursor: default; }
+.ar-zona::before {
+  /* el anillo del teclado */
+  content: ""; position: absolute; inset: -6px; border-radius: calc(var(--ar-radio) + 6px); pointer-events: none;
+  box-shadow: 0 0 0 2px var(--ar-continuo); opacity: 0; transition: opacity .2s;
+}
+.ar-zona:focus-visible::before { opacity: 1; }
+
+.ar-bandeja {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  background: linear-gradient(180deg, var(--ar-pozo-0), var(--ar-pozo-1));
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .5), 0 1px 0 var(--ar-labio);
+}
+/* la luz que sigue al puntero por dentro de la bandeja */
+.ar-luz {
+  position: absolute; left: 0; top: 0; width: 560px; height: 560px; margin: -280px 0 0 -280px; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--ar-luz), transparent); opacity: 0; will-change: transform, opacity;
+}
+.ar-borde { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ar-borde rect { fill: none; vector-effect: non-scaling-stroke; }
+/* los guiones caminan despacio; cerca del puntero se funden en un borde continuo */
+.ar-guiones { stroke: var(--ar-guion); stroke-width: 1.6; stroke-dasharray: 9 8; animation: ar-marcha 2.2s linear infinite; }
+@keyframes ar-marcha { to { stroke-dashoffset: -17; } }
+.ar-continuo { stroke: var(--ar-continuo); stroke-width: 1.6; opacity: 0; }
+/* el progreso total recorre el contorno; el JS cambia el largo del trazo */
+.ar-progreso { stroke: var(--ar-texto); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0 1; transition: stroke .5s, opacity .5s; }
+.ar-zona.is-lista .ar-progreso { stroke: var(--ar-listo); }
+.ar-zona.is-saliendo .ar-progreso { opacity: 0; }
+
+/* al terminar todo, una onda sale del contorno */
+.ar-pulso { position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 1.5px var(--ar-listo); opacity: 0; pointer-events: none; }
+.ar-zona.is-lista .ar-pulso { animation: ar-pulso .9s cubic-bezier(.22, 1, .36, 1); }
+@keyframes ar-pulso { 0% { opacity: .7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.06, 1.1); } }
+
+/* ── el estado vacío ───────────────────────────────────────────────── */
+.ar-vacio {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  transition: opacity .35s, transform .55s cubic-bezier(.22, 1, .36, 1);
+}
+.ar-zona.is-ocupada .ar-vacio { opacity: 0; transform: translateY(18px) scale(.97); pointer-events: none; }
+.ar-zona.is-volviendo .ar-vacio { transition-delay: .25s; }
+
+/* el abanico: tres hojas y una flecha; el JS lo abre y lo atrae */
+.ar-abanico { position: relative; width: 96px; height: 112px; margin-bottom: 30px; will-change: transform; }
+/* en reposo flota; el abanico y la atracción los pone el JS encima */
+.ar-flota { position: absolute; inset: 0; animation: ar-flota 4.4s ease-in-out infinite; }
+@keyframes ar-flota { 50% { transform: translateY(-6px); } }
+.ar-defs { position: absolute; }
+.ar-hoja-vacia {
+  position: absolute; left: 18px; top: 6px; width: 60px; height: 76px; border-radius: 9px;
+  background: linear-gradient(160deg, var(--ar-ficha-0), var(--ar-ficha-1));
+  box-shadow: inset 0 1px 0 var(--ar-ficha-filo), 0 0 0 1px rgba(127, 127, 127, .14), 0 10px 22px -8px rgba(0, 0, 0, .6);
+  transform-origin: 50% 110%; will-change: transform;
+}
+.ar-hoja-vacia::before, .ar-hoja-vacia::after {
+  /* dos renglones, para que se lea «papel» */
+  content: ""; position: absolute; left: 12px; height: 3px; border-radius: 3px; background: var(--ar-tenue);
+}
+.ar-hoja-vacia::before { top: 18px; width: 30px; }
+.ar-hoja-vacia::after { top: 28px; width: 22px; }
+.ar-flecha {
+  position: absolute; left: 50%; bottom: 0; width: 46px; height: 46px; margin-left: -23px; display: grid; place-items: center; border-radius: 50%;
+  background: linear-gradient(180deg, var(--ar-carga-0), var(--ar-carga-1)); color: var(--ar-fondo);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 18px -6px rgba(0, 0, 0, .6); will-change: transform;
+}
+.ar-flecha svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ar-titulo { position: relative; height: 1.25em; margin: 0; overflow: hidden; font-size: 28px; font-weight: 500; letter-spacing: -.035em; }
+.ar-reposo, .ar-encima { display: block; line-height: 1.25; transition: transform .5s cubic-bezier(.22, 1, .36, 1), opacity .3s; }
+.ar-encima { opacity: 0; }
+.ar-zona.is-encima .ar-reposo { transform: translateY(-100%); opacity: 0; }
+.ar-zona.is-encima .ar-encima { transform: translateY(-100%); opacity: 1; }
+.ar-detalle { margin: 10px 0 0; color: var(--ar-suave); font-size: 16px; }
+
+/* ── las fichas ────────────────────────────────────────────────────── */
+.ar-lista {
+  position: absolute; inset: 0; margin: 0; padding: 0 40px; list-style: none;
+  display: flex; flex-direction: column; justify-content: center; gap: 12px; pointer-events: none;
+}
+.ar-fila {
+  position: relative; display: grid; grid-template-columns: 50px 1fr 36px; align-items: center; gap: 0 18px;
+  height: 82px; padding: 0 20px 0 18px; border-radius: 20px;
+  background: linear-gradient(180deg, var(--ar-ficha-0), var(--ar-ficha-1));
+  box-shadow: inset 0 1px 0 var(--ar-ficha-filo), var(--ar-ficha-sombra);
+  opacity: 0; transform: translateY(10px) scale(.97);
+  transition: opacity .4s, transform .6s cubic-bezier(.22, 1, .36, 1);
+}
+/* aparece cuando su hoja aterriza; el contenido entra un poco después */
+.ar-fila.is-llega { opacity: 1; transform: none; }
+.ar-fila.is-sale { opacity: 0; transform: translateY(-14px) scale(.97); transition: opacity .3s, transform .45s cubic-bezier(.55, 0, .75, .2); transition-delay: var(--sale, 0ms); }
+.ar-hueco { width: 50px; height: 62px; }
+.ar-datos { min-width: 0; opacity: 0; transform: translateX(-8px); transition: opacity .4s .12s, transform .55s cubic-bezier(.22, 1, .36, 1) .12s; }
+.ar-fila.is-llega .ar-datos { opacity: 1; transform: none; }
+.ar-arriba { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.ar-nombre { overflow: hidden; font-size: 18px; font-weight: 500; letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
+.ar-peso { flex: none; color: var(--ar-suave); font-size: 14px; font-variant-numeric: tabular-nums; }
+/* la barra: el relleno se escala (transform) y un brillo lo recorre mientras sube */
+.ar-barra { position: relative; display: block; height: 6px; margin-top: 11px; border-radius: 6px; background: var(--ar-riel); overflow: hidden; }
+.ar-barra i { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, var(--ar-carga-0), var(--ar-carga-1)); transform-origin: 0 50%; transform: scaleX(0); will-change: transform; }
+.ar-barra i::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--ar-listo); opacity: 0; transition: opacity .45s; }
+.ar-barra b {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 90px; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent); mix-blend-mode: overlay;
+}
+.ar-fila.is-subiendo .ar-barra b { opacity: 1; animation: ar-brillo 1.1s cubic-bezier(.45, 0, .55, 1) infinite; }
+@keyframes ar-brillo { from { transform: translateX(-100px); } to { transform: translateX(560px); } }
+.ar-fila.is-lista .ar-barra i::after { opacity: 1; }
+.ar-fila.is-lista .ar-peso { color: var(--ar-listo); }
+
+/* a la derecha: el porcentaje, que al terminar se vuelve un ✓ que salta */
+.ar-fin { position: relative; width: 36px; height: 36px; justify-self: end; opacity: 0; transition: opacity .3s .2s; }
+.ar-fila.is-llega .ar-fin { opacity: 1; }
+.ar-cifra {
+  position: absolute; inset: 0 -6px; display: grid; place-items: center; color: var(--ar-suave); white-space: nowrap;
+  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; transition: opacity .2s, transform .3s;
+}
+.ar-visto {
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: var(--ar-listo); color: #fff;
+  opacity: 0; transform: scale(.3);
+}
+.ar-visto svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.ar-visto path { stroke-dasharray: 1 1.1; stroke-dashoffset: 1.05; }
+.ar-fila.is-lista .ar-cifra { opacity: 0; transform: scale(.6); }
+.ar-fila.is-lista .ar-visto { animation: ar-salta .6s cubic-bezier(.22, 1, .36, 1) both; }
+.ar-fila.is-lista .ar-visto path { stroke-dashoffset: 0; transition: stroke-dashoffset .35s cubic-bezier(.65, 0, .35, 1) .15s; }
+@keyframes ar-salta { 0% { opacity: 0; transform: scale(.3); } 45% { opacity: 1; transform: scale(1.18); } 75% { transform: scale(.95); } 100% { opacity: 1; transform: none; } }
+
+/* ── el papel ──────────────────────────────────────────────────────── */
+/* Cada hoja es un SVG: el cuerpo con la esquina cortada, la esquina
+   doblada encima, cuatro renglones que se «imprimen» con el progreso y
+   el sello con el tipo. El JS la mueve con transform. */
+.ar-vuelo { position: absolute; inset: 0; pointer-events: none; }
+.ar-papel { position: absolute; left: 0; top: 0; width: 50px; height: 62px; margin: -31px 0 0 -25px; will-change: transform, opacity; }
+.ar-papel svg { width: 100%; height: 100%; display: block; overflow: visible; filter: var(--ar-papel-sombra); }
+.ar-hoja { fill: url(#ar-papel); }
+.ar-doblez { fill: url(#ar-doblez); }
+.ar-papel-0 { stop-color: var(--ar-papel-0); }
+.ar-papel-1 { stop-color: var(--ar-papel-1); }
+.ar-doblez-0 { stop-color: var(--ar-doblez-0); }
+.ar-doblez-1 { stop-color: var(--ar-doblez-1); }
+.ar-renglon { fill: var(--ar-renglon); transform-box: fill-box; transform-origin: 0 50%; transform: scaleX(0); }
+.ar-sello { fill: var(--ar-sello); }
+.ar-sello-texto { fill: #fff; font: 600 8.5px "General Sans", system-ui, sans-serif; letter-spacing: .06em; }
+
+/* ── la demostración ───────────────────────────────────────────────── */
+.ar-escena {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px 16px; overflow: hidden;
+  perspective: 1400px;
+  background: radial-gradient(60% 55% at 50% 44%, rgba(127, 127, 127, .09), transparent 70%);
+}
+.ar-escena::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+.ar-pie { width: min(780px, 100%); height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; color: var(--ar-suave); font-size: 15px; font-variant-numeric: tabular-nums; }
+.ar-estado { display: flex; align-items: center; gap: 10px; }
+.ar-estado-icono { position: relative; width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ar-tenue); transition: background-color .4s, box-shadow .4s; }
+.ar-estado.is-subiendo .ar-estado-icono { box-shadow: inset 0 0 0 2px var(--ar-tenue); }
+.ar-estado.is-subiendo .ar-estado-icono::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--ar-texto);
+  animation: ar-gira .8s linear infinite;
+}
+@keyframes ar-gira { to { transform: rotate(1turn); } }
+.ar-estado.is-lista { color: var(--ar-texto); }
+.ar-estado.is-lista .ar-estado-icono { background: var(--ar-listo); box-shadow: none; }
+.ar-limpia {
+  padding: 9px 16px; border: 0; border-radius: 99px; background: none; color: var(--ar-texto); font: inherit; font-size: 14px; cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--ar-tenue); opacity: 0; pointer-events: none; transition: opacity .3s, box-shadow .2s;
+}
+.ar-limpia:hover { box-shadow: inset 0 0 0 1px var(--ar-continuo); }
+.ar-limpia:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--ar-continuo), 0 0 0 3px var(--ar-fondo), 0 0 0 5px var(--ar-continuo); }
+.ar-escena.is-ocupada .ar-limpia { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 640px) {
+  .ar-zona { height: 400px; --ar-radio: 24px; }
+  .ar-lista { padding: 0 14px; gap: 10px; }
+  .ar-fila { grid-template-columns: 44px 1fr 30px; gap: 0 12px; height: 74px; padding: 0 14px 0 12px; border-radius: 16px; }
+  .ar-hueco { width: 44px; }
+  /* en angosto, el peso va bajo la barra y el nombre se lleva todo el ancho */
+  .ar-datos { display: flex; flex-direction: column; }
+  .ar-arriba { display: contents; }
+  .ar-nombre { font-size: 16px; }
+  .ar-barra { margin-top: 8px; }
+  .ar-peso { order: 2; margin-top: 6px; font-size: 12px; }
+  .ar-fin { width: 30px; height: 30px; }
+  .ar-cifra { font-size: 11px; }
+  .ar-titulo { font-size: 23px; }
+  .ar-detalle { font-size: 14px; }
+  .ar-pie { font-size: 13px; padding: 0 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ar-guiones, .ar-flota, .ar-fila.is-subiendo .ar-barra b, .ar-zona.is-lista .ar-pulso { animation: none; }
+  .ar-fila, .ar-datos, .ar-vacio { transition-duration: .01s; transition-delay: 0s; }
+}
