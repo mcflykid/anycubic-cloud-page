@@ -125,6 +125,7 @@ PRINTER = {
     },
     "axes_supported": True,
     "idle_limits": {"target_nozzle_temp": [0, 320], "target_hotbed_temp": [0, 120]},
+    "print_limits": {"target_nozzle_temp": [0, 320], "target_hotbed_temp": [0, 120]},
     "foreign_detection_supported": True,
     "speed_modes": [
         {"mode": 0, "description": "Quiet"},

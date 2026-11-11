@@ -29,7 +29,7 @@ from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
 from cloud_budget import CloudRequestBudget
 from command_journal import ACTIONS, MQTT_CONFIRMATIONS, command_mqtt_context, mqtt_digest
 from filament_catalog import editable_materials
-from idle_controls import idle_limits
+from idle_controls import idle_limits, print_limits
 from native_controls import ace_model, task_details
 from notification_service import AccountNotifications
 from operational_logging import log_event, safe_exception_frames
@@ -837,6 +837,7 @@ class Engine:
         fields["task_details"] = task_details(safeget(p, "latest_project"))
         fields["axes_supported"] = 67 in (self.raw_info.get("type_function_ids") or [])
         fields["idle_limits"] = idle_limits(self)
+        fields["print_limits"] = print_limits(safeget(p, "latest_project"))
         features = {
             r.get("name"): r.get("value")
             for r in self.raw_info.get("features") or []

@@ -284,11 +284,10 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  await login(page);
  await page.getByRole('button',{name:'Commandes courantes',exact:true}).click();
  const panel=page.getByRole('dialog',{name:'Commandes courantes'});
- await expect(panel).toContainText('20 °C / 0 °C');
+ await expect(panel.locator('#current-nozzle-reading')).toContainText('20 °C');
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
- await expect(panel.locator('#settings-form')).toBeHidden();
- await panel.getByRole('button',{name:'Réglages d’impression',exact:true}).click();
- await panel.getByLabel('Enceinte (0–3)',{exact:true}).fill('3');
+ await expect(panel.locator('#settings-form')).toBeVisible();
+ await panel.getByLabel('Circulation',{exact:true}).fill('100');
  await panel.getByRole('button',{name:'Appliquer les réglages'}).click();
  await page.locator('#confirm-yes').click();
  await expect(panel.locator('#control-feedback')).toHaveText('Refus fictif');

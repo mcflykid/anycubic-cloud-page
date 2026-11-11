@@ -8,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1] / "web"
 ATTRIBUTES = {"title", "aria-label", "placeholder", "data-confirm", "alt"}
 INVARIANT = {
+    "°C",
     "Anycubic Cloud Page",
     "Anycubic Kobra S1",
     "GPL-3.0-or-later",

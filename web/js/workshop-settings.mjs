@@ -14,69 +14,14 @@ import {
 import { workshopState } from './workshop-state.mjs';
 import { definition } from './workshop-overview.mjs';
 import { api } from './workshop-api.mjs';
+import { createCurrentControls } from './workshop-current-controls.mjs';
 
 /** Gère les commandes courantes, le déplacement et les réglages de la machine. */
 export function createSettings(request, command, camera) {
   let deviceOptions = null,
     resetTicket = null,
     resetDeadline = 0;
-  const controlFeedback = (text) => set('control-feedback', text);
-  /** Refuse les nouvelles commandes lorsque le serveur n’a plus d’état utilisable. */
-  function disableQuickControls() {
-    for (const button of $('controls-dialog').querySelectorAll(
-      'form input,form select,form button,#control-light-on,#control-light-off',
-    ))
-      button.disabled = true;
-    set('control-light-state', tr('État inconnu'));
-    $('control-view-idle').hidden = true;
-    if (currentControlView === 'idle') showControlView('monitor');
-  }
-  const controlViews = {monitor: 'controls-monitor', idle: 'idle-controls', settings: 'settings-form'};
-  const idleControls = $('idle-controls');
-  const idleFans = idleControls.querySelectorAll('.idle-fan-form');
-  let currentControlView = 'monitor';
-
-  /** Préserve la vue des mesures si l’imprimante cesse d’être disponible au repos. */
-  function showControlView(view) {
-    currentControlView = view;
-    for (const [name, panel] of Object.entries(controlViews)) {
-      $(panel).hidden = name !== view;
-      $(`control-view-${name}`).setAttribute('aria-pressed', String(name === view));
-    }
-  }
-
-  for (const view of Object.keys(controlViews))
-    $(`control-view-${view}`).onclick = () => showControlView(view);
-  $('controls-open').onclick = () => {
-    showControlView('monitor');
-    controlFeedback('');
-    $('controls-dialog').showModal();
-  };
-  $('settings-form').onsubmit = (e) => {
-    e.preventDefault();
-    controlFeedback('');
-    void command(
-      'settings',
-      Object.fromEntries(new FormData(e.target)),
-      tr('Appliquer ces réglages à l’impression active ?'),
-      controlFeedback,
-    );
-  };
-  $('idle-temperature-form').onsubmit = (event) => {
-    event.preventDefault();
-    void command('idle-settings', Object.fromEntries(new FormData(event.target)),
-      tr('Appliquer ces températures à l’imprimante au repos ? Vérifiez le plateau et les matériaux présents.'), controlFeedback);
-  };
-  // Chaque formulaire envoie uniquement la cible du ventilateur indiqué dans sa confirmation.
-  for (const form of idleFans) {
-    form.onsubmit = (event) => {
-      event.preventDefault();
-      const { name, value } = form.querySelector('input');
-      const label = form.querySelector('h4').textContent;
-      void command('idle-settings', { [name]: value },
-        formatText('Régler le ventilateur « {0} » à {1} % ?', label, value), controlFeedback);
-    };
-  }
+  const currentControls = createCurrentControls(command);
   $('rename-form').onsubmit = (e) => {
     e.preventDefault();
     command(
@@ -85,43 +30,12 @@ export function createSettings(request, command, camera) {
       tr('Renommer l’imprimante dans le compte Anycubic ?'),
     );
   };
-  for (const [id, enabled] of [
-    ['light-on', true],
-    ['light-off', false],
-    ['control-light-on', true],
-    ['control-light-off', false],
-  ]) {
-    const feedback = id.startsWith('control-') ? controlFeedback : undefined;
-    $(id).onclick = () => {
-      feedback?.('');
-      void command(
-        'light',
-        { enabled, light_type: 3 },
-        tr(
-          enabled
-            ? 'Allumer l’éclairage de l’imprimante ?'
-            : 'Éteindre l’éclairage de l’imprimante ?',
-        ),
-        feedback,
-      );
-    };
-  }
+  for (const [id, enabled] of [['light-on', true], ['light-off', false]])
+    $(id).onclick = () => command('light', { enabled, light_type: 3 },
+      tr(enabled ? 'Allumer l’éclairage de l’imprimante ?' : 'Éteindre l’éclairage de l’imprimante ?'));
   /** Conditionne axes et IA aux capacités annoncées et à une imprimante disponible. */
   function updateNativeControls(p) {
-    const limits = p.idle_limits || {};
-    const idle = workshopState.snapshot?.ok && p.printer_online && p.is_available && !p.is_busy && !p.job_in_progress && Object.keys(limits).length;
-    $('control-view-idle').hidden = !idle;
-    if (!idle && currentControlView === 'idle') showControlView('monitor');
-    for (const field of idleControls.querySelectorAll('input,button')) field.disabled = !idle;
-    for (const form of idleFans) {
-      const name = form.querySelector('input').name;
-      form.querySelector('.idle-fan-current').textContent = formatText('Vitesse actuelle : {0}', fmt(p[name], ' %'));
-    }
-    for (const name of ['target_nozzle_temp', 'target_hotbed_temp']) {
-      const input = $('idle-temperature-form').elements[name], pair = limits[name];
-      input.disabled = !idle || !pair;
-      if (pair) { input.min = pair[0]; input.max = pair[1]; }
-    }
+    currentControls.render(p);
     // L’état affiché vient de l’imprimante, y compris lorsqu’il est inconnu.
     const light = p.camera_light;
     set('camera-light-state', tr(light === true ? 'Allumé' : light === false ? 'Éteint' : 'État inconnu'));
@@ -587,5 +501,5 @@ export function createSettings(request, command, camera) {
     if (!deviceOptions) loadDeviceOptions();
   }
 
-  return { disableQuickControls, updateNativeControls, enter };
+  return { disableQuickControls: currentControls.disable, updateNativeControls, enter };
 }

@@ -51,6 +51,20 @@ def idle_limits(target):
     return result
 
 
+def print_limits(project):
+    """Renvoie les limites constructeur reçues pour le projet, si elles sont valides."""
+    result = {}
+    for field, suffix, cap in (
+        ("target_nozzle_temp", "nozzle", 320),
+        ("target_hotbed_temp", "hotbed", 120),
+    ):
+        lower = getattr(project, f"temp_min_{suffix}", None)
+        upper = getattr(project, f"temp_max_{suffix}", None)
+        if type(lower) is int and type(upper) is int and 0 <= lower <= upper <= cap:
+            result[field] = [lower, upper]
+    return result
+
+
 def idle_request(target, values):
     """Valide une seule famille de réglages ; refuse toute limite inconnue ou donnée ambiguë."""
     limits = idle_limits(target)

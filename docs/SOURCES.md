@@ -20,3 +20,11 @@
 ## Sources de clôture
 
 Les [révisions et licences amont](UPSTREAM-COMPARISON.md#lectures-retenues-pour-la-clôture-260) et les [guides du wiki](ANYCUBIC-WIKI-S1.md) documentent les études et l’aide de l’atelier. Les [notices](../THIRD_PARTY_NOTICES.md) identifient les composants distribués. Les archives Moxen gardent leur propre licence et restent hors de l’image du conteneur.
+
+
+## Ventilation et température de chambre
+
+- [Anycubic Cloud Client, description des ordres et de la télémétrie](https://github.com/Nino6689/anycubic-cloud-client/blob/6ea79c733ac3909f7bc1ca4970f2f75fe8d302b7/docs/PROTOCOL.md#545-order-1221--set-fan-speed-data). La commande documente le champ `box_fan_level` et les ordres à une seule cible. Les relevés distinguent le niveau de circulation des pourcentages pièce et auxiliaire. Le document signale aussi une validation côté client plus large. Il ne prouve pas l’unité effectivement acceptée au repos sur la S1.
+- [MineTech13, paquets Linux d’Anycubic Slicer Next](https://github.com/MineTech13/anycubic-slicer-next). Le dépôt reconditionne le client officiel. Il ne contient pas le code de la commande Cloud. Sur la Kobra S1 en mode Cloud, le client installé affiche la circulation en pourcentage et un champ Chambre à 0 °C / 0 °C. Ce dernier ne constitue pas une mesure de chambre exploitable.
+- [OrcaCubic, périmètre de son étude Cloud](https://github.com/marcodiniz/OrcaCubic/blob/main/docs/FUTURE_ANYCUBIC_CLOUD_PRINTING.md). L’intégration testée du projet concerne la Kobra X en réseau local. L’étude Cloud ne valide aucun ordre de ventilation sur la S1.
+- [Wiki Anycubic, chauffage de chambre du modèle S1 Max](https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-max-combo/cavity-control-feature-introduction). La limite de 65 °C appartient à cette fonction du S1 Max et ne permet pas de déduire une commande ou une mesure sur la S1.

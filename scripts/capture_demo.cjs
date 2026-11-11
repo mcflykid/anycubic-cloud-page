@@ -199,8 +199,7 @@ async function main() {
     await photo(page, '19-resume-sombre.png');
     await openSection(page, 'overview');
     await page.locator('#controls-open').click();
-    await page.locator('#control-view-idle').click();
-    await page.locator('#idle-controls').waitFor();
+    await page.locator('#settings-form').waitFor();
     await photo(page, '25-commandes-au-repos.png');
     await page.keyboard.press('Escape');
     await openSection(page, 'ace');

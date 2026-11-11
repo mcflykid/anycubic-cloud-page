@@ -12,7 +12,7 @@ from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSet
 
 from command_journal import dispatch_command
 from native_controls import ai_payload, axis_payload
-from idle_controls import set_idle
+from idle_controls import print_limits, set_idle
 from filament_catalog import editable_materials
 from print_preflight import ensure_firmware_ready
 from printer_values import filepath, integer, now, safeget
@@ -198,6 +198,9 @@ async def execute_command(target, name, d):
             raise ValueError("Aucun réglage fourni")
         if not p.latest_project or not p.latest_project_print_in_progress:
             raise ValueError("Ces réglages nécessitent une impression active")
+        for key, (minimum, maximum) in print_limits(p.latest_project).items():
+            if key in values and values[key] != 0:
+                integer(values[key], minimum, maximum)
         result = await dispatch_command(
             a._send_order_change_print_settings(p, AnycubicPrintingSettings(**values))
         )

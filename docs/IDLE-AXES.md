@@ -8,11 +8,11 @@ Un contrôle Cloud en lecture seule sur une S1 2.7.2.7 confirme que `free_temp_l
 
 ## Températures et ventilation
 
-La vue **Commandes courantes → Réglages au repos** apparaît seulement si la S1 est libre, en ligne et fournit ses limites. Les lignes Pièce et Auxiliaire affichent chacune la vitesse actuelle et disposent de leur propre cible et bouton d’application. Les champs vides ne changent rien. Le zéro coupe la chauffe de la cible choisie. Aucun profil de matériau ni préchauffage automatique n’est proposé.
+La fenêtre **Commandes courantes** affiche les mêmes lignes au repos et pendant une impression. Les lignes Pièce et Auxiliaire affichent chacune leur vitesse actuelle et leur cible. Le bouton commun confirme les champs renseignés. Au repos, il envoie les températures puis chaque ventilateur séparément, et s’arrête au premier refus. Le zéro coupe la chauffe de la cible choisie.
 
 Le formulaire de température envoie l’ordre `1216` sous la forme imprimante : `order_id` texte, `printer_id` numérique, `data`, sans `project_id`. `type` vaut 0 pour la buse seule, 1 pour le plateau seul et 2 pour les deux. Les champs de la cible non choisie sont nuls selon ce contrat; `type` détermine les cibles modifiées. Les températures respectent les limites `free_temp_limit`, distinctes des limites d’impression `temp_limit`.
 
-Un autre formulaire règle un seul ventilateur par ordre `1221` : pièce ou auxiliaire, en pourcentage de 0 à 100. Le ventilateur d’enceinte reste exclu de ce nouveau parcours tant que son unité n’est pas établie pour le modèle : les références consultées divergent entre niveau et pourcentage.
+Un ordre `1221` règle un seul ventilateur, pièce ou auxiliaire, en pourcentage de 0 à 100. Pour le ventilateur **Circulation**, le parcours d’impression existant conserve son champ Cloud `box_fan_level` et l’atelier convertit le pourcentage vers le niveau le plus proche. L’envoi au repos reste à vérifier. La température de chambre reste absente de l’atelier tant qu’aucune mesure Cloud exploitable n’a été identifiée sur la S1.
 
 La confirmation précède le POST et son absence est refusée côté serveur. Sous les verrous existants, le serveur relit la machine et ses limites, refuse une identité modifiée, une activité ou une mise à jour, puis envoie au maximum un ordre. Une réponse HTTP acceptée ne prouve pas son application matérielle; l’interface le dit. Aucun délai ou refus n’entraîne un rejeu. Les réglages du projet actif gardent leur parcours distinct.
 
