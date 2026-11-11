@@ -6,7 +6,7 @@ test('les dix sections restent visibles sans barre horizontale à 1249 px',async
   await login(page);
   const navigation=page.locator('#atelier-tabs');
   await expect(navigation.locator('[data-tab]')).toHaveCount(10);
-  for (const style of ['standard','apple','blueprint','aurora','ocean']) {
+  for (const style of ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse']) {
     await page.locator('html').evaluate((element,value)=>element.setAttribute('data-style',value),style);
     const dimensions=await navigation.evaluate(el=>({viewport:innerWidth,display:getComputedStyle(el).display,width:el.getBoundingClientRect().width,overflow:getComputedStyle(el).overflowX,shellClass:document.querySelector('.printer-shell').className,buttons:[...el.querySelectorAll('button')].map(button=>{const box=button.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(button);const text=[...range.getClientRects()];return {label:button.innerText,left:box.left,right:box.right,width:box.width,display:getComputedStyle(button).display,visible:getComputedStyle(button).visibility!=='hidden'&&box.width>0,textFits:text.every(rect=>rect.left>=box.left-1&&rect.right<=box.right+1)};})}));
     expect(['auto','scroll']).not.toContain(dimensions.overflow);

@@ -480,13 +480,6 @@ dialog{background:var(--surface);color:var(--text)}
 @media(max-width:900px){.statistics-panel .temperature-charts,#statistics-filament .temperature-charts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.statistics-grid{grid-template-columns:minmax(0,1fr)}#statistics-filament{grid-column:auto}.statistics-panel .temperature-charts,#statistics-filament .temperature-charts{grid-template-columns:minmax(0,1fr)}}
 
-/* Détaillé garde les mesures prioritaires côte à côte et recentre une dernière rangée incomplète. */
-:root[data-style="detailed"] #temperatures{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 12px}
-:root[data-style="detailed"] #temperatures>div:nth-child(-n+4){grid-column:span 2}
-:root[data-style="detailed"] #temperatures>div:nth-child(5){grid-column:2/span 2}
-:root[data-style="detailed"] #controls-open{display:block;margin:18px auto 0}
-@media(min-width:960px){:root[data-style="detailed"] #details>div:last-child:nth-child(3n+1){grid-column:2}:root[data-style="detailed"] #details>div:nth-last-child(2):nth-child(3n+1){grid-column:2}:root[data-style="detailed"] #details>div:last-child:nth-child(3n+2){grid-column:3}}
-@media(max-width:959px){:root[data-style="detailed"] #temperatures{grid-template-columns:repeat(2,minmax(0,1fr))}:root[data-style="detailed"] #temperatures>div:nth-child(5){grid-column:1/-1}:root[data-style="detailed"] #details>div:last-child:nth-child(odd){grid-column:2}}
 
 /* Apple Design aligne les deux rangées de cartes et garde les commandes accessibles. */
 [data-style="apple"] .atelier-tabs{flex-wrap:nowrap;justify-content:space-between;overflow-x:auto;scrollbar-width:thin;gap:2px}
@@ -564,43 +557,6 @@ dialog{background:var(--surface);color:var(--text)}
 #tab-statistics .temperature-section>h3{font-size:1rem;margin:24px 0 10px}#tab-statistics .temperature-card-title{flex-wrap:wrap}#tab-statistics .temperature-card-title strong{font-size:.9rem}
 
 
-/* Détaillé privilégie le balayage des mesures sur un tableau de bord plus large. */
-:root[data-style="detailed"] {
-  --bg: light-dark(#edf1f5, #131b25);
-  --surface: light-dark(#fff, #1d2937);
-  --text: light-dark(#1b2b40, #f1f5fa);
-  --muted: light-dark(#536378, #bac6d5);
-  --line: light-dark(#c6d2df, #45566a);
-  --accent: light-dark(#165787, #a2d6ff);
-}
-[data-style="detailed"] .printer-shell {
-  width: min(100%, 1392px);
-  --panel-radius: 10px;
-  --panel-pad: 18px;
-  --section-gap: 14px;
-}
-[data-style="detailed"] .atelier-title { padding-block: 28px 20px; }
-[data-style="detailed"] .atelier-tabs button[aria-current] {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
-}
-[data-style="detailed"] .printer-lower-grid :is(.metrics, .detail-list) > div {
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--panel-radius);
-}
-@media (min-width: 960px) {
-  [data-style="detailed"] .printer-lower-grid {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  }
-  [data-style="detailed"] .printer-lower-grid :is(.metrics, .detail-list) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-  [data-style="detailed"] .printer-lower-grid :is(.metrics, .detail-list) > div {
-    grid-column: auto;
-  }
-}
 
 /* Les effets d’interaction sont légers et se désactivent ensemble si le mouvement est réduit. */
 @media(prefers-reduced-motion:reduce){
@@ -611,7 +567,6 @@ dialog{background:var(--surface);color:var(--text)}
 :root[data-style="standard"]{--bg:light-dark(#f5f5f7,#131518);--surface:light-dark(#fff,#202831);--text:light-dark(#1d2833,#eef3f7);--muted:light-dark(#596a79,#afbdc8);--line:light-dark(#d0d9e0,#43515d);--accent:light-dark(#276b50,#9ad8bb);--panel-radius:14px;--section-gap:20px}
 :root[data-style="blueprint"]{--bg:light-dark(#eaf2fb,#10213a);--surface:light-dark(#f8fbff,#183051);--text:light-dark(#17365c,#edf5ff);--muted:light-dark(#4c6e95,#a9c3e4);--line:light-dark(#a8c5e5,#36577f);--accent:light-dark(#1455a0,#9ecbff);--panel-radius:3px;--section-gap:14px}
 :root[data-style="aurora"]{--bg:light-dark(#f0effa,#121321);--surface:light-dark(#fcfbff,#1d2035);--text:light-dark(#292b4d,#f0efff);--muted:light-dark(#666986,#b6b8d5);--line:light-dark(#c9cbea,#474a70);--accent:light-dark(#7357c8,#c0b0ff);--panel-radius:24px;--section-gap:22px}
-:root[data-style="ocean"]{--bg:light-dark(#e7f4f5,#0d2025);--surface:light-dark(#f6ffff,#173238);--text:light-dark(#17383d,#e7fcff);--muted:light-dark(#4c7277,#9fc9ce);--line:light-dark(#afd0d3,#315d63);--accent:light-dark(#087b91,#74e5ee);--panel-radius:24px;--section-gap:20px}
 
 /* Les thèmes qui privilégient un outil déplacent réellement les blocs et la navigation. */
 [data-style="blueprint"] body{background-image:linear-gradient(color-mix(in srgb,var(--accent) 8%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--accent) 8%,transparent) 1px,transparent 1px);background-size:24px 24px}
@@ -619,9 +574,6 @@ dialog{background:var(--surface);color:var(--text)}
 [data-style="blueprint"] .atelier-title h1{font-family:ui-monospace,SFMono-Regular,monospace;letter-spacing:-.04em}
 [data-style="aurora"] body{background-image:radial-gradient(ellipse at 12% 8%,color-mix(in srgb,#65d8c1 24%,transparent),transparent 34rem),radial-gradient(ellipse at 88% 30%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 38rem)}
 [data-style="aurora"] .portal-nav,[data-style="aurora"] .printer-lower-grid>section,[data-style="aurora"] .form-panel{box-shadow:0 12px 35px color-mix(in srgb,var(--accent) 10%,transparent)}
-[data-style="ocean"] .portal-nav{border-bottom:3px solid var(--accent)}
-[data-style="ocean"] .atelier-tabs button[aria-current]{border-radius:999px}
-[data-style="ocean"] .printer-lower-grid{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
 @media(min-width:960px){
   [data-style="blueprint"] .printer-shell,[data-style="aurora"] .printer-shell{display:grid;grid-template-rows:auto auto auto 1fr auto;align-items:start;gap:0 20px}
   [data-style="blueprint"] .printer-shell{grid-template-columns:minmax(250px,270px) minmax(0,1fr);grid-template-areas:"portal portal" "title title" "tabs message" "tabs main" "footer footer"}
@@ -640,7 +592,6 @@ dialog{background:var(--surface);color:var(--text)}
   [data-style="aurora"] #atelier{grid-area:main;min-width:0}
 }
 @media(max-width:960px){:is([data-style="blueprint"],[data-style="aurora"]) .printer-shell{display:block}:is([data-style="blueprint"],[data-style="aurora"]) .atelier-tabs{position:static;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}:is([data-style="blueprint"],[data-style="aurora"]) .atelier-tabs button{flex:0 0 auto;justify-content:flex-start;text-align:left;white-space:nowrap}:is([data-style="aurora"]) .atelier-tabs button>span{position:static;width:auto;padding:0;border:0;background:transparent;color:inherit;font-size:inherit;opacity:1;visibility:visible;box-shadow:none}}
-@media(max-width:760px){[data-style="ocean"] .printer-lower-grid{grid-template-columns:1fr}}
 @supports not (backdrop-filter:blur(1px)){[data-style="apple"] .portal-nav,[data-style="apple"] .atelier-tabs{background:var(--surface)}}
 
 /* Sur écran tactile, l’explication reste visible avant l’ouverture de l’aide externe. */
@@ -667,7 +618,6 @@ dialog{background:var(--surface);color:var(--text)}
   [data-style="apple"] #atelier-tabs{align-items:stretch;padding:7px}
   [data-style="apple"] #atelier-tabs>button{border-radius:999px}
 }
-[data-style="detailed"] #atelier-tabs>button{min-height:74px;border-radius:4px}
 [data-style="aurora"] #atelier-tabs>button{width:auto;min-width:0}
 #spool-dialog-preview .spool-rfid-mark{color:light-dark(#35453b,#d5e5d9)}
 #spools .spool-rfid-mark{color:light-dark(#35453b,#d5e5d9)}
@@ -729,13 +679,12 @@ dialog{background:var(--surface);color:var(--text)}
 
 /* Apple et Océan partagent un repère actif translucide qui suit la section choisie. */
 @media(min-width:761px){
-  :is([data-style="apple"],[data-style="ocean"]) #atelier-tabs{position:relative}
+  [data-style="apple"] #atelier-tabs{position:relative}
 }
 #atelier-tabs .atelier-active-indicator{position:absolute;z-index:0;top:0;left:0;pointer-events:none;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 18%,var(--surface));box-shadow:0 5px 20px color-mix(in srgb,var(--accent) 18%,transparent),inset 0 1px 0 #ffffff70;opacity:0;transition:transform .34s cubic-bezier(.2,.8,.2,1),width .34s cubic-bezier(.2,.8,.2,1),height .22s ease,opacity .16s ease}
-[data-style="apple"] #atelier-tabs .atelier-active-indicator,[data-style="ocean"] #atelier-tabs .atelier-active-indicator{opacity:1}
-[data-style="apple"] #atelier-tabs>button,[data-style="ocean"] #atelier-tabs>button{position:relative;z-index:1}
-[data-style="apple"] #atelier-tabs>button[aria-current="page"],[data-style="ocean"] #atelier-tabs>button[aria-current="page"]{background:transparent;border-color:transparent;color:var(--text)}
-[data-style="ocean"] #atelier-tabs .atelier-active-indicator{border-radius:999px;background:color-mix(in srgb,var(--accent) 20%,var(--surface));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent),0 8px 22px color-mix(in srgb,var(--accent) 20%,transparent)}
+[data-style="apple"] #atelier-tabs .atelier-active-indicator{opacity:1}
+[data-style="apple"] #atelier-tabs>button{position:relative;z-index:1}
+[data-style="apple"] #atelier-tabs>button[aria-current="page"]{background:transparent;border-color:transparent;color:var(--text)}
 @media(prefers-reduced-motion:reduce){#atelier-tabs .atelier-active-indicator{transition:none!important}}
 
 /* Tile Build assemble le menu en vague et le démonte dans l’ordre inverse. */

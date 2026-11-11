@@ -188,7 +188,7 @@ export function initializeWorkshopNavigation() {
   }
   // Le repère est positionné en coordonnées de la barre pour suivre le bouton actif.
   function updateIndicator() {
-    if (!indicator || !['apple', 'ocean'].includes(document.documentElement.dataset.style)) return;
+    if (!indicator || document.documentElement.dataset.style !== 'apple') return;
     const active = currentButton();
     if (!active) return;
     const parent = navigation.getBoundingClientRect(), rect = active.getBoundingClientRect();

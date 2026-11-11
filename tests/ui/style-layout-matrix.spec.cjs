@@ -1,9 +1,9 @@
 const {test, expect} = require('@playwright/test');
 const {login, openSection} = require('./helpers.cjs');
 
-const styles = ['standard', 'apple', 'detailed', 'blueprint', 'aurora', 'ocean', 'lab', 'studio', 'observatory', 'glasshouse'];
+const styles = ['standard', 'apple', 'blueprint', 'aurora', 'lab', 'glasshouse'];
 
-test('dix styles conservent les mêmes destinations, les mesures et les tuiles personnalisées', async ({page}) => {
+test('six styles conservent les mêmes destinations, les mesures et les tuiles personnalisées', async ({page}) => {
   await page.emulateMedia({reducedMotion: 'reduce'});
   await login(page, 'summary');
   const panel = page.locator('#tab-summary');
@@ -19,7 +19,7 @@ test('dix styles conservent les mêmes destinations, les mesures et les tuiles p
     for (const mode of ['light', 'dark']) {
       for (const style of styles) {
         await openSection(page, 'settings');
-        await expect(page.locator('#interface-style option')).toHaveCount(10);
+        await expect(page.locator('#interface-style option')).toHaveCount(6);
         await page.locator('#interface-theme').selectOption(mode);
         await page.locator('#interface-style').selectOption(style);
         await openSection(page, 'summary');

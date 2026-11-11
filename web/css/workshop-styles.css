@@ -1,90 +1,14 @@
-/* Studio met le modèle et l’état du travail au premier plan. */
-:root[data-style="studio"] {
-  --bg: light-dark(#f6eee5, #211a18);
-  --surface: light-dark(#fff9f2, #302521);
-  --text: light-dark(#37261e, #fff1e3);
-  --muted: light-dark(#765a4c, #d9bdb0);
-  --line: light-dark(#dfc8b6, #654c40);
-  --accent: light-dark(#9c3c21, #ffac87);
-  --panel-radius: 18px;
-}
 
-[data-style="studio"] .summary-current {
-  display: grid;
-  gap: 14px;
-  padding: clamp(12px, 3vw, 24px);
-  border-radius: var(--panel-radius);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
-}
 
-[data-style="studio"] .summary-current img {
-  width: 100%;
-  height: clamp(105px, 15vw, 170px);
-}
 
-[data-style="studio"] .summary-current h4 {
-  font-size: clamp(1.1rem, 2vw, 1.55rem);
-}
 
-[data-style="studio"] .summary-ace .summary-box {
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
 
-@media (min-width: 900px) {
-  [data-style="studio"] .summary-grid:not([data-layout-custom]) {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  }
 
-  [data-style="studio"] #tab-overview > .overview-grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  }
-}
 
-/* Observatoire aligne les valeurs et donne de la largeur aux courbes de supervision. */
-:root[data-style="observatory"] {
-  --bg: light-dark(#eef1f0, #131817);
-  --surface: light-dark(#fcfffd, #1e2724);
-  --text: light-dark(#172822, #e9f5ef);
-  --muted: light-dark(#50655b, #a9bfb5);
-  --line: light-dark(#c5d2cd, #415950);
-  --accent: light-dark(#3c6251, #a5d8bf);
-  --panel-radius: 8px;
-}
 
-[data-style="observatory"] .summary-values {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 104px), 1fr));
-  gap: 8px;
-}
 
-[data-style="observatory"] .summary-values > div {
-  padding: 9px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
 
-[data-style="observatory"] :is(.summary-values dd, .monitor-card-value, .temperature-current) {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-}
 
-[data-style="observatory"] #monitor-grid .monitor-card {
-  align-content: space-between;
-  min-height: 9rem;
-  border-radius: var(--panel-radius);
-}
-
-@media (min-width: 1024px) {
-  [data-style="observatory"] .summary-grid:not([data-layout-custom]) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  [data-style="observatory"] #monitor-grid.monitor-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
 
 /* Verrière sépare la navigation en panneaux translucides et aère les commandes. */
 :root[data-style="glasshouse"] {
@@ -153,16 +77,7 @@
   box-shadow: 0 8px 26px color-mix(in srgb, var(--text) 8%, transparent);
 }
 
-[data-style="detailed"] .summary-values {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
-  row-gap: 8px;
-}
 
-[data-style="detailed"] .summary-values > div {
-  padding-block: 7px;
-  border-block-end: 1px solid var(--line);
-}
 
 [data-style="blueprint"] .summary-grid > section {
   border: 1px solid var(--accent);
@@ -179,37 +94,20 @@
   border-radius: 24px;
 }
 
-[data-style="ocean"] .summary-grid > section {
-  border-radius: 30px;
-  border-block-start: 3px solid var(--accent);
-}
 
 [data-style="lab"] .summary-grid > section {
   border-inline-start: 4px solid var(--accent);
 }
 
 @media (min-width: 961px) {
-  [data-style="detailed"] .summary-grid:not([data-layout-custom]) {
-    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
-  }
 
   [data-style="aurora"] .summary-grid:not([data-layout-custom]) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
   }
 
-  [data-style="ocean"] .summary-grid:not([data-layout-custom]) {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  [data-style="ocean"] .summary-printer:not([data-layout-dragging]) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: center;
-  }
 
-  [data-style="ocean"] .summary-printer :is(.summary-card-header, .summary-current, .layout-card-controls) {
-    grid-column: 1 / -1;
-  }
 
   [data-style="lab"] .summary-grid:not([data-layout-custom]) {
     grid-template-columns: minmax(0, 1fr) minmax(0, .92fr);

@@ -149,13 +149,9 @@ initializeTheme();
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
   ['apple', 'Navigation flottante, verre doux et curseur actif qui accompagne le choix.'],
-  ['detailed', 'Mesures groupées, grille compacte et séparations nettes.'],
   ['blueprint', 'Plan quadrillé, index de sections et panneau latéral repliable.'],
   ['aurora', 'Tableau de bord en tuiles déplaçables et surfaces lumineuses.'],
-  ['ocean', 'Navigation fluide, repère actif glissant et cartes aux lignes souples.'],
   ['lab', 'Navigation par usage et compositions expérimentales pour comparer les parcours.'],
-  ['studio', 'Aperçu agrandi et suivi du travail au premier plan.'],
-  ['observatory', 'Mesures alignées et supervision en grille.'],
   ['glasshouse', 'Navigation en panneaux vitrés et cartes aérées.'],
 ];
 

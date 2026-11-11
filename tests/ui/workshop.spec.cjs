@@ -224,14 +224,6 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   expect(product.height).toBeGreaterThan(48);
   await expect(page.locator('#controls-open')).toHaveCSS('border-radius', '999px');
   await settings.click();
-  const lower = page.locator('.printer-lower-grid > section');
-  await settings.click();
-  await style.selectOption('detailed');
-  await expect(page.locator('html')).toHaveAttribute('data-style', 'detailed');
-  await page.getByRole('button', {name: 'Imprimante', exact: true}).click();
-  expect((await lower.nth(1).boundingBox()).y).toBeCloseTo((await lower.nth(0).boundingBox()).y);
-  expect((await page.locator('#details').evaluate(el => getComputedStyle(el).gridTemplateColumns)).split(' ')).toHaveLength(3);
-  await settings.click();
   await style.selectOption({label: 'Blueprint'});
   await expect(page.locator('html')).toHaveAttribute('data-style', 'blueprint');
   await page.reload();
