@@ -589,23 +589,28 @@
   }
 
   /* Caméra : l’image garde une grande zone, les déplacements restent à portée. */
+  #tab-camera {
+    --camera-width: calc(min(40dvh, 380px) * 16 / 9 + 312px);
+  }
+
   #tab-camera .camera-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 6px;
+    margin: 0 auto 8px;
+    max-width: var(--camera-width);
   }
 
   #tab-camera .camera-layout,
   [data-style] #tab-camera .camera-layout {
     grid-template-columns: minmax(0, 1fr) minmax(250px, 300px);
     grid-template-areas: "video axes" "tools axes";
-    align-items: stretch;
+    align-items: start;
     gap: 8px 12px;
     width: 100%;
-    max-width: none;
-    margin: 0;
+    max-width: var(--camera-width);
+    margin-inline: auto;
   }
 
   #tab-camera .camera-stage {
@@ -622,6 +627,7 @@
     grid-area: axes;
     display: flex;
     flex-direction: column;
+    align-self: start;
     min-width: 0;
     max-width: none;
     margin: 0;
@@ -645,6 +651,16 @@
 
   #tab-camera .axis-card .axis-step-control label {
     margin: 0;
+    white-space: nowrap;
+  }
+
+  #tab-camera .axis-step-control {
+    width: max-content;
+    flex-shrink: 0;
+  }
+
+  #tab-camera .axis-step-control span {
+    padding-inline: 5px;
   }
 
   #tab-camera .axis-grid {
@@ -768,9 +784,10 @@
   #tab-history #tasks-list {
     flex: 1 1 auto;
     min-height: 110px;
-    max-height: calc(100dvh - 610px);
+    max-height: clamp(240px, 48dvh, 650px);
+    grid-auto-rows: max-content;
     overflow-y: auto;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     align-content: start;
     gap: 6px;
     margin: 3px 0;
@@ -781,11 +798,27 @@
     border-radius: calc(var(--panel-radius) * .75);
   }
 
+  #tab-history .history-card-select {
+    position: absolute;
+    z-index: 1;
+    inset: 12px auto auto 12px;
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
   #tab-history .task-thumbnail,
   #tab-history .task-thumbnail img {
-    height: 68px;
-    max-height: 68px;
-    flex-basis: 68px;
+    height: 92px;
+    max-height: 92px;
+    flex-basis: 92px;
+  }
+
+  #tab-history .history-card-body {
+    gap: 4px;
+    margin-top: 8px;
   }
 
   #tab-history .task-history-item :is(h3, p, button, label) {
@@ -894,11 +927,11 @@
     border-radius: calc(var(--panel-radius) * .8);
   }
 
-  #tab-statistics #statistics-printer .temperature-card:first-child {
+  #tab-statistics #statistics-printer .temperature-card:where(:first-child) {
     grid-area: nozzle;
   }
 
-  #tab-statistics #statistics-printer .temperature-card:last-child {
+  #tab-statistics #statistics-printer .temperature-card:where(:last-child) {
     grid-area: bed;
   }
 

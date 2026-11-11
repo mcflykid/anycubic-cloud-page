@@ -15,7 +15,7 @@ test('le thème minimaliste est retiré sans perdre le mode de couleurs choisi',
 });
 
 test('Apple Design garde dix sections accessibles sans débordement horizontal',async({page})=>{
- await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page);
+ await useStyle(page,'apple'); await page.setViewportSize({width:390,height:800}); await login(page, 'summary');
  const tabs=page.locator('#atelier-tabs');
  await expect(page.locator('#section-menu-toggle')).toBeVisible();
  await expect(tabs).toBeHidden();

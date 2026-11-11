@@ -2,6 +2,10 @@
 
 ## À venir
 
+- Sépare les courbes Buse et Plateau dans les statistiques (#238).
+- Garde les fiches de l’historique lisibles et défilables sous Safari (#239).
+- Rapproche la vidéo, ses commandes et le panneau de déplacement (#240).
+
 - Retire les styles Détaillé, Océan, Studio et Observatoire. Les préférences enregistrées migrent vers Par défaut (#245).
 - Archive les résultats de la recherche sur les délais de lecture des coordonnées et les rattache au dernier commit qui contenait le diagnostic (#211).
 - Les mutations du compte Cloud sont sérialisées séparément des ordres machine. Une pause ou une annulation reste disponible pendant un retrait de fiches ou une autre mutation Cloud (#213).
