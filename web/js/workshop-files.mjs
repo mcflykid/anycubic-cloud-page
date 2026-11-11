@@ -9,12 +9,12 @@ import {
   node,
   set,
   tr,
-} from './workshop-ui.mjs?v=e3a401985858';
-import { workshopState, setBusy } from './workshop-state.mjs?v=9c67b13bd97a';
-import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs?v=8457f5134585';
-import { createFileThumbnails } from './workshop-file-previews.mjs?v=0c0ffb4fb034';
+} from './workshop-ui.mjs';
+import { workshopState, setBusy } from './workshop-state.mjs';
+import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
+import { createFileThumbnails } from './workshop-file-previews.mjs';
 
-import { initializePaintSelection } from './workshop-selection.mjs?v=5acdd3934c74';
+import { initializePaintSelection } from './workshop-selection.mjs';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
 export function createFiles(request, command) {

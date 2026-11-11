@@ -6,10 +6,10 @@ from urllib.parse import urlsplit, parse_qs
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
+from web_assets import UI_PREFIX, build_web_assets
 
 ROOT = pathlib.Path(__file__).resolve().parents[1] / "web"
 APP_VERSION = json.loads((ROOT.parent / "package.json").read_text())["version"]
-UI_PREFIX = "/imprimante-api/ui"
 PUBLIC_ASSETS = {
     "/css/landing.css",
     "/css/imprimante.css",
@@ -301,15 +301,9 @@ async def access_control(request, handler):
 
 def login_page(message="", status=200):
     """Renvoie le formulaire français sans refléter les identifiants saisis ; message est échappé."""
-    content = (
-        (ROOT / "login.html")
-        .read_text()
-        .replace(
-            "<!-- LOGIN_MESSAGE -->",
-            '<p class="login-error" role="alert">' + html.escape(message) + "</p>"
-            if message
-            else "",
-        )
+    content = build_web_assets(ROOT)[0]["login.html"].replace(
+        "<!-- LOGIN_MESSAGE -->",
+        '<p class="login-error" role="alert">' + html.escape(message) + "</p>" if message else "",
     )
     return web.Response(text=content, content_type="text/html", status=status)
 
@@ -477,10 +471,8 @@ def consume_action_ticket(request, action, token):
 
 def render_page(destination, time_zone):
     """Renvoie le HTML avec navigation et fuseau échappés, sans toucher aux scripts protégés par SRI."""
-    content = (
-        (ROOT / "imprimante.html")
-        .read_text()
-        .replace("<!-- APP_VERSION -->", html.escape(APP_VERSION))
+    content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
+        "<!-- APP_VERSION -->", html.escape(APP_VERSION)
     )
     # Les métadonnées affichées utilisent uniquement les valeurs publiques attendues.
     level = os.environ.get("LOG_LEVEL", "INFO").strip().upper() or "INFO"
@@ -527,14 +519,23 @@ async def index(request):
 async def about(request):
     """Sert uniquement les notices statiques déclarées par l’application."""
     return web.Response(
-        text=(ROOT / INFORMATION_PAGES[request.path.removeprefix(UI_PREFIX)]).read_text(),
+        text=build_web_assets(ROOT)[0][INFORMATION_PAGES[request.path.removeprefix(UI_PREFIX)]],
         content_type="text/html",
     )
 
 
+async def versioned_script(request):
+    """Sert les octets qui ont servi au calcul de l’intégrité dans les pages."""
+    name = request.path.removeprefix(UI_PREFIX).lstrip("/")
+    return web.Response(body=build_web_assets(ROOT)[1][name], content_type="text/javascript")
+
+
 def install_ui_resources(app):
     """Sert les ressources via le préfixe déjà routé et conserve les anciennes adresses."""
+    _, scripts = build_web_assets(ROOT)
     for prefix in ("", UI_PREFIX):
+        for name in scripts:
+            app.router.add_get(f"{prefix}/{name}", versioned_script)
         for path in INFORMATION_PAGES:
             app.router.add_get(prefix + path, about)
         for folder in ("css", "js", "icons"):

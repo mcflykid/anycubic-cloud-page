@@ -1,4 +1,4 @@
-import { $, message, node, tr } from './workshop-ui.mjs?v=e3a401985858';
+import { $, message, node, tr } from './workshop-ui.mjs';
 
 const STORAGE = 'cloud-page-tile-layout-v1';
 const layouts = [
