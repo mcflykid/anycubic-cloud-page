@@ -4818,5 +4818,21 @@
   "Choisissez deux webhooks Discord distincts.": [
     "Choose two different Discord webhooks.",
     "Elige dos webhooks de Discord distintos."
+  ],
+  "Alertes": [
+    "Alerts",
+    "Alertas"
+  ],
+  "Bilans": [
+    "Reports",
+    "Informes"
+  ],
+  "Activés": [
+    "Enabled",
+    "Activados"
+  ],
+  "Désactivés": [
+    "Disabled",
+    "Desactivados"
   ]
 }
