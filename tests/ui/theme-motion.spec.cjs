@@ -20,7 +20,7 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les quatre styles gardent leurs compositions propres en clair, sombre et sur mobile',async({page})=>{
+test('les quatre styles gardent la composition commune en clair, sombre et sur mobile',async({page})=>{
   await login(page);
   await openSettings(page);
   const themes=['standard', 'aurora', 'lab', 'glasshouse'];
@@ -80,11 +80,10 @@ test('les transitions suivent le style et la préférence de mouvement',async({p
   await openSection(page,'statistics');
   const panel=page.locator('#tab-statistics');
   await expect(panel).toHaveCSS('animation-name','section-fade');
-  await expect(panel.locator('.atelier-statistics-grid > section').nth(1)).toHaveCSS('animation-delay','0.045s');
   await openSection(page,'overview');
   await page.locator('#controls-open').click();
   const dialog=page.locator('#controls-dialog');
-  await expect(dialog).toHaveCSS('animation-name','dialog-pop');
+  await expect(dialog).toHaveCSS('animation-name','dialog-rise');
   await page.emulateMedia({reducedMotion:'reduce'});
   await expect(dialog).toHaveCSS('animation-name','none');
 });

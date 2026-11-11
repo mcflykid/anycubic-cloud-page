@@ -29,3 +29,41 @@ class DesignTokensTests(unittest.TestCase):
                     for match in LITERAL.finditer(declaration)
                 ]
                 self.assertEqual(literals, [])
+
+    def test_palette_text_has_sufficient_contrast(self):
+        """Contrôle le texte courant, l’accent et les états sur les deux surfaces."""
+        palettes = re.findall(r"(:root(?:\[data-style=.+?\])?)\s*\{([^{}]+)\}", TOKENS.read_text())
+        for selector, declarations in palettes:
+            roles = {
+                name: (light, dark)
+                for name, light, dark in re.findall(
+                    r"--atelier-([a-z]+): light-dark\(#([0-9a-f]{6}), #([0-9a-f]{6})\);",
+                    declarations,
+                )
+            }
+            if not roles:
+                continue
+            for mode in (0, 1):
+                for background in ("bg", "surface"):
+                    for text in ("fg", "muted", "accent", "normal", "warning", "error"):
+                        with self.subTest(
+                            style=selector, mode=mode, background=background, text=text
+                        ):
+                            self.assertGreaterEqual(
+                                contrast(roles[background][mode], roles[text][mode]), 4.5
+                            )
+
+
+def contrast(first, second):
+    """Rapport de luminance relative de deux couleurs sRGB."""
+
+    def luminance(color):
+        channels = [int(color[index : index + 2], 16) / 255 for index in (0, 2, 4)]
+        linear = [n / 12.92 if n <= 0.04045 else ((n + 0.055) / 1.055) ** 2.4 for n in channels]
+        return sum(
+            channel * weight
+            for channel, weight in zip(linear, (0.2126, 0.7152, 0.0722), strict=True)
+        )
+
+    low, high = sorted((luminance(first), luminance(second)))
+    return (high + 0.05) / (low + 0.05)

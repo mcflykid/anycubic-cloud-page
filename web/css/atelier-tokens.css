@@ -48,9 +48,18 @@
   --atelier-normal: light-dark(#1a7a4c, #6bd6a1);
   --atelier-warning: light-dark(#8a5300, #ffc274);
   --atelier-error: light-dark(#b42318, #ffada5);
+  /* Les composants historiques et les écrans de connexion partagent ces mêmes rôles. */
+  --bg: var(--atelier-bg);
+  --surface: var(--atelier-surface);
+  --text: var(--atelier-fg);
+  --muted: var(--atelier-muted);
+  --line: var(--atelier-line);
+  --accent: var(--atelier-accent);
+  --font: var(--atelier-font);
+  --atelier-access-width: 480px;
   --atelier-on-accent: light-dark(var(--atelier-surface), var(--atelier-bg));
 }
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 760px) {
   :root { --atelier-control: var(--atelier-touch-control); }
 }
 :root {
@@ -65,4 +74,40 @@
 :root {
   --atelier-file-thumbnail: 40px;
   --atelier-quota-width: 360px;
+}
+
+:root[data-style="aurora"] {
+  --atelier-bg: light-dark(#f0effa, #121321);
+  --atelier-surface: light-dark(#fcfbff, #1d2035);
+  --atelier-fg: light-dark(#292b4d, #f0efff);
+  --atelier-muted: light-dark(#565975, #b6b8d5);
+  --atelier-line: light-dark(#c9cbea, #474a70);
+  --atelier-accent: light-dark(#5145a0, #bcb2ff);
+  --atelier-normal: light-dark(#19744f, #86d6b5);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}
+
+:root[data-style="lab"] {
+  --atelier-bg: light-dark(#edf3f2, #0d1a1d);
+  --atelier-surface: light-dark(#ffffff, #14272c);
+  --atelier-fg: light-dark(#142f33, #e6f6f2);
+  --atelier-muted: light-dark(#476468, #b3cac9);
+  --atelier-line: light-dark(#cadbd7, #365259);
+  --atelier-accent: light-dark(#136f69, #6edfd0);
+  --atelier-normal: light-dark(#19744f, #7de0ac);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}
+
+:root[data-style="glasshouse"] {
+  --atelier-bg: light-dark(#e9eef8, #1b2030);
+  --atelier-surface: light-dark(#fcfbff, #272d42);
+  --atelier-fg: light-dark(#242940, #f1efff);
+  --atelier-muted: light-dark(#575f7b, #b9c1da);
+  --atelier-line: light-dark(#c2cce2, #505b78);
+  --atelier-accent: light-dark(#454894, #bcc4ff);
+  --atelier-normal: light-dark(#19744f, #86d6b5);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
 }

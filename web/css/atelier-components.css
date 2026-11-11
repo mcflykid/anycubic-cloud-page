@@ -147,3 +147,10 @@ button.atelier-control-icon {
 
 /* Une commande masquée ne réserve aucune place dans une carte ou une fenêtre. */
 .atelier-card [hidden], .atelier-field[hidden] { display: none; }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  .atelier-card-header, .atelier-card-footer {
+    padding-block: var(--atelier-space-2);
+  }
+  .atelier-card-body { padding-block: var(--atelier-space-2); }
+}

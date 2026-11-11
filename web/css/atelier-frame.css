@@ -286,3 +286,17 @@ html[data-style] .workshop-frame .printer-footer {
     padding-inline: var(--atelier-space-2);
   }
 }
+
+/* En hauteur réduite, on resserre les interlignes du cadre et on conserve les commandes. */
+@media (min-width: 961px) and (max-height: 800px) {
+  html[data-style] .workshop-frame #atelier > .tab-panel {
+    padding-block: var(--atelier-space-3);
+  }
+  html[data-style="lab"] .workshop-frame .atelier-navigation {
+    align-self: start;
+    margin-block: var(--atelier-space-2);
+  }
+  html[data-style="lab"] .workshop-frame #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    padding-block-start: var(--atelier-space-1);
+  }
+}

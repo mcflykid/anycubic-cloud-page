@@ -177,3 +177,7 @@
 }
 .camera-move .axis-step-control span { width: auto; }
 .camera-warning > p:only-child { margin-inline: 0; }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  .camera-axis-grid { gap: var(--atelier-space-4); }
+}

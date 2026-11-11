@@ -449,12 +449,8 @@ dialog{background:var(--surface);color:var(--text)}
 }
 
 /* Standard reste une base neutre; chaque autre identité ci-dessous change aussi sa composition. */
-:root[data-style="standard"]{--bg:light-dark(#f5f5f7,#131518);--surface:light-dark(#fff,#202831);--text:light-dark(#1d2833,#eef3f7);--muted:light-dark(#596a79,#afbdc8);--line:light-dark(#d0d9e0,#43515d);--accent:light-dark(#276b50,#9ad8bb);--panel-radius:14px;--section-gap:20px}
-:root[data-style="aurora"]{--bg:light-dark(#f0effa,#121321);--surface:light-dark(#fcfbff,#1d2035);--text:light-dark(#292b4d,#f0efff);--muted:light-dark(#666986,#b6b8d5);--line:light-dark(#c9cbea,#474a70);--accent:light-dark(#7357c8,#c0b0ff);--panel-radius:24px;--section-gap:22px}
 
 /* Les thèmes qui privilégient un outil déplacent réellement les blocs et la navigation. */
-[data-style="aurora"] body{background-image:radial-gradient(ellipse at 12% 8%,color-mix(in srgb,#65d8c1 24%,transparent),transparent 34rem),radial-gradient(ellipse at 88% 30%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 38rem)}
-[data-style="aurora"] .printer-lower-grid>section,[data-style="aurora"] .form-panel{box-shadow:0 12px 35px color-mix(in srgb,var(--accent) 10%,transparent)}
 
 /* Sur écran tactile, l’explication reste visible avant l’ouverture de l’aide externe. */
 .notification-error-link,.notification-error-code{color:light-dark(#a52931,#ffb4b8)}
@@ -494,28 +490,6 @@ dialog{background:var(--surface);color:var(--text)}
 /* Sous le seuil du rail, les tuiles gardent toute leur largeur pour les libellés. */
 
 /* Aurore compose quatre cartes réordonnables et conserve le même tableau après rechargement. */
-[data-style="aurora"] #tab-overview>.overview-grid,[data-style="aurora"] #tab-overview>.printer-lower-grid{display:none}
-[data-style="aurora"] #aurora-bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:dense;gap:16px}
-[data-style="aurora"] .aurora-bento-toolbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}
-[data-style="aurora"] .aurora-bento-toolbar p{margin:0;color:var(--muted);font-size:.78rem}
-[data-style="aurora"] .aurora-bento-toolbar button{border-radius:999px}
-[data-style="aurora"] .aurora-widget{position:relative;min-width:0;overflow:hidden;padding:18px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:24px;background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 90%,#fff),var(--surface));box-shadow:0 16px 36px #2222, inset 0 1px 0 #ffffff88;transition:box-shadow .22s ease,border-color .22s ease}
-[data-style="aurora"] .aurora-widget-machine{grid-column:span 4;grid-row:span 2}
-[data-style="aurora"] .aurora-widget-job{grid-column:span 8;grid-row:span 2}
-[data-style="aurora"] .aurora-widget-temperatures,[data-style="aurora"] .aurora-widget-details{grid-column:span 6}
-[data-style="aurora"] .aurora-widget-controls{position:relative;z-index:2;display:flex;justify-content:flex-end;gap:6px;margin:-6px -6px 8px}
-[data-style="aurora"] .aurora-widget-controls button{width:44px;min-width:44px;min-height:44px;padding:5px;border-radius:12px;background:color-mix(in srgb,var(--surface) 72%,transparent);color:var(--text);touch-action:none}
-[data-style="aurora"] .aurora-drag-handle{cursor:grab;font-size:1.2rem}
-[data-style="aurora"] .aurora-drag-handle:active{cursor:grabbing}
-[data-style="aurora"] .aurora-widget.is-dragging{z-index:4;border-color:var(--accent);box-shadow:0 24px 56px #101a3350;transform:scale(1.015)}
-[data-style="aurora"] .aurora-widget:focus-within{border-color:var(--accent)}
-[data-style="aurora"] #aurora-bento .product{min-height:100%;height:auto;border-radius:18px;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--accent) 15%,transparent),transparent 64%)}
-[data-style="aurora"] #aurora-bento .product img{height:100%;max-height:310px}
-[data-style="aurora"] #aurora-bento .overview-content{min-height:100%;justify-content:center}
-[data-style="aurora"] #aurora-bento .printer-lower-grid>section{height:100%;border:0;background:transparent;padding:0}
-[data-style="aurora"] #aurora-bento .printer-lower-grid h2{font-size:1.05rem}
-@media(max-width:900px){[data-style="aurora"] #aurora-bento{grid-template-columns:repeat(6,minmax(0,1fr))}[data-style="aurora"] .aurora-widget-machine,[data-style="aurora"] .aurora-widget-temperatures{grid-column:span 3}[data-style="aurora"] .aurora-widget-job,[data-style="aurora"] .aurora-widget-details{grid-column:span 3}}
-@media(max-width:620px){[data-style="aurora"] #aurora-bento{grid-template-columns:minmax(0,1fr)}[data-style="aurora"] .aurora-widget-machine,[data-style="aurora"] .aurora-widget-job,[data-style="aurora"] .aurora-widget-temperatures,[data-style="aurora"] .aurora-widget-details{grid-column:1;grid-row:auto}[data-style="aurora"] .aurora-widget{padding:14px;border-radius:18px}}
 
 /* Apple et Océan partagent un repère actif translucide qui suit la section choisie. */
 
