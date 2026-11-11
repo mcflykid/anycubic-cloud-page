@@ -135,7 +135,6 @@ function initializeTheme() {
       choice.dispatchEvent(new Event('change'));
     };
   }
-  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let transition;
   choice.value = theme;
   choice.addEventListener('change', () => {
@@ -148,7 +147,9 @@ function initializeTheme() {
         if (toggle) updateModeToggle();
       }
     };
-    if (!reducedMotion.matches && typeof document.startViewTransition === 'function') {
+    // WebKit peut conserver l’état précédent d’un objet MediaQueryList déjà créé.
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reducedMotion && typeof document.startViewTransition === 'function') {
       const current = document.startViewTransition(applyTheme);
       transition = current;
       current.ready.catch(() => {});
@@ -169,7 +170,6 @@ const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
   ['aurora', 'Surfaces lumineuses et accents violets.'],
   ['lab', 'Palette bleu-vert et menu latéral repliable sur ordinateur.'],
-  ['glasshouse', 'Surfaces bleutées et accent indigo.'],
 ];
 
 /** Conserve le style visuel indépendamment du mode clair ou sombre. */

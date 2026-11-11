@@ -55,7 +55,7 @@ The language selector next to the notification bell remembers French, English or
 
 All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
 
-In **Settings → Appearance**, choose one of four styles. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
+In **Settings → Appearance**, choose one of three styles. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
 
 ## Offline demo
 

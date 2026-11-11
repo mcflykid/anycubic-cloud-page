@@ -67,7 +67,7 @@ Les captures ci-dessous proviennent du **mode démonstration**, avec des donnée
 | **Statistiques** | Consulter les points locaux sur 24 h et les moyennes horaires sur 30 jours pour les températures, l’humidité de l’ACE et le filament restant ; exporter la période affichée en CSV. |
 | **Réglages** | Gérer le nom et le suivi de connexion, consulter la détection IA et les versions ; proposer les mises à jour seulement si Anycubic les annonce. |
 
-Dans **Réglages → Apparence**, choisissez l’un des quatre styles. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
+Dans **Réglages → Apparence**, choisissez l’un des trois styles. Le mode clair, sombre ou système se règle séparément. Le calendrier de l’historique permet d’appliquer une plage de dates. La fiche d’une bobine RFID affiche la couleur détectée et verrouille la modification de la matière et de la couleur.
 
 <details>
 <summary><strong>ACE et filaments</strong> — bobines, RFID et séchage</summary>
@@ -174,7 +174,7 @@ Le [glossaire ACE](docs/ACE-GLOSSARY.md) précise les termes français, anglais 
 
 Avant un envoi avec impression ou une réimpression, l’atelier signale les différences connues entre matières, couleurs et emplacements. Ces avis permettent une confirmation volontaire ; des métadonnées manquantes sont indiquées explicitement. Une mise à jour en cours confirmée empêche tout lancement. Les [notes de protocole](docs/PROTOCOL.md#investigations-du-10-novembre-2026) indiquent les fonctions encore en attente de preuve.
 
-Le [guide des quatre styles](docs/THEMES.md) présente leurs palettes et leur navigation commune. Les [maquettes HTML de référence](docs/DESIGN.md#maquettes-de-référence) couvrent les dix onglets. Les [journaux du conteneur](docs/TROUBLESHOOTING.md#journaux-du-conteneur) proposent un format lisible ou JSON et un niveau DEBUG, avec références de diagnostic et filtrage des données privées.
+Le [guide des trois styles](docs/THEMES.md) présente leurs palettes et leur navigation commune. Les [maquettes HTML de référence](docs/DESIGN.md#maquettes-de-référence) couvrent les dix onglets. Les [journaux du conteneur](docs/TROUBLESHOOTING.md#journaux-du-conteneur) proposent un format lisible ou JSON et un niveau DEBUG, avec références de diagnostic et filtrage des données privées.
 
 La [supervision locale](docs/MONITORING.md) expose neuf cartes détaillables dans Parc et santé, sans nouveau collecteur Cloud. Le [protocole de diagnostic](docs/DIAGNOSTIC-PROTOCOL.md) définit les preuves attendues à chaque essai. La [comparaison des intégrations et forks](docs/UPSTREAM-COMPARISON.md) complète les recherches de compatibilité.
 

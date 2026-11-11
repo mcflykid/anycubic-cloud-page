@@ -142,15 +142,3 @@
   --atelier-warning: light-dark(#8a5300, #ffc274);
   --atelier-error: light-dark(#b42318, #ffada5);
 }
-
-:root[data-style="glasshouse"] {
-  --atelier-bg: light-dark(#e9eef8, #1b2030);
-  --atelier-surface: light-dark(#fcfbff, #272d42);
-  --atelier-fg: light-dark(#242940, #f1efff);
-  --atelier-muted: light-dark(#575f7b, #b9c1da);
-  --atelier-line: light-dark(#c2cce2, #505b78);
-  --atelier-accent: light-dark(#454894, #bcc4ff);
-  --atelier-normal: light-dark(#19744f, #86d6b5);
-  --atelier-warning: light-dark(#8a5300, #ffc274);
-  --atelier-error: light-dark(#b42318, #ffada5);
-}

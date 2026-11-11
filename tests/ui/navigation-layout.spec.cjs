@@ -6,7 +6,7 @@ test('les dix sections restent visibles sans barre horizontale à 1249 px',async
   await login(page);
   const navigation=page.locator('#atelier-tabs');
   await expect(navigation.locator('[data-tab]')).toHaveCount(10);
-  for (const style of ['standard', 'aurora', 'lab', 'glasshouse']) {
+  for (const style of ['standard', 'aurora', 'lab']) {
     await page.locator('html').evaluate((element,value)=>element.setAttribute('data-style',value),style);
     const dimensions=await navigation.evaluate(el=>({viewport:innerWidth,display:getComputedStyle(el).display,width:el.getBoundingClientRect().width,overflow:getComputedStyle(el).overflowX,shellClass:document.querySelector('.printer-shell').className,buttons:[...el.querySelectorAll('button')].map(button=>{const box=button.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(button);const text=[...range.getClientRects()];return {label:button.innerText,left:box.left,right:box.right,width:box.width,display:getComputedStyle(button).display,visible:getComputedStyle(button).visibility!=='hidden'&&box.width>0,textFits:text.every(rect=>rect.left>=box.left-1&&rect.right<=box.right+1)};})}));
     expect(['auto','scroll']).not.toContain(dimensions.overflow);
@@ -71,4 +71,22 @@ test('le Laboratoire replie son rail en gardant toutes les destinations', async 
   const after = await page.locator('.atelier-navigation').boundingBox();
   expect(after.width).toBeLessThan(before.width);
   await expect(page.locator('#atelier-tabs').getByRole('button', { name: 'Fichiers' })).toBeVisible();
+});
+
+test('le rail Laboratoire garde sa hauteur entre Résumé et Réglages', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => localStorage.setItem('cloud-page-style', 'lab'));
+  await login(page, 'summary');
+  const rail = page.locator('.atelier-navigation');
+  const toggle = page.locator('#lab-navigation-toggle');
+  for (const expanded of ['true', 'false']) {
+    await expect(toggle).toHaveAttribute('aria-expanded', expanded);
+    const before = await rail.boundingBox();
+    await page.locator('#atelier-tabs [data-tab=settings]').click();
+    await expect(page.locator('#tab-settings')).toBeVisible();
+    const after = await rail.boundingBox();
+    expect(after.height).toBeCloseTo(before.height, 0);
+    await page.locator('#atelier-tabs [data-tab=summary]').click();
+    if (expanded === 'true') await toggle.click();
+  }
 });

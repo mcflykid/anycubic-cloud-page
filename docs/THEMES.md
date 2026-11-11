@@ -1,4 +1,4 @@
-# Les quatre styles de l’atelier
+# Les trois styles de l’atelier
 
 Les styles partagent les cartes, leurs dimensions et leurs commandes. Le menu latéral repliable de Laboratoire est la seule différence de disposition sur ordinateur. Les [maquettes de référence](DESIGN.md#maquettes-de-référence) fixent la structure des pages.
 
@@ -7,7 +7,6 @@ Les styles partagent les cartes, leurs dimensions et leurs commandes. Le menu la
 | Par défaut | Surfaces neutres et accent vert | Barre horizontale |
 | Aurore | Surfaces et accent violets | Barre horizontale |
 | Laboratoire | Surfaces froides et accent bleu-vert | Menu latéral repliable |
-| Verrière | Surfaces bleutées et accent indigo | Barre horizontale |
 
 **Réglages → Apparence** mémorise le style et le mode de couleur dans ce navigateur. Le bouton jour/nuit de l’en-tête règle le même mode. Sans choix de mode, l’atelier suit le système. Une préférence pour un style retiré revient à Par défaut.
 

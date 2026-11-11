@@ -216,11 +216,11 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   await expect(tabs.locator('[data-tab="settings"]')).toBeVisible();
   await page.setViewportSize({width:1280,height:900});
   await settings.click();
-  await style.selectOption({label: 'Verrière'});
-  await expect(page.locator('html')).toHaveAttribute('data-style', 'glasshouse');
+  await style.selectOption({label: 'Aurore'});
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'aurora');
   await page.reload();
   await settings.click();
-  await expect(style).toHaveValue('glasshouse');
+  await expect(style).toHaveValue('aurora');
   await expect(theme).toHaveValue('dark');
   await style.selectOption({label: 'Par défaut'});
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
