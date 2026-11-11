@@ -18,7 +18,7 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
   await expect(page.getByRole('heading',{level:1})).toHaveText(title);
   await page.getByRole('link',{name:'Retour à l’atelier'}).click();
  }
- expect(await page.locator('footer').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ expect(await page.locator('.printer-footer').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  const offset=await page.locator('.printer-footer').evaluate(footer=>{
   const legal=footer.querySelector('nav a').getBoundingClientRect();
   const credit=footer.querySelector('.footer-credits').getBoundingClientRect();

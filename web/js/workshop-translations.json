@@ -4422,5 +4422,25 @@
   "Un code temporaire est demandé après le mot de passe.": [
     "A temporary code is requested after the password.",
     "Se pide un código temporal después de la contraseña."
+  ],
+  "Style": [
+    "Style",
+    "Estilo"
+  ],
+  "Thème": [
+    "Theme",
+    "Tema"
+  ],
+  "Régler": [
+    "Configure",
+    "Configurar"
+  ],
+  "Mettre à jour": [
+    "Update",
+    "Actualizar"
+  ],
+  "Désactivée": [
+    "Disabled",
+    "Desactivada"
   ]
 }
