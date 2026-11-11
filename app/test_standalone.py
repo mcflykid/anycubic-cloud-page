@@ -508,23 +508,33 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
             )
 
     async def test_global_failure_ceiling_expires_without_blocking_valid_login(self):
-        """Le plafond global expire et laisse passer le bon secret même pendant le délai."""
+        """Le plafond expire et ralentit aussi le propriétaire sans refuser ses identifiants valides."""
         self.app[TRUSTED_PROXIES_KEY] = (ipaddress.ip_network("127.0.0.1/32"),)
+        state = self.app[ACCESS_KEY]
+        clock = SimpleNamespace(now=time.monotonic())
+        waits = []
+
+        async def wait(seconds):
+            """Avance l’horloge fictive pour vérifier le délai sans temporiser le test."""
+            waits.append(seconds)
+            clock.now += seconds
+
+        state.clock = lambda: clock.now
+        state.wait = wait
         with patch("web_host.GLOBAL_FAILURE_LIMIT", 3):
             for index in range(3):
                 response = await self.sign_in(
                     password="wrong",
                     headers={"X-Forwarded-For": f"192.0.2.{index + 1}"},
                 )
-            self.assertEqual(response.status, 429)
-            self.assertGreater(int(response.headers["Retry-After"]), 0)
+            self.assertEqual(response.status, 401)
             self.assertEqual(
                 (await self.sign_in(headers={"X-Forwarded-For": "192.0.2.10"})).status,
                 303,
             )
-            state = self.app[ACCESS_KEY]
-            state.global_until = time.monotonic() - 1
-            state.global_window_until = time.monotonic() - 1
+            self.assertEqual(waits, [1.0])
+            state.global_until = clock.now - 1
+            state.global_window_until = clock.now - 1
             self.assertEqual(
                 (
                     await self.sign_in(
@@ -534,6 +544,91 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
                 ).status,
                 401,
             )
+            self.assertEqual(waits, [1.0])
+
+    async def test_global_throttle_serializes_concurrent_invalid_attempts(self):
+        """Trois demandes concurrentes n’occupent qu’une place de vérification à la fois."""
+        state = self.app[ACCESS_KEY]
+        clock = SimpleNamespace(now=100.0)
+        waits = []
+        first_wait_started = asyncio.Event()
+        release_first_wait = asyncio.Event()
+        active_waits = 0
+        maximum_waits = 0
+
+        async def wait(seconds):
+            """Bloque la première place puis avance l’horloge fictive sans attente réelle."""
+            nonlocal active_waits, maximum_waits
+            waits.append(seconds)
+            active_waits += 1
+            maximum_waits = max(maximum_waits, active_waits)
+            try:
+                if len(waits) == 1:
+                    first_wait_started.set()
+                    await release_first_wait.wait()
+                clock.now += seconds
+            finally:
+                active_waits -= 1
+
+        state.clock = lambda: clock.now
+        state.wait = wait
+        state.global_window_until = clock.now + 300
+        state.global_until = state.global_window_until
+        attempts = [
+            asyncio.create_task(
+                self.sign_in(
+                    password="wrong",
+                    headers={"X-Forwarded-For": f"198.51.100.{index + 1}"},
+                )
+            )
+            for index in range(3)
+        ]
+        await first_wait_started.wait()
+        await asyncio.sleep(0.02)
+        self.assertEqual(waits, [1.0])
+        self.assertEqual(maximum_waits, 1)
+        release_first_wait.set()
+        responses = await asyncio.gather(*attempts)
+
+        self.assertEqual([response.status for response in responses], [401, 401, 401])
+        self.assertEqual(waits, [1.0, 1.0, 1.0])
+        self.assertEqual(maximum_waits, 1)
+        self.assertEqual(clock.now, 103.0)
+
+    async def test_cancelled_login_waiter_releases_fifo_gate(self):
+        """L’annulation d’une attente libère la file afin que la tentative suivante avance."""
+        state = self.app[ACCESS_KEY]
+        started = asyncio.Event()
+        never = asyncio.Event()
+        state.global_until = time.monotonic() + 60
+        wait_count = 0
+
+        async def wait(_seconds):
+            """Suspend le premier contrôle pour simuler la fermeture du navigateur."""
+            nonlocal wait_count
+            wait_count += 1
+            if wait_count == 1:
+                started.set()
+                await never.wait()
+
+        state.wait = wait
+        entered = []
+
+        async def occupy_slot(name):
+            """Emprunte la même file que la connexion pour vérifier sa libération."""
+            async with state.login_slot():
+                entered.append(name)
+
+        first = asyncio.create_task(occupy_slot("première"))
+        await started.wait()
+        second = asyncio.create_task(occupy_slot("suivante"))
+        await asyncio.sleep(0)
+        first.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await first
+
+        await asyncio.wait_for(second, timeout=1)
+        self.assertEqual(entered, ["suivante"])
 
     async def test_health_stays_public_even_without_secret(self):
         """La supervision reste indépendante du secret ; les routes privées échouent fermées."""
