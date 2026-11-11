@@ -69,6 +69,22 @@ function paintLock(button, open) {
   button.replaceChildren(icon);
 }
 
+// Ressort repris de Moxen Parrilla https://moxen.cl/recursos/parrilla/
+function muelle(k, c) {
+  if (!(window.CSS && CSS.supports && CSS.supports('animation-timing-function', 'linear(0, 1)'))) return 'cubic-bezier(.34, 1.56, .64, 1)';
+  const pts = [0];
+  let x = 0, v = 0, t = 0;
+  while (t < 3) {
+    v += (k * (1 - x) - c * v) / 240; x += v / 240; t += 1 / 240;
+    pts.push(x);
+    if (t > .15 && Math.abs(1 - x) < .001 && Math.abs(v) < .01) break;
+  }
+  const out = [];
+  for (let i = 0; i <= 40; i++) out.push(pts[Math.round(i / 40 * (pts.length - 1))].toFixed(4));
+  out[40] = '1';
+  return 'linear(' + out.join(', ') + ')';
+}
+
 /** Réorganise les tuiles de l’onglet courant et mémorise les positions et tailles. */
 export function initializeTileLayout() {
   let preferences = read();
@@ -77,6 +93,8 @@ export function initializeTileLayout() {
   let scrollFrame = 0;
   const groups = new Map();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const spring = muelle(190, 16);
+  const returnSpring = muelle(120, 8.5);
   const panelKey = key => key === 'overview-aurora' ? 'overview' : key;
 
   /** Le cadenas de chaque panneau ne s’applique qu’aux tuiles de ce panneau. */
@@ -140,17 +158,31 @@ export function initializeTileLayout() {
   }
 
   /** Anime le changement de position sans rejouer l’apparition des autres éléments. */
-  function motion(group, update) {
-    const cards = groupCards(group);
-    const before = new Map(cards.map(card=>[card,card.getBoundingClientRect()]));
-    for (const card of cards) card.getAnimations().filter(animation => animation.id === 'tile-position').forEach(animation => animation.cancel());
+  function motion(group, update, {returning = false, skip = null} = {}) {
+    const cards = groupCards(group).filter(card => card !== skip);
+    const before = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
+    for (const card of cards) {
+      for (const animation of card.getAnimations()) {
+        if (animation.id === 'tile-position') animation.cancel();
+      }
+    }
     update();
     if (reduced.matches) return;
+    group.style.setProperty('--tile-spring', spring);
     for (const card of cards) {
-      const old = before.get(card), next = card.getBoundingClientRect();
-      const x = old.left-next.left, y = old.top-next.top;
-      if (x || y) card.animate([{transform:`translate(${x}px,${y}px)`},{transform:'translate(0,0)'}],
-        {id:'tile-position',duration:210,easing:'cubic-bezier(.2,.78,.25,1)'});
+      const old = before.get(card);
+      const next = card.getBoundingClientRect();
+      if (!next.width || !next.height || !old.width || !old.height) continue;
+      const x = old.left - next.left;
+      const y = old.top - next.top;
+      const width = old.width / next.width;
+      const height = old.height / next.height;
+      if (x || y || width !== 1 || height !== 1) {
+        card.animate([
+          {transformOrigin: 'top left', transform: `translate(${x}px, ${y}px) scale(${width}, ${height})`},
+          {transformOrigin: 'top left', transform: 'none'},
+        ], {id: 'tile-position', duration: 800, easing: returning ? returnSpring : spring});
+      }
     }
   }
 
@@ -160,7 +192,7 @@ export function initializeTileLayout() {
     const cards = groupCards(group), index = cards.indexOf(card);
     const focused = document.activeElement;
     if (operation === 'resize') {
-      card.dataset.layoutSpan = card.dataset.layoutSpan === '2' ? '1' : '2';
+      motion(group, () => { card.dataset.layoutSpan = card.dataset.layoutSpan === '2' ? '1' : '2'; });
     } else {
       const next = index + (operation === 'before' ? -1 : 1);
       if (!cards[next]) return;
@@ -176,10 +208,42 @@ export function initializeTileLayout() {
   function startPointer(event, group, card, operation) {
     if (event.button !== 0 || !event.isPrimary || editing !== panelKey(group.dataset.layoutGroup)) return;
     if (operation === 'drag') group.setPointerCapture(event.pointerId);
-    pointer = {id:event.pointerId, x:event.clientX, y:event.clientY, group, card, operation,
-      order:groupCards(group).map(item=>item.dataset.layoutCard), span:card.dataset.layoutSpan, changed:false};
+    const bounds = card.getBoundingClientRect();
+    pointer = {
+      id: event.pointerId, x: event.clientX, y: event.clientY, group, card, operation,
+      order: groupCards(group).map(item => item.dataset.layoutCard),
+      span: card.dataset.layoutSpan, changed: false, outside: false,
+      offsetX: 0, offsetY: 0, lastX: event.clientX, lastY: event.clientY,
+      gripX: event.clientX - bounds.left - bounds.width / 2,
+      gripY: event.clientY - bounds.top - bounds.height / 2,
+    };
+    group.style.setProperty('--tile-spring', spring);
+    card.dataset.layoutDragging = operation;
+    if (operation === 'drag') {
+      const target = node('div', null, 'layout-drop-target');
+      target.setAttribute('aria-hidden', 'true');
+      group.append(target);
+      pointer.target = target;
+      positionDraggedTile();
+    }
+  }
 
-    card.dataset.layoutDragging = 'true';
+  // Le repère matérialise la case libre, tandis que la tuile suit la poignée.
+  function positionDraggedTile() {
+    const {group, card, target, lastX, lastY, gripX, gripY, offsetX, offsetY} = pointer;
+    const bounds = card.getBoundingClientRect();
+    const grid = group.getBoundingClientRect();
+    const centerX = bounds.left + bounds.width / 2 - offsetX;
+    const centerY = bounds.top + bounds.height / 2 - offsetY;
+    const left = centerX - card.offsetWidth / 2 - grid.left - group.clientLeft;
+    const top = centerY - card.offsetHeight / 2 - grid.top - group.clientTop;
+    pointer.offsetX = lastX - gripX - centerX;
+    pointer.offsetY = lastY - gripY - centerY;
+    card.style.translate = `${pointer.offsetX}px ${pointer.offsetY}px`;
+    target.style.transform = `translate(${left}px, ${top}px)`;
+    target.style.width = `${card.offsetWidth}px`;
+    target.style.height = `${card.offsetHeight}px`;
+    target.toggleAttribute('data-layout-drop', !pointer.outside);
   }
 
   /** Le déplacement s’accroche aux cartes voisines, le redimensionnement aux colonnes. */
@@ -192,14 +256,29 @@ export function initializeTileLayout() {
       const crossedColumn = Math.abs(event.clientX - x) >= threshold;
       const otherSpan = span === '1' ? '2' : '1';
       const next = crossedColumn ? otherSpan : span;
-      card.dataset.layoutSpan = next;
+      if (card.dataset.layoutSpan !== next) motion(group, () => { card.dataset.layoutSpan = next; });
       pointer.changed = next !== span;
       return;
     }
     pointer.lastX = event.clientX;
     pointer.lastY = event.clientY;
-    reorderAtPointer();
+    updateDragTarget();
     if (!scrollFrame) scrollFrame = requestAnimationFrame(scrollWhileDragging);
+  }
+
+  // Retrait de la cible et retour des voisines quand le geste quitte la grille.
+  function updateDragTarget() {
+    const {group, card, lastX, lastY, order, outside} = pointer;
+    const bounds = group.getBoundingClientRect();
+    pointer.outside = lastX < bounds.left - 36 || lastX > bounds.right + 36
+      || lastY < bounds.top - 40 || lastY > bounds.bottom + 70;
+    if (!pointer.outside) {
+      reorderAtPointer();
+    } else if (!outside) {
+      motion(group, () => arrange(group, order), {skip: card});
+      pointer.changed = false;
+    }
+    positionDraggedTile();
   }
 
   /** Déplace la tuile en suivant la position visible du pointeur, même pendant le défilement. */
@@ -209,14 +288,14 @@ export function initializeTileLayout() {
     if (!target || target === card || target.parentElement !== group) return;
     const rect = target.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
-    const sameRow = Math.abs(cardRect.top - rect.top) < 8;
+    const sameRow = Math.abs(cardRect.top - pointer.offsetY - rect.top) < 8;
     const before = sameRow ? lastX < rect.left + rect.width/2 : lastY < rect.top + rect.height/2;
     const cards = groupCards(group), original = cards.indexOf(card);
     const order = cards.filter(item=>item!==card).map(item=>item.dataset.layoutCard);
     const index = order.indexOf(target.dataset.layoutCard) + (before ? 0 : 1);
     if (index === original) return;
     order.splice(index,0,card.dataset.layoutCard);
-    motion(group,()=>arrange(group,order));
+    motion(group, () => arrange(group, order), {skip: card});
     pointer.changed = true;
   }
 
@@ -233,20 +312,28 @@ export function initializeTileLayout() {
     const step = Math.sign(offset) * Math.min(14, Math.ceil(Math.abs(offset) / 4));
     window.scrollBy({top: step, behavior: 'instant'});
     if (window.scrollY === previous) return;
-    reorderAtPointer();
+    updateDragTarget();
     scrollFrame = requestAnimationFrame(scrollWhileDragging);
   }
 
   /** Une annulation restitue l’ordre initial du geste, une fin valide la modification. */
   function endPointer(event, cancelled) {
     if (!pointer || event && event.pointerId !== pointer.id) return;
-    const {group,card,order,span,changed} = pointer;
+    const {group, card, order, span, changed, outside, target} = pointer;
     pointer = null;
     cancelAnimationFrame(scrollFrame);
     scrollFrame = 0;
-    delete card.dataset.layoutDragging;
-    if (cancelled) { arrange(group,order); card.dataset.layoutSpan = span; }
-    else if (changed) save(group);
+    const returning = cancelled || outside;
+    motion(group, () => {
+      delete card.dataset.layoutDragging;
+      card.style.removeProperty('translate');
+      target?.remove();
+      if (returning) {
+        arrange(group, order);
+        card.dataset.layoutSpan = span;
+      }
+    }, {returning});
+    if (!returning && changed) save(group);
   }
 
   /** Ajoute des poignées à chaque tuile compatible sans remplacer ses commandes existantes. */

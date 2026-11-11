@@ -37,3 +37,5 @@ Les treize illustrations SVG supplémentaires du catalogue Kobra (#128) sont des
 ## Étude amont 0.4.8 et forks
 
 Les versions 0.4.5 à 0.4.8 de [ljschmitt/hass-anycubic_cloud_v3](https://github.com/ljschmitt/hass-anycubic_cloud_v3), sous GPL-3.0, et leurs forks ont été comparés. La qualification locale du champ de pourcentage ACE 2 Pro suit les critères constructeur employés dans `AnycubicSpoolInfo.consumables_percent` au [commit stable étudié](https://github.com/ljschmitt/hass-anycubic_cloud_v3/tree/bef29d737edf431fb78a3a0619a971a0eaff7fb8), avec reconnaissance du travail des contributeurs amont; elle est réimplémentée dans un helper local. Aucun composant Home Assistant, bundle généré ou binaire tiers supplémentaire n’est embarqué. La revue et les décisions figurent dans `docs/UPSTREAM-FORKS.md`.
+
+Le contenu de `web/vendor/` reste soumis aux conditions de ses auteurs et n’est pas couvert par la licence GPL du projet.
