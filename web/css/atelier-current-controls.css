@@ -103,11 +103,13 @@
   box-sizing: border-box;
   min-width: 0;
   width: 100%;
+  block-size: var(--atelier-control);
   min-height: var(--atelier-control);
   margin: 0;
   padding: 0 var(--atelier-space-3);
 }
 #controls-dialog input {
+  block-size: calc(var(--atelier-control) - 2 * var(--atelier-rule));
   min-height: calc(var(--atelier-control) - 2 * var(--atelier-rule));
   border: 0;
   background: none;
