@@ -197,6 +197,7 @@
   #file-rows tr.file-selected td,
   #file-rows tr:has(input[data-selection]) td:first-child::after { transition: none; }
   #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { animation: none; }
+}
 
 /* Contour repris de Moxen Remesa https://moxen.cl/recursos/remesa/ */
 .upload-file { position: relative; }
