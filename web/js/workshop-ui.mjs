@@ -119,11 +119,28 @@ function initializeTheme() {
   } catch {}
   root.dataset.theme = theme;
   if (!choice) return;
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let transition;
   choice.value = theme;
   choice.addEventListener('change', () => {
-    root.dataset.theme = choice.value;
+    const nextTheme = choice.value;
+    transition?.skipTransition();
+    const applyTheme = () => {
+      // Le navigateur peut différer le rendu jusqu’après un deuxième changement.
+      if (choice.value === nextTheme) root.dataset.theme = nextTheme;
+    };
+    if (!reducedMotion.matches && typeof document.startViewTransition === 'function') {
+      const current = document.startViewTransition(applyTheme);
+      transition = current;
+      current.ready.catch(() => {});
+      current.finished.finally(() => {
+        if (transition === current) transition = undefined;
+      });
+    } else {
+      applyTheme();
+    }
     try {
-      localStorage.setItem(storageKey, choice.value);
+      localStorage.setItem(storageKey, nextTheme);
     } catch {}
   });
 }

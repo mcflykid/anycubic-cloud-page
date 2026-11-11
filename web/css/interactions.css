@@ -30,6 +30,18 @@
   --heading-entry: heading-rise;
   --dialog-entry: dialog-rise;
 }
+
+/* Le fondu du mode de couleur reste transparent aux clics et au clavier. */
+::view-transition { pointer-events: none; }
+::view-transition-group(root) {
+  animation-duration: var(--motion-panel);
+  animation-timing-function: var(--motion-ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
 :root[data-style="apple"] {
   --section-entry-duration: 320ms;
   --heading-entry: heading-spring;

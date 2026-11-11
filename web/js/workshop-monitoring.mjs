@@ -1,4 +1,4 @@
-import { signalChange, $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=fea56098b5bb';
+import { signalChange, $, fmt, formatText, locale, node, tr } from './workshop-ui.mjs?v=9d97ce06364c';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** Décrit les unités et la provenance des neuf séries rendues dans le panneau local. */

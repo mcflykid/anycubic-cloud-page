@@ -45,6 +45,29 @@ test('un ancien thème retiré revient au style standard',async({page})=>{
   expect(await page.evaluate(()=>localStorage.getItem('cloud-page-style'))).toBe('standard');
 });
 
+test('le changement de mode conserve le focus et respecte le mouvement réduit',async({page})=>{
+  await page.addInitScript(()=>{
+    const start=document.startViewTransition?.bind(document);
+    window.themeTransitions=0;
+    if(start)document.startViewTransition=callback=>{
+      window.themeTransitions+=1;
+      return start(callback);
+    };
+  });
+  await login(page);await openSettings(page);
+  const theme=page.locator('#interface-theme');
+  await theme.focus();
+  await theme.selectOption('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+  expect(await page.evaluate(()=>window.themeTransitions)).toBe(1);
+  await expect(theme).toBeFocused();
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await theme.selectOption('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+  expect(await page.evaluate(()=>window.themeTransitions)).toBe(1);
+  await expect(theme).toBeFocused();
+});
+
 test('les sept styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await login(page);
   for(const mode of ['light','dark']){
