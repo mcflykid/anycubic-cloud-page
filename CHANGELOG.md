@@ -6,6 +6,7 @@
 - Sépare les mesures et l’éclairage, les réglages au repos et les réglages d’impression. Chaque ventilateur affiche sa mesure, sa cible et son bouton d’application, avec confirmation avant l’envoi (#319).
 - Supprime le double trait sous les températures, centre l’aide de la caméra et corrige les alignements de la carte ACE. Les emplacements chargés affichent de petites bobines aux couleurs détectées (#319).
 - Utilise l’icône du projet comme avatar des alertes et des bilans Discord, y compris pour les messages de test (#320).
+- Actualise les captures de démonstration à 1 920 px sur ordinateur et ajoute les vues des réglages au repos et du séchage ACE (#321).
 
 ## 1.12.0 — 2026-11-11
 

@@ -4,7 +4,7 @@ const {execFileSync, spawn} = require('node:child_process');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const desktop = {width: 1440, height: 1000};
+const desktop = {width: 1920, height: 1080};
 const mobile = {width: 390, height: 844};
 const password = 'ui-fixture-password';
 const styles = [
@@ -197,6 +197,17 @@ async function main() {
     await page.reload();
     await openSection(page, 'summary');
     await photo(page, '19-resume-sombre.png');
+    await openSection(page, 'overview');
+    await page.locator('#controls-open').click();
+    await page.locator('#control-view-idle').click();
+    await page.locator('#idle-controls').waitFor();
+    await photo(page, '25-commandes-au-repos.png');
+    await page.keyboard.press('Escape');
+    await openSection(page, 'ace');
+    await page.locator('#go-drying').click();
+    await page.locator('#drying-state').waitFor();
+    await photo(page, '26-sechage-ace.png');
+    await page.keyboard.press('Escape');
     await openSection(page, 'fleet');
     await page.locator('#monitor-grid .monitor-card').first().waitFor();
     await photo(page, '20-supervision-sombre.png');
