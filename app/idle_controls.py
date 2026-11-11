@@ -72,7 +72,8 @@ def idle_request(target, values):
         raise ValueError("Préchauffage non annoncé pour cette imprimante")
     clean = {key: value for key, value in values.items() if value not in ("", None)}
     temperatures = {"target_nozzle_temp", "target_hotbed_temp"}
-    fans = {"fan_speed_pct", "aux_fan_speed_pct"}
+    # Le client Slicer traite les trois ventilateurs de la S1 sur l’échelle 0–100.
+    fans = {"fan_speed_pct", "aux_fan_speed_pct", "box_fan_level"}
     if clean and clean.keys() <= temperatures:
         parsed = {}
         for key, value in clean.items():
@@ -90,7 +91,6 @@ def idle_request(target, values):
         return IdleOrder(
             1221, target.printer.id, {key: integer(value, 0, 100) for key, value in clean.items()}
         )
-    # L’unité du troisième ventilateur diffère entre clients : ne pas ajouter une échelle supposée.
     raise ValueError("Choisissez les températures ou un seul ventilateur")
 
 

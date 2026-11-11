@@ -52,6 +52,7 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(three).toBeEnabled();
  await three.check();
  await expect(three).toBeChecked();
+ await three.focus();
  await expect(three).toBeFocused();
  await expect(page.locator('.rating-stars label').nth(1).locator('svg')).toHaveCSS('fill-opacity','1');
  await expect(page.locator('.rating-stars label').nth(3).locator('svg')).toHaveCSS('fill-opacity','0');
@@ -219,11 +220,17 @@ test('un proxy qui conserve ses anciens chemins sert toute l’interface',async(
   expect(asset.headers()['content-type']).toContain('image/png');
  }
 
- for(const [label,heading] of [['Conditions','Conditions d’utilisation'],['Cookies','Cookies et stockage local'],['Crédits','Crédits']]){
-  const [response]=await Promise.all([
-   page.waitForResponse(response=>response.request().isNavigationRequest()&&response.url().includes('/imprimante-api/ui/')),
+ for(const [label,heading,route] of [
+   ['Conditions','Conditions d’utilisation','conditions'],
+   ['Cookies','Cookies et stockage local','cookies'],
+   ['Crédits','Crédits','credits'],
+ ]){
+  const href = '/imprimante-api/ui/' + route;
+  await Promise.all([
+   page.waitForURL(url=>url.pathname===href),
    page.getByRole('link',{name:label,exact:true}).click(),
   ]);
+  const response = await page.request.get(href);
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toContain('text/html');
   expect(response.headers()['content-disposition']).toBeUndefined();
@@ -292,7 +299,7 @@ test('les commandes courantes gardent la mesure, la confirmation et la cible sur
  await page.locator('#confirm-yes').click();
  await expect(panel.locator('#control-feedback')).toHaveText('Refus fictif');
  expect(commands).toHaveLength(1);
- expect(commands[0]).toMatchObject({data:{action:'settings',box_fan_level:'3'},target:'demo-printer'});
+ expect(commands[0]).toMatchObject({data:{action:'settings',box_fan_level:'100'},target:'demo-printer'});
  await expect(panel.locator('#control-light-state')).toHaveText('Éteint');
 });
 

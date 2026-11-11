@@ -159,6 +159,12 @@ async function main() {
       if (tab === 'files') await page.locator('#file-rows tr').first().waitFor();
       await photo(page, filename);
       if (tab === 'files') await captureCloudFolders(page);
+      if (tab === 'overview') {
+        await page.locator('#task-details-open').click();
+        await page.getByRole('dialog', {name:'Détails de la tâche'}).waitFor();
+        await photo(page, '27-details-tache.png');
+        await page.keyboard.press('Escape');
+      }
     }
     await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
     await photo(page, '23-discord-alertes.png');

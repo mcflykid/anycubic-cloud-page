@@ -27,10 +27,12 @@ class FirmwarePreflightTests(unittest.IsolatedAsyncioTestCase):
                 result = await execute_command(
                     SimpleNamespace(printer=printer, api=api),
                     "settings",
-                    {"target_nozzle_temp": 200},
+                    {"box_fan_level": "33"},
                 )
                 self.assertIn("acceptée", result)
                 api._send_order_change_print_settings.assert_awaited_once()
+                _, settings = api._send_order_change_print_settings.await_args.args
+                self.assertEqual(settings.settings_data, {"box_fan_level": 33})
             else:
                 with self.assertRaisesRegex(ValueError, "impression active"):
                     await execute_command(

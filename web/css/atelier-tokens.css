@@ -33,7 +33,7 @@
   --atelier-workshop-title-size: clamp(var(--atelier-machine-size), 3vw, 2.35rem);
   --atelier-reading-font: 1rem/1.6 var(--atelier-font);
   --atelier-swatch-border: #0002;
-  --atelier-controls-width: 960px;
+  --atelier-detail-dialog-width: 960px;
   --atelier-controls-device: 304px;
   --atelier-controls-diagram-width: 320px;
   --atelier-controls-illustration: 255px;

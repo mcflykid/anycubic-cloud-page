@@ -5107,10 +5107,6 @@
     "Speed mode requires an active print.",
     "El modo de velocidad requiere una impresión activa."
   ],
-  "Le réglage de circulation au repos reste à valider sur cette imprimante.": [
-    "Idle circulation control still needs validation for this printer.",
-    "El ajuste de circulación en reposo sigue pendiente de validación para esta impresora."
-  ],
   "Vitesse du ventilateur de circulation affichée en pourcentage.": [
     "Circulation fan speed shown as a percentage.",
     "Velocidad del ventilador de circulación en porcentaje."

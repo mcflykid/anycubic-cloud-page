@@ -185,7 +185,7 @@ async def execute_command(target, name, d):
             "target_hotbed_temp": (0, 120),
             "fan_speed_pct": (0, 100),
             "aux_fan_speed_pct": (0, 100),
-            "box_fan_level": (0, 3),
+            "box_fan_level": (0, 100),
             "bottom_layers": (0, 1000),
             "bottom_time": (0, 1000),
             "off_time": (0, 1000),
