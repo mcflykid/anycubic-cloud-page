@@ -102,6 +102,7 @@ def update(check=False):
             "monitoring.css",
             "interactions.css",
             "lab.css",
+            "density.css",
         ):
             digest, _ = signature((ROOT / "css" / style).read_bytes())
             path = f"{UI}/css/{style}"

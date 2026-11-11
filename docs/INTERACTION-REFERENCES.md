@@ -12,6 +12,7 @@ un retour compréhensible et un fonctionnement au clavier et sur téléphone.
 | [Lote](https://moxen.cl/recursos/lote/) | Peindre la sélection dans la colonne des cases, Maj+clic, barre contextuelle | Sélection des fichiers Cloud, volume connu et actions existantes avec confirmation |
 | [Instrumental](https://moxen.cl/recursos/instrumental/) et capture 435 | Mesures en cartes, historique et agrandissement d’un détail | Monitoring local de l’application, avec unités, sources et absence de données explicites |
 | [Parrilla](https://moxen.cl/recursos/parrilla/) | Widgets qui se réorganisent et disposition mémorisée | Cartes de l’accueil Aurore, déplacement et restauration de la disposition |
+| [Bento Grid](https://builder.atheros.ai/) et capture fournie | Zones qui changent de colonnes selon la largeur utile | Inspiration pour la composition des neuf sections, les cartes de mesures et le panneau de notifications |
 | [Portada](https://moxen.cl/recursos/portada/) | Un panneau de menu évolue avec le choix courant | Navigation adaptative et repère de section actif |
 | [Pasarela](https://moxen.cl/recursos/pasarela/) | Indicateur qui voyage, gestion du clavier | Navigation en verre Apple et Océan |
 | [Profil](https://moxen.cl/recursos/perfil/) | Détail dépliable et déplacement par transformation | Cartes de monitoring, transitions interrompables |

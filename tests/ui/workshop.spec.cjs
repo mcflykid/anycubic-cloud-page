@@ -220,7 +220,8 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   const product = await page.locator('#tab-overview .product').boundingBox();
   const job = await page.locator('#tab-overview .overview-content').boundingBox();
   expect(product.y).toBeCloseTo(job.y);
-  expect(product.height).toBeCloseTo(job.height);
+  expect(product.height).toBeLessThan(job.height);
+  expect(product.height).toBeGreaterThan(48);
   await expect(page.locator('#controls-open')).toHaveCSS('border-radius', '999px');
   await settings.click();
   const lower = page.locator('.printer-lower-grid > section');
