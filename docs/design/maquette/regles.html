@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Règles communes de l’atelier</title>
+<link rel="stylesheet" href="../../../web/css/atelier-tokens.css">
+<style>
+body{margin:0}
+a{color:#0B6B5D}a:hover{color:#084F45}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 1180px; box-sizing: border-box; padding: 40px 48px; background: #F3F4F6; color: #14181D; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column; gap: 24px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 28px; line-height: 36px; font-weight: 600">Règles communes de l’atelier</h1>
+<p style="margin: 0; color: #55606C; max-width: 900px">Chaque écran se construit uniquement avec les valeurs et les composants de cette page. Une valeur absente d’ici ne s’écrit pas dans le CSS.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Texte : six tailles</h2>
+<div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px 12px; align-items: baseline">
+<span style="color: #55606C; font-size: 12px">28 / 36</span><span style="font-size: 28px; line-height: 36px; font-weight: 600">Nom de la machine</span>
+<span style="color: #55606C; font-size: 12px">20 / 28</span><span style="font-size: 20px; line-height: 28px; font-weight: 600">Titre d’onglet</span>
+<span style="color: #55606C; font-size: 12px">16 / 24</span><span style="font-size: 16px; line-height: 24px; font-weight: 600">Titre de carte</span>
+<span style="color: #55606C; font-size: 12px">14 / 20</span><span>Texte courant, valeurs, boutons</span>
+<span style="color: #55606C; font-size: 12px">13 / 20</span><span style="font-size: 13px; color: #55606C">Libellé d’une valeur, aide</span>
+<span style="color: #55606C; font-size: 12px">12 / 16</span><span style="font-size: 12px; line-height: 16px; color: #55606C">Titre de groupe, mention</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">Deux graisses : 400 et 600. Chiffres à largeur fixe pour toutes les mesures.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Espacements : six pas</h2>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(0, 2fr); gap: 8px 12px; align-items: center; font-size: 13px">
+<span>4</span><span style="height: 12px; width: 4px; background: #0B6B5D"></span><span style="color: #55606C">icône et son texte</span>
+<span>8</span><span style="height: 12px; width: 8px; background: #0B6B5D"></span><span style="color: #55606C">éléments d’un même groupe</span>
+<span>12</span><span style="height: 12px; width: 12px; background: #0B6B5D"></span><span style="color: #55606C">lignes d’une carte</span>
+<span>16</span><span style="height: 12px; width: 16px; background: #0B6B5D"></span><span style="color: #55606C">marge intérieure d’une carte, entre cartes</span>
+<span>24</span><span style="height: 12px; width: 24px; background: #0B6B5D"></span><span style="color: #55606C">entre sections d’un écran</span>
+<span>32</span><span style="height: 12px; width: 32px; background: #0B6B5D"></span><span style="color: #55606C">marges de la page</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">Toutes les cartes ont la même marge intérieure : 16.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Formes</h2>
+<div style="display: flex; gap: 16px; align-items: center">
+<div style="width: 96px; height: 56px; border: 1px solid #D9DEE3; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px">6</div>
+<span style="font-size: 13px; color: #55606C">boutons, champs, vignettes</span>
+</div>
+<div style="display: flex; gap: 16px; align-items: center">
+<div style="width: 96px; height: 56px; border: 1px solid #D9DEE3; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px">10</div>
+<span style="font-size: 13px; color: #55606C">cartes et fenêtres</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">Un trait de 1 px sépare les surfaces. Pas d’ombre sur les cartes ; une seule ombre, réservée aux fenêtres et menus ouverts.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; grid-column: span 2">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Couleurs : neuf rôles</h2>
+<div style="display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 8px; font-size: 12px; line-height: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; border: 1px solid #D9DEE3; background: #F3F4F6"></div><span>Fond</span><span style="color: #55606C">#F3F4F6</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF"></div><span>Surface</span><span style="color: #55606C">#FFFFFF</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #14181D"></div><span>Texte</span><span style="color: #55606C">#14181D</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #55606C"></div><span>Secondaire</span><span style="color: #55606C">#55606C</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #D9DEE3"></div><span>Trait</span><span style="color: #55606C">#D9DEE3</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #0B6B5D"></div><span>Accent</span><span style="color: #55606C">#0B6B5D</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #1A7A4C"></div><span>Normal</span><span style="color: #55606C">#1A7A4C</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #8A5300"></div><span>Attention</span><span style="color: #55606C">#8A5300</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 48px; border-radius: 6px; background: #B42318"></div><span>Erreur</span><span style="color: #55606C">#B42318</span></div>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">L’accent sert à l’action principale et à l’onglet actif, nulle part ailleurs. Le mode sombre redéfinit ces neuf rôles, sans ajouter de couleur.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">État : un point et un mot</h2>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #1A7A4C"></span>Disponible</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #0B6B5D"></span>Impression en cours</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 2px; background: #8A5300"></span>En pause</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border: 2px solid #B42318; box-sizing: border-box"></span>Hors ligne</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">Plus de pastille colorée. La forme du repère change avec l’état, pas seulement sa couleur.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; grid-column: span 2">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Commandes : une seule hauteur, 36</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #0B6B5D; background: #0B6B5D; color: #FFFFFF; font: 600 14px/20px Inter, system-ui, sans-serif">Action principale</button>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif">Action secondaire</button>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #B42318; background: #FFFFFF; color: #B42318; font: 600 14px/20px Inter, system-ui, sans-serif">Action risquée</button>
+<button type="button" disabled style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #D9DEE3; background: #F3F4F6; color: #55606C; font: 600 14px/20px Inter, system-ui, sans-serif">Indisponible</button>
+<button type="button" aria-label="Notifications" style="height: 36px; width: 36px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7Zm4 10a2 2 0 0 0 4 0"/></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #55606C">Libellé du champ<input value="Kobra S1 · Démonstration" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 400 14px/20px Inter, system-ui, sans-serif; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #55606C">Libellé du menu<select style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 400 14px/20px Inter, system-ui, sans-serif; box-sizing: border-box"><option>Par défaut</option></select></label>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">Bouton, champ, menu et bouton à icône partagent hauteur, arrondi et trait : ils s’alignent sur une rangée sans réglage. Sur écran tactile, la hauteur passe à 44. Une icône mesure 18, trait de 1,8.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Mesure : libellé à gauche, valeur à droite</h2>
+<dl style="margin: 0; display: flex; gap: 24px; font-variant-numeric: tabular-nums">
+<div style="display: flex; align-items: baseline; gap: 8px"><dt style="font-size: 13px; color: #55606C">Buse</dt><dd style="margin: 0; font-weight: 600">28 °C</dd></div>
+<div style="display: flex; align-items: baseline; gap: 8px"><dt style="font-size: 13px; color: #55606C">Plateau</dt><dd style="margin: 0; font-weight: 600">26 °C</dd></div>
+<div style="display: flex; align-items: baseline; gap: 8px"><dt style="font-size: 13px; color: #55606C">Temps restant</dt><dd style="margin: 0; font-weight: 600">0 min</dd></div>
+</dl>
+<p style="margin: 0; font-size: 13px; color: #55606C">La valeur suit son libellé sur la même ligne, à 8 d’écart. Les mesures se suivent à 24 d’écart, alignées à gauche : jamais étirées d’un bord à l’autre de la carte.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; grid-column: span 2">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Carte : toujours la même anatomie</h2>
+<div style="border: 1px solid #D9DEE3; border-radius: 10px; display: flex; flex-direction: column">
+<div style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #D9DEE3"><span style="font-size: 16px; line-height: 24px; font-weight: 600">Titre de la carte</span><span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #1A7A4C"></span>État</span></div>
+<div style="padding: 16px; color: #55606C; font-size: 13px">Contenu, aligné à gauche, marge de 16 sur les quatre côtés.</div>
+<div style="padding: 12px 16px; border-top: 1px solid #D9DEE3; display: flex; justify-content: center"><button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif">Action de la carte</button></div>
+</div>
+<p style="margin: 0; font-size: 13px; color: #55606C">En-tête : titre à gauche, état à droite. Pied : une action seule est centrée ; avec un libellé, le libellé est à gauche et l’action à droite. Une carte prend la hauteur de son contenu ; deux cartes voisines s’alignent en haut.</p>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Ce qu’un style peut changer</h2>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px">
+<li>les neuf couleurs</li>
+<li>la police</li>
+<li>les deux arrondis</li>
+</ul>
+<p style="margin: 0; font-size: 13px; color: #55606C">Rien d’autre. La mise en page, les tailles et les espacements sont les mêmes dans tous les styles.</p>
+</section>
+
+</div>
+</div>
+</body>
+</html>

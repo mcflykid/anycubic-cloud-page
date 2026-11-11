@@ -156,9 +156,11 @@ function renderHardware(printer) {
     } : null;
     image.src = hardwareIcons + source;
   };
-  set('printer-model', model);
-  set('printer-accessory', aceName);
-  $('printer-accessory').hidden = !box;
+  const printerName = printer.name || model;
+  const accessories = [printerName !== model ? model : '', box ? aceName : ''].filter(Boolean);
+  set('printer-model', printerName);
+  set('printer-accessory', accessories.join(' · '));
+  $('printer-accessory').hidden = accessories.length === 0;
   const modelKey = String(printer.machine_name || '')
     .trim()
     .toLowerCase()

@@ -4350,5 +4350,21 @@
   "Canica · Moxen": [
     "Canica · Moxen",
     "Canica · Moxen"
+  ],
+  "Activer le mode clair": [
+    "Switch to light mode",
+    "Activar el modo claro"
+  ],
+  "Activer le mode sombre": [
+    "Switch to dark mode",
+    "Activar el modo oscuro"
+  ],
+  "Réduire les sections": [
+    "Collapse sections",
+    "Contraer secciones"
+  ],
+  "Développer les sections": [
+    "Expand sections",
+    "Expandir secciones"
   ]
 }

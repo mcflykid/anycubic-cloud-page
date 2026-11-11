@@ -1,0 +1,259 @@
+/* Le cadre reste commun aux dix écrans. Seul le Laboratoire dispose d’un rail. */
+body:has(.workshop-frame) {
+  background: var(--atelier-bg);
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+}
+body:has(.workshop-frame) > .demo-banner {
+  position: absolute;
+  clip-path: inset(50%);
+}
+html[data-style] .workshop-frame {
+  --frame-gutter: var(--atelier-space-6);
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+.workshop-frame :is(.portal-nav, .atelier-title, .atelier-navigation, .printer-footer) {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding-inline: var(--frame-gutter);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+html[data-style] .workshop-frame .portal-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: var(--atelier-space-2);
+  min-height: 0;
+  padding-block: var(--atelier-space-2);
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+}
+.workshop-frame .document-brand { min-block-size: var(--atelier-control); gap: var(--atelier-space-2); }
+.workshop-frame .document-brand span {
+  color: var(--atelier-fg);
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+.workshop-frame .portal-nav .document-brand img {
+  width: var(--atelier-icon);
+  height: var(--atelier-icon);
+}
+.workshop-frame .portal-nav .nav-actions {
+  gap: var(--atelier-space-4);
+  margin: 0;
+}
+html[data-style] .workshop-frame .portal-nav .atelier-control {
+  height: var(--atelier-control);
+  min-height: var(--atelier-control);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  padding-block: 0;
+  color: var(--atelier-fg);
+  background: var(--atelier-surface);
+  font: var(--atelier-text);
+  box-shadow: none;
+}
+html[data-style] .workshop-frame .portal-nav button.atelier-control {
+  font-weight: var(--atelier-semibold);
+}
+html[data-style] .workshop-frame .portal-nav .atelier-control-icon {
+  width: var(--atelier-control);
+  min-width: var(--atelier-control);
+  padding: 0;
+}
+#interface-mode-toggle:not([data-mode="dark"]) .mode-sun,
+#interface-mode-toggle[data-mode="dark"] .mode-moon {
+  display: none;
+}
+html[data-style] .workshop-frame .atelier-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--atelier-space-3);
+  padding-block: var(--atelier-space-4) var(--atelier-space-3);
+}
+.atelier-device-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2) var(--atelier-space-3);
+  min-width: 0;
+}
+html[data-style] .workshop-frame #printer-model {
+  margin: 0;
+  font: var(--atelier-machine);
+  font-weight: var(--atelier-semibold);
+  overflow-wrap: anywhere;
+  letter-spacing: normal;
+}
+html[data-style] .workshop-frame #printer-accessory {
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-text);
+}
+.workshop-frame #connection { flex: none; }
+.workshop-frame #connection.offline::before {
+  background: transparent;
+  border: var(--atelier-active-rule) solid var(--atelier-error);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+html[data-style] .workshop-frame .atelier-navigation {
+  background: var(--atelier-surface);
+  padding: 0 var(--frame-gutter);
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+}
+.workshop-frame #lab-navigation-toggle { display: none; }
+html[data-style] .workshop-frame #atelier-tabs {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+html[data-style] .workshop-frame #atelier-tabs [data-tab] {
+  height: var(--atelier-control);
+  min-height: var(--atelier-control);
+  margin: 0;
+  padding: 0 var(--atelier-space-3);
+  color: var(--atelier-fg);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font: var(--atelier-text);
+  white-space: nowrap;
+}
+html[data-style] .workshop-frame #atelier-tabs [data-tab][aria-current="page"] {
+  color: var(--atelier-accent);
+  font-weight: var(--atelier-semibold);
+  box-shadow: inset 0 calc(-1 * var(--atelier-active-rule)) var(--atelier-accent);
+}
+.workshop-frame #atelier {
+  min-width: 0;
+  min-height: 0;
+  width: auto;
+  margin: 0;
+  padding-inline: var(--frame-gutter);
+}
+html[data-style] .workshop-frame #atelier > .tab-panel {
+  padding-block: var(--atelier-space-5);
+}
+html[data-style] .workshop-frame .printer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2) var(--atelier-space-4);
+  padding-block: var(--atelier-space-3);
+  background: transparent;
+  border-block-start: var(--atelier-rule) solid var(--atelier-line);
+  color: var(--atelier-muted);
+  font: var(--atelier-caption);
+}
+.workshop-frame .printer-footer :is(a, p) { margin: 0; color: inherit; }
+.workshop-frame :is(.footer-status, .footer-links) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-4);
+}
+@media (min-width: 761px) {
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs .atelier-nav-group {
+    display: grid;
+    grid-template-columns: repeat(var(--section-count), auto);
+    gap: 0;
+    align-items: center;
+    padding: 0 var(--atelier-space-5);
+  }
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs .atelier-nav-group:first-child {
+    padding-inline-start: 0;
+  }
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs .atelier-nav-group + .atelier-nav-group {
+    border: 0;
+    border-inline-start: var(--atelier-rule) solid var(--atelier-line);
+  }
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs .atelier-nav-label {
+    display: block;
+    grid-column: 1 / -1;
+    margin: 0;
+    padding-block-end: var(--atelier-space-1);
+    color: var(--atelier-muted);
+    text-align: center;
+    text-transform: none;
+    letter-spacing: normal;
+    font: var(--atelier-caption);
+  }
+  html:not([data-style="lab"]) .workshop-frame #atelier-tabs [data-tab] .ui-icon {
+    display: none;
+  }
+}
+@media (min-width: 961px) {
+  html[data-style="lab"] .workshop-frame {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-rows: auto auto auto 1fr auto;
+    gap: 0;
+  }
+  html[data-style="lab"] .workshop-frame :is(.portal-nav, .atelier-title, .printer-footer) {
+    grid-column: 1 / -1;
+  }
+  html[data-style="lab"] .workshop-frame .atelier-navigation {
+    position: static;
+    grid-row: 3 / 5;
+    width: auto;
+    margin: var(--atelier-space-5) 0 var(--atelier-space-5) var(--frame-gutter);
+    padding: var(--atelier-space-2);
+    border: var(--atelier-rule) solid var(--atelier-line);
+    border-radius: var(--atelier-card-radius);
+  }
+  html[data-style="lab"] .workshop-frame #lab-navigation-toggle { display: inline-flex; }
+  html[data-style="lab"] .workshop-frame #atelier-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  html[data-style="lab"] .workshop-frame #atelier { grid-area: 4 / 2; }
+  html[data-style="lab"] .workshop-frame .printer-footer { grid-row: 5; }
+  .lab-navigation-collapsed #lab-navigation-toggle svg { transform: rotate(180deg); }
+  .lab-navigation-collapsed #atelier-tabs :is(.atelier-nav-label, [data-tab] > span) {
+    position: absolute;
+    clip-path: inset(50%);
+  }
+}
+@media (max-width: 760px) {
+  html[data-style] .workshop-frame { --frame-gutter: var(--atelier-space-4); }
+  .workshop-frame .portal-nav .nav-actions { gap: var(--atelier-space-1); }
+  html[data-style] .workshop-frame #printer-model { font: var(--atelier-title); font-weight: var(--atelier-semibold); }
+  .workshop-frame #section-menu-toggle { min-height: var(--atelier-touch-control); }
+  html[data-style] .workshop-frame .atelier-navigation { padding-block-end: var(--atelier-space-2); }
+}
+.workshop-frame .portal-nav #interface-language { appearance: auto; }
+.workshop-frame .portal-nav #notifications-toggle {
+  width: var(--atelier-control);
+  min-width: var(--atelier-control);
+  height: var(--atelier-control);
+  min-height: var(--atelier-control);
+}
+@media (max-width: 760px) {
+  .workshop-frame .portal-nav { --atelier-control: var(--atelier-touch-control); }
+}

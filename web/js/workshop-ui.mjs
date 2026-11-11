@@ -111,7 +111,8 @@ async function initializeLanguage() {
 function initializeTheme() {
   const storageKey = 'cloud-page-theme',
     root = document.documentElement,
-    choice = document.getElementById('interface-theme');
+    choice = document.getElementById('interface-theme'),
+    toggle = document.getElementById('interface-mode-toggle');
   let theme = 'system';
   try {
     const saved = localStorage.getItem(storageKey);
@@ -119,6 +120,21 @@ function initializeTheme() {
   } catch {}
   root.dataset.theme = theme;
   if (!choice) return;
+  const system = matchMedia('(prefers-color-scheme: dark)');
+  const updateModeToggle = () => {
+    const dark = root.dataset.theme === 'dark' || (root.dataset.theme === 'system' && system.matches);
+    toggle.dataset.mode = dark ? 'dark' : 'light';
+    toggle.setAttribute('aria-label', tr(dark ? 'Activer le mode clair' : 'Activer le mode sombre'));
+  };
+  if (toggle) {
+    updateModeToggle();
+    system.addEventListener('change', updateModeToggle);
+    toggle.disabled = false;
+    toggle.onclick = () => {
+      choice.value = toggle.dataset.mode === 'dark' ? 'light' : 'dark';
+      choice.dispatchEvent(new Event('change'));
+    };
+  }
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let transition;
   choice.value = theme;
@@ -127,7 +143,10 @@ function initializeTheme() {
     transition?.skipTransition();
     const applyTheme = () => {
       // Le navigateur peut différer le rendu jusqu’après un deuxième changement.
-      if (choice.value === nextTheme) root.dataset.theme = nextTheme;
+      if (choice.value === nextTheme) {
+        root.dataset.theme = nextTheme;
+        if (toggle) updateModeToggle();
+      }
     };
     if (!reducedMotion.matches && typeof document.startViewTransition === 'function') {
       const current = document.startViewTransition(applyTheme);

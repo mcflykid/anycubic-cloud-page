@@ -7,6 +7,14 @@ export function initializeWorkshopNavigation() {
   const shell = document.querySelector('.printer-shell');
   if (!toggle || !navigation || !shell || toggle.dataset.initialized === 'true') return;
   toggle.dataset.initialized = 'true';
+  const labToggle = document.getElementById('lab-navigation-toggle');
+  labToggle.hidden = false;
+  labToggle.onclick = () => {
+    const collapsed = shell.classList.toggle('lab-navigation-collapsed');
+    labToggle.setAttribute('aria-expanded', String(!collapsed));
+    labToggle.setAttribute('aria-label', tr(collapsed ? 'Développer les sections' : 'Réduire les sections'));
+  };
+
   const menuName = tr('Sections');
   toggle.setAttribute('aria-label', menuName);
   const compact = window.matchMedia('(max-width: 760px)');
