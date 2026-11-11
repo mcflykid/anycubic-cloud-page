@@ -84,3 +84,57 @@ test('le glissement tactile atteint les cartes sous le premier écran', async ({
     await context.close();
   }
 });
+
+test('les cartes utilisent le ressort Parrilla et suivent la préférence sans mouvement', async ({page}) => {
+  await page.addInitScript(() => {
+    const animate = Element.prototype.animate;
+    window.tileMotion = [];
+    Element.prototype.animate = function (frames, options) {
+      if (options?.id === 'tile-position') window.tileMotion.push(options);
+      return animate.call(this, frames, options);
+    };
+  });
+  await login(page, 'summary');
+  const panel = page.locator('#tab-summary');
+  await panel.locator('[data-layout-action=lock]').click();
+  const cards = panel.locator('[data-layout-card]');
+  await cards.first().locator('[data-layout-action=after]').press('Enter');
+  const animated = await page.evaluate(() => window.tileMotion);
+  expect(animated.length).toBeGreaterThan(0);
+  expect(animated.every(animation => animation.duration === 800)).toBe(true);
+  expect(animated[0].easing).toMatch(/^linear\(0\.0000, /);
+
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await expect.poll(() => page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
+  await cards.first().locator('[data-layout-action=after]').press('Enter');
+  expect(await page.evaluate(() => window.tileMotion.length)).toBe(animated.length);
+});
+
+test('la grille et la case d’insertion suivent le geste puis se retirent au verrouillage', async ({page}) => {
+  await login(page, 'summary');
+  const panel = page.locator('#tab-summary');
+  const group = panel.locator('.summary-grid');
+  const lock = panel.locator('[data-layout-action=lock]');
+  const first = panel.locator('[data-layout-card=printer]');
+  const second = panel.locator('[data-layout-card=ace]');
+  await expect(group).toHaveCSS('background-image', 'none');
+  await lock.click();
+  await expect(group).not.toHaveCSS('background-image', 'none');
+
+  const grip = first.locator('[data-layout-action=drag]');
+  const from = await grip.boundingBox();
+  const to = await second.boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width * .8, to.y + 70, {steps: 6});
+  await expect(group.locator('.layout-drop-target')).toHaveAttribute('data-layout-drop', '');
+  await expect(first).not.toHaveCSS('translate', 'none');
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+
+  await expect(group.locator('.layout-drop-target')).toHaveCount(0);
+  await expect(group).toHaveCSS('background-image', 'none');
+  await expect(first).toHaveCSS('translate', 'none');
+  await expect(panel.locator('[data-layout-card]').first()).toHaveAttribute('data-layout-card', 'printer');
+  await expect(lock).toHaveAttribute('aria-pressed', 'false');
+});

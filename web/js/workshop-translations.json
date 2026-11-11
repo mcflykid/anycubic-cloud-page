@@ -4342,5 +4342,17 @@
   "Trop de codes refusés. Recommencez la connexion.": [
     "Too many rejected codes. Start signing in again.",
     "Demasiados códigos rechazados. Vuelve a iniciar sesión."
+  ],
+  "Animations de l’atelier": [
+    "Workshop animations",
+    "Animaciones del taller"
+  ],
+  "Ressort et soulèvement des tuiles d’après": [
+    "Tile spring and lift based on",
+    "Resorte y elevación de las tarjetas basados en"
+  ],
+  "Parrilla · Moxen": [
+    "Parrilla · Moxen",
+    "Parrilla · Moxen"
   ]
 }

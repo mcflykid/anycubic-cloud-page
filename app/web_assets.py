@@ -39,6 +39,8 @@ def build_web_assets(root):
         path.relative_to(root).as_posix(): path.read_bytes()
         for path in sorted(root.rglob("*"))
         if path.is_file()
+        # Les sources d’origine conservées à part ne font pas partie des ressources servies.
+        and path.relative_to(root).parts[0] != "vendor"
         and path.suffix in {".html", ".js", ".mjs", ".json", ".css", ".svg", ".png"}
     }
     missing = REQUIRED.difference(files)
