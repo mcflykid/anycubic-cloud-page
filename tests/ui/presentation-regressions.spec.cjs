@@ -106,7 +106,7 @@ test('les quatre graphiques de chaque ACE ont leur propre ligne', async ({page})
   expect(second[0].top).toBeGreaterThan(first[0].bottom);
 });
 
-const styles = ['standard', 'aurora', 'lab', 'glasshouse'];
+const styles = ['standard', 'aurora', 'lab'];
 
 for (const style of styles) {
   for (const mode of ['light', 'dark']) {

@@ -9,7 +9,7 @@ const mobile = {width: 390, height: 844};
 const password = 'ui-fixture-password';
 const styles = [
   ['standard', 'Par défaut'],
-  ['aurora', 'Aurore'], ['lab', 'Laboratoire'], ['glasshouse', 'Verrière'],
+  ['aurora', 'Aurore'], ['lab', 'Laboratoire'],
 ];
 
 /** Attend uniquement les aperçus visibles pour préserver le chargement différé. */
@@ -75,7 +75,7 @@ async function captureError(page) {
   await page.unroute('**/imprimante-api/status');
 }
 
-/** Assemble les quatre styles sans publier une série d’images redondantes. */
+/** Assemble les trois styles sans publier une série d’images redondantes. */
 async function captureStyles(page, browser) {
   const samples = [];
   for (const [style, name] of styles) {
@@ -91,12 +91,12 @@ async function captureStyles(page, browser) {
   const sheet = await browser.newPage({viewport:desktop});
   await sheet.setContent(`<style>
     *{box-sizing:border-box}body{margin:0;padding:32px;background:#e7edf4;color:#172332;font:20px system-ui}
-    main{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}figure{margin:0;background:white;border-radius:14px;overflow:hidden}
+    main{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}figure{margin:0;background:white;border-radius:14px;overflow:hidden}
     h1{font-size:30px;margin:0 0 24px}img{display:block;width:100%;height:auto}figcaption{padding:14px 16px}
-    </style><h1>Les quatre styles de l’atelier</h1><main>
+    </style><h1>Les trois styles de l’atelier</h1><main>
     ${samples.map(({name,jpeg}) => `<figure><img src="data:image/jpeg;base64,${jpeg}" alt=""><figcaption>${name}</figcaption></figure>`).join('')}
     </main>`);
-  await photo(sheet, '17-quatre-styles.jpg', true);
+  await photo(sheet, '17-trois-styles.jpg', true);
   await sheet.close();
 }
 
@@ -201,13 +201,6 @@ async function main() {
     await page.setViewportSize(mobile);
     await openSection(page, 'summary');
     await photo(page, '21-resume-mobile.png');
-    await page.setViewportSize({width: 1920, height: 1080});
-    await page.evaluate(() => localStorage.setItem('cloud-page-style', 'glasshouse'));
-    await page.reload();
-    await openSection(page, 'summary');
-    await photo(page, '23-verriere-sombre.png');
-    await page.setViewportSize(mobile);
-    await photo(page, '24-verriere-mobile.png');
     await captureTotp(page, browser, base);
     console.log('Captures de démonstration produites, sans compte réel.');
   } finally {

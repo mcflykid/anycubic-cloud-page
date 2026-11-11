@@ -159,6 +159,7 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 .information-page{max-width:44rem;margin:3rem auto;padding:0 var(--atelier-space-4)}
 .information-page section{margin-block:var(--atelier-space-5)}
 .information-page h1{margin-top:var(--atelier-space-4)}
+.credits-page li + li { margin-block-start: var(--atelier-space-2); }
 .connection-actions .connection-action{display:grid;grid-template-columns:20px minmax(0,1fr) 20px;text-align:center}
 .connection-actions .connection-action strong{white-space:normal}
 .axis-grid{display:flex;align-items:center;justify-content:center;gap:var(--atelier-space-5)}

@@ -1,7 +1,7 @@
 // Vérifie la scène de connexion dans les variantes de l’atelier et au changement de visibilité.
 const {test,expect}=require('@playwright/test');
 
-const styles=['standard', 'aurora', 'lab', 'glasshouse'];
+const styles=['standard', 'aurora', 'lab'];
 
 for (const color of ['light','dark']) {
   test(`la scène fixe laisse le formulaire utilisable en mode ${color}`,async({page})=>{

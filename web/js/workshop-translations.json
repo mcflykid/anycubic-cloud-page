@@ -4147,14 +4147,6 @@
     "Aligned readings and a monitoring grid.",
     "Mediciones alineadas y supervisión en cuadrícula."
   ],
-  "Verrière": [
-    "Glasshouse",
-    "Invernadero"
-  ],
-  "Surfaces bleutées et accent indigo.": [
-    "Blue-tinted surfaces with an indigo accent.",
-    "Superficies azuladas y acento índigo."
-  ],
   "Sécurité": [
     "Security",
     "Seguridad"
@@ -4270,6 +4262,66 @@
   "Trop de codes refusés. Recommencez la connexion.": [
     "Too many rejected codes. Start signing in again.",
     "Demasiados códigos rechazados. Vuelve a iniciar sesión."
+  ],
+  "Anycubic Cloud Page est un atelier indépendant distribué sous": [
+    "Anycubic Cloud Page is an independent workshop released under",
+    "Anycubic Cloud Page es un taller independiente distribuido bajo"
+  ],
+  "Client Cloud": [
+    "Cloud client",
+    "Cliente en la nube"
+  ],
+  "Adaptations vidéo": [
+    "Video adaptations",
+    "Adaptaciones de vídeo"
+  ],
+  "et": [
+    "and",
+    "y"
+  ],
+  "Police": [
+    "Typeface",
+    "Tipografía"
+  ],
+  "et générateur de QR": [
+    "and QR generator",
+    "y generador de QR"
+  ],
+  "Les illustrations de l’atelier sont des créations non officielles.": [
+    "The workshop illustrations are unofficial creations.",
+    "Las ilustraciones del taller son creaciones no oficiales."
+  ],
+  "Interactions de l’atelier": [
+    "Workshop interactions",
+    "Interacciones del taller"
+  ],
+  "de Moxen": [
+    "by Moxen",
+    "de Moxen"
+  ],
+  "Notifications et supervision": [
+    "Notifications and monitoring",
+    "Notificaciones y supervisión"
+  ],
+  "Commandes adaptées d’Uiverse par": [
+    "Controls adapted from Uiverse by",
+    "Controles adaptados de Uiverse por"
+  ],
+  "Mentions des composants tiers": [
+    "Third-party notices",
+    "Avisos de componentes de terceros"
+  ],
+  "Sources et adaptations": [
+    "Sources and adaptations",
+    "Fuentes y adaptaciones"
+  ],
+  "Historique des contributions": [
+    "Contribution history",
+    "Historial de contribuciones"
+  ],
+  "Anycubic, Kobra, ACE et Agora sont les marques de leurs titulaires.": [
+    "Anycubic, Kobra, ACE and Agora are trademarks of their respective owners.",
+    "Anycubic, Kobra, ACE y Agora son marcas de sus respectivos titulares."
   ],
   "Animations de l’atelier": [
     "Workshop animations",

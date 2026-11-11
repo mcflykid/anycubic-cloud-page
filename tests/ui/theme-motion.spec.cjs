@@ -20,10 +20,10 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les quatre styles gardent la composition commune en clair, sombre et sur mobile',async({page})=>{
+test('les trois styles gardent la composition commune en clair, sombre et sur mobile',async({page})=>{
   await login(page);
   await openSettings(page);
-  const themes=['standard', 'aurora', 'lab', 'glasshouse'];
+  const themes=['standard', 'aurora', 'lab'];
   for(const mode of ['light','dark']){
     await page.locator('#interface-theme').selectOption(mode);
     for(const style of themes){

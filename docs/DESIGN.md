@@ -38,7 +38,7 @@ Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](desi
 
 ## Vérification
 
-Le test de mise en page ouvre les dix sections du jeu de démonstration à 1 366 × 768 et 1 920 × 1 080, dans les quatre styles et les deux modes de couleur. Il vérifie que la page tient dans la fenêtre. Les tests sur téléphone vérifient l’absence de débordement horizontal. Les [captures](../screenshots/README.md) sont produites à partir d’un serveur de démonstration.
+Le test de mise en page ouvre les dix sections du jeu de démonstration à 1 366 × 768 et 1 920 × 1 080, dans les trois styles et les deux modes de couleur. Il vérifie que la page tient dans la fenêtre. Les tests sur téléphone vérifient l’absence de débordement horizontal. Les [captures](../screenshots/README.md) sont produites à partir d’un serveur de démonstration.
 
 Le contrôle CI couvre toutes les feuilles CSS de l’atelier. Les tailles de texte de l’interface, les marges et écarts de l’échelle commune, les rayons fixes, les ombres et les palettes claire et sombre passent par le référentiel. Les composants peuvent garder leurs dimensions propres, par exemple pour les illustrations et les zones de tracé. Les exceptions de priorité CSS sont recensées et justifiées dans le test. Les nouvelles feuilles `atelier-*.css` ont aussi un contrôle de leurs autres longueurs et couleurs littérales.
 

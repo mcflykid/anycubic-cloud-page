@@ -6,7 +6,7 @@ Mise à jour le 11 novembre 2026. Voir les [versions publiées](https://github.c
 
 - L’atelier utilise le Cloud Anycubic. Les protocoles réseau locaux sont étudiés pour leurs formats et leurs idées.
 - Le stockage du mot de passe web reste celui de l’installation actuelle.
-- Le catalogue conserve Par défaut, Apple Design, Blueprint, Aurore, Laboratoire, Verrière et Prisme. [#245](https://github.com/mcflykid/anycubic-cloud-page/issues/245)
+- Le catalogue conserve Par défaut, Aurore et Laboratoire. Voir le [guide des styles](THEMES.md).
 - Les essais sur la Kobra S1 Combo suivent le cadre [#214](https://github.com/mcflykid/anycubic-cloud-page/issues/214), avec vérification de l’état et remise en état après chaque essai. Toute impression complète, mise à jour de firmware ou réinitialisation est exclue.
 
 ## Livré dans la 1.10.0
@@ -19,7 +19,7 @@ Les critères sont regroupés dans [Prochaine livraison](https://github.com/mcfl
 
 | Sujet | Suivi |
 | --- | --- |
-| Discord | [#205 Notifications](https://github.com/mcflykid/anycubic-cloud-page/issues/205), [#252 Écritures](https://github.com/mcflykid/anycubic-cloud-page/issues/252), [#253 Événements manqués](https://github.com/mcflykid/anycubic-cloud-page/issues/253), [#254 Qualification S1](https://github.com/mcflykid/anycubic-cloud-page/issues/254) |
+| Discord | [#205 Notifications](https://github.com/mcflykid/anycubic-cloud-page/issues/205), [#312 Bilans programmés](https://github.com/mcflykid/anycubic-cloud-page/issues/312) |
 | Suite de l’interface | [#248 Animations](https://github.com/mcflykid/anycubic-cloud-page/issues/248) |
 | Annotations en français | [#223](https://github.com/mcflykid/anycubic-cloud-page/issues/223), à intégrer après les autres changements. |
 

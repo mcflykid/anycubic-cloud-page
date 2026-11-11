@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
-const themes=['standard', 'aurora', 'lab', 'glasshouse'];
+const themes=['standard', 'aurora', 'lab'];
 async function openSettings(page){
   const settings=page.locator('[data-tab=settings]');
   if(await settings.getAttribute('aria-current')==='page')return;
@@ -21,7 +21,7 @@ async function openSection(page,name){
   await target.click();
 }
 
-test('les quatre styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
+test('les trois styles se choisissent dans la liste, se mémorisent et gardent le mode sombre',async({page})=>{
   await login(page);await openSettings(page);
   await expect(page.locator('#interface-style option')).toHaveCount(themes.length);
   await page.locator('#interface-theme').selectOption('dark');
@@ -33,11 +33,11 @@ test('les quatre styles se choisissent dans la liste, se mémorisent et gardent 
     await expect(page.locator('#theme-description')).not.toBeEmpty();
   }
   await page.reload();await openSettings(page);
-  await expect(page.locator('#interface-style')).toHaveValue('glasshouse');
+  await expect(page.locator('#interface-style')).toHaveValue('lab');
   await expect(page.locator('#interface-theme')).toHaveValue('dark');
 });
 
-for (const previous of ['terminal', 'detailed', 'ocean', 'studio', 'observatory', 'apple', 'blueprint', 'prism']) {
+for (const previous of ['terminal', 'detailed', 'ocean', 'studio', 'observatory', 'apple', 'blueprint', 'prism', 'glasshouse']) {
   test(`le style retiré ${previous} revient à Par défaut et garde le mode sombre`, async ({page}) => {
     await page.addInitScript(value => {
       localStorage.setItem('cloud-page-style', value);
@@ -67,13 +67,14 @@ test('le changement de mode conserve le focus et respecte le mouvement réduit',
   expect(await page.evaluate(()=>window.themeTransitions)).toBe(1);
   await expect(theme).toBeFocused();
   await page.emulateMedia({reducedMotion:'reduce'});
+  await expect.poll(()=>page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
   await theme.selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme','light');
   expect(await page.evaluate(()=>window.themeTransitions)).toBe(1);
   await expect(theme).toBeFocused();
 });
 
-test('les quatre styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
+test('les trois styles restent utilisables en clair, sombre et sur mobile avec animations réduites',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await login(page);
   for(const mode of ['light','dark']){
     await openSettings(page);await page.locator('#interface-theme').selectOption(mode);
@@ -107,4 +108,14 @@ test('le style choisi accompagne aussi la connexion et les pages d’information
   await expect(page.getByLabel('Identifiant')).toBeVisible();
   await page.goto('/imprimante-api/ui/privacy');
   await expect(page.locator('html')).toHaveAttribute('data-style','aurora');
+});
+
+test('les crédits renvoient aux attributions actuelles et suivent la langue choisie',async({page})=>{
+  await login(page,'summary');
+  await page.evaluate(()=>localStorage.setItem('cloud-page-language','en'));
+  await page.goto('/credits');
+  await expect(page.getByRole('heading',{name:'Workshop interactions'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Third-party notices'})).toHaveAttribute('href',/THIRD_PARTY_NOTICES\.md$/);
+  await expect(page.getByRole('link',{name:'Sources and adaptations'})).toHaveAttribute('href',/docs\/SOURCES\.md$/);
+  await expect(page.getByRole('link',{name:'Parrilla'})).toHaveCount(0);
 });

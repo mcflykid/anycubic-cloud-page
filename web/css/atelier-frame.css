@@ -222,6 +222,7 @@ html[data-style] .workshop-frame .printer-footer {
   html[data-style="lab"] .workshop-frame .atelier-navigation {
     position: static;
     grid-row: 3 / 5;
+    align-self: start;
     width: auto;
     margin: var(--atelier-space-5) 0 var(--atelier-space-5) var(--frame-gutter);
     padding: var(--atelier-space-2);
@@ -293,7 +294,6 @@ html[data-style] .workshop-frame .printer-footer {
     padding-block: var(--atelier-space-3);
   }
   html[data-style="lab"] .workshop-frame .atelier-navigation {
-    align-self: start;
     margin-block: var(--atelier-space-2);
   }
   html[data-style="lab"] .workshop-frame #atelier-tabs .atelier-nav-group + .atelier-nav-group {
