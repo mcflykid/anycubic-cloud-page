@@ -347,6 +347,10 @@
     "Print preview",
     "Vista previa de la impresión"
   ],
+  "Aperçu en attente": [
+    "Preview waiting for data",
+    "Vista previa en espera de datos"
+  ],
   "Aperçu du modèle en cours": [
     "Current model preview",
     "Vista previa del modelo actual"

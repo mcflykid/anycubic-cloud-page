@@ -1,4 +1,4 @@
-import { fmt, mins, node, tr } from './workshop-ui.mjs?v=9d97ce06364c';
+import { fmt, mins, node, tr } from './workshop-ui.mjs?v=6bba29467760';
 
 /** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
 function openFilePreview(file, src) {
@@ -99,8 +99,11 @@ export function createFileThumbnails(request, isCurrent) {
   function show(host, file, src) {
     const unavailable = () => {
       host.removeAttribute('aria-busy');
+      host.dataset.previewState = 'unavailable';
+      host.setAttribute('role', 'group');
+      host.setAttribute('aria-label', tr('Aperçu indisponible'));
       host.title = tr('Aperçu indisponible');
-      host.textContent = '—';
+      host.replaceChildren();
       if (file.details && Object.keys(file.details).length) {
         const details = node('button', '⋯', 'file-thumbnail-open');
         details.type = 'button';
@@ -122,6 +125,9 @@ export function createFileThumbnails(request, isCurrent) {
     button.append(image);
     image.onload = () => {
       host.removeAttribute('aria-busy');
+      host.dataset.previewState = 'ready';
+      host.removeAttribute('role');
+      host.removeAttribute('aria-label');
       host.title = '';
       host.replaceChildren(button);
     };
@@ -133,6 +139,7 @@ export function createFileThumbnails(request, isCurrent) {
   function create(file, context) {
     const host = node('span', null, 'file-thumbnail');
     host.setAttribute('aria-busy', 'true');
+    host.dataset.previewState = 'loading';
     const key = JSON.stringify([
       context.printer,
       context.source,
