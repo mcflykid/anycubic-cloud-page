@@ -275,9 +275,11 @@ function setupDialog(dialog, select, onWindow) {
       windowButtons.append(button);
     }
     const chartHost = node('div', null, 'monitor-detail-chart'), range = node('p', null, 'monitor-detail-range');
-    dialog.replaceChildren(top, current, description, printers, windowButtons, chartHost, range);
+    const summary = node('dl', null, 'monitor-detail-summary');
+    summary.dataset.monitorSummary = '';
+    dialog.replaceChildren(top, current, description, printers, windowButtons, summary, chartHost, range);
     dialog.dataset.monitorReady = 'true';
-    dialog._monitorNodes = { heading, current, description, printers, windowButtons, chartHost, range };
+    dialog._monitorNodes = { heading, current, description, printers, windowButtons, summary, chartHost, range };
   }
   if (select && !select.dataset.monitorReady) {
     select.onchange = () => onWindow(Number(select.value));
@@ -286,10 +288,45 @@ function setupDialog(dialog, select, onWindow) {
   return dialog._monitorNodes;
 }
 
+/** Construit le masque depuis la carte sans modifier la position finale du dialogue. */
+function revealFrames(origin, target) {
+  // Adapté d’Instrumental · Moxen (https://moxen.cl/recursos/instrumental/) : ressort d’ouverture et découpe interpolée.
+  const x = origin.left + origin.width / 2 - target.left - target.width / 2;
+  const y = origin.top + origin.height / 2 - target.top - target.height / 2;
+  const vertical = Math.max(0, (target.height - origin.height) / 2);
+  const horizontal = Math.max(0, (target.width - origin.width) / 2);
+  const spring = { x: 0, v: 0, k: 150, c: 17.6 };
+  const step = 1 / 120;
+  const frames = [];
+  for (let tick = 0; tick < 78; tick++) {
+    const fraction = 1 - spring.x;
+    const radius = 18 + Math.max(0, Math.min(spring.x, 1)) * 6;
+    frames.push({
+      clipPath: `inset(${vertical * fraction}px ${horizontal * fraction}px round ${radius}px)`,
+      transform: `translate(${x * fraction}px, ${y * fraction}px)`,
+    });
+    spring.v += (spring.k * (1 - spring.x) - spring.c * spring.v) * step;
+    spring.x += spring.v * step;
+  }
+  frames.push({ clipPath: 'inset(0 round 24px)', transform: 'none' });
+  return frames;
+}
+
 /** Lie les cartes locales au point de lecture protégé; l’appelant décide quand le panneau est visible. */
 export function createMonitoring(request) {
   let pending = false, paused = false, selected = null, samples = 120, lastData = null;
   const grid = $('monitor-grid'), state = $('monitor-state'), dialog = $('monitor-detail'), windowSelect = $('monitor-window'), pauseButton = $('monitor-pause');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  let reveal;
+  dialog.addEventListener('close', () => {
+    if (!dialog.open) reveal?.cancel();
+  });
+  reduced.addEventListener('change', () => {
+    if (reduced.matches) reveal?.cancel();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) reveal?.cancel();
+  });
   const detail = setupDialog(dialog, windowSelect, (count) => {
     samples = count === 30 ? 30 : 120;
     if (windowSelect) windowSelect.value = String(samples);
@@ -305,12 +342,10 @@ export function createMonitoring(request) {
     updateDetail();
     if (dialog.open) return;
     const origin = button.getBoundingClientRect();
-    dialog.removeAttribute('data-card-origin');
+    reveal?.cancel();
     dialog.showModal();
-    const target = dialog.getBoundingClientRect();
-    dialog.style.setProperty('--monitor-origin-x', `${origin.x + origin.width / 2 - target.x - target.width / 2}px`);
-    dialog.style.setProperty('--monitor-origin-y', `${origin.y + origin.height / 2 - target.y - target.height / 2}px`);
-    dialog.dataset.cardOrigin = '';
+    if (reduced.matches || document.hidden) return;
+    reveal = dialog.animate(revealFrames(origin, dialog.getBoundingClientRect()), { duration: 650 });
   }
 
   /** Rafraîchit le détail, ses états accessibles et un graphique basé sur l’historique réel. */
@@ -330,8 +365,23 @@ export function createMonitoring(request) {
     });
     if (windowSelect) windowSelect.value = String(samples);
     detail.chartHost.replaceChildren();
+    detail.summary.replaceChildren();
+    detail.summary.hidden = !chart;
     if (chart) {
       detail.chartHost.append(chart.svg);
+      // Le centile de rang le plus proche exclut les lacunes, comme la courbe.
+      const values = points.flatMap(point => point.value == null ? [] : [point.value]).sort((a, b) => a - b);
+      const average = values.reduce((total, item) => total + item, 0) / values.length;
+      const p95 = values[Math.ceil(values.length * .95) - 1];
+      for (const [label, reading] of [
+        ['Moyenne des relevés', displayValue(selected, average)],
+        ['95e centile', displayValue(selected, p95)],
+        ['Relevés valides', fmt(values.length)],
+      ]) {
+        const stat = node('div');
+        stat.append(node('dt', tr(label)), node('dd', reading));
+        detail.summary.append(stat);
+      }
       detail.range.textContent = formatText('Minimum : {0} · maximum : {1} · unité : {2} · source : {3}', displayValue(selected, chart.min), displayValue(selected, chart.max), metric.unit || tr('état'), tr(lastData.data_mode === 'demo' ? 'démonstration' : 'métrique locale'));
     } else {
       detail.chartHost.append(node('p', tr('Aucun historique disponible.'), 'muted'));

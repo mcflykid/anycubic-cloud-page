@@ -125,3 +125,30 @@ test('le serveur de démonstration marque explicitement ses valeurs fictives',as
   await expect(page.locator('#monitor-detail')).toContainText('Valeurs fictives pour démonstration');
   await expect(page.locator('#monitor-detail')).toContainText('source : démonstration');
 });
+
+/** Le détail se révèle depuis la carte activée et les lectures restent mesurées. */
+test('Instrumental ouvre la métrique avec un ressort et résume les points valides', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  const data = fixture();
+  data.history[0].cpu_percent = null;
+  await page.route('**/imprimante-api/monitoring', route => route.fulfill({json:data}));
+  await login(page, 'fleet');
+  const card = page.locator('#monitor-grid [data-monitor-key="cpu"]');
+  await card.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.locator('#monitor-detail');
+  await expect(dialog).toBeVisible();
+  const frames = await dialog.evaluate(node => node.getAnimations().flatMap(animation => animation.effect.getKeyframes()));
+  expect(frames.some(frame => frame.clipPath?.startsWith('inset('))).toBe(true);
+  await expect(dialog.locator('[data-monitor-summary]')).toContainText('Moyenne des relevés');
+  await expect(dialog.locator('[data-monitor-summary]')).toContainText('95e centile');
+  await expect(dialog.locator('[data-monitor-summary]')).toContainText('39');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await card.focus();
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeVisible();
+  await expect.poll(() => dialog.evaluate(node => node.getAnimations().length)).toBe(0);
+  await expect(dialog.locator('[data-monitor-summary]')).toContainText('39');
+});

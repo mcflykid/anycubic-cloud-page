@@ -71,9 +71,6 @@
   dialog[open]:not(#monitor-detail) {
     animation: var(--dialog-entry) var(--motion-panel) var(--motion-ease);
   }
-  #monitor-detail[open][data-card-origin] {
-    animation: monitor-expand 420ms cubic-bezier(.18,.76,.24,1);
-  }
   dialog[open]::backdrop {
     animation: backdrop-fade var(--motion-panel) ease-out;
   }
@@ -102,12 +99,6 @@
 @keyframes dialog-rise { from { opacity:0; translate:0 10px; } }
 @keyframes dialog-pop { from { opacity:0; scale:.96; } }
 @keyframes backdrop-fade { from { opacity:0; } }
-@keyframes monitor-expand {
-  from { opacity:.35; transform:translate(var(--monitor-origin-x),var(--monitor-origin-y)) scale(.65); }
-  85% { opacity:1; transform:translate(0,0) scale(1.015); }
-  to { opacity:1; transform:none; }
-}
-
 /* L’attente ne remplace que des listes sans contenu affiché. */
 .list-loading:not([hidden]) { display:grid; gap:8px; margin-block:10px; }
 .list-loading > span {

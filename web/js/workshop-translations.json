@@ -4378,5 +4378,25 @@
   "Contour d’envoi d’après": [
     "Upload outline based on",
     "Contorno de subida basado en"
+  ],
+  "Détail de la supervision d’après": [
+    "Monitoring details based on",
+    "Detalle de supervisión basado en"
+  ],
+  "Instrumental · Moxen": [
+    "Instrumental · Moxen",
+    "Instrumental · Moxen"
+  ],
+  "Moyenne des relevés": [
+    "Sample average",
+    "Promedio de las muestras"
+  ],
+  "95e centile": [
+    "95th percentile",
+    "Percentil 95"
+  ],
+  "Relevés valides": [
+    "Valid samples",
+    "Muestras válidas"
   ]
 }
