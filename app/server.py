@@ -332,6 +332,7 @@ class Engine:
         self.camera_owner = None
         self.camera_close_task = None
         self.command_lock = asyncio.Lock()
+        self.upload_lock = asyncio.Lock()
         self.notifications = AccountNotifications()
         self.extras = None
         self.notifications_error = None
@@ -1428,13 +1429,19 @@ async def command_journal(request):
 
 
 @contextlib.asynccontextmanager
-async def command_operation(req, *, require_model=True):
+async def command_operation(req, *, require_model=True, bypass_read_lock=False):
     # Attendre le verrou partagé des lectures, sans mettre une seconde opération utilisateur en file d’attente.
     """Cède le verrou API à une seule opération ; lève ValueError si attente trop longue ou client parti."""
     engine = request_engine(req)
     if engine.command_lock.locked():
         raise ValueError("Une opération est en cours. Réessayez après sa fin.")
     async with engine.command_lock:
+        if bypass_read_lock:
+            if req.transport is None or req.transport.is_closing():
+                raise ValueError("La demande a été interrompue. Aucune commande envoyée.")
+            verify_printer_target(req, engine, require_model=require_model)
+            yield
+            return
         try:
             await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
         except asyncio.TimeoutError:
@@ -1448,6 +1455,29 @@ async def command_operation(req, *, require_model=True):
             yield
         finally:
             engine.lock.release()
+
+
+@contextlib.asynccontextmanager
+async def storage_upload_operation(req, engine):
+    """Sérialise les transferts de stockage Cloud et vérifie leur cible avant le réseau."""
+    if engine.upload_lock.locked():
+        raise ValueError("Un envoi de fichier est déjà en cours")
+    async with engine.upload_lock:
+        try:
+            await asyncio.wait_for(engine.lock.acquire(), timeout=COMMAND_READ_WAIT_SECONDS)
+        except asyncio.TimeoutError:
+            raise CommandWaitExpired(
+                "La consultation Anycubic prend trop de temps. Aucun fichier envoyé ; réessayez dans quelques secondes."
+            ) from None
+        try:
+            if req.transport is None or req.transport.is_closing():
+                raise ValueError("La demande a été interrompue. Aucun fichier envoyé.")
+            verify_printer_target(req, engine)
+            if not engine.api:
+                raise ValueError("Connexion en cours")
+        finally:
+            engine.lock.release()
+        yield
 
 
 async def command(req):
@@ -1466,7 +1496,12 @@ async def command(req):
     async with audit_command(req, engine, name, requestid if valid_id else None, d) as audit:
         if not valid_id:
             raise ValueError("Identifiant de commande manquant")
-        async with command_operation(req, require_model=name != "presets"):
+
+        async with command_operation(
+            req,
+            require_model=name != "presets",
+            bypass_read_lock=name in {"pause", "cancel"},
+        ):
             if requestid in engine.commands:
                 audit.clear()
                 previous = engine.commands[requestid]
@@ -1834,7 +1869,12 @@ async def upload_operation(req, engine, audit):
             if (previous := await recorded_command(req, rid)) is not None:
                 audit.clear()
                 return previous
-            async with command_operation(req):
+            operation = (
+                storage_upload_operation(req, engine)
+                if mode == "upload"
+                else command_operation(req)
+            )
+            async with operation:
                 if rid in engine.commands:
                     audit.clear()
                     previous = engine.commands[rid]

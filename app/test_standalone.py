@@ -73,6 +73,7 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
                 state_dir=pathlib.Path(self.temp.name),
                 api=SimpleNamespace(upload_file_to_cloud=AsyncMock()),
                 command_lock=asyncio.Lock(),
+                upload_lock=asyncio.Lock(),
                 lock=asyncio.Lock(),
                 action=AsyncMock(return_value="Acceptée fictivement"),
                 event=lambda *args: None,
