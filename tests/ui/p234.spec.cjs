@@ -11,7 +11,7 @@ test('le pied de page affiche la version construite et ses quatre notices sur mo
  await expect(versionLink).toHaveCSS('border-top-width','0px');
  await expect(versionLink).toHaveCSS('padding-left','0px');
  const links=page.locator('.printer-footer nav a');
- await expect(links).toHaveText(['Confidentialité','Conditions','Cookies']);
+ await expect(links).toHaveText(['Confidentialité','Conditions','Cookies','Crédits']);
  for(const [path,title] of [['/about','Confidentialité'],['/conditions','Conditions d’utilisation'],['/cookies','Cookies et stockage local'],['/credits','Crédits']]){
   await expect(page.locator('#connection')).toHaveText('Cloud indisponible');
   await page.locator(`.printer-footer a[href="/imprimante-api/ui${path}"]`).click();
@@ -36,7 +36,8 @@ test('les crédits restent alignés à droite sur ordinateur',async({page})=>{
   page.getByRole('link',{name:'Crédits',exact:true}).boundingBox(),
  ]);
  expect(Math.abs(credit.y+credit.height/2-versionLabel.y-versionLabel.height/2)).toBeLessThan(4);
- expect(Math.abs(credit.x+credit.width-footer.x-footer.width)).toBeLessThan(2);
+ const inset=await page.locator('.printer-footer').evaluate(el=>parseFloat(getComputedStyle(el).paddingRight)+el.clientLeft);
+ expect(Math.abs(credit.x+credit.width-footer.x-footer.width+inset)).toBeLessThan(2);
 });
 
 test('la fiche terminée expose l’évaluation et la confirmation de réimpression explicite',async({page})=>{
@@ -47,6 +48,15 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(page.locator('#past-task-parameters')).toContainText('Filaments estimés par matière');
  await page.getByRole('button',{name:'Évaluer',exact:true}).click();
  await expect(page.locator('#rating-form fieldset')).toBeEnabled();
+ const three=page.getByRole('radio',{name:'3 ★',exact:true});
+ await expect(three).toBeEnabled();
+ await three.check();
+ await expect(three).toBeChecked();
+ await expect(three).toBeFocused();
+ await expect(page.locator('.rating-stars label').nth(1).locator('svg')).toHaveCSS('fill-opacity','1');
+ await expect(page.locator('.rating-stars label').nth(3).locator('svg')).toHaveCSS('fill-opacity','0');
+ await page.keyboard.press('ArrowRight');
+ await expect(page.getByRole('radio',{name:'4 ★',exact:true})).toBeChecked();
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Voir le détail',exact:true}).first().click();
  await page.getByRole('button',{name:'Imprimer à nouveau',exact:true}).click();

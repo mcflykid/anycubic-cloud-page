@@ -228,3 +228,185 @@
   opacity: 0;
   background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
 }
+
+/* Le curseur Uiverse suit aria-pressed, la même source que la sélection annoncée. */
+#tab-files .storage-tabs {
+  --storage-inset: 4px;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  width: min(100%, 33rem);
+  padding: var(--storage-inset);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  box-shadow: inset 0 1px 4px rgb(0 0 0 / .12);
+}
+#tab-files .storage-tabs > button[data-source] {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  white-space: normal;
+}
+#tab-files .storage-tabs > button[aria-pressed="true"] { font-weight: 700; }
+#tab-files .storage-tabs > button[data-source]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+.storage-glider {
+  position: absolute;
+  inset: var(--storage-inset) auto var(--storage-inset) var(--storage-inset);
+  width: calc((100% - 2 * var(--storage-inset)) / 3);
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: linear-gradient(135deg, var(--surface), color-mix(in srgb, var(--accent) 19%, var(--surface)));
+  box-shadow: 0 2px 9px color-mix(in srgb, var(--accent) 24%, transparent),
+    inset 0 1px 3px rgb(255 255 255 / .25);
+  pointer-events: none;
+  transition: transform 380ms cubic-bezier(.37, 1.95, .66, .56);
+}
+.storage-tabs:has([data-source="usb"][aria-pressed="true"]) .storage-glider { transform: translateX(100%); }
+.storage-tabs:has([data-source="cloud"][aria-pressed="true"]) .storage-glider { transform: translateX(200%); }
+
+/* Le relief Uiverse suit le choix du formulaire. L’ordre ACE reste lié au bouton Appliquer. */
+.ace-relay-control {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 44px;
+  flex: none;
+}
+.ace-auto-feed .ace-relay-control > input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ace-relay-track {
+  display: flex;
+  align-items: center;
+  width: 48px;
+  height: 24px;
+  padding-inline: 2px;
+  border-radius: 7px;
+  background: var(--line);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / .4);
+  transition: background-color var(--motion-fast, 180ms) linear;
+}
+.ace-relay-thumb {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: light-dark(#f4f4f4, #e1e6ed);
+  box-shadow: inset 0 -2px 2px rgb(0 0 0 / .2), inset 0 2px 1px rgb(255 255 255 / .5),
+    0 2px 2px rgb(0 0 0 / .45);
+  transition: transform var(--motion-fast, 180ms) ease;
+}
+.ace-relay-thumb::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #a5aab0 1px, transparent 1.35px) 0 0 / 3.33px 3.33px;
+}
+.ace-relay-control > input:checked + .ace-relay-track { background: var(--accent); }
+.ace-relay-control > input:checked + .ace-relay-track .ace-relay-thumb { transform: translateX(24px); }
+.ace-relay-control > input:focus-visible + .ace-relay-track { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ace-relay-control > input:disabled + .ace-relay-track { opacity: .55; }
+
+@media (prefers-reduced-motion: reduce) {
+  .storage-glider, .ace-relay-track, .ace-relay-thumb { transition: none; }
+}
+@media (forced-colors: active) {
+  #tab-files .storage-tabs > button[aria-pressed="true"],
+  .ace-relay-track, .ace-relay-thumb { border: 1px solid ButtonText; }
+}
+
+/* La pulsation Uiverse dure le temps de la requête, avec une largeur de bouton stable. */
+#temperature-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+.csv-export-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+}
+.csv-export-icon svg { width: 15px; height: 15px; }
+#temperature-export[aria-busy="true"] .csv-export-icon { animation: csv-export-pulse 1s ease-out infinite; }
+@keyframes csv-export-pulse {
+  0% { scale: .95; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  70% { scale: 1; box-shadow: 0 0 0 7px transparent; }
+  100% { scale: .95; box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #temperature-export[aria-busy="true"] .csv-export-icon { animation: none; }
+}
+
+/* Les radios restent dans l’ordre des notes pour que les flèches augmentent la valeur. */
+.rating-stars > label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-color: transparent;
+}
+.rating-stars > label > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.rating-stars > label > input:disabled { cursor: not-allowed; }
+.rating-stars label:has(input:disabled) { opacity: .55; }
+.rating-stars svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  fill-opacity: 0;
+  stroke: currentColor;
+  stroke-linejoin: bevel;
+}
+.rating-stars label:is(:has(input:checked), :has(~ label input:checked)) svg {
+  color: var(--accent);
+  fill-opacity: 1;
+}
+.rating-stars label:has(input:focus-visible) { outline: 2px solid var(--accent); }
+.rating-stars label:has(input:checked) svg { animation: rating-star-pop 360ms ease-out; }
+@keyframes rating-star-pop {
+  0% { transform: scale(1); fill-opacity: 0; stroke-dasharray: 10; }
+  30% { transform: scale(.45); fill-opacity: 0; stroke-dasharray: 10; }
+  60% { transform: scale(1.2); fill-opacity: 1; }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rating-stars label:has(input:checked) svg { animation: none; }
+}
