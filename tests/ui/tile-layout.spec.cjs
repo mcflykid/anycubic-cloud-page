@@ -40,9 +40,9 @@ test('la sauvegarde contient uniquement les dispositions et un fichier invalide 
   const json = (body) => ({name: 'disposition.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(body))});
   const valid = {version:1, layouts:{summary:{order:['ace','printer'],spans:{ace:2}}}};
   await restore.setInputFiles(json(valid));
-  await expect(page.getByText('Disposition restaurée.',)).toBeVisible();
+  await expect(page.getByText('Disposition restaurée.')).toBeVisible();
   await restore.setInputFiles(json({version:1, layouts:{summary:{order:[],spans:{}}}}));
-  await expect(page.getByText('Sauvegarde de disposition invalide.',)).toBeVisible();
+  await expect(page.getByText('Sauvegarde de disposition invalide.')).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#layout-export').click();
   const download = await downloadPromise;
