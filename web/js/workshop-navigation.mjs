@@ -33,6 +33,7 @@ export function initializeWorkshopNavigation() {
     if (token !== phase || toggle.getAttribute('aria-expanded') === 'true') return;
     navigation.dataset.open = 'false';
     navigation.dataset.phase = '';
+    navigation.inert = false;
     clearTimeout(closeTimer);
   };
   const close = (restoreFocus = false) => {
@@ -45,6 +46,8 @@ export function initializeWorkshopNavigation() {
       finishClose(token);
       return;
     }
+    // La vague reste visible, mais les tuiles fermées quittent aussitôt le parcours clavier.
+    navigation.inert = true;
     navigation.dataset.phase = 'closing';
     const first = navigation.querySelector('[data-tab]');
     if (!first) return finishClose(token);
@@ -56,6 +59,7 @@ export function initializeWorkshopNavigation() {
     clearTimeout(closeTimer);
     navigation.dataset.open = 'true';
     navigation.dataset.phase = '';
+    navigation.inert = false;
     toggle.setAttribute('aria-expanded', 'true');
     updateCurrentLabel();
     if (compact.matches && !reducedMotion.matches) {
@@ -96,7 +100,9 @@ export function initializeWorkshopNavigation() {
       !event.target.closest('.atelier-navigation')) close();
   });
   compact.addEventListener('change', event => {
-    if (!event.matches) close();
+    if (event.matches) return;
+    if (navigation.dataset.phase === 'closing') finishClose(phase);
+    else close();
   });
   reducedMotion.addEventListener('change', event => {
     if (!event.matches) return;

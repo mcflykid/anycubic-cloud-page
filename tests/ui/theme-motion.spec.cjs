@@ -50,9 +50,16 @@ test('Tile Build opens as a staggered tile wave and assembles in reverse on clos
   await expect(navigation).toHaveAttribute('data-phase','');
   await toggle.click();
   await expect(navigation).toHaveAttribute('data-phase','closing');
+  await expect(navigation).toHaveAttribute('inert','');
+  await expect(toggle).toBeFocused();
+  await page.keyboard.press('Tab');
+  expect(await navigation.evaluate(el=>el.contains(document.activeElement))).toBe(false);
   expect(await navigation.locator('[data-tab]').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('tile-exit');
   await expect(navigation).toHaveAttribute('data-open','false');
   await expect(navigation).toBeHidden();
+  await toggle.click();
+  await expect(navigation).not.toHaveAttribute('inert','');
+  await expect(navigation.locator('[data-tab][aria-current="page"]')).toBeFocused();
 });
 
 test('la vague de tuiles suit la préférence de mouvement réduit',async({page})=>{

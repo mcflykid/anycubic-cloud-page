@@ -23,7 +23,7 @@ import { createTimelapses } from './workshop-timelapses.mjs?v=77381a380f59';
 import './workshop-help.mjs?v=a2f129000309';
 import { createMonitoring } from './workshop-monitoring.mjs?v=02c5f75e21d8';
 import { createFleet } from './workshop-fleet.mjs?v=3a69dd0f32a5';
-import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=529da7569e73';
+import { initializeWorkshopNavigation } from './workshop-navigation.mjs?v=92b85c0cbfbc';
 initializeWorkshopNavigation();
 import { initializeInteractions } from './workshop-interactions.mjs?v=44d2be251f06';
 initializeInteractions();
