@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File d’attente</title>
+<link rel="stylesheet" href="../../../web/css/atelier-tokens.css">
+<style>
+body{margin:0}
+a{color:#14181D;text-decoration:none}a:hover{color:#0B6B5D}
+</style>
+</head>
+<body>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #F3F4F6; color: #14181D; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #D9DEE3; padding: 8px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
+<span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; line-height: 24px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B6B5D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-8A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 1 9.5Z"/></svg>Anycubic Cloud Page</span>
+<span style="flex: 1 1 0; min-width: 0"></span>
+<button type="button" aria-label="Passer en mode nuit" style="height: 36px; width: 36px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg></button>
+<select aria-label="Langue" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 400 14px/20px Inter, system-ui, sans-serif"><option>Français</option><option>English</option><option>Español</option></select>
+<button type="button" aria-label="Notifications, 2 non lues" style="position: relative; height: 36px; width: 36px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7Zm4 10a2 2 0 0 0 4 0"/></svg><span style="position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #B42318; border: 2px solid #FFFFFF"></span></button>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif">Se déconnecter</button>
+</header>
+
+<div style="background: #FFFFFF; border-bottom: 1px solid #D9DEE3; padding: 16px 32px 0; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px">
+<h1 style="margin: 0; font-size: 28px; line-height: 36px; font-weight: 600">Kobra S1 · Démonstration</h1>
+<span style="color: #55606C">Anycubic Kobra S1 · ACE 2 Pro</span>
+<span style="flex: 1 1 0; min-width: 0"></span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #1A7A4C"></span>En ligne</span>
+</div>
+
+<nav aria-label="Sections de l’atelier" style="display: flex; flex-wrap: wrap; gap: 0 24px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; line-height: 16px; color: #55606C; text-align: center">Accueil</span>
+<div style="display: flex">
+<a href="resume.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Résumé</a>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid #D9DEE3; padding-left: 24px">
+<span style="font-size: 12px; line-height: 16px; color: #55606C; text-align: center">Appareils</span>
+<div style="display: flex">
+<a href="imprimante.html" aria-current="page" style="height: 36px; padding: 0 12px; display: flex; align-items: center; color: #0B6B5D; font-weight: 600; border-bottom: 2px solid #0B6B5D; box-sizing: border-box">Imprimante</a>
+<a href="ace.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">ACE</a>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid #D9DEE3; padding-left: 24px">
+<span style="font-size: 12px; line-height: 16px; color: #55606C; text-align: center">Impressions</span>
+<div style="display: flex">
+<a href="fichiers.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Fichiers</a>
+<a href="envoyer.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Envoyer</a>
+<a href="camera.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Caméra</a>
+<a href="historique.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Historique</a>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid #D9DEE3; padding-left: 24px">
+<span style="font-size: 12px; line-height: 16px; color: #55606C; text-align: center">Suivi</span>
+<div style="display: flex">
+<a href="parc.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Parc et santé</a>
+<a href="statistiques.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Statistiques</a>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid #D9DEE3; padding-left: 24px">
+<span style="font-size: 12px; line-height: 16px; color: #55606C; text-align: center">Configuration</span>
+<div style="display: flex">
+<a href="reglages.html" style="height: 36px; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box">Réglages</a>
+</div>
+</div>
+</nav>
+</div>
+
+<main style="flex: 0 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 16px; border-radius: 10px; border: 1px solid #0B6B5D; background: #E7F2EF">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B6B5D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg><div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column"><strong style="font-weight: 600">Cube de calibration terminé à 14:01.</strong><span style="font-size: 13px; color: #55606C">Prochaine : Boîte de rangement · 3 h 18. Retirez la pièce, puis confirmez que le plateau est libre.</span></div>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif">Plus tard</button><button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #0B6B5D; background: #0B6B5D; color: #FFFFFF; font: 600 14px/20px Inter, system-ui, sans-serif">Plateau libéré, préparer la suivante</button></div>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px"><section style="min-width: 0; background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; display: flex; flex-direction: column; flex: 1 1 420px"><div style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #D9DEE3"><h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Impression</h2><span style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #1A7A4C"></span>Disponible</span></div><div style="padding: 16px; display: flex; gap: 16px; align-items: center"><div style="flex: 0 0 96px; width: 96px; height: 96px; border-radius: 6px; background: #EEF2F6; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="57" height="57" viewBox="0 0 24 24" fill="#B4CBE2" stroke="#4E79A2" stroke-width="1.2" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9" fill="none"/></svg></div><div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<span style="font-weight: 600">Cube de calibration · PLA</span><span style="font-size: 13px; color: #55606C">Impression terminée à 14:01</span>
+<div style="display: flex; justify-content: space-between"><span style="font-size: 13px; color: #55606C">Progression</span><b>100 %</b></div><div role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" style="height: 6px; border-radius: 3px; background: #D9DEE3; overflow: hidden"><div style="width: 100%; height: 100%; background: #0B6B5D"></div></div></div></div></section><section style="min-width: 0; background: #FFFFFF; border: 1px solid #D9DEE3; border-radius: 10px; display: flex; flex-direction: column; flex: 1 1 560px"><div style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #D9DEE3"><h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">File d’attente</h2><span style="font-size: 13px; color: #55606C">3 impressions · 7 h 10 · 312 g</span></div><ul style="margin: 0; padding: 0; list-style: none">
+<li style="display: grid; grid-template-columns: 20px 24px 48px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #ECEFF2; "><span aria-label="Déplacer" style="color: #8A95A1; cursor: grab"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A95A1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></svg></span><span style="font-weight: 600; color: #55606C; text-align: center">1</span><div style="flex: 0 0 48px; width: 48px; height: 48px; border-radius: 6px; background: #EEF2F6; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="#B4CBE2" stroke="#4E79A2" stroke-width="1.2" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9" fill="none"/></svg></div><span style="min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Boîte de rangement.gcode</span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #55606C">3 h 18 · 193,4 g<span style="display: flex; gap: 3px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #EBEBEB; border: 1px solid #55606C; box-sizing: border-box"></span><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #38383B; border: 1px solid #55606C; box-sizing: border-box"></span></span></span></span><button type="button" aria-label="Retirer Boîte de rangement.gcode de la file" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif; font-size: 13px; width: 32px; padding: 0">×</button></li>
+<li style="display: grid; grid-template-columns: 20px 24px 48px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #ECEFF2; "><span aria-label="Déplacer" style="color: #8A95A1; cursor: grab"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A95A1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></svg></span><span style="font-weight: 600; color: #55606C; text-align: center">2</span><div style="flex: 0 0 48px; width: 48px; height: 48px; border-radius: 6px; background: #EEF2F6; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="#B4CBE2" stroke="#4E79A2" stroke-width="1.2" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9" fill="none"/></svg></div><span style="min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Support de téléphone.gcode</span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #55606C">2 h 05 · 74,2 g<span style="display: flex; gap: 3px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #D68640; border: 1px solid #55606C; box-sizing: border-box"></span></span></span></span><button type="button" aria-label="Retirer Support de téléphone.gcode de la file" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif; font-size: 13px; width: 32px; padding: 0">×</button></li>
+<li style="display: grid; grid-template-columns: 20px 24px 48px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #ECEFF2; opacity: .7;"><span aria-label="Déplacer" style="color: #8A95A1; cursor: grab"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A95A1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></svg></span><span style="font-weight: 600; color: #55606C; text-align: center">3</span><div style="flex: 0 0 48px; width: 48px; height: 48px; border-radius: 6px; background: #EEF2F6; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="#B4CBE2" stroke="#4E79A2" stroke-width="1.2" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9" fill="none"/></svg></div><span style="min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Guide-câble.gcode</span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #55606C">1 h 47 · 44,6 g<span style="display: flex; gap: 3px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #2F6DB3; border: 1px solid #55606C; box-sizing: border-box"></span></span></span></span><button type="button" aria-label="Retirer Guide-câble.gcode de la file" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif; font-size: 13px; width: 32px; padding: 0">×</button><span style="grid-column: 3 / -1; display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 6px; background: #FFF4E0; color: #6B4100; font-size: 13px; line-height: 18px; padding: 6px 10px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 20H3Z"/><path d="M12 10v4M12 17h.01"/></svg><span>Emplacement 2 : PETG attendu, PLA chargé. Corrigez la correspondance avant de lancer.</span></span></li>
+</ul><div style="padding: 12px 16px; border-top: 1px solid #D9DEE3; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 12px; line-height: 16px; color: #55606C">Rien ne démarre seul : chaque lancement repasse par la confirmation.</span><button type="button" style="height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid #D9DEE3; background: #FFFFFF; color: #14181D; font: 600 14px/20px Inter, system-ui, sans-serif">Ajouter un fichier</button></div></section></div>
+</main>
+
+<footer style="padding: 12px 32px; border-top: 1px solid #D9DEE3; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; line-height: 16px; color: #55606C">
+<span>Version 1.10.0</span>
+<span>Dernière actualisation : 11/11/2026 13:35:00 · Europe/Paris</span>
+<span style="flex: 1 1 0; min-width: 0"></span>
+<a href="#" style="color: #55606C; text-decoration: underline">Confidentialité</a>
+<a href="#" style="color: #55606C; text-decoration: underline">Conditions</a>
+<a href="#" style="color: #55606C; text-decoration: underline">Cookies</a>
+<a href="#" style="color: #55606C; text-decoration: underline">Crédits</a>
+</footer>
+
+</div>
+</body>
+</html>
