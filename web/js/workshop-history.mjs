@@ -18,11 +18,13 @@ import {
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { slots, filamentAdvice } from './workshop-commands.mjs';
+import { confirmPrint } from './workshop-print-confirmation.mjs';
 import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mjs';
 import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from './workshop-error-catalogue.mjs';
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
+  let reprintTask;
   let pastTaskKey = null,
     tasksPage = 1,
     tasksGeneration = 0,
@@ -375,7 +377,6 @@ export function createHistory(request, command, selectedBox) {
         allItems
           ? tr('Effacer définitivement les notifications d’impression du compte Anycubic ?')
           : tr('Effacer définitivement cette notification Anycubic ?'),
-        false,
         tr(allItems ? 'Supprimer tous les messages' : 'Supprimer cette notification'),
       ))
     )
@@ -718,9 +719,10 @@ export function createHistory(request, command, selectedBox) {
     return task.can_reprint && ![0, 1].includes(task.status_code) &&
       task.printer_key === workshopState.selectedPrinter && printer?.printer_online && printer.is_available;
   }
-  function prepareReprint(task) {
+  /** Garde la référence de la fiche même si un rafraîchissement réordonne l’historique. */
+  function prepareReprint(task, details, image) {
     if (!canReprint(task)) return;
-    pastTaskKey = task.key;
+    reprintTask = {task, details, image};
     set('reprint-task-name', task.name);
     set('reprint-target', workshopState.snapshot?.printer?.name || task.printer);
     const form = $('task-reprint-form');
@@ -920,9 +922,10 @@ export function createHistory(request, command, selectedBox) {
       dialog.close();
       void openRating(t);
     };
+    let printDetails;
     reprint.onclick = () => {
       dialog.close();
-      prepareReprint(t);
+      prepareReprint(t, printDetails, image.hidden ? undefined : image.currentSrc);
     };
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;
@@ -936,6 +939,7 @@ export function createHistory(request, command, selectedBox) {
     try {
       const d = await request('/extras/task?key=' + encodeURIComponent(t.key));
       if (!current()) return;
+      printDetails = {seconds: d.estimated_seconds, grams: d.material_grams};
       $('past-task-state').querySelector('span').textContent = tr(t.status);
       $('past-task-state').dataset.state = t.status_code === 3 ? 'stopped' : 'active';
       const hasDiagnostic = !!(d.reason || d.reason_code || d.help_url);
@@ -1025,7 +1029,8 @@ export function createHistory(request, command, selectedBox) {
     e.preventDefault();
     const form = e.currentTarget,
       submit = form.querySelector('[type=submit]');
-    if (submit.disabled || workshopState.busy) return;
+    const selection = reprintTask, task = selection?.task, dialog = $('task-reprint-dialog');
+    if (submit.disabled || workshopState.busy || !task || !canReprint(task)) return;
     let mapping;
     try {
       mapping = slots(form.elements.slots.value);
@@ -1043,19 +1048,17 @@ export function createHistory(request, command, selectedBox) {
     submit.disabled = true;
     const target = workshopState.selectedPrinter;
     try {
-      const advice = await filamentAdvice(request, {key: pastTaskKey, slots: mapping}, target);
-      if (target !== workshopState.selectedPrinter) return;
-      const ok = await command(
-        'task-reprint',
-        { key: pastTaskKey, slots: mapping },
-        (advice ? advice + '\n\n' : '') + formatText(
-          wording,
-          $('reprint-task-name').textContent,
-          $('reprint-target').textContent,
-          mapping.join(', '),
-        ),
-      );
-      if (ok) $('task-reprint-dialog').close();
+      const advice = await filamentAdvice(request, {key: task.key, slots: mapping}, target);
+      if (target !== workshopState.selectedPrinter || !dialog.open || selection !== reprintTask) return;
+      const confirmation = await confirmPrint({
+        target, name: task.name, advice, details: selection.details, image: selection.image,
+        question: formatText(wording, task.name, $('reprint-target').textContent, mapping.join(', ')),
+      });
+      if (!confirmation || !dialog.open || target !== workshopState.selectedPrinter || selection !== reprintTask) return;
+      const ok = await command('task-reprint', {key: task.key, slots: mapping});
+      if (ok) dialog.close();
+    } catch (error) {
+      message(error.message, true);
     } finally {
       submit.disabled = false;
     }

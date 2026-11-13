@@ -63,9 +63,10 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await page.getByRole('button',{name:'Imprimer à nouveau',exact:true}).click();
  await page.locator('#task-reprint-form [name=slots]').fill('1, 3');
  await page.locator('#task-reprint-form button[type=submit]').click();
- await expect(page.locator('#confirm-text')).toContainText('Kobra S1 · Démonstration');
- await expect(page.locator('#confirm-text')).toContainText('emplacements 1, 3');
- await page.locator('#confirm-no').click();
+ const confirmation = page.getByRole('dialog', {name:'Lancer l’impression'});
+ await expect(confirmation).toContainText('Kobra S1 · Démonstration');
+ await expect(confirmation).toContainText('emplacements 1, 3');
+ await confirmation.getByRole('button', {name:'Annuler'}).click();
  await expect(page.locator('#task-reprint-dialog')).toBeVisible();
 });
 

@@ -236,6 +236,41 @@ body:has(.workshop-frame) > dialog.confirmation-dialog[data-severity="critical"]
   border-block-start: var(--atelier-rule) solid var(--atelier-line);
 }
 .confirmation-footer .danger { background: var(--atelier-destructive-fill); border-color: var(--atelier-destructive-fill); color: white; }
+body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialog-width), calc(100% - var(--atelier-space-6))); }
+#print-dialog .confirmation-heading { justify-content: center; }
+.print-task { display: flex; gap: var(--atelier-space-2); align-items: baseline; margin-block-end: var(--atelier-space-3); }
+#print-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#print-name:is(:focus, :hover) { overflow-wrap: anywhere; white-space: normal; }
+.print-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: var(--atelier-print-preview-height);
+  border-radius: var(--atelier-card-radius);
+  background: linear-gradient(var(--atelier-print-preview-start), var(--atelier-print-preview-end));
+  color: white;
+}
+#print-printer { position: absolute; inset: var(--atelier-space-3) var(--atelier-space-4) auto; overflow-wrap: anywhere; }
+#print-image { width: 42%; height: var(--atelier-print-preview-height); object-fit: contain; }
+#print-no-preview { padding: var(--atelier-touch-control) var(--atelier-space-4) var(--atelier-modal-bar-height); }
+.print-estimates {
+  position: absolute;
+  inset: auto auto var(--atelier-space-2) var(--atelier-space-2);
+  display: grid;
+  gap: var(--atelier-active-rule);
+  margin: 0;
+  max-width: calc(100% - var(--atelier-space-4));
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  border-radius: var(--atelier-control-radius);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  font: var(--atelier-caption);
+}
+.print-estimates div { display: flex; flex-wrap: wrap; gap: 0 var(--atelier-space-2); }
+.print-estimates dd { margin: 0; font-weight: var(--atelier-semibold); }
+#print-mapping { margin-block-start: var(--atelier-space-3); }
+#print-advice { white-space: pre-line; }
+#print-dialog .confirmation-body > p { margin-block: var(--atelier-space-3) 0; }
 .reset-challenge {
   display: flex;
   align-items: center;

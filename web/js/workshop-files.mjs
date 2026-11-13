@@ -14,6 +14,7 @@ import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
 import { createFileThumbnails } from './workshop-file-previews.mjs';
 import { createUploadMotion } from './workshop-upload-motion.mjs';
+import { confirmPrint } from './workshop-print-confirmation.mjs';
 import { bindFileDialogs } from './workshop-file-dialogs.mjs';
 
 import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
@@ -189,6 +190,9 @@ export function createFiles(request, command) {
                   f.name,
                   workshopState.snapshot?.printer?.name || tr('Imprimante sélectionnée'),
                 ),
+                undefined,
+                undefined,
+                row.querySelector('img')?.currentSrc,
               );
             } catch (e) {
               message(e.message, true);
@@ -447,30 +451,28 @@ export function createFiles(request, command) {
       return;
     }
     const target = workshopState.selectedPrinter;
-    let advice = '';
-    if (data.get('mode') !== 'upload') {
+    const printing = data.get('mode') !== 'upload';
+    if (printing) {
       try {
-        advice = await filamentAdvice(request, {...await filamentMetadata(file), slots: JSON.parse(data.get('slots'))}, target);
+        const {details, ...metadata} = await filamentMetadata(file);
+        const mapping = JSON.parse(data.get('slots'));
+        const advice = await filamentAdvice(request, {...metadata, slots: mapping}, target);
+        if (target !== workshopState.selectedPrinter || file !== e.target.elements.file.files[0]) return;
+        const confirmation = await confirmPrint({
+          target, name: file.name, details, advice, question: tr('Vérifiez que le plateau est libre.'),
+          mappingText: mapping.length ? formatText('Ordre des bobines pour l’impression : {0}', mapping.join(', ')) : '',
+        });
+        if (!confirmation) return;
       } catch (err) { message(err.message, true); return; }
-    }
-    if (
-      !(await confirmAction(
-        (advice ? advice + '\n\n' : '') + formatText(
-          data.get('mode') === 'upload'
-            ? tr('Envoyer « {0} » dans votre espace cloud ?')
-            : tr('Envoyer « {0} » et lancer son impression ?'),
-          file.name,
-        ),
-      ))
-    )
-      return;
+    } else if (!(await confirmAction(formatText('Envoyer « {0} » dans votre espace cloud ?', file.name)))) return;
     if (target !== workshopState.selectedPrinter) {
       message(tr('La cible a changé : commande annulée.'), true); return;
     }
-    const chosen = e.target.elements.file.files[0],
-      intent = JSON.stringify([data.get('mode'), data.get('slots'), workshopState.selectedPrinter]);
-    if (!uploadAttempt || uploadAttempt.file !== chosen || uploadAttempt.intent !== intent)
-      uploadAttempt = { file: chosen, intent, id: crypto.randomUUID() };
+    if (workshopState.busy || file !== e.target.elements.file.files[0] ||
+        data.get('mode') !== e.target.elements.mode.value) return;
+    const intent = JSON.stringify([data.get('mode'), data.get('slots'), target]);
+    if (!uploadAttempt || uploadAttempt.file !== file || uploadAttempt.intent !== intent)
+      uploadAttempt = { file, intent, id: crypto.randomUUID() };
     data.set('request_id', uploadAttempt.id);
     setBusy(true);
     setUploadPending(true);

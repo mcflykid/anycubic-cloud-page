@@ -38,12 +38,15 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [31-renommer-cloud.png](31-renommer-cloud.png) | Renommage Cloud avec extension conservée. |
 | [32-telecharger-cloud.png](32-telecharger-cloud.png) | Fenêtre de téléchargement Cloud. |
 | [33-confirmation.png](33-confirmation.png) | Confirmation de suppression d’un fichier Cloud. |
+| [34-confirmation-impression.png](34-confirmation-impression.png) | Confirmation avant impression d’un G-code de démonstration. |
+| [35-confirmation-impression-mobile.png](35-confirmation-impression-mobile.png) | Même fenêtre à 390 px. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
 La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les captures de bureau mesurent 1 920 × 1 080 px. La vue mobile mesure 390 × 844 px. Ne jamais utiliser un compte réel pour produire les images publiques.
 
 `node scripts/capture_demo.cjs --dialogs` actualise les captures des fenêtres de la version 1.13.0.
+`node scripts/capture_demo.cjs --print-confirmation` actualise les captures du lancement d’impression.
 
 ## Comparaison historique avec la version 1.8.0
 

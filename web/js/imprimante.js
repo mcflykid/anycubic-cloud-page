@@ -13,6 +13,7 @@ import { workshopState } from './workshop-state.mjs';
 import { createRequest } from './workshop-api.mjs';
 import { createCamera } from './workshop-camera.mjs';
 import { createTemperatureLoader } from './workshop-temperatures.mjs';
+import { updatePrintConfirmation } from './workshop-print-confirmation.mjs';
 import { createCommands } from './workshop-commands.mjs';
 import { createOverview } from './workshop-overview.mjs';
 import { createAce } from './workshop-ace.mjs';
@@ -139,6 +140,7 @@ async function refreshState() {
       connectionFailure = false;
     }
     workshopState.snapshot = d;
+    updatePrintConfirmation(d.ok === true);
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
@@ -198,6 +200,7 @@ async function refreshState() {
     files.update();
   } catch {
     if (received) console.warn('Échec du rendu après réception de l’état de l’atelier.');
+    else updatePrintConfirmation(false);
     settings.disableQuickControls();
     connectionFailure = true;
     set('connection', tr('Connexion indisponible'));

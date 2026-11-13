@@ -1,6 +1,7 @@
 import { openErrorSheet } from './workshop-error-catalogue.mjs';
 import { $, confirmAction, formatText, message, set, tr } from './workshop-ui.mjs';
 import { workshopState, setBusy } from './workshop-state.mjs';
+import { confirmPrint } from './workshop-print-confirmation.mjs';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {
@@ -74,8 +75,8 @@ export function createCommands(request, refresh) {
       dialog.showModal();
     });
   }
-  /** Renvoie le résultat ou null ; confirmSensitive permet de valider le mot de passe dans le formulaire d’origine. */
-  async function command(action, data = {}, question, feedback, confirmSensitive) {
+  /** Renvoie le résultat ou null ; l’aperçu reste dans l’interface et ne fait pas partie de la commande. */
+  async function command(action, data = {}, question, feedback, confirmSensitive, image) {
     const notify = (text, error, sheet) => {
       message(text, error);
       feedback?.(text, sheet);
@@ -103,9 +104,12 @@ export function createCommands(request, refresh) {
       'cloud-delete-many': formatText('Supprimer {0} fichiers', data.handles?.length),
       'task-delete-many': tr('Retirer la sélection'),
     };
-    if (question && !sensitive &&
-        !(await confirmAction(question, filePrint, destructiveLabels[action]))) return null;
-    if (filePrint) data = { ...data, slots: slots($('file-slots').value) };
+    if (filePrint) {
+      const confirmation = await confirmPrint({target, name: data.name, details: data.details, image, question, readSlots: slots});
+      if (!confirmation) return null;
+      data = { ...data, slots: confirmation.slots };
+    } else if (question && !sensitive &&
+        !(await confirmAction(question, destructiveLabels[action]))) return null;
     if (action === 'idle-settings') data = { ...data, confirmed: !!question || data.confirmed === true };
     if (target !== workshopState.selectedPrinter) {
       notify(tr('La cible a changé : commande annulée.'), true);
@@ -165,15 +169,33 @@ export async function filamentAdvice(request, data, printerKey = workshopState.s
   return (result.warnings || []).filter(code => Object.hasOwn(labels, code)).map(code => tr(labels[code])).join('\n');
 }
 
-/** Lit seulement l’en-tête de commentaires G-code ; aucune commande du fichier n’est exécutée. */
+/** Lit les commentaires de tranche aux deux extrémités du G-code, sans lire le fichier complet. */
 export async function filamentMetadata(file) {
   const header = await file.slice(0, 65536).text();
-  const field = key => header.match(new RegExp(`^;\\s*${key}\\s*=\\s*([^\\r\\n]*)`, 'mi'))?.[1]
+  const tail = file.size > 65536 ? await file.slice(Math.max(65536, file.size - 65536)).text() : '';
+  const comments = header + '\n' + tail;
+  const field = key => comments.match(new RegExp(`^;[ \\t]*${key}[ \\t]*=[ \\t]*([^\\r\\n]*)`, 'mi'))?.[1]
     ?.split(';').slice(0, 16).map(value => value.trim()) || [];
   const rawColors = field('filament_(?:colour|color)');
+  // Les commentaires générés par le trancheur donnent la durée et les quantités dans des unités explicites.
+  const duration = field('estimated printing time \\(normal mode\\)')[0]
+    ?.match(/^(?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s)?$/);
+  const quantities = values => {
+    const parts = values.flatMap(value => value.split(',').map(part => part.trim()));
+    if (!parts.length || !parts.every(value => /^\d+(?:\.\d+)?$/.test(value))) return undefined;
+    return parts.reduce((total, value) => total + Number(value), 0);
+  };
+  const millimetres = quantities(field('filament used \\[mm\\]'));
   return {
     materials: field('filament_type').filter(value => value.length <= 48),
     colors: rawColors.every(value => /^#[0-9a-f]{6}$/i.test(value))
       ? rawColors.map(value => [1, 3, 5].map(offset => parseInt(value.slice(offset, offset + 2), 16))) : [],
+    details: {
+      seconds: duration?.slice(1).some(Boolean)
+        ? duration.slice(1).reduce((total, value, index) => total + (Number(value) || 0) * [86400, 3600, 60, 1][index], 0)
+        : undefined,
+      grams: quantities(field('total filament used \\[g\\]')) ?? quantities(field('filament used \\[g\\]')),
+      metres: millimetres == null ? undefined : millimetres / 1000,
+    },
   };
 }

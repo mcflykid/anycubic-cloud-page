@@ -175,6 +175,25 @@ async function captureWorkshopDialogs(page) {
   await capture('#file-rows tr:first-child [aria-label="Supprimer"]', '#confirm-dialog', '33-confirmation.png');
 }
 
+/** Montre la fenêtre de lancement avec les seules estimations du fichier fictif. */
+async function capturePrintConfirmation(page) {
+  await openSection(page, 'upload');
+  const form = page.locator('#upload-form');
+  await form.locator('input[type=file]').setInputFiles({
+    name:'Pièce de démonstration.gcode', mimeType:'text/plain',
+    buffer:Buffer.from('; filament_type = PLA\n; estimated printing time (normal mode) = 14h 15m\n; total filament used [g] = 193.4\n; filament used [mm] = 64850\nG1 X1\n'),
+  });
+  await form.locator('[name=mode]').selectOption('save-print');
+  await form.locator('[name=slots]').fill('1');
+  await form.locator('button[type=submit]').click();
+  const dialog = page.locator('#print-dialog');
+  await dialog.waitFor();
+  await photo(page, '34-confirmation-impression.png');
+  await page.setViewportSize(mobile);
+  await photo(page, '35-confirmation-impression-mobile.png');
+  await page.keyboard.press('Escape');
+}
+
 async function main() {
   const port = process.env.UI_PORT || '8765';
   const base = 'http://127.0.0.1:' + port;
@@ -193,6 +212,11 @@ async function main() {
     if (!ready) throw new Error('Démonstration locale indisponible');
     browser = await chromium.launch();
     const page = await browser.newPage({viewport:desktop, reducedMotion:'reduce', locale:'fr-FR'});
+    if (process.argv.includes('--print-confirmation')) {
+      await signIn(page, base);
+      await capturePrintConfirmation(page);
+      return;
+    }
     if (process.argv.includes('--dialogs')) {
       await signIn(page, base);
       await captureWorkshopDialogs(page);

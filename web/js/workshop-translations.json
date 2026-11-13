@@ -5654,5 +5654,37 @@
   "Import impossible. Vérifiez le fichier et le stockage du navigateur.": [
     "Import failed. Check the file and browser storage.",
     "No se pudo importar. Comprueba el archivo y el almacenamiento del navegador."
+  ],
+  "Lancer l’impression": [
+    "Start print",
+    "Iniciar impresión"
+  ],
+  "Tâche d’impression": [
+    "Print job",
+    "Tarea de impresión"
+  ],
+  "Durée estimée": [
+    "Estimated time",
+    "Duración estimada"
+  ],
+  "Donnée inconnue": [
+    "Unknown",
+    "Dato desconocido"
+  ],
+  "Masse inconnue": [
+    "Unknown weight",
+    "Masa desconocida"
+  ],
+  "Longueur inconnue": [
+    "Unknown length",
+    "Longitud desconocida"
+  ],
+  "Vérifiez que le plateau est libre.": [
+    "Make sure the build plate is clear.",
+    "Comprueba que la base de impresión esté despejada."
+  ],
+  "Ordre des bobines pour l’impression : {0}": [
+    "Spool order for this print: {0}",
+    "Orden de las bobinas para esta impresión: {0}"
   ]
 }

@@ -1,22 +1,71 @@
 const {test,expect}=require('@playwright/test');
-const {login}=require('./helpers.cjs');
+const {login, openSection}=require('./helpers.cjs');
 
 test('les divergences de bobines sont affichées avant le lancement, sans blocage après confirmation',async({page})=>{
   let uploads=0;
   await page.route('**/imprimante-api/upload',route=>{uploads++;return route.fulfill({json:{ok:true,message:'Envoi fictif accepté'}});});
   await login(page);
   await page.getByRole('button',{name:'Envoyer et imprimer',exact:true}).click();
-  await page.locator('#upload-form input[type=file]').setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('; filament_type = ABS\n; filament_colour = #000000\nG1 X1\n')});
+  await page.locator('#upload-form input[type=file]').setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('; filament_type = ABS\n; filament_colour = #000000\n; estimated printing time (normal mode) = 14h 15m\n; total filament used [g] = 193.4\n; filament used [mm] = 64850\nG1 X1\n')});
   await page.locator('#upload-form [name=mode]').selectOption('save-print');
   await page.locator('#upload-form [name=slots]').fill('1');
   await page.locator('#upload-form button[type=submit]').click();
-  await expect(page.locator('#confirm-text')).toContainText('Le matériau du fichier diffère');
-  await expect(page.locator('#confirm-text')).toContainText('La couleur du fichier diffère');
-  await expect(page.locator('#confirm-text')).toContainText('groupes de température différents');
+  const dialog = page.getByRole('dialog', {name:'Lancer l’impression'});
+  await expect(dialog).toContainText('Le matériau du fichier diffère');
+  await expect(dialog).toContainText('La couleur du fichier diffère');
+  await expect(dialog).toContainText('groupes de température différents');
+  await expect(dialog).toContainText('14 h 15 min');
+  await expect(dialog).toContainText('193,4 g / 64,85 m');
   expect(uploads).toBe(0);
-  await page.locator('#confirm-yes').click();
+  await dialog.getByRole('button', {name:'Lancer l’impression',exact:true}).click();
   await expect.poll(()=>uploads).toBe(1);
 });
+
+for (const [language, title, theme] of [
+  ['fr','Lancer l’impression','light'], ['en','Start print','dark'], ['es','Iniciar impresión','light'],
+]) {
+  test(`la confirmation mobile garde les actions accessibles en ${language}`, async ({page}) => {
+    await page.setViewportSize({width:390,height:640});
+    let available = true, uploads = 0;
+    await page.route('**/imprimante-api/status', async route => {
+      const response = await route.fetch(), json = await response.json();
+      json.printer.is_available = available;
+      await route.fulfill({response,json});
+    });
+    await page.route('**/imprimante-api/upload', route => {
+      uploads++;
+      return route.fulfill({json:{ok:true}});
+    });
+    await login(page);
+    await page.evaluate(({language,theme}) => {
+      localStorage.setItem('cloud-page-language',language);
+      localStorage.setItem('cloud-page-theme',theme);
+    }, {language,theme});
+    await page.reload();
+    await openSection(page, 'upload');
+    const form = page.locator('#upload-form');
+    const name = 'Fichier de démonstration avec un nom suffisamment long pour dépasser la largeur sur mobile.gcode';
+    await form.locator('input[type=file]').setInputFiles({name,mimeType:'text/plain',buffer:Buffer.from('G1 X1\n')});
+    await form.locator('[name=mode]').selectOption('temp-print');
+    const submit = form.locator('button[type=submit]');
+    await submit.click();
+    const dialog = page.getByRole('dialog', {name:title});
+    await expect(dialog.locator('#print-name')).toHaveAttribute('title',name);
+    await expect(dialog.locator('#print-no')).toBeFocused();
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await expect(dialog.getByRole('button',{name:title})).toBeInViewport();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(submit).toBeFocused();
+    await submit.click();
+    await expect(dialog.getByRole('button',{name:title})).toBeEnabled();
+    available = false;
+    await expect(dialog.getByRole('button',{name:title})).toBeDisabled({timeout:8000});
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    expect(uploads).toBe(0);
+  });
+}
 
 for(const [code,see,unload] of [['fr','Voir','Retirer'],['en','View','Unload'],['es','Ver','Retirar']]){
   test(`vocabulaire ACE et dialogue de retrait en ${code}`,async({page})=>{

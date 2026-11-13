@@ -139,12 +139,13 @@ test('l’ordre des bobines se règle dans la confirmation du fichier choisi', a
  await page.locator('[data-source=cloud]').click();
  const row = page.locator('#file-rows tr').first();
  await row.getByRole('button', {name:'Imprimer',exact:true}).click();
- const dialog = page.locator('#confirm-dialog');
+ const dialog = page.getByRole('dialog', {name:'Lancer l’impression'});
  await expect(dialog).toContainText('Kobra S1 · Démonstration');
+ await expect(dialog).toContainText('Aperçu indisponible');
  await expect(dialog).toContainText('Vérifiez que le plateau est libre.');
- await dialog.locator('#file-slots').fill('1, 3, 2');
+ await dialog.locator('#print-slots').fill('1, 3, 2');
  expect(commands).toHaveLength(0);
- await dialog.getByRole('button', {name:'Confirmer',exact:true}).click();
+ await dialog.getByRole('button', {name:'Lancer l’impression',exact:true}).click();
  await expect.poll(() => commands.length).toBe(1);
  expect(commands[0]).toMatchObject({action:'print-cloud',slots:[1,3,2]});
 });

@@ -308,7 +308,7 @@ export function message(text, error = false) {
   $('message').classList.toggle('error', error);
 }
 /** Renvoie une promesse booléenne ; un libellé destructif donne la priorité à l’annulation. */
-export function confirmAction(text, showFileSlots = false, destructiveLabel = '') {
+export function confirmAction(text, destructiveLabel = '') {
   return new Promise((resolve) => {
     const d = $('confirm-dialog');
     const yes = $('confirm-yes'), no = $('confirm-no');
@@ -317,7 +317,6 @@ export function confirmAction(text, showFileSlots = false, destructiveLabel = ''
     d.dataset.severity = destructiveLabel ? 'destructive' : 'ordinary';
     yes.classList.toggle('primary', !destructiveLabel);
     yes.classList.toggle('danger', !!destructiveLabel);
-    $('file-mapping-form').hidden = !showFileSlots;
     d.showModal();
     if (destructiveLabel) no.focus();
     let settled = false;

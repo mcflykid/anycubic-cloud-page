@@ -17,7 +17,7 @@ const helpById = {
   'temperature-hours': tr(
     'Choisir la période affichée, parmi les relevés des dernières 24 heures.',
   ),
-  'file-slots': tr(
+  'print-slots': tr(
     'Un numéro d’emplacement de l’ACE par couleur du G-code, dans l’ordre. Laissez vide pour utiliser la bobine externe.',
   ),
 };
