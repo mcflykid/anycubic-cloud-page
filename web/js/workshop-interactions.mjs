@@ -28,6 +28,7 @@ export function initializeInteractions() {
   input.setAttribute('aria-label', tr('Rechercher une section'));
   input.setAttribute('role', 'combobox');
   input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-haspopup', 'listbox');
   input.setAttribute('aria-controls', 'quick-results');
   input.setAttribute('aria-expanded', 'false');
   input.placeholder = tr('Rechercher une section');
@@ -82,11 +83,11 @@ export function initializeInteractions() {
     ];
     let total = 0;
     results.replaceChildren();
-    input.removeAttribute('aria-activedescendant');
     if (!query) for (const term of recent) {
       const previous = node('button', term);
       previous.type = 'button';
       previous.setAttribute('role', 'option');
+      previous.setAttribute('aria-selected', 'false');
       previous.onclick = () => { input.value = term; render(); input.focus(); };
       results.append(previous);
     }
@@ -104,6 +105,7 @@ export function initializeInteractions() {
       for (const [name, action] of matching) {
         const choice = node('button', name); choice.type = 'button';
         choice.setAttribute('role', 'option');
+        choice.setAttribute('aria-selected', 'false');
         choice.onclick = () => {
           const term = input.value.trim().slice(0, 100);
           if (term) {
@@ -144,6 +146,10 @@ export function initializeInteractions() {
   input.onkeydown = event => {
     if (event.key === 'ArrowDown') { event.preventDefault(); results.querySelector('button')?.focus(); }
     if (event.key === 'Enter') { event.preventDefault(); results.querySelector('button')?.click(); }
+  };
+  results.onfocusin = event => {
+    for (const option of results.querySelectorAll('[role=option]'))
+      option.setAttribute('aria-selected', String(option === event.target));
   };
   results.onkeydown = event => {
     if (!['ArrowDown','ArrowUp'].includes(event.key)) return;
