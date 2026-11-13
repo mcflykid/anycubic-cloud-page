@@ -1,5 +1,10 @@
 # Changements
 
+## 1.17.0 — 2026-11-13
+
+- Ajoute un réglage de contraste élevé pour les trois styles et les modes clair et sombre (#360).
+- Ajoute l’allemand et l’italien à l’atelier et aux notifications Discord (#361).
+
 ## 1.16.0 — 2026-11-13
 
 - Ajoute la galerie d’impressions, les notes et étiquettes locales, les filtres des fichiers et la recherche rapide (#352, #353, #354, #355).

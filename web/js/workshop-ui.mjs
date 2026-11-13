@@ -1,5 +1,5 @@
 const preference = 'cloud-page-language';
-const locales = { fr: 'fr-FR', en: 'en', es: 'es' };
+const locales = { fr: 'fr-FR', en: 'en', es: 'es', de: 'de-DE', it: 'it-IT' };
 const catalogueURL = new URL('./workshop-translations.json', import.meta.url);
 const catalogueIntegrity = '__CATALOGUE_INTEGRITY__';
 let language = 'fr',
@@ -63,7 +63,7 @@ async function initializeLanguage() {
   try {
     requested = localStorage.getItem(preference) || 'fr';
   } catch {}
-  if (requested === 'en' || requested === 'es') {
+  if (requested !== 'fr' && Object.hasOwn(locales, requested)) {
     const controller = new AbortController();
     const deadline = setTimeout(() => controller.abort(), 1400);
     try {
@@ -80,7 +80,7 @@ async function initializeLanguage() {
         !Object.values(translations).every(
           (entry) =>
             entry && !Array.isArray(entry) && typeof entry === 'object' &&
-            ['en', 'es'].every(code => typeof entry[code] === 'string'),
+            ['en', 'es', 'de', 'it'].every(code => typeof entry[code] === 'string'),
         )
       ) {
         throw new Error('Catalogue invalide');

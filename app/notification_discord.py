@@ -37,26 +37,64 @@ _LANGUAGES = {
         "Código de error",
         "Prueba de notificaciones de Anycubic Cloud Page.",
     ),
+    "de": (
+        "Druck abgeschlossen",
+        "Druck fehlgeschlagen",
+        "Drucker",
+        "Fehlercode",
+        "Testbenachrichtigung von Anycubic Cloud Page.",
+    ),
+    "it": (
+        "Stampa completata",
+        "Stampa non riuscita",
+        "Stampante",
+        "Codice di errore",
+        "Notifica di prova di Anycubic Cloud Page.",
+    ),
 }
 
 ACE_TITLES = {
-    "ace_drying_done": ("Séchage ACE terminé", "ACE drying completed", "Secado ACE terminado"),
+    "ace_drying_done": (
+        "Séchage ACE terminé",
+        "ACE drying completed",
+        "Secado ACE terminado",
+        "ACE-Trocknung abgeschlossen",
+        "Asciugatura ACE completata",
+    ),
     "ace_drying_interrupted": (
         "Séchage ACE interrompu",
         "ACE drying interrupted",
         "Secado ACE interrumpido",
+        "ACE-Trocknung unterbrochen",
+        "Asciugatura ACE interrotta",
     ),
-    "ace_feed_done": ("Filament chargé", "Filament loaded", "Filamento cargado"),
-    "ace_retract_done": ("Filament retiré", "Filament unloaded", "Filamento retirado"),
+    "ace_feed_done": (
+        "Filament chargé",
+        "Filament loaded",
+        "Filamento cargado",
+        "Filament geladen",
+        "Filamento caricato",
+    ),
+    "ace_retract_done": (
+        "Filament retiré",
+        "Filament unloaded",
+        "Filamento retirado",
+        "Filament entladen",
+        "Filamento scaricato",
+    ),
     "ace_load_failed": (
         "Chargement ou retrait non confirmé",
         "Loading or unloading unconfirmed",
         "Carga o retirada sin confirmar",
+        "Laden oder Entladen nicht bestätigt",
+        "Caricamento o scaricamento non confermato",
     ),
     "ace_filament_low": (
         "Filament bientôt épuisé",
         "Filament running low",
         "Filamento a punto de agotarse",
+        "Filament geht zur Neige",
+        "Filamento in esaurimento",
     ),
 }
 
@@ -152,12 +190,20 @@ def format_message(event, config):
         )
         content = f"**{title}**\n{name} · {at}"
         if titles and event.slot is not None:
-            slot = {"fr": "Emplacement", "en": "Slot", "es": "Ranura"}[config.language]
+            slot = {
+                "fr": "Emplacement",
+                "en": "Slot",
+                "es": "Ranura",
+                "de": "Steckplatz",
+                "it": "Alloggiamento",
+            }[config.language]
             content += f"\n{slot} {event.slot + 1}"
         if event.code:
             content += f"\n{code} {event.code}"
             if title := notification_error_title(event.code, config.language):
                 content += f" · {clean_label(title, 100)}"
+                if event.result == "ace_load_failed":
+                    content += "\nhttps://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/NOTIFICATIONS.md"
         if config.include_filename and (filename := clean_label(event.filename, 140)):
             content += f"\n{filename}"
     return message_payload(content)

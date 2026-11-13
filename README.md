@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.11.0**. [Changements](CHANGELOG.md).
+Version **1.17.0**. [Changements](CHANGELOG.md).
 
 **L’atelier Anycubic dans une page web autonome, sans garder AnycubicSlicerNext ouvert.**
 
@@ -23,6 +23,8 @@ Ce projet transforme les fonctions d’atelier du cloud Anycubic en une interfac
 Projet communautaire indépendant, issu d’essais sur une **Kobra S1 Combo + ACE 2 Pro**. Il utilise des services privés du constructeur : il ne constitue pas une API officielle ni une promesse de compatibilité avec tous les modèles. Les travaux de [ljschmitt/hass-anycubic_cloud_v3](https://github.com/ljschmitt/hass-anycubic_cloud_v3) fournissent le moteur cloud initial ; nos adaptations et observations sont [créditées et documentées](THIRD_PARTY_NOTICES.md).
 
 ![Vue de l’imprimante — données de démonstration](screenshots/10-session.jpg)
+
+L’atelier propose le français, l’anglais, l’espagnol, l’allemand et l’italien. Les traductions allemande et italienne sont vérifiées automatiquement et restent ouvertes aux corrections de locuteurs natifs.
 
 ## Démarrage rapide
 
@@ -50,7 +52,7 @@ La fiche d’historique peut proposer une réimpression après confirmation de l
 
 ## Les dix onglets
 
-Le sélecteur de langue, placé avant la cloche, mémorise le français, l’anglais ou l’espagnol dans le navigateur. Si le catalogue de traduction ne se charge pas, l’atelier et la connexion utilisent le français.
+Le sélecteur de langue, placé avant la cloche, mémorise le français, l’anglais, l’espagnol, l’allemand ou l’italien dans le navigateur. Si le catalogue de traduction ne se charge pas, l’atelier et la connexion utilisent le français.
 
 Les captures ci-dessous proviennent du **mode démonstration**, avec des données fictives. Elles ne montrent aucun compte réel, aucun identifiant d’imprimante, ni aucun flux vidéo privé. Les captures originales sont dans [`screenshots/`](screenshots/README.md).
 

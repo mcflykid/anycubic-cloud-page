@@ -109,7 +109,7 @@ def discord_enabled(app, *, reports=False):
 def discord_page(delivery, message="", status=200, *, report=False):
     """Affiche les réglages sans inclure le webhook enregistré dans le HTML."""
     config = delivery.config
-    selected = {"fr": "", "en": "", "es": ""}
+    selected = dict.fromkeys(("fr", "en", "es", "de", "it"), "")
     selected[config.language] = " selected"
     labels = {
         "sent": "Dernier envoi confirmé.",
@@ -178,7 +178,7 @@ def discord_page(delivery, message="", status=200, *, report=False):
         <span class="discord-secret-control"><input id="discord-url" type="password" name="url" maxlength="250" autocomplete="off" placeholder="{hidden_placeholder}"><button id="discord-reveal" class="atelier-control atelier-control-icon" type="button" aria-label="Afficher l’adresse du webhook" aria-pressed="false" {"disabled" if not config.url else ""}><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>
       </div>
       <div class="discord-form-row">
-        <label for="discord-language">Langue du message<select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option></select></label>
+        <label for="discord-language">Langue du message<select id="discord-language" name="language"><option value="fr"{selected["fr"]}>Français</option><option value="en"{selected["en"]}>English</option><option value="es"{selected["es"]}>Español</option><option value="de"{selected["de"]}>Deutsch</option><option value="it"{selected["it"]}>Italiano</option></select></label>
         <label for="discord-password">Mot de passe web<input id="discord-password" type="password" name="password" maxlength="2048" required autocomplete="current-password"></label>
       </div>
       <div class="discord-form-row discord-check-row">

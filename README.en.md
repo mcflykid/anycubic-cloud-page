@@ -1,6 +1,6 @@
 # Anycubic Cloud Page
 
-Version **1.11.0**. [Changelog](CHANGELOG.md).
+Version **1.17.0**. [Changelog](CHANGELOG.md).
 
 **A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
 
@@ -38,7 +38,7 @@ The image follows `latest`; pin a published image tag in compose.yaml if you nee
 
 ## Screens
 
-The language selector next to the notification bell remembers French, English or Spanish in the browser. If the translation catalogue cannot load, the workshop and sign-in page use French.
+The language selector next to the notification bell remembers French, English, Spanish, German or Italian in the browser. German and Italian are automatically checked and have not received a native-speaker review. If the translation catalogue cannot load, the workshop and sign-in page use French.
 
 | Tab | Features | Screenshot |
 | --- | --- | --- |

@@ -35,8 +35,6 @@ def notification_error_title(code, language="fr"):
     if not sheet:
         return ""
     title = sheet["title"]
-    if language not in ("en", "es"):
-        return title
     return _translations().get(title, {}).get(language, title)
 
 

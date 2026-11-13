@@ -47,6 +47,26 @@ _LABELS = {
         "Filamento registrado: {total:g} g ({known}/{count})",
         "Códigos de parada confirmados",
     ),
+    "de": (
+        "Druckbericht",
+        "Test des Druckberichtskanals.",
+        "In diesem Zeitraum wurden keine Drucke abgeschlossen oder gestoppt.",
+        "Der Verlauf ist unvollständig oder nicht verfügbar.",
+        "Abgeschlossen: {done} · Gestoppt: {stopped}",
+        "Gemeldete Dauer: {total:g} min ({known}/{count})",
+        "Gemeldetes Filament: {total:g} g ({known}/{count})",
+        "Bestätigte Abbruchcodes",
+    ),
+    "it": (
+        "Rapporto di stampa",
+        "Prova del canale dei rapporti di stampa.",
+        "Nessuna stampa completata o interrotta in questo periodo.",
+        "Cronologia incompleta o non disponibile.",
+        "Completate: {done} · Interrotte: {stopped}",
+        "Durata riportata: {total:g} min ({known}/{count})",
+        "Filamento riportato: {total:g} g ({known}/{count})",
+        "Codici di arresto confermati",
+    ),
 }
 
 

@@ -1,4 +1,4 @@
-"""Vérifie que les libellés statiques de l’atelier et de la connexion ont deux traductions."""
+"""Vérifie que les libellés statiques de l’atelier et de la connexion ont quatre traductions."""
 
 from html.parser import HTMLParser
 import json
@@ -16,6 +16,8 @@ INVARIANT = {
     "GPL-3.0-or-later",
     "#B1B3B3",
     "English",
+    "Deutsch",
+    "Italiano",
     "Español",
     "Français",
     "1 mm",
@@ -78,16 +80,22 @@ class VisibleLabels(HTMLParser):
 class TranslationTests(unittest.TestCase):
     """Protège la couverture des pages lors de l’ajout de nouveaux libellés."""
 
-    def test_static_pages_have_english_and_spanish_labels(self):
+    def test_static_pages_have_all_supported_languages(self):
         """Échoue si une page contient un texte manquant dans le catalogue."""
         catalogue = json.loads((ROOT / "js/workshop-translations.json").read_text())
         for key, translations in catalogue.items():
             self.assertIsInstance(translations, dict, key)
-            self.assertTrue({"en", "es"} <= translations.keys(), key)
+            self.assertTrue({"en", "es", "de", "it"} <= translations.keys(), key)
             self.assertTrue(
                 all(isinstance(value, str) and value.strip() for value in translations.values()),
                 key,
             )
+            for code in ("de", "it"):
+                self.assertEqual(
+                    sorted(re.findall(r"\{[^{}]+\}", translations[code])),
+                    sorted(re.findall(r"\{[^{}]+\}", translations["en"])),
+                    (key, code),
+                )
         for page in sorted(ROOT.glob("*.html")):
             with self.subTest(page=page.name):
                 parser = VisibleLabels()
