@@ -307,11 +307,13 @@ export function printTimeline(id, events = []) {
     preheating: 'Préchauffage', leveling: 'Mise à niveau du plateau',
     printing: 'Impression en cours', paused: 'En pause', resumed: 'Impression reprise',
     finished: 'Impression terminée', failed: 'Impression arrêtée', spool: 'Changement de bobine',
+    filament_low: 'Filament bientôt épuisé',
   };
   section.querySelector('ol').replaceChildren(...events.filter(event => labels[event.kind]).map(event => {
     const slots = event.kind === 'spool' ? event.slots.map(([box, slot]) =>
       formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
-    return node('li', [date(event.time), tr(labels[event.kind]), slots].filter(Boolean).join(' · '));
+    const shortages = event.kind === 'filament_low' ? (event.shortages || []).map(slot => formatText('Emplacement {0}', slot)).join(', ') : '';
+    return node('li', [date(event.time), tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · '));
   }));
 }
 /** Renvoie l’élément HTML par identifiant ; les contrôles de cette page partagent ce point d’accès. */

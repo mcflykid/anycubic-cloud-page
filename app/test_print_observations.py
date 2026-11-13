@@ -21,6 +21,17 @@ class TimelineTests(unittest.TestCase):
         )
         self.assertEqual(observe_timeline([], {"job_state": "finished"}, 100), [])
 
+    def test_shortage_is_recorded_once_per_slot(self):
+        """Un risque de manque persistant n’ajoute qu’une ligne par emplacement."""
+        from print_observations import observe_timeline
+
+        job = {"job_state": "printing", "filament_shortfalls": [{"slot": 3}]}
+        events = observe_timeline([], job, 100)
+        events = observe_timeline(events, job, 110)
+        self.assertEqual(events[-1]["kind"], "filament_low")
+        self.assertEqual(events[-1]["shortages"], [3])
+        self.assertIs(observe_timeline(events, job, 120), events)
+
 
 class FinishEstimateTests(unittest.TestCase):
     """La correction exige des durées comparables et une vitesse stable."""

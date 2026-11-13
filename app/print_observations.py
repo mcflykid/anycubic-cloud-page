@@ -74,13 +74,32 @@ def observe_timeline(events, job, stamp):
         if state == "printing"
         else []
     )
+    shortages = sorted(
+        {
+            item["slot"]
+            for item in job.get("filament_shortfalls") or []
+            if type(item.get("slot")) is int and item["slot"] > 0
+        }
+    )
+    known_shortages = {
+        slot
+        for event in events
+        if event.get("kind") == "filament_low"
+        for slot in event.get("shortages", [])
+    }
+    new_shortages = [slot for slot in shortages if slot not in known_shortages]
     if previous.get("state") != state:
         kind = "resumed" if previous.get("state") == "paused" and state == "printing" else state
     elif state == "printing" and slots and previous.get("slots") and slots != previous["slots"]:
         kind = "spool"
+    elif state == "printing" and new_shortages:
+        kind = "filament_low"
     else:
         return events
-    return [*events, {"kind": kind, "state": state, "time": stamp, "slots": slots}][-200:]
+    entry = {"kind": kind, "state": state, "time": stamp, "slots": slots}
+    if kind == "filament_low":
+        entry["shortages"] = new_shortages
+    return [*events, entry][-200:]
 
 
 def read_timelines(path):
