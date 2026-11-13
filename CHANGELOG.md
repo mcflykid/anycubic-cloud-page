@@ -1,5 +1,12 @@
 # Changements
 
+## 1.18.1 — 2026-11-13
+
+- Aligne Matériel et compteurs, Entretien, File d’attente, Détails de la tâche, fiches filament, Accès rapide, Réglages et pages Discord sur leurs maquettes (#373, #374, #375, #376, #377, #378, #379, #380, #381, #382).
+- Propose les opérations d’entretien du wiki Kobra S1 en jours, kg de filament ou heures ; l’axe X n’est plus à graisser (#374).
+- Corrige la fin prévue avec l’historique, qui ne s’appliquait jamais (#384).
+- Lit les ventilateurs Auxiliaire et Circulation dans le projet Cloud quand la S1 ne les transmet pas pendant l’impression (#383).
+
 ## 1.18.0 — 2026-11-13
 
 - Retire le bandeau lorsque le Cloud répond. Sa fermeture manuelle est conservée pour l’incident en cours et un refus de renouvellement demande une reconnexion (#370).
