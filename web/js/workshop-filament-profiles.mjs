@@ -97,21 +97,33 @@ function showProfile(spool, title, hex, name, profile, personal) {
   $('filament-profile-dialog').showModal();
 }
 
-/** Ouvre la fiche associée à l’emplacement ACE, ou le formulaire d’import si l’identité reste inconnue. */
-export function openFilamentProfile(spool, {printer, box, slot, displaySlot}) {
-  const title = formatText('Emplacement {0}', displaySlot), hex = spoolPalette(spool);
-  const material = spool.material_type;
+/** Résout aussi les associations personnelles pour proposer la même action depuis les deux fenêtres. */
+function profileSelection(spool, {printer, box, slot}) {
+  const hex = spoolPalette(spool);
   const position = JSON.stringify([printer, box, slot]);
   // Le restant varie avec l’impression et ne fait donc pas partie de l’identité.
-  const signature = JSON.stringify([material, hex, spool.rfid, spool.spool_loaded]);
+  const signature = JSON.stringify([spool.material_type, hex, spool.rfid, spool.spool_loaded]);
   const reference = spool.filament_profile;
   if (spool.spool_loaded !== false && spool.rfid === true && Object.hasOwn(manufacturerProfiles, reference))
-    return showProfile(spool, title, hex, reference, manufacturerProfiles[reference], false);
+    return {hex, position, signature, name: reference, profile: manufacturerProfiles[reference], personal: false};
 
   const saved = readCustomProfiles();
   const assignment = saved.assignments.find(entry => entry?.position === position && entry.signature === signature);
-  const personal = saved.profiles.find(profile => profile.name === assignment?.name);
-  if (personal) return showProfile(spool, title, hex, personal.name, personal, true);
+  const profile = saved.profiles.find(entry => entry.name === assignment?.name);
+  return {hex, position, signature, name: profile?.name, profile, personal: true};
+}
+
+/** Choisit le libellé selon la disponibilité d’une fiche dans ce navigateur. */
+export function filamentProfileAction(spool, position) {
+  return tr(profileSelection(spool, position).profile ? 'Fiche filament' : 'Créer sa fiche filament');
+}
+
+/** Ouvre la fiche associée à l’emplacement ACE, ou le formulaire d’import si l’identité reste inconnue. */
+export function openFilamentProfile(spool, target) {
+  const title = formatText('Emplacement {0}', target.displaySlot);
+  const material = spool.material_type;
+  const {hex, position, signature, name, profile, personal} = profileSelection(spool, target);
+  if (profile) return showProfile(spool, title, hex, name, profile, personal);
 
   const create = $('filament-profile-create'), upload = $('filament-profile-import');
   set('filament-profile-create-slot', material ? title + ' · ' + material : title);

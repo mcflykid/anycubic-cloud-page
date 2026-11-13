@@ -110,6 +110,10 @@ test('un emplacement inconnu propose uniquement la création et retrouve sa fich
  await trigger.click();
  await expect(create).toBeVisible();
  await expect(profile).toBeHidden();
+ await page.keyboard.press('Escape');
+ await page.locator('#spools .ace-spool-row').first().getByRole('button', {name:'Voir', exact:true}).click();
+ await page.locator('#spool-dialog').getByRole('button', {name:'Créer sa fiche filament'}).click();
+ await expect(create).toBeVisible();
  await expect(create.getByRole('link', {name: 'Tutoriel de création d’une fiche'})).toBeVisible();
  const input = create.getByLabel('Importer une fiche JSON');
  const fixture = {name: 'Mon PLA fictif', url: 'https://example.com/pla', density: 1.24, drying: [45, 50]};

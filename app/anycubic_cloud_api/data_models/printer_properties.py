@@ -6,7 +6,7 @@ from time import monotonic
 from math import ceil
 
 from ..exceptions.error_strings import ErrorsDataParsing
-from ..exceptions.exceptions import AnycubicDataParsingError
+from ..exceptions.exceptions import AnycubicAPIError, AnycubicDataParsingError
 
 
 class AnycubicMaterialMapping:
@@ -633,20 +633,22 @@ class AnycubicMultiColorBox:
         if slot_list is None:
             return
 
+        # Les rapports partiels identifient le logement, même quand la liste initiale est incomplète.
+        slots = {spool.index: spool for spool in self._slots}
         for slot in slot_list:
-            slot_index = slot['index']
             if spool := AnycubicSpoolInfo.from_json(slot):
-                self._slots[slot_index] = spool
+                slots[spool.index] = spool
             else:
                 raise AnycubicDataParsingError(ErrorsDataParsing.ace.format(slot_list))
+        self._slots = [slots[index] for index in sorted(slots)]
 
     def build_mapping_for_material_list(
         self,
         slot_index_list: list[int],
         material_list: list[dict[str, Any]],
     ) -> list[AnycubicMaterialMapping]:
-        """Renvoie la correspondance ACE dans l’ordre des matériaux ; slot_index_list contient les indices internes."""
-        box_slots = self.slots
+        """Associe les matériaux aux indices physiques ; lève AnycubicAPIError si un logement manque."""
+        box_slots = {slot.index: slot for slot in self.slots}
         ams_box_mapping = list()
 
         for x, mat_conf in enumerate(material_list):
@@ -657,6 +659,8 @@ class AnycubicMultiColorBox:
             if slot_index < 0 or slot_index > 3:
                 continue
 
+            if slot_index not in box_slots:
+                raise AnycubicAPIError("Emplacement ACE absent du relevé.")
             ams_slot = box_slots[slot_index]
             material = AnycubicMaterialMapping(
                 spool_index=spool_index,

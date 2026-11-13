@@ -2245,10 +2245,10 @@ class AnycubicPrinter:
             return None
 
         ace_spool_info = list()
-        for local_slot_index, spool in enumerate(spool_info, start=1):
-            display_slot = display_slot_start + local_slot_index - 1
+        # Un rapport ACE peut omettre ou réordonner des logements.
+        for spool in sorted(spool_info, key=lambda entry: entry["local_slot"]):
+            display_slot = display_slot_start + spool["local_slot"] - 1
             slot = dict(spool)
-            slot["local_slot"] = local_slot_index
             slot["slot"] = display_slot
             slot["display_slot"] = display_slot
             slot["source"] = "ace"
@@ -2828,8 +2828,10 @@ class AnycubicPrinter:
             box_index = self._multi_color_box_index_by_id(box_id)
             if box_index is not None:
                 box_slots = self._multi_color_box[box_index].slots
-                if 0 <= local_slot_index < len(box_slots):
-                    material_type = box_slots[local_slot_index].material_type
+                material_type = next(
+                    (slot.material_type for slot in box_slots if slot.index == local_slot_index),
+                    material_type,
+                )
 
             material_list.append(
                 {

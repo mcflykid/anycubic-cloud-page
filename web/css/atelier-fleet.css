@@ -108,10 +108,9 @@ html[data-style] #tab-fleet #monitor-grid.monitor-grid {
   #tab-fleet #monitor-grid { grid-column: 1 / -1; }
   #tab-fleet .monitor-settings {
     justify-content: end;
-    align-items: center;
+    align-items: end;
     padding-block: var(--atelier-space-2);
   }
-  #tab-fleet .monitor-settings label { flex-direction: row; align-items: center; }
   #tab-fleet #monitor-grid .monitor-card {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: auto auto auto;

@@ -968,11 +968,23 @@ class Engine:
                 rawslots = raw_box.get("slots")
                 if not isinstance(rawslots, list):
                     continue
-                for j, spool in enumerate(b["spools"] or []):
-                    if j < len(rawslots):
-                        rawslot = rawslots[j]
-                        if not isinstance(rawslot, dict):
-                            continue
+                # Les anciens relevés sans index gardent leur ordre physique et leurs cases vides.
+                indexed = any(isinstance(row, dict) and "index" in row for row in rawslots)
+                by_slot = {}
+                duplicates = set()
+                for offset, row in enumerate(rawslots):
+                    if not isinstance(row, dict):
+                        continue
+                    index = row.get("index") if indexed else offset
+                    if type(index) is not int or not 0 <= index < 4:
+                        continue
+                    if index + 1 in by_slot:
+                        duplicates.add(index + 1)
+                    by_slot[index + 1] = row
+                for spool in b["spools"] or []:
+                    slot_number = spool.get("local_slot")
+                    rawslot = by_slot.get(slot_number)
+                    if rawslot is not None and slot_number not in duplicates:
                         edit = rawslot.get("edit_status")
                         if spool.get("rfid") is None:
                             spool["rfid"] = (

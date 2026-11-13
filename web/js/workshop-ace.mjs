@@ -1,5 +1,5 @@
 import { $, fmt, formatText, locale, message, mins, node, set, timeZone, tr } from './workshop-ui.mjs';
-import { openFilamentProfile } from './workshop-filament-profiles.mjs';
+import { filamentProfileAction, openFilamentProfile } from './workshop-filament-profiles.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { definition, statusBadge } from './workshop-overview.mjs';
 
@@ -164,7 +164,10 @@ export function createAce(command, refresh) {
     const loaded = spools.filter(spool => spool.spool_loaded === true).length;
     set('ace-loaded-count', formatText(loaded === 1 ? '{0} bobine chargée' : '{0} bobines chargées', loaded));
     set('spool-dialog-count', $('ace-loaded-count').textContent);
-    if ($('spool-dialog').open) updateSpoolActions();
+    if ($('spool-dialog').open) {
+      updateSpoolActions();
+      updateSpoolProfile();
+    }
     set('ace-relay-state', tr(!relayKnown ? 'Inconnu' : box.auto_feed ? 'Activé' : 'Désactivé'));
     definition('ace-stats', [
       ['Température', fmt(box.temperature, ' °C')],
@@ -446,6 +449,33 @@ export function createAce(command, refresh) {
       editPresets(false);
     }
   };
+  /** Consulte la bobine du dernier relevé au clic, car elle peut changer avec la fenêtre ouverte. */
+  function selectedSpoolProfile() {
+    const box = selectedBox();
+    const slot = Number(spoolForm.elements.slot?.value);
+    const spool = box?.spools?.find(entry => (entry.local_slot ?? entry.slot) === slot);
+    if (spool?.spool_loaded !== true) return null;
+    return {spool, target: {
+      printer: workshopState.selectedPrinter, box: box.box_id, slot,
+      displaySlot: spool.display_slot ?? spool.slot,
+    }};
+  }
+
+  /** Le libellé explicite indique si la bobine dispose déjà d’une fiche. */
+  function updateSpoolProfile() {
+    const selection = selectedSpoolProfile();
+    const button = $('spool-profile-open');
+    button.hidden = !selection;
+    if (selection) button.textContent = filamentProfileAction(selection.spool, selection.target);
+  }
+
+  $('spool-profile-open').onclick = () => {
+    const selection = selectedSpoolProfile();
+    if (selection) openFilamentProfile(selection.spool, selection.target);
+  };
+  for (const id of ['filament-profile-dialog', 'filament-profile-create'])
+    $(id).addEventListener('close', updateSpoolProfile);
+
   /** Préremplit la fiche du numéro local, y compris un emplacement absent de la télémétrie. */
   function fillSpool(slot) {
     const form = spoolForm,
@@ -479,6 +509,7 @@ export function createAce(command, refresh) {
     form.elements.color.disabled = automatic;
     $('spool-material-edit').hidden = $('spool-color-edit').hidden = automatic;
     $('spool-material-read').hidden = $('spool-color-read').hidden = !automatic;
+    updateSpoolProfile();
     set('spool-material-value', data.material_type || '—');
     set('spool-color-read-value', form.elements.color.value.toUpperCase());
     set('spool-remaining', fmt(data.remaining_percent, ' %'));

@@ -28,6 +28,68 @@ class RecentReports(unittest.TestCase):
             ignore_init_errors=True,
         )
 
+    def test_serialized_ace_slots_keep_physical_indices_when_sparse(self):
+        """Un rapport réordonné ne doit pas attribuer la fiche RFID à un autre emplacement."""
+        self.p._multi_color_box = [
+            AnycubicMultiColorBox(
+                id=0,
+                status=1,
+                model_id=1,
+                auto_feed=0,
+                loaded_slot=0,
+                feed_status=None,
+                temp=35,
+                drying_status=None,
+                curr_nozzle_temp=None,
+                target_nozzle_temp=None,
+                slots=[
+                    {
+                        "index": 2,
+                        "sku": "AHLSMW-101",
+                        "type": "PLA Marble",
+                        "color": [230, 230, 230],
+                        "status": 5,
+                        "edit_status": 0,
+                    },
+                    {
+                        "index": 0,
+                        "sku": "AHFGBL-101",
+                        "type": "PLA Glow",
+                        "color": [0, 0, 255],
+                        "status": 5,
+                        "edit_status": 0,
+                    },
+                ],
+            )
+        ]
+        engine = server.Engine()
+        engine.printer = self.p
+        spools = engine.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertEqual(
+            [(spool["local_slot"], spool["filament_profile"]) for spool in spools],
+            [(1, "PLA Glow"), (3, "PLA Marble")],
+        )
+        box = self.p._multi_color_box[0]
+        material = {"filament_used": 0, "material_type": "PLA Marble", "paint_index": 0}
+        self.assertEqual(box.build_mapping_for_material_list([2], [material])[0].spool_index, 2)
+        with self.assertRaises(AnycubicAPIError):
+            box.build_mapping_for_material_list([1], [material])
+        box.update_slots_with_mqtt_data(
+            [
+                {
+                    "index": 2,
+                    "sku": "UNKNOWN",
+                    "type": "PLA",
+                    "color": [0, 0, 0],
+                    "status": 5,
+                    "edit_status": 0,
+                }
+            ]
+        )
+        spools = engine.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertEqual(spools[0]["filament_profile"], "PLA Glow")
+        self.assertNotIn("filament_profile", spools[1])
+
     def test_preparation_is_busy_and_terminal_project_is_not_revived(self):
         """Toutes les phases connues interdisent une machine libre ; un rapport tardif respecte la fin."""
         phases = [

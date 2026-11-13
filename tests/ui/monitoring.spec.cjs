@@ -170,3 +170,11 @@ test('Canica roule seulement au changement de suspension et reste fixe en mouvem
   await expect(pause).toHaveAttribute('aria-pressed','false');
   await expect.poll(() => knob.evaluate(el => el.getAnimations().length)).toBe(0);
 });
+
+test('Parc et santé aligne l’historique et la suspension sur un écran bas', async ({page}) => {
+  await page.setViewportSize({width: 1280, height: 760});
+  await login(page, 'fleet');
+  const history = await page.locator('#monitor-window').boundingBox();
+  const pause = await page.locator('#monitor-pause').boundingBox();
+  expect(Math.abs(history.y + history.height - pause.y - pause.height)).toBeLessThan(1);
+});
