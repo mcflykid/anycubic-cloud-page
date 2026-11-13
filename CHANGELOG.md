@@ -1,5 +1,10 @@
 # Changements
 
+## 1.12.3 — 2026-11-13
+
+- Centre les cartes **Fichier** et **Envoi** dans l’onglet **Envoyer**, en conservant leur empilement sur mobile (#328).
+- Centre le bouton d’aide de l’en-tête **Mémoire imprimante**, indépendamment de la largeur du titre et du compteur (#329).
+
 ## 1.12.2 — 2026-11-12
 
 - Reprend la maquette des commandes courantes avec le schéma de la Kobra S1. Affiche et transmet le réglage de Circulation sur une échelle de 0 à 100 %, au repos et en impression. Partage les détails de la tâche entre Imprimante et Historique (#323).

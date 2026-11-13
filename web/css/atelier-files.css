@@ -135,7 +135,16 @@
   animation: none;
 }
 #tab-files:has(#cloud-tools.has-selection) { padding-block-end: var(--atelier-space-5); }
+/* Les colonnes latérales égales gardent l’aide centrée même quand le titre ou le compteur change. */
 .files-card > .atelier-card-header { flex-wrap: wrap; }
+.files-card > .atelier-card-header:has(> #cloud-tools[hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.files-card > .atelier-card-header:has(> #cloud-tools[hidden]) > :is(h2, #files-state) {
+  overflow-wrap: anywhere;
+}
+.files-card > .atelier-card-header:has(> #cloud-tools[hidden]) > #files-state { justify-self: end; }
 @container files (min-width: 1040px) {
   #tab-files #files-form.files-filters {
     grid-template-columns: auto minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, .58fr);

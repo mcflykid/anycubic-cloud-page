@@ -1,6 +1,6 @@
 # Feuille de route
 
-Mise à jour le 12 novembre 2026. Voir les [versions publiées](https://github.com/mcflykid/anycubic-cloud-page/releases).
+Mise à jour le 13 novembre 2026. Voir les [versions publiées](https://github.com/mcflykid/anycubic-cloud-page/releases).
 
 ## Décisions du propriétaire
 
@@ -9,9 +9,9 @@ Mise à jour le 12 novembre 2026. Voir les [versions publiées](https://github.c
 - Le catalogue conserve Par défaut, Aurore et Laboratoire. Voir le [guide des styles](THEMES.md).
 - Les essais sur la Kobra S1 Combo suivent le cadre [#214](https://github.com/mcflykid/anycubic-cloud-page/issues/214), avec vérification de l’état et remise en état après chaque essai. Toute impression complète, mise à jour de firmware ou réinitialisation est exclue.
 
-## Version 1.12.2
+## Version 1.12.3
 
-Les [changements](../CHANGELOG.md) couvrent les commandes courantes, les détails de la tâche et les formulaires Discord des alertes et des bilans. Les [essais de clôture](CLOSURE.md) documentent les validations et les preuves à réunir si une investigation reprend.
+Les [changements](../CHANGELOG.md) corrigent les alignements des onglets Envoyer et Fichiers. Le [suivi des versions](https://github.com/mcflykid/anycubic-cloud-page/issues/347) détaille les lots suivants. Les [essais de clôture](CLOSURE.md) documentent les validations et les preuves à réunir si une investigation reprend.
 
 | Sujet | Référence |
 | --- | --- |
@@ -22,7 +22,7 @@ Les [changements](../CHANGELOG.md) couvrent les commandes courantes, les détail
 
 ## Idées non planifiées
 
-Événements de filament ou de séchage, notifications hors ligne, inventaire et liaison Spoolman, statistiques mensuelles, vue mur plein écran, installation sur téléphone, file d’impressions avec confirmations, export de métriques, sauvegarde et restauration d’`appdata`, page d’état et rapport de compatibilité par modèle.
+Notifications hors ligne, inventaire et liaison Spoolman, statistiques mensuelles, installation sur téléphone, export de métriques, sauvegarde et restauration d’`appdata`, page d’état et rapport de compatibilité par modèle.
 
 ## Écarté
 

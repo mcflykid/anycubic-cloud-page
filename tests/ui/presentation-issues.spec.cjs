@@ -91,3 +91,47 @@ test('Aurore conserve la navigation commune et son onglet actif sur mobile',asyn
  await expect(nav.locator('.atelier-navigation-marker')).toBeHidden();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+for (const width of [1920, 390]) {
+ for (const theme of ['light', 'dark']) {
+  test(`les cartes d’envoi sont centrées (${width}px, ${theme})`, async ({page}) => {
+   await page.setViewportSize({width, height: 900});
+   await page.addInitScript(value => localStorage.setItem('cloud-page-theme', value), theme);
+   await login(page, 'upload');
+   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+   const {panel, file, send} = await page.locator('#tab-upload').evaluate(element => ({
+    panel: element.getBoundingClientRect().toJSON(),
+    file: element.querySelector('.atelier-card:first-child').getBoundingClientRect().toJSON(),
+    send: element.querySelector('.atelier-card:last-child').getBoundingClientRect().toJSON(),
+   }));
+   const left = file.left - panel.left;
+   const right = panel.right - send.right;
+   expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
+   expect(left).toBeGreaterThanOrEqual(0);
+   if (width === 390) {
+    expect(send.top).toBeGreaterThanOrEqual(file.bottom);
+    expect(send.left).toBeCloseTo(file.left, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+   } else {
+    expect(send.top).toBeCloseTo(file.top, 0);
+    expect(send.left).toBeGreaterThan(file.right);
+   }
+  });
+
+  test(`l’aide de la mémoire est centrée et accessible (${width}px, ${theme})`, async ({page}) => {
+   await page.setViewportSize({width, height: 900});
+   await page.addInitScript(value => localStorage.setItem('cloud-page-theme', value), theme);
+   await login(page, 'files');
+   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+   const heading = page.locator('.files-card > .atelier-card-header');
+   const help = heading.locator('[data-context-help="files"]');
+   await expect(heading.getByRole('heading', {name: 'Mémoire imprimante'})).toBeVisible();
+   await expect(heading.locator('#files-state')).toBeVisible();
+   const headerBox = await heading.boundingBox();
+   const helpBox = await help.boundingBox();
+   expect(Math.abs(helpBox.x + helpBox.width / 2 - headerBox.x - headerBox.width / 2)).toBeLessThanOrEqual(1);
+   await help.click();
+   await expect(page.getByRole('dialog', {name: 'Formats de fichiers'})).toBeVisible();
+  });
+ }
+}
