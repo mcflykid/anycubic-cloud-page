@@ -42,6 +42,7 @@
             <div><h4 id="summary-job">L’imprimante se connecte.</h4><p id="summary-job-state" class="muted"></p></div>
           </div>
           <div class="atelier-progress-group" id="summary-progress-wrap" hidden><label for="summary-progress">Progression <strong id="summary-progress-text"></strong></label><progress id="summary-progress" value="0" max="100"></progress></div>
+          <p id="summary-finish" class="muted" tabindex="0" hidden></p>
           <dl id="summary-printer-values" class="atelier-measures"></dl>
         </div>
       </div>
@@ -62,6 +63,7 @@
         <img id="printer-illustration" src="/imprimante-api/ui/icons/printer.svg" class="summary-device-image" alt="" width="380" height="380">
         <div class="printer-task-info"><div><h3 id="job-name" tabindex="0">L’imprimante se connecte.</h3><p id="job-state" class="muted"></p></div>
           <div class="atelier-progress-group" id="job-progress-wrap" hidden><label for="job-progress">Progression <strong id="job-progress-text"></strong></label><progress id="job-progress" value="0" max="100"></progress></div>
+          <p id="printer-finish" class="muted" tabindex="0" hidden></p>
           <dl id="job-stats" class="atelier-measures"></dl>
         </div>
         <div class="printer-task-preview"><img id="job-preview" alt="Aperçu de l’impression" hidden><p id="job-preview-state" class="preview-state" role="status" hidden></p></div>
@@ -354,6 +356,7 @@
       <header class="atelier-card-header"><h2 id="settings-appearance-title">Apparence</h2></header>
       <div class="atelier-card-body">
         <div class="settings-appearance-fields"><label class="atelier-field">Thème<select id="interface-theme" aria-label="Thème de l’interface"><option value="system">Système</option><option value="light">Clair</option><option value="dark">Sombre</option></select></label><label class="atelier-field">Style<select id="interface-style" aria-label="Style de l’interface"><option value="standard">Par défaut</option><option value="aurora">Aurore</option><option value="lab">Laboratoire</option></select></label></div>
+        <label><input id="correct-finish" type="checkbox" checked> Corriger la fin prévue avec l’historique</label>
         <p id="theme-description" class="muted" aria-live="polite"></p>
       </div>
     </section>

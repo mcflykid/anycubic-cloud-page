@@ -5954,5 +5954,17 @@
   "Le registre des notes est illisible.": [
     "The note store could not be read.",
     "No se pudo leer el registro de notas."
+  ],
+  "Corriger la fin prévue avec l’historique": [
+    "Adjust finish time using history",
+    "Ajustar la hora de fin con el historial"
+  ],
+  "Fin prévue {0} · estimation du fichier {1}": [
+    "Expected finish {0} · file estimate {1}",
+    "Fin previsto {0} · estimación del archivo {1}"
+  ],
+  "{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %": [
+    "{0} successful prints · median ratio {1} · current reading weight {2}%",
+    "{0} impresiones correctas · proporción mediana {1} · peso de la lectura actual {2} %"
   ]
 }

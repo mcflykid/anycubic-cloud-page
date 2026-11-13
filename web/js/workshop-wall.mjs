@@ -1,4 +1,4 @@
-import { $, date, fmt, formatText, mins, node, set, tr } from './workshop-ui.mjs';
+import { $, date, finishEstimate, fmt, formatText, mins, node, set, tr } from './workshop-ui.mjs';
 import { createRequest } from './workshop-api.mjs';
 
 const root = document.documentElement;
@@ -36,6 +36,7 @@ async function refresh() {
     set('wall-job', printer?.job_name || tr('Aucune impression en cours.'));
     const result = printer?.job_complete ? 'Impression terminée' : printer?.job_failed ? 'Impression arrêtée' : '';
     set('wall-last-result', !active && result ? [tr(result), printer.job_finished_at && date(printer.job_finished_at)].filter(Boolean).join(' · ') : '');
+    finishEstimate('wall-finish', printer?.corrected_finish);
     const progress = $('wall-progress');
     progress.hidden = !Number.isFinite(printer?.job_progress);
     if (!progress.hidden) progress.value = printer.job_progress;

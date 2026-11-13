@@ -258,6 +258,20 @@ export function beginListLoading(list, skeleton, announce) {
 export const formatText = (label, ...values) =>
   tr(label).replace(/\{(\d+)\}/g, (_, index) => String(values[index] ?? ''));
 export const timeZone = document.documentElement.dataset.timeZone || 'Europe/Paris';
+
+/** Présente les deux estimations et les données utilisées pour la correction. */
+export function finishEstimate(id, estimate) {
+  const element = $(id);
+  let enabled = true;
+  try { enabled = localStorage.getItem('cloud-page-correct-finish') !== 'off'; } catch {}
+  element.hidden = !enabled || !estimate;
+  if (element.hidden) return;
+  const time = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
+  element.textContent = formatText('Fin prévue {0} · estimation du fichier {1}',
+    time.format(estimate.finish * 1000), time.format(estimate.original * 1000));
+  element.title = formatText('{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %',
+    estimate.samples, estimate.factor.toLocaleString(locale), estimate.live_weight);
+}
 /** Renvoie l’élément HTML par identifiant ; les contrôles de cette page partagent ce point d’accès. */
 export const $ = (id) => document.getElementById(id);
 /** Écrit du texte littéral et représente une valeur absente par un tiret. */

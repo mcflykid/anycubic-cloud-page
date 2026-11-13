@@ -44,6 +44,7 @@ from print_preflight import (
     running_filament_shortfall,
     validate_print_indices,
 )
+from print_observations import corrected_finish
 from session_api import CloudSessionAuthError, SessionRecovery
 
 FIELDS = json.loads(pathlib.Path(__file__).with_name("fields.json").read_text())
@@ -300,6 +301,10 @@ class Engine:
         self.fleet_registry = None
         self.pinned_id = None
         self.temperature_history = None
+        self.duration_factor = None
+        self.estimate_project = None
+        self.estimate_speed = None
+        self.estimate_speed_changed = False
         self.account = AccountAuth()
         self.printer = None
         self.ok = False
@@ -767,6 +772,22 @@ class Engine:
         # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
         fields.pop("job_image_url", None)
         fields["command_project"] = self.command_project_key()
+        project = fields["command_project"]
+        speed = fields.get("job_speed_mode")
+        if self.estimate_project != project:
+            self.estimate_project, self.estimate_speed = project, speed
+            self.estimate_speed_changed = False
+        elif speed is not None:
+            if self.estimate_speed is not None and self.estimate_speed != speed:
+                self.estimate_speed_changed = True
+            self.estimate_speed = speed
+        fields["corrected_finish"] = corrected_finish(
+            fields,
+            safeget(p, "latest_project._estimate"),
+            self.duration_factor,
+            self.estimate_speed_changed,
+            time.time(),
+        )
         fields["job_file_references"] = print_file_references(
             safeget(p, "latest_project.gcode_id"), None
         )

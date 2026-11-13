@@ -2,6 +2,7 @@ import {
   $,
   date,
   formatText,
+  finishEstimate,
   message,
   node,
   serverText,
@@ -129,6 +130,15 @@ export function refresh() {
 
 let refreshPending = null;
 
+const correctFinish = $('correct-finish');
+try { correctFinish.checked = localStorage.getItem('cloud-page-correct-finish') !== 'off'; } catch {}
+correctFinish.onchange = () => {
+  try { localStorage.setItem('cloud-page-correct-finish', correctFinish.checked ? 'on' : 'off'); } catch {}
+  const estimate = workshopState.snapshot?.printer?.corrected_finish;
+  finishEstimate('summary-finish', estimate);
+  finishEstimate('printer-finish', estimate);
+};
+
 async function refreshState() {
   let received = false;
   try {
@@ -145,6 +155,8 @@ async function refreshState() {
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
+    finishEstimate('summary-finish', p?.corrected_finish);
+    finishEstimate('printer-finish', p?.corrected_finish);
     set(
       'connection',
       !d.ok ? tr('Cloud indisponible') : p?.printer_online ? tr('En ligne') : tr('Hors ligne'),

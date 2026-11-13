@@ -11,6 +11,7 @@ from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from printer_values import integer
 from request_validation import json_object
 from task_notes import read_task_notes
+from print_observations import historical_duration_factor
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
     AnycubicProjectOrderRequest,
@@ -301,6 +302,7 @@ class CloudExtras:
             else {}
         )
         items = []
+        own_history = []
         registry = getattr(self.e, "fleet_registry", None)
         notes_path = getattr(registry.default if registry else self.e, "state_dir", None)
         notes = (
@@ -312,6 +314,7 @@ class CloudExtras:
             taskid = r.get("task_id") or r.get("taskid") or r.get("id")
             r = {**lookup.get((str(r.get("printer_id")), str(taskid)), {}), **r, "taskid": taskid}
             r.setdefault("id", taskid)
+            own_history.append(r)
             k = key(str(r.get("printer_id")) + ":" + str(taskid))
             self.tasks[k] = r
             status = r.get("print_status")
@@ -348,6 +351,8 @@ class CloudExtras:
             )
         while len(self.tasks) > 500:
             self.tasks.pop(next(iter(self.tasks)))
+        if page == 1 and not all_printers:
+            self.e.duration_factor = historical_duration_factor(own_history, self.e.printer.id)
         items.sort(key=lambda r: number(r.get("start"), 0), reverse=True)
         return {"items": items, "page": page, "has_more": more}
 
