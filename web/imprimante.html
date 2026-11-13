@@ -63,9 +63,7 @@
         <img id="printer-illustration" src="/imprimante-api/ui/icons/printer.svg" class="summary-device-image" alt="" width="380" height="380">
         <div class="printer-task-info"><div><h3 id="job-name" tabindex="0">L’imprimante se connecte.</h3><p id="job-state" class="muted"></p></div>
           <div class="atelier-progress-group" id="job-progress-wrap" hidden><label for="job-progress">Progression <strong id="job-progress-text"></strong></label><progress id="job-progress" value="0" max="100"></progress></div>
-          <details id="printer-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><ol></ol></details>
-<p id="printer-finish" class="muted" tabindex="0" hidden></p>
-          <details class="print-timeline"><summary>Fin prévue</summary><label><input id="correct-finish" type="checkbox" checked> Corriger la fin prévue avec l’historique</label></details>
+          <p id="printer-finish" class="muted" tabindex="0" hidden></p>
           <dl id="job-stats" class="atelier-measures"></dl>
         </div>
         <div class="printer-task-preview"><img id="job-preview" alt="Aperçu de l’impression" hidden><p id="job-preview-state" class="preview-state" role="status" hidden></p></div>
@@ -86,7 +84,7 @@
   </div>
   <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
     <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
-    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl></div>
+    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien</button></div>
   </section>
 </section>
 <section id="tab-ace" class="tab-panel" hidden>
@@ -510,6 +508,7 @@
 <div class="task-detail-band task-detail-primary"><div class="task-detail-identity"><span class="task-detail-thumbnail"><img id="past-task-preview" alt="Aperçu de l’impression" hidden><span id="past-task-preview-state" class="task-detail-preview-fallback" role="status" aria-label="Aperçu indisponible">⬡</span></span><h3 id="past-task-name"></h3></div><dl id="task-detail-progress" class="task-detail-metrics"></dl></div>
 <section class="task-detail-band"><h3>Informations du fichier</h3><dl id="past-task-data" class="task-detail-metrics"></dl></section>
 <section class="task-detail-band"><h3>Paramètres</h3><div id="past-task-parameters" class="task-detail-parameter-grid"></div></section>
+<details id="correct-finish-settings" hidden><summary>Fin prévue</summary><label><input id="correct-finish" type="checkbox" checked> Corriger la fin prévue avec l’historique</label></details>
 <details id="past-print-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><ol></ol></details>
 <form id="task-note-form" class="task-note-fields" hidden><h3>Notes</h3><label class="atelier-field">Note locale<textarea name="text" maxlength="2000" rows="3"></textarea></label><label class="atelier-field">Étiquettes séparées par des virgules<input name="tags" maxlength="500" autocomplete="off"></label><p id="task-note-state" role="status"></p><button type="submit">Enregistrer la note</button></form>
 <div id="past-task-extra" class="task-detail-extra" hidden><details id="past-task-materials" hidden><summary>Filaments estimés par matière</summary><ul id="past-task-material-list"></ul></details><section id="past-task-diagnostic" class="task-detail-diagnostic" hidden><h3>Diagnostic</h3><p id="past-task-reason"></p><button id="past-task-error" type="button" aria-haspopup="dialog" hidden>Voir la fiche d’erreur</button><a id="past-task-help" target="_blank" rel="noopener noreferrer" hidden>Aide Anycubic</a></section><div class="task-detail-actions"><button id="past-task-rate" hidden>Évaluer</button><button id="past-task-reprint" hidden>Imprimer à nouveau</button><p id="past-task-actions-state" class="muted"></p></div></div></dialog>
@@ -583,6 +582,16 @@
 </dialog>
 <dialog id="reauth-dialog" class="settings-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reauth-title" aria-describedby="reauth-question"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reauth-title">Confirmer avec le mot de passe web</h2></div><div class="confirmation-body"><p id="reauth-question" hidden></p><form id="reauth-form" method="dialog"><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reauth-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reauth-form" id="reauth-submit" class="danger">Installer la mise à jour</button></div></dialog>
 <dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2></div><div class="confirmation-body"><p id="confirm-text"></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
+<dialog id="maintenance-dialog" class="settings-dialog" aria-labelledby="maintenance-title">
+  <header class="dialog-top"><h2 id="maintenance-title">Entretien</h2><button class="dialog-close" type="button">Fermer</button></header>
+  <p id="maintenance-hours"></p><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>
+  <form id="maintenance-form">
+    <label class="atelier-field">Opération<input name="name" required maxlength="100"></label>
+    <label class="atelier-field">Intervalle en heures<input name="interval" type="number" required min="1" max="10000"></label>
+    <label><input name="enabled" type="checkbox" checked> Activer le rappel</label>
+    <button type="submit">Enregistrer</button>
+  </form>
+</dialog>
 <dialog id="print-dialog" class="confirmation-dialog" aria-labelledby="print-title">
   <header class="confirmation-heading"><h2 id="print-title">Lancer l’impression</h2></header>
   <div class="confirmation-body">

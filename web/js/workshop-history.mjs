@@ -977,6 +977,7 @@ export function createHistory(request, command, selectedBox) {
   };
   /** Ouvre la fenêtre commune et conserve les actions disponibles dans l’historique. */
   async function openPastTask(t) {
+    $('correct-finish-settings').hidden = true;
     printTimeline('past-print-timeline');
     const dialog = $('past-task-dialog'), extra = $('past-task-extra');
     pastTaskKey = t.key;

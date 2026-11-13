@@ -31,6 +31,7 @@ initializeWorkshopNavigation();
 import { initializeInteractions } from './workshop-interactions.mjs';
 initializeInteractions();
 import { renderSummary } from './workshop-summary.mjs';
+import { bindMaintenance } from './workshop-maintenance.mjs';
 export { previewJob } from './workshop-overview.mjs';
 
 let printerCatalogueReady = false,
@@ -84,6 +85,7 @@ async function choosePrinter() {
 }
 $('printer-selector').onchange = choosePrinter;
 const request = createRequest(() => workshopState.selectedPrinter);
+bindMaintenance(request);
 const loadTemperatures = createTemperatureLoader(
   request,
   () => workshopState.selectedPrinter,

@@ -5990,5 +5990,69 @@
   "Préchauffage": [
     "Preheating",
     "Precalentamiento"
+  ],
+  "Entretien": [
+    "Maintenance",
+    "Mantenimiento"
+  ],
+  "Opération": [
+    "Operation",
+    "Operación"
+  ],
+  "Intervalle en heures": [
+    "Interval in hours",
+    "Intervalo en horas"
+  ],
+  "Activer le rappel": [
+    "Enable reminder",
+    "Activar recordatorio"
+  ],
+  "Compteur d’heures indisponible.": [
+    "Print hour counter unavailable.",
+    "Contador de horas no disponible."
+  ],
+  "Compteur actuel : {0}": [
+    "Current counter: {0}",
+    "Contador actual: {0}"
+  ],
+  "Échéance inconnue": [
+    "Due date unknown",
+    "Vencimiento desconocido"
+  ],
+  "À faire": [
+    "Due",
+    "Pendiente"
+  ],
+  "Bientôt": [
+    "Due soon",
+    "Próximo"
+  ],
+  "Fait": [
+    "Done",
+    "Hecho"
+  ],
+  "Enregistrer l’intervention pour « {0} » ?": [
+    "Record maintenance for “{0}”?",
+    "¿Registrar mantenimiento de «{0}»?"
+  ],
+  "Supprimer l’opération « {0} » ?": [
+    "Delete operation “{0}”?",
+    "¿Eliminar la operación «{0}»?"
+  ],
+  "Historique des interventions": [
+    "Maintenance history",
+    "Historial de intervenciones"
+  ],
+  "Nom de l’opération invalide.": [
+    "Invalid operation name.",
+    "Nombre de operación no válido."
+  ],
+  "Intervalle d’entretien invalide.": [
+    "Invalid maintenance interval.",
+    "Intervalo de mantenimiento no válido."
+  ],
+  "Opération d’entretien indisponible.": [
+    "Maintenance operation unavailable.",
+    "Operación de mantenimiento no disponible."
   ]
 }

@@ -35,6 +35,7 @@ from notification_reports import collect_history
 from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
 from task_notes import save_task_note
+from maintenance import maintenance_rows, update_maintenance
 from print_observations import observe_timeline, read_timelines
 from notification_delivery import private_json
 from printer_values import integer, now as now, safeget
@@ -249,6 +250,22 @@ async def cancel_print_transfer(req):
         and tracker.cancel_print_transfer((req.get("printer_key"), reference))
     )
     return web.json_response({"cancelled": cancelled}, headers={"Cache-Control": "no-store"})
+
+
+async def maintenance(req):
+    """Lit ou modifie l’entretien local de la cible sélectionnée."""
+    engine = request_engine(req)
+    if engine.printer is None:
+        raise ValueError("Connexion en cours")
+    hours = (engine.snapshot().get("printer", {}).get("statistics") or {}).get("hours")
+    path = engine.state_dir / "maintenance.json"
+    if req.method == "POST":
+        data = await json_object(req)
+        async with engine.lock:
+            rows = await asyncio.to_thread(update_maintenance, path, data, hours, int(time.time()))
+    else:
+        rows = await asyncio.to_thread(maintenance_rows, path, hours)
+    return web.json_response({"items": rows, "hours": hours}, headers={"Cache-Control": "no-store"})
 
 
 async def task_note(req):
@@ -953,6 +970,8 @@ app.add_routes(
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
         web.post("/imprimante-api/print/cancel-transfer", cancel_print_transfer),
+        web.get("/imprimante-api/maintenance", maintenance),
+        web.post("/imprimante-api/maintenance", maintenance),
         web.post("/imprimante-api/task-note", task_note),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
