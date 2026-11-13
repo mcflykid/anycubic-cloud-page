@@ -193,8 +193,8 @@ body:has(.workshop-frame) > dialog :is(.dialog-close, #confirm-yes, #confirm-no)
 /* La zone centrale défile pour garder les actions accessibles sur les petits écrans. */
 body:has(.workshop-frame) > dialog.confirmation-dialog {
   box-sizing: border-box;
-  width: min(400px, calc(100% - 32px));
-  max-height: calc(100dvh - 32px);
+  width: min(var(--atelier-confirmation-width), calc(100% - var(--atelier-space-6)));
+  max-height: calc(100dvh - var(--atelier-space-6));
   padding: 0;
   overflow: hidden;
 }
@@ -203,7 +203,7 @@ body:has(.workshop-frame) > dialog.confirmation-dialog[open] {
   flex-direction: column;
 }
 body:has(.workshop-frame) > dialog.confirmation-dialog[data-severity="critical"] {
-  width: min(480px, calc(100% - 32px));
+  width: min(var(--atelier-compact-dialog-width), calc(100% - var(--atelier-space-6)));
 }
 .confirmation-dialog :is(.confirmation-heading, .confirmation-footer) {
   display: flex;
@@ -218,8 +218,8 @@ body:has(.workshop-frame) > dialog.confirmation-dialog[data-severity="critical"]
 .confirmation-dialog:is([data-severity="destructive"], [data-severity="critical"]) .confirmation-alert {
   display: block;
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: var(--atelier-dialog-alert-icon);
+  height: var(--atelier-dialog-alert-icon);
   color: var(--atelier-error);
 }
 .confirmation-body {
@@ -230,12 +230,12 @@ body:has(.workshop-frame) > dialog.confirmation-dialog[data-severity="critical"]
 #confirm-text { white-space: pre-line; }
 .confirmation-footer {
   box-sizing: border-box;
-  min-height: 61px;
+  min-height: var(--atelier-modal-bar-height);
   flex-wrap: wrap;
   justify-content: space-between;
   border-block-start: var(--atelier-rule) solid var(--atelier-line);
 }
-.confirmation-footer .danger { background: #b42318; border-color: #b42318; color: white; }
+.confirmation-footer .danger { background: var(--atelier-destructive-fill); border-color: var(--atelier-destructive-fill); color: white; }
 .reset-challenge {
   display: flex;
   align-items: center;

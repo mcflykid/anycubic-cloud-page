@@ -18,24 +18,23 @@ test('les sources de stockage restent accessibles au clavier et sur mobile', asy
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
 });
 
-test('le relais ACE reste un choix local jusqu’à son application', async ({ page }) => {
+test('le relais ACE demande confirmation depuis la carte du module', async ({page}) => {
   const orders = [];
   await page.route('**/imprimante-api/command', async route => {
     orders.push(route.request().postDataJSON());
-    await route.fulfill({ json: { ok: true } });
+    await route.fulfill({json: {ok: true}});
   });
   await login(page);
-  await page.getByRole('button', { name: 'ACE et filaments', exact: true }).click();
-  await page.locator('#go-drying').click();
-
-  const relay = page.getByRole('switch', { name: 'Relais automatique des bobines' });
-  const track = page.locator('.ace-relay-track');
-  await expect(relay).toBeChecked();
-  await expect(track).toBeVisible();
-  const thumb = track.locator('.ace-relay-thumb');
-  const checkedX = (await thumb.boundingBox()).x;
+  await page.getByRole('button', {name: 'ACE et filaments', exact: true}).click();
+  const relay = page.locator('#ace-relay-open');
+  await expect(relay).toHaveText('Désactiver');
   await relay.press('Space');
-  await expect(relay).not.toBeChecked();
-  await expect.poll(async () => (await thumb.boundingBox()).x).toBeLessThan(checkedX - 10);
+  await expect(page.locator('#confirm-dialog')).toBeVisible();
+  await expect(page.locator('#dry-dialog')).toBeHidden();
+  await page.locator('#confirm-no').click();
   expect(orders).toHaveLength(0);
+  await relay.click();
+  await page.locator('#confirm-yes').click();
+  await expect.poll(() => orders.length).toBe(1);
+  expect(orders[0]).toMatchObject({action: 'auto-feed', box: 0, enabled: false});
 });

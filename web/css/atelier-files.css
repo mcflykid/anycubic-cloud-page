@@ -197,8 +197,8 @@
 #files-form .files-sources > .atelier-control,
 .history-toolbar .files-sources > .atelier-control { padding-inline: var(--atelier-space-4); }
 
-body:has(.workshop-frame) > #cloud-rename-dialog { width: min(480px, calc(100% - 32px)); }
-body:has(.workshop-frame) > #cloud-download-dialog { width: min(560px, calc(100% - 32px)); }
+body:has(.workshop-frame) > #cloud-rename-dialog { width: min(var(--atelier-compact-dialog-width), calc(100% - var(--atelier-space-6))); }
+body:has(.workshop-frame) > #cloud-download-dialog { width: min(var(--atelier-download-dialog-width), calc(100% - var(--atelier-space-6))); }
 #cloud-rename-dialog .atelier-card-footer { justify-content: space-between; }
 #cloud-rename-current { overflow-wrap: anywhere; }
 .file-name-field {
@@ -207,16 +207,16 @@ body:has(.workshop-frame) > #cloud-download-dialog { width: min(560px, calc(100%
   align-items: center;
   gap: var(--atelier-space-2);
 }
-#cloud-rename-state { min-height: 1.5em; color: var(--atelier-muted); }
+#cloud-rename-state { min-height: var(--atelier-card-title-size); color: var(--atelier-muted); }
 #cloud-rename-name[aria-invalid="true"] { border-color: var(--atelier-error); }
-#cloud-download-links { max-height: 288px; overflow: auto; list-style: none; padding: 0; }
+#cloud-download-links { max-height: var(--atelier-downloads-list-height); overflow: auto; list-style: none; padding: 0; }
 #cloud-download-links .download-file {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  min-height: 48px;
+  min-height: var(--atelier-download-row-height);
   gap: var(--atelier-space-1) var(--atelier-space-2);
-  border-block-end: 1px solid var(--atelier-line);
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
 }
 .download-format, .download-expiry, .download-size { color: var(--atelier-muted); }
 .download-filename { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
