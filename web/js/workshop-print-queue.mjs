@@ -4,11 +4,12 @@ import { workshopState } from './workshop-state.mjs';
 /** La file ne lance rien seule. Son premier fichier ouvre la confirmation d’impression habituelle. */
 export function bindPrintQueue(request, command) {
   const dialog = $('queue-dialog'), next = $('queue-next');
-  let rows = [], pending = false;
+  let rows = [], pending = false, queueTarget;
+  const nextEntry = () => rows.find(row => row.available === true);
 
   /** Affiche les références de la cible et les entrées à vérifier après redémarrage. */
   function render() {
-    next.disabled = pending || rows[0]?.available !== true ||
+    next.disabled = pending || !nextEntry() || queueTarget !== workshopState.selectedPrinter ||
       workshopState.snapshot?.printer?.is_available !== true;
     $('queue-list').replaceChildren(...rows.map((row, index) => {
       const item = node('li');
@@ -31,14 +32,17 @@ export function bindPrintQueue(request, command) {
   }
 
   /** Sérialise les changements de file et signale les refus dans le panneau actif. */
-  async function load(data) {
+  async function load(data, target = workshopState.selectedPrinter) {
     if (pending) return;
     pending = true;
     next.disabled = true;
     try {
-      const result = await request('/print-queue', data ? {
-        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data),
-      } : undefined);
+      const result = await request('/print-queue', {
+        printerKey: target,
+        ...(data ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)} : {}),
+      });
+      if (target !== workshopState.selectedPrinter) return;
+      queueTarget = target;
       rows = result.items;
       set('queue-state', rows.length ? '' : tr('La file d’attente est vide.'));
       if (data?.action === 'add') message(tr('Fichier ajouté à la file d’attente.'));
@@ -57,13 +61,13 @@ export function bindPrintQueue(request, command) {
     void load();
   };
   next.onclick = async () => {
-    if (pending || next.disabled) return;
-    const row = rows[0];
+    if (pending || next.disabled || queueTarget !== workshopState.selectedPrinter) return;
+    const row = nextEntry(), target = queueTarget;
     next.disabled = true;
     dialog.close();
     const result = await command('print-cloud', {handle:row.handle, name:row.name, details:row.details},
       formatText('Vérifiez que le plateau est libre avant d’imprimer « {0} ».', row.name));
-    if (result) await load({action:'remove', handle:row.handle});
+    if (result) await load({action:'remove', handle:row.handle}, target);
   };
   return handle => load({action:'add', handle});
 }

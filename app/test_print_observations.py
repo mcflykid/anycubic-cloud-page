@@ -2,6 +2,7 @@
 
 import unittest
 
+
 class TimelineTests(unittest.TestCase):
     """La chronologie enregistre les transitions observées."""
 

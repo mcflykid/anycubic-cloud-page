@@ -1,5 +1,12 @@
 # Changements
 
+## 1.16.0 — 2026-11-13
+
+- Ajoute la galerie d’impressions, les notes et étiquettes locales, les filtres des fichiers et la recherche rapide (#352, #353, #354, #355).
+- Prépare les impressions depuis une file Cloud par imprimante. Chaque lancement demande une confirmation explicite du plateau libre (#349).
+- Corrige l’heure de fin estimée avec l’historique et conserve les phases observées de l’impression (#350, #358).
+- Ajoute des rappels d’entretien par imprimante (#357).
+
 ## 1.15.0 — 2026-11-13
 
 - Marque les messages Cloud comme lus depuis la cloche et permet leur suppression individuelle ou groupée après confirmation (#334).
