@@ -14,5 +14,6 @@ body { margin: 0; background: var(--atelier-bg); color: var(--atelier-fg); font:
 #wall-temperature dd { margin: 0; font-size: var(--atelier-title-size); }
 #wall-ace ul { list-style: none; padding: 0; }
 #wall-ace li { display: flex; gap: var(--atelier-space-2); align-items: center; }
+.wall-warning { color: var(--atelier-warning); }
 .wall-swatch { width: var(--atelier-icon); height: var(--atelier-icon); border-radius: var(--atelier-pill-radius); border: var(--atelier-rule) solid var(--atelier-line); }
 @media (orientation: landscape) { .wall-task { grid-template-columns: 1fr 1fr; } }

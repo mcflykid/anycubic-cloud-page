@@ -35,6 +35,7 @@
   "job_is_paused": "latest_project_print_is_paused",
   "job_image_url": "latest_project_image_url",
   "job_state": "latest_project_print_status",
+  "job_finished_at": "latest_project_finished_timestamp",
   "job_eta": "latest_project_print_approximate_completion_time",
   "job_current_layer": "latest_project_print_current_layer",
   "job_total_layers": "latest_project_print_total_layers",

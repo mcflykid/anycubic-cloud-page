@@ -6,7 +6,7 @@ root.dataset.theme = 'dark';
 root.dataset.contrast = 'high';
 const preferred = new URLSearchParams(location.search).get('printer');
 const preview = $('wall-preview');
-let target, printers = [], lastPreview, wakeLock, pending = false;
+let target, printers = [], rotationStarted, lastPreview, wakeLock, pending = false;
 const request = createRequest(() => target);
 
 /** Garde la tablette éveillée lorsque le navigateur autorise la demande. */
@@ -20,8 +20,11 @@ async function refresh() {
   if (pending || document.hidden) return;
   pending = true;
   try {
-    if (!printers.length) printers = (await request('/printers')).items || [];
-    target = preferred || printers[Math.floor(Date.now() / 20000) % printers.length]?.key;
+    if (!printers.length) {
+      printers = (await request('/printers')).items || [];
+      rotationStarted = Date.now();
+    }
+    target = preferred || printers[Math.floor((Date.now() - rotationStarted) / 20000) % printers.length]?.key;
     if (!target) return;
     const {printer, ok, updated_at, mqtt_updated_at} = await request('/status');
     set('wall-printer', printer?.name || tr('Imprimante'));
@@ -29,16 +32,19 @@ async function refresh() {
       : printer.job_is_paused ? 'En pause' : printer.job_in_progress ? 'Impression en cours' : 'Disponible'));
     const stamps = [updated_at, mqtt_updated_at].filter(Boolean);
     set('wall-updated', stamps.length ? formatText('Dernière actualisation : {0}', date(stamps.sort().at(-1))) : '');
+    const active = printer?.job_in_progress === true;
     set('wall-job', printer?.job_name || tr('Aucune impression en cours.'));
+    const result = printer?.job_complete ? 'Impression terminée' : printer?.job_failed ? 'Impression arrêtée' : '';
+    set('wall-last-result', !active && result ? [tr(result), printer.job_finished_at && date(printer.job_finished_at)].filter(Boolean).join(' · ') : '');
     const progress = $('wall-progress');
     progress.hidden = !Number.isFinite(printer?.job_progress);
     if (!progress.hidden) progress.value = printer.job_progress;
     set('wall-progress-text', progress.hidden ? '' : fmt(printer.job_progress, ' %'));
-    set('wall-timing', [
+    set('wall-timing', active ? [
       printer?.job_current_layer != null ? formatText('Couche {0}', printer.job_current_layer) : '',
       printer?.job_in_progress && Number.isFinite(printer.job_time_remaining) ? mins(printer.job_time_remaining) : '',
       printer?.job_eta ? date(printer.job_eta) : '',
-    ].filter(Boolean).join(' · '));
+    ].filter(Boolean).join(' · ') : '');
     $('wall-temperature').replaceChildren(...[
       ['Buse', printer?.curr_nozzle_temp], ['Plateau', printer?.curr_hotbed_temp],
     ].map(([label, value]) => {
@@ -48,15 +54,21 @@ async function refresh() {
     }));
     $('wall-ace').replaceChildren(...(printer?.boxes || []).map(box => {
       const item = node('article'), slots = node('ul');
+      const drying = box.drying?.is_drying;
+      const dryingState = drying === true ? 'Séchage en cours' : drying === false ? 'Séchage inactif' : 'État du séchage inconnu';
       item.append(node('h2', box.model || tr('Module ACE')),
-        node('p', tr(box.drying?.is_drying ? 'Séchage en cours' : 'Séchage inactif') + ' · ' + fmt(box.humidity, ' %')), slots);
+        node('p', tr(dryingState) + ' · ' + fmt(box.humidity, ' %')), slots);
       for (const spool of box.spools || []) {
         const row = node('li'), color = node('span', null, 'wall-swatch');
         const rgb = spool.color?.slice(0, 3);
         if (Array.isArray(rgb) && rgb.length === 3 && rgb.every(value => Number.isInteger(value) && value >= 0 && value <= 255))
           color.style.backgroundColor = `rgb(${rgb.join(',')})`;
-        row.append(color, node('span', [spool.display_slot ?? spool.slot, spool.material_type, fmt(spool.remaining_percent, ' %'),
+        const slot = spool.display_slot ?? spool.slot;
+        const warning = printer.filament_shortfalls?.find(entry => entry.slot === slot);
+        row.append(color, node('span', [slot, spool.material_type, fmt(spool.remaining_percent, ' %'),
           box.loaded_slot === (spool.local_slot ?? spool.slot) - 1 ? tr('Bobine engagée') : ''].filter(Boolean).join(' · ')));
+        if (warning) row.append(node('span', formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.',
+          slot, fmt(warning.grams), fmt(warning.needed)), 'wall-warning'));
         slots.append(row);
       }
       return item;
@@ -73,6 +85,7 @@ async function refresh() {
           body:JSON.stringify({source:'active', project_key:project}),
         }).catch(() => null);
         if (result?.image) preview.src = result.image;
+        else if (!result) lastPreview = null;
       }
     }
   } catch {
