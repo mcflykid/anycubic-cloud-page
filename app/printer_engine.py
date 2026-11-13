@@ -36,6 +36,7 @@ from notification_service import AccountNotifications
 from operational_logging import log_event, safe_exception_frames
 from printer_commands import execute_command, slot_indices
 from printer_registry import printer_key
+from cloud_extras import key as task_key
 from printer_values import now, safeget, serial
 import printer_files
 from print_preflight import (
@@ -305,6 +306,7 @@ class Engine:
         self.estimate_project = None
         self.estimate_speed = None
         self.estimate_speed_changed = False
+        self.print_timeline = (None, [])
         self.account = AccountAuth()
         self.printer = None
         self.ok = False
@@ -772,6 +774,11 @@ class Engine:
         # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
         fields.pop("job_image_url", None)
         fields["command_project"] = self.command_project_key()
+        task = safeget(p, "latest_project._taskid")
+        timeline_key, timeline = self.print_timeline
+        fields["print_timeline"] = (
+            timeline if task and timeline_key == task_key(f"{p.id}:{task}") else []
+        )
         project = fields["command_project"]
         speed = fields.get("job_speed_mode")
         if self.estimate_project != project:

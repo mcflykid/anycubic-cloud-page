@@ -3,6 +3,7 @@ import {
   date,
   formatText,
   finishEstimate,
+  printTimeline,
   message,
   node,
   serverText,
@@ -157,6 +158,7 @@ async function refreshState() {
     const p = d.printer;
     finishEstimate('summary-finish', p?.corrected_finish);
     finishEstimate('printer-finish', p?.corrected_finish);
+    printTimeline('printer-timeline', p?.print_timeline);
     set(
       'connection',
       !d.ok ? tr('Cloud indisponible') : p?.printer_online ? tr('En ligne') : tr('Hors ligne'),

@@ -5966,5 +5966,29 @@
   "{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %": [
     "{0} successful prints · median ratio {1} · current reading weight {2}%",
     "{0} impresiones correctas · proporción mediana {1} · peso de la lectura actual {2} %"
+  ],
+  "Chronologie de l’impression": [
+    "Print timeline",
+    "Cronología de impresión"
+  ],
+  "Changement de bobine": [
+    "Spool change",
+    "Cambio de bobina"
+  ],
+  "Impression reprise": [
+    "Print resumed",
+    "Impresión reanudada"
+  ],
+  "ACE {0} · emplacement {1}": [
+    "ACE {0} · slot {1}",
+    "ACE {0} · ranura {1}"
+  ],
+  "Téléchargement en cours": [
+    "Downloading",
+    "Descargando"
+  ],
+  "Préchauffage": [
+    "Preheating",
+    "Precalentamiento"
   ]
 }

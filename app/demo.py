@@ -100,6 +100,11 @@ PRINTER = {
     "job_time_elapsed": 46,
     "job_time_remaining": 0,
     "job_current_layer": 100,
+    "print_timeline": [
+        {"kind": "preheating", "state": "preheating", "time": int(T) - 3600, "slots": []},
+        {"kind": "printing", "state": "printing", "time": int(T) - 3360, "slots": []},
+        {"kind": "finished", "state": "finished", "time": int(T) - 600, "slots": []},
+    ],
     "job_total_layers": 100,
     "curr_nozzle_temp": 28,
     "target_nozzle_temp": 0,
@@ -439,6 +444,9 @@ async def api(request):
         }
     elif path == "extras/task":
         d = {
+            "timeline": PRINTER["print_timeline"]
+            if request.query.get("key") == TASKS[0]["key"]
+            else [],
             "name": TASKS[0]["name"],
             "reason": "",
             "reason_code": "",

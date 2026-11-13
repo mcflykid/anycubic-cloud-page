@@ -5,6 +5,7 @@ import {
   message,
   mins,
   node,
+  printTimeline,
   set,
   tr,
 } from './workshop-ui.mjs';
@@ -85,6 +86,7 @@ export function createSettings(request, command, camera) {
     fallback.hidden = !image.hidden;
     $('past-task-extra').hidden = true;
     $('task-note-form').hidden = true;
+    printTimeline('past-print-timeline');
     renderTaskBands({
       progress: p.job_progress,
       currentLayer: p.job_current_layer,

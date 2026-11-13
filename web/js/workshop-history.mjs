@@ -10,6 +10,7 @@ import {
   message,
   mins,
   node,
+  printTimeline,
   serverText,
   set,
   signalChange,
@@ -976,6 +977,7 @@ export function createHistory(request, command, selectedBox) {
   };
   /** Ouvre la fenêtre commune et conserve les actions disponibles dans l’historique. */
   async function openPastTask(t) {
+    printTimeline('past-print-timeline');
     const dialog = $('past-task-dialog'), extra = $('past-task-extra');
     pastTaskKey = t.key;
     const notes = $('task-note-form');
@@ -1059,6 +1061,7 @@ export function createHistory(request, command, selectedBox) {
     try {
       const d = await request('/extras/task?key=' + encodeURIComponent(t.key));
       if (!current()) return;
+      printTimeline('past-print-timeline', d.timeline);
       printDetails = {seconds: d.estimated_seconds, grams: d.material_grams};
       printFilaments = reprintFilaments(d);
       $('past-task-state').querySelector('span').textContent = tr(t.status);

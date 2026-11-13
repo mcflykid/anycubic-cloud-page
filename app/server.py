@@ -19,7 +19,7 @@ from camera_sessions import (
 )
 from file_preview import find_project_preview_url
 from file_uploads import purge_abandoned_uploads, upload_operation
-from cloud_extras import download_preview, trusted_url
+from cloud_extras import download_preview, key as task_key, trusted_url
 from temperature_history import TemperatureHistory, ace_readings
 from print_preflight import (
     ensure_firmware_ready,
@@ -35,6 +35,8 @@ from notification_reports import collect_history
 from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
 from task_notes import save_task_note
+from print_observations import observe_timeline, read_timelines
+from notification_delivery import private_json
 from printer_values import integer, now as now, safeget
 import printer_files
 from web_host import (
@@ -726,6 +728,9 @@ async def sample_temperatures(app, selected=None, store=None):
     history = store if store is not None else app["temperature_history"]
     last_source = None
     last_details = None
+    state_dir = getattr(engine, "state_dir", None)
+    timeline_path = state_dir / "print-timelines.json" if state_dir else None
+    timelines = None
     while True:
         try:
             state = engine.snapshot()
@@ -757,6 +762,27 @@ async def sample_temperatures(app, selected=None, store=None):
                         last_details = details
                     history.add(stamp, values)
                     last_source = source
+                    task = safeget(engine.printer, "latest_project._taskid")
+                    machine = safeget(engine.printer, "id")
+                    if timeline_path and task and machine:
+                        if timelines is None:
+                            timelines = await asyncio.to_thread(read_timelines, timeline_path)
+                        key = task_key(f"{machine}:{task}")
+                        current = timelines.get(key, [])
+                        events = observe_timeline(current, p, int(stamp))
+                        if events is not current:
+                            updated = {**timelines, key: events}
+                            if len(updated) > 200:
+                                oldest = min(
+                                    updated,
+                                    key=lambda item: (
+                                        updated[item][-1]["time"] if updated[item] else 0
+                                    ),
+                                )
+                                del updated[oldest]
+                            await asyncio.to_thread(private_json, timeline_path, updated)
+                            timelines = updated
+                        engine.print_timeline = (key, events)
             if history.rows and time.monotonic() - history.saved_at >= 60:
                 await history.save_async()
         except Exception as error:

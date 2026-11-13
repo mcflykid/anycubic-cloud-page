@@ -11,7 +11,7 @@ from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from printer_values import integer
 from request_validation import json_object
 from task_notes import read_task_notes
-from print_observations import historical_duration_factor
+from print_observations import historical_duration_factor, read_timelines
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
     AnycubicProjectOrderRequest,
@@ -683,7 +683,18 @@ class CloudExtras:
                         }
                     )
         result = d.get("slice_result")
+        registry = getattr(self.e, "fleet_registry", None)
+        owner = self.e
+        if registry and str(r.get("printer_id")) != str(self.e.printer.id):
+            owner = await registry.resolve(key(r.get("printer_id")))
+        directory = getattr(owner, "state_dir", None)
+        timelines = (
+            await asyncio.to_thread(read_timelines, directory / "print-timelines.json")
+            if directory
+            else {}
+        )
         return {
+            "timeline": timelines.get(k, []),
             "name": clean_text(
                 d.get("file_name") or d.get("name") or r.get("task_name") or r.get("model"), 300
             ),

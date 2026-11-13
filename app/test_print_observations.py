@@ -2,6 +2,25 @@
 
 import unittest
 
+class TimelineTests(unittest.TestCase):
+    """La chronologie enregistre les transitions observées."""
+
+    def test_preparation_pause_resume_and_finish(self):
+        """Un état répété ne crée pas une deuxième entrée."""
+        from print_observations import observe_timeline
+
+        events = []
+        for stamp, state in enumerate(
+            ("preheating", "printing", "printing", "paused", "printing", "finished"), 100
+        ):
+            events = observe_timeline(events, {"job_state": state}, stamp)
+        self.assertEqual(
+            [event["kind"] for event in events],
+            ["preheating", "printing", "paused", "resumed", "finished"],
+        )
+        self.assertEqual(observe_timeline([], {"job_state": "finished"}, 100), [])
+
+
 class FinishEstimateTests(unittest.TestCase):
     """La correction exige des durées comparables et une vitesse stable."""
 

@@ -272,6 +272,23 @@ export function finishEstimate(id, estimate) {
   element.title = formatText('{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %',
     estimate.samples, estimate.factor.toLocaleString(locale), estimate.live_weight);
 }
+
+/** Affiche les phases constatées et les changements de bobine dans l’ordre des relevés. */
+export function printTimeline(id, events = []) {
+  const section = $(id);
+  section.hidden = !events.length;
+  const labels = {
+    downloading: 'Téléchargement en cours', checking: 'Vérification…',
+    preheating: 'Préchauffage', leveling: 'Mise à niveau du plateau',
+    printing: 'Impression en cours', paused: 'En pause', resumed: 'Impression reprise',
+    finished: 'Impression terminée', failed: 'Impression arrêtée', spool: 'Changement de bobine',
+  };
+  section.querySelector('ol').replaceChildren(...events.filter(event => labels[event.kind]).map(event => {
+    const slots = event.kind === 'spool' ? event.slots.map(([box, slot]) =>
+      formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
+    return node('li', [date(event.time), tr(labels[event.kind]), slots].filter(Boolean).join(' · '));
+  }));
+}
 /** Renvoie l’élément HTML par identifiant ; les contrôles de cette page partagent ce point d’accès. */
 export const $ = (id) => document.getElementById(id);
 /** Écrit du texte littéral et représente une valeur absente par un tiret. */
