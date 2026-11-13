@@ -26,8 +26,15 @@ export function initializeInteractions() {
   dialog.setAttribute('aria-labelledby', title.id);
   const input = node('input'); input.type = 'search';
   input.setAttribute('aria-label', tr('Rechercher une section'));
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-controls', 'quick-results');
+  input.setAttribute('aria-expanded', 'false');
   input.placeholder = tr('Rechercher une section');
   const results = node('div', null, 'quick-results');
+  results.id = 'quick-results';
+  results.setAttribute('role', 'listbox');
+  results.setAttribute('aria-label', tr('Accès rapide'));
   const close = node('button', tr('Fermer')); close.type = 'button';
   const count = node('p', null, 'sr-only');
   count.setAttribute('role', 'status');
@@ -75,9 +82,11 @@ export function initializeInteractions() {
     ];
     let total = 0;
     results.replaceChildren();
+    input.removeAttribute('aria-activedescendant');
     if (!query) for (const term of recent) {
       const previous = node('button', term);
       previous.type = 'button';
+      previous.setAttribute('role', 'option');
       previous.onclick = () => { input.value = term; render(); input.focus(); };
       results.append(previous);
     }
@@ -89,9 +98,12 @@ export function initializeInteractions() {
       }).slice(0, 8);
       if (!matching.length) continue;
       total += matching.length;
-      results.append(node('strong', tr(group)));
+      const label = node('strong', tr(group));
+      label.setAttribute('role', 'presentation');
+      results.append(label);
       for (const [name, action] of matching) {
         const choice = node('button', name); choice.type = 'button';
+        choice.setAttribute('role', 'option');
         choice.onclick = () => {
           const term = input.value.trim().slice(0, 100);
           if (term) {
@@ -106,7 +118,12 @@ export function initializeInteractions() {
       }
     }
     count.textContent = formatText('{0} résultat(s)', total);
-    if (!results.childElementCount) results.append(node('p', tr('Aucune section trouvée.')));
+    if (!results.childElementCount) {
+      const empty = node('p', tr('Aucune section trouvée.'));
+      empty.setAttribute('role', 'presentation');
+      results.append(empty);
+    }
+    input.setAttribute('aria-expanded', String(total > 0 || (!query && recent.length > 0)));
   };
   /** Ouvre la palette modale, vide la recherche précédente et place le focus dans son champ. */
   const show = () => {
@@ -119,7 +136,10 @@ export function initializeInteractions() {
     input.focus();
   };
   trigger.onclick = show;
-  dialog.onclose = () => { if (!moved) origin?.focus(); };
+  dialog.onclose = () => {
+    input.setAttribute('aria-expanded', 'false');
+    if (!moved) origin?.focus();
+  };
   close.onclick = () => dialog.close(); input.oninput = render;
   input.onkeydown = event => {
     if (event.key === 'ArrowDown') { event.preventDefault(); results.querySelector('button')?.focus(); }

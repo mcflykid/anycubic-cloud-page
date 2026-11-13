@@ -79,7 +79,7 @@ test('la recherche rapide ouvre un réglage sans émettre de commande', async ({
  });
  await login(page);
  await page.getByRole('button',{name:'Accès rapide'}).click();
- const search = page.getByRole('searchbox',{name:'Rechercher une section'});
+ const search = page.getByRole('combobox',{name:'Rechercher une section'});
  await search.fill('detection ia');
  await page.keyboard.press('Enter');
  await expect(page.locator('#ai-dialog')).toBeVisible();
