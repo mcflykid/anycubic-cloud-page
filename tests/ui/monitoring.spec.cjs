@@ -174,7 +174,13 @@ test('Canica roule seulement au changement de suspension et reste fixe en mouvem
 test('Parc et santé aligne l’historique et la suspension sur un écran bas', async ({page}) => {
   await page.setViewportSize({width: 1280, height: 760});
   await login(page, 'fleet');
-  const history = await page.locator('#monitor-window').boundingBox();
-  const pause = await page.locator('#monitor-pause').boundingBox();
-  expect(Math.abs(history.y + history.height - pause.y - pause.height)).toBeLessThan(1);
+  await expect(page.locator('#monitor-window')).toBeVisible();
+  await expect(page.locator('#monitor-pause')).toBeVisible();
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  // Un relevé peut déplacer tout le panneau entre deux mesures faites séparément.
+  await expect.poll(() => page.locator('.monitor-settings').evaluate(panel => {
+    const history = panel.querySelector('#monitor-window').getBoundingClientRect();
+    const pause = panel.querySelector('#monitor-pause').getBoundingClientRect();
+    return Math.abs(history.bottom - pause.bottom);
+  })).toBeLessThan(1);
 });
