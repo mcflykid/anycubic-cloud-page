@@ -150,3 +150,19 @@ test('les commandes affichent l’état et la mesure dans les trois langues', as
     await page.keyboard.press('Escape');
   }
 });
+
+test('les repères des commandes courantes se redessinent sans erreur après un redimensionnement', async ({page}) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await login(page);
+  await page.locator('#controls-open').click();
+  const panel = page.locator('#controls-dialog');
+  await expect(panel).toBeVisible();
+  // Le second tracé lisait un repère déjà dessiné au lieu de la ligne du formulaire.
+  for (const width of [1050, 1000]) {
+    await page.setViewportSize({width, height:900});
+    await page.waitForTimeout(150);
+  }
+  await expect(panel.locator('line[data-organ], path[data-organ], polyline[data-organ]').first()).toBeAttached();
+  expect(errors).toEqual([]);
+});

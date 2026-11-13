@@ -10,7 +10,9 @@ from filament_catalog import editable_materials
 from maintenance import filament_kg, maintenance_rows, update_maintenance
 from print_preflight import evaluate_preflight, filament_shortfalls
 from temperature_history import ace_readings
+from print_observations import drying_advice, heat_alerts
 from web_host import (
+    APP_VERSION,
     install_ui_resources,
     render_page,
     wall,
@@ -30,6 +32,7 @@ PRINT_TASKS = web.AppKey("print_tasks", list)
 TASK_NOTES = web.AppKey("task_notes", dict)
 MAINTENANCE = web.AppKey("maintenance", Path)
 QUEUE = web.AppKey("queue", list)
+SCENARIO = web.AppKey("scenario", dict)
 # Une opération à faire, deux bientôt, les autres à jour et une sans relevé, comme la maquette d’Entretien.
 MAINTENANCE_FIXTURE = [
     {
@@ -269,6 +272,85 @@ async def demo_index(request):
     return web.Response(text=html, content_type="text/html")
 
 
+DEMO_PRESETS = [
+    {"name": n, "temperature": t, "hours": h}
+    for n, t, h in [("PLA", 45, 4), ("PETG", 55, 6), ("ABS / ASA", 60, 6), ("PA", 65, 8)]
+]
+SCENARIO_NAMES = (
+    "standard",
+    "sechage-conseille",
+    "humidite-absente",
+    "chauffe-lente",
+    "chute-en-impression",
+    "mise-a-jour-notes",
+    "mise-a-jour-obligatoire",
+)
+
+
+def scenario_status(name, printer, at):
+    """Applique un état fictif choisi dans l’onglet Développeur, calculé par les règles réelles."""
+    printer = {**printer}
+    extra = {}
+    box = {**BOX, "drying": {**BOX["drying"]}, "spools": [dict(row) for row in SPOOLS]}
+    if name in ("sechage-conseille", "humidite-absente"):
+        box["drying"] = {"is_drying": False}
+        box["humidity"] = 48 if name == "sechage-conseille" else None
+        box["spools"][2]["material_type"] = "PETG"
+        printer["boxes"] = [box]
+        # Seize minutes de mesures régulières : la règle exige quinze minutes sans lacune.
+        samples = [
+            {"time": at - 960 + 60 * i, "ace_boxes": {"0": {"humidity": box["humidity"]}}}
+            for i in range(17)
+        ]
+        extra["drying_advice"] = drying_advice(printer, DEMO_PRESETS, samples, at)
+    elif name in ("chauffe-lente", "chute-en-impression"):
+        slow = name == "chauffe-lente"
+        printer.update(
+            job_in_progress=True,
+            is_available=False,
+            is_busy=True,
+            job_state="preheating" if slow else "printing",
+            job_progress=0 if slow else 38,
+            job_current_layer=0 if slow else 38,
+            job_time_remaining=46 if slow else 29,
+            target_hotbed_temp=60,
+            curr_hotbed_temp=52 if slow else 60,
+            target_nozzle_temp=0 if slow else 210,
+            curr_nozzle_temp=28 if slow else 196,
+        )
+        if slow:
+            samples = [{"time": at - 630 + 30 * i, "bed": 52, "bed_target": 60} for i in range(22)]
+        else:
+            # La consigne était atteinte avant la chute : seule une baisse en impression alerte.
+            samples = [
+                {"time": at - 300 + 30 * i, "nozzle": 209 if i < 7 else 196, "nozzle_target": 210}
+                for i in range(11)
+            ]
+        extra["heat_alerts"] = heat_alerts(printer, samples, at)
+    elif name in ("mise-a-jour-notes", "mise-a-jour-obligatoire"):
+        notes = name == "mise-a-jour-notes"
+        printer.update(
+            firmware_available="2.7.3.0",
+            firmware_update_available=True,
+            firmware_notes={
+                "text": "Texte d’exemple fictif.\n• Améliore la reprise après coupure.\n• Corrige l’affichage de l’ACE."
+                if notes
+                else "",
+                "published": int(at) - 3 * 86400,
+                "required": not notes,
+            },
+            ace_updates=[
+                {
+                    "current": "1.1.36",
+                    "target": "1.1.40",
+                    "available": True,
+                    "notes": {"text": "", "published": None, "required": False},
+                }
+            ],
+        )
+    return printer, extra
+
+
 async def api(request):
     """Renvoie des données fictives ; simule les messages en mémoire et refuse toute commande physique."""
     path = request.match_info["tail"]
@@ -283,7 +365,15 @@ async def api(request):
         notes.clear()
         request.app[MAINTENANCE].write_text(json.dumps(MAINTENANCE_FIXTURE), encoding="utf-8")
         request.app[QUEUE][:] = [dict(x) for x in QUEUE_FIXTURE]
+        request.app[SCENARIO]["name"] = "standard"
         return web.json_response({"ok": True})
+    if path == "demo/scenario":
+        if request.method == "POST":
+            name = (await request.json()).get("name")
+            if name not in SCENARIO_NAMES:
+                return web.json_response({"ok": False, "message": "État inconnu"}, status=400)
+            request.app[SCENARIO]["name"] = name
+        return web.json_response({"name": request.app[SCENARIO]["name"], "names": SCENARIO_NAMES})
     if path == "task-note" and request.method == "POST":
         data = await request.json()
         if not any(task["key"] == data.get("key") for task in tasks):
@@ -458,11 +548,13 @@ async def api(request):
             PRINTER["statistics"]["hours"],
             material=PRINTER["statistics"]["material"],
         )
+        printer, extra = scenario_status(request.app[SCENARIO]["name"], PRINTER, time.time())
         d = {
             "ok": True,
             "demo": True,
+            **extra,
             "printer": {
-                **PRINTER,
+                **printer,
                 "maintenance_due": sum(
                     r["enabled"] and r["elapsed"] is not None and r["elapsed"] >= r["interval"]
                     for r in rows
@@ -471,15 +563,7 @@ async def api(request):
             "updated_at": T,
             "mqtt_updated_at": T,
             "mqtt_connected": True,
-            "presets": [
-                {"name": n, "temperature": t, "hours": h}
-                for n, t, h in [
-                    ("PLA", 45, 4),
-                    ("PETG", 55, 6),
-                    ("ABS / ASA", 60, 6),
-                    ("PA", 65, 8),
-                ]
-            ],
+            "presets": DEMO_PRESETS,
             "notifications": {
                 "source": "slicer",
                 "items": slicer_notices,
@@ -616,6 +700,25 @@ async def api(request):
         d = {"available": False, "items": [], "message": "Aucun flux ni timelapse n’est simulé."}
     elif path == "extras/rating":
         d = {"available": True, "already_rated": False}
+    elif path == "diagnostic":
+        d = {"demo": True, "version": APP_VERSION}
+        if request.query.get("developer") == "1":
+            d["developer"] = {
+                "mqtt_connected": True,
+                "job_active": True,
+                "freshness_s": {"updated_at": 6, "mqtt_updated_at": 1},
+                "finish_timing": {"elapsed_min": 46, "reported_remaining_min": 18},
+                "ace": [{"loaded_index": 2, "observed_slot": 3, "available_slots": [1, 2, 3, 4]}],
+                "last_stored_print": {
+                    "source": "local",
+                    "format": "gcode_3mf",
+                    "requested_slots": [1],
+                    "prepared_ace_indices": [0],
+                    "serialized_mapping": [{"ams_index": 0, "paint_index": 0}],
+                    "cloud_accepted": True,
+                },
+                "signals": [{"transport": "mqtt", "phase": "receive", "type": "print", "ms": 1}],
+            }
     elif path == "health":
         d = {"service": "ok", "demo": True}
     else:
@@ -634,6 +737,7 @@ def create_demo(authenticated=False):
     app[MAINTENANCE] = Path(tempfile.mkdtemp(prefix="cloud-page-demo-")) / "maintenance.json"
     app[MAINTENANCE].write_text(json.dumps(MAINTENANCE_FIXTURE), encoding="utf-8")
     app[QUEUE] = [dict(x) for x in QUEUE_FIXTURE]
+    app[SCENARIO] = {"name": "standard"}
     if authenticated:
         install_access(app)
 

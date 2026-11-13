@@ -1,0 +1,50 @@
+{
+  "revision": 1,
+  "dimensions_mm": [
+    30,
+    20,
+    2
+  ],
+  "encoche_mm": [
+    6,
+    6
+  ],
+  "slicer": "Anycubic Slicer Next 2.0.0.3",
+  "machine": "Anycubic Kobra S1",
+  "profile": "0.20mm Standard",
+  "nozzle_mm": 0.4,
+  "layer_mm": 0.2,
+  "layers": 10,
+  "plates": 1,
+  "filaments": 1,
+  "material": "PLA",
+  "seconds": 154,
+  "grams": 1.17,
+  "length_mm": 391.84,
+  "warnings": [
+    "1000C001",
+    "1000C002"
+  ],
+  "files": [
+    {
+      "format": "stl",
+      "name": "piece-temoin.stl",
+      "sha256": "db4cc681ea60a1593af4d549aa187463a7894b1e74adb870516a290de021a3ab"
+    },
+    {
+      "format": "3mf",
+      "name": "piece-temoin.3mf",
+      "sha256": "fade697d98e34b70e831b15c1348801f31b9ca6ae726b2fff80e27c9ccc40fb0"
+    },
+    {
+      "format": "gcode",
+      "name": "piece-temoin.gcode",
+      "sha256": "679057d9e21723d0c034fc942550dad42cb171744a1808beb12699c83efb09c9"
+    },
+    {
+      "format": "gcode.3mf",
+      "name": "piece-temoin.gcode.3mf",
+      "sha256": "5f20990fec35d8378e20dbd67f49dc0db8b62726c8dd9ff995ab87ea238cd52f"
+    }
+  ]
+}

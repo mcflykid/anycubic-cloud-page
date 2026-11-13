@@ -404,3 +404,34 @@ a.atelier-control { display: inline-flex; align-items: center; justify-content: 
 details[open] > .atelier-disclosure::before { transform: rotate(45deg); }
 @media (prefers-reduced-motion: reduce) { .atelier-disclosure::before { transition: none; } }
 button.atelier-count { border: 0; cursor: pointer; }
+
+/* Bandeau de chauffe anormale : pleine largeur au-dessus des cartes, sans action (maquette chauffe-anormale). */
+.print-heat-warning {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--atelier-space-1);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+  border: var(--atelier-rule) solid color-mix(in srgb, var(--atelier-warning) 40%, transparent);
+  border-radius: var(--atelier-card-radius);
+  background: color-mix(in srgb, var(--atelier-warning) 12%, transparent);
+  color: var(--atelier-fg);
+}
+.print-heat-warning[hidden] { display: none; }
+.print-heat-warning strong { color: var(--atelier-warning); }
+.print-heat-warning span { font: var(--atelier-caption); }
+#temperatures tr.heat-alert :is(th, td:first-of-type) { color: var(--atelier-warning); font-weight: var(--atelier-semibold); }
+
+/* Conseil de séchage : encadré d’attention sous le module, sans rien lancer (maquette sechage-conseille). */
+.ace-drying-advice {
+  display: grid;
+  gap: var(--atelier-space-2);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+  border-radius: var(--atelier-control-radius);
+  background: color-mix(in srgb, var(--atelier-warning) 12%, transparent);
+}
+.ace-drying-advice[hidden] { display: none; }
+.ace-drying-advice p { margin: 0; color: var(--atelier-fg); }
+.ace-drying-advice strong { color: var(--atelier-warning); }
+.ace-drying-advice-actions { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }
+/* La grille de l’Imprimante place les cartes sans espacement de rangée au-dessus d’elles. */
+.printer-workspace > .print-heat-warning { margin-block-end: var(--atelier-space-3); }

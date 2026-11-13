@@ -307,6 +307,26 @@ test('une mise à jour en cours reste distincte d’une simple proposition',asyn
   await expect(page.locator('[data-command=firmware]')).toBeDisabled();
 });
 
+test('consulter les nouveautés du firmware ne déclenche aucune mise à jour', async ({page}) => {
+  let commands = 0;
+  await page.route('**/imprimante-api/command', route => { commands++; return route.abort(); });
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    Object.assign(data.printer, {firmware_update_available:true, firmware_available:'2.8.0',
+      firmware_notes:{text:'Correctifs fictifs',published:1794000000,required:true}});
+    await route.fulfill({response,json:data});
+  });
+  await login(page,'settings');
+  await page.getByRole('button',{name:'Voir les nouveautés'}).first().click();
+  const dialog = page.getByRole('dialog',{name:'Nouveautés · Anycubic Kobra S1'});
+  await expect(dialog).toContainText('Correctifs fictifs');
+  await expect(dialog.locator('#firmware-notes-required')).toHaveText('Obligatoire');
+  // Fermer par « Plus tard » ne doit envoyer aucun ordre.
+  await dialog.getByRole('button',{name:'Plus tard'}).click();
+  await expect(dialog).toBeHidden();
+  expect(commands).toBe(0);
+});
+
 test('une erreur HTTP fournit une référence pour retrouver le journal du conteneur',async({page})=>{
   await login(page);
   await page.route('**/imprimante-api/preflight',route=>route.fulfill({status:400,headers:{'X-Request-ID':'abcdef0123456789abcdef0123456789'},json:{ok:false,message:'Métadonnées de filament invalides'}}));

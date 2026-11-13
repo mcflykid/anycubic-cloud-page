@@ -38,6 +38,9 @@ Ouvrir [les règles communes](design/maquette/regles.html) et [le Résumé](desi
 | Commandes courantes | [commandes-courantes.html](design/maquette/commandes-courantes.html) |
 | Détails de la tâche | [details-tache.html](design/maquette/details-tache.html) |
 | Notifications Discord | [notifications-discord.html](design/maquette/notifications-discord.html) |
+| Séchage conseillé | [sechage-conseille.html](design/maquette/sechage-conseille.html) |
+| Chauffe anormale | [chauffe-anormale.html](design/maquette/chauffe-anormale.html) |
+| Notes de version | [notes-version.html](design/maquette/notes-version.html) |
 
 Les [captures des maquettes à 1 440 px](design/maquette/images/) complètent les pages HTML.
 

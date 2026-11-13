@@ -37,7 +37,7 @@ from request_validation import json_object
 from task_notes import save_task_note
 from maintenance import filament_kg, maintenance_rows, update_maintenance
 from print_queue import read_queue, update_queue
-from print_observations import observe_timeline, read_timelines
+from print_observations import drying_advice, heat_alerts, observe_timeline, read_timelines
 from notification_delivery import private_json
 from printer_values import integer, now as now, safeget
 import printer_files
@@ -228,6 +228,20 @@ async def status(req):
     engine = request_engine(req)
     snapshot = engine.snapshot()
     printer = snapshot.get("printer")
+    if isinstance(req, web.Request) and printer:
+        registry = req.app.get("printer_registry")
+        history = registry.history(engine) if registry else None
+        heating = printer.get("job_state") in ("preheating", "printing")
+        drying = bool(printer.get("boxes")) and printer.get("job_in_progress") is False
+        if history is not None and (heating or drying):
+            samples = history.recent(1)
+            at = time.time()
+            if heating:
+                snapshot["heat_alerts"] = heat_alerts(printer, samples, at)
+            if drying:
+                snapshot["drying_advice"] = drying_advice(
+                    printer, snapshot.get("presets") or [], samples, at
+                )
     if (
         isinstance(req, web.Request)
         and printer
@@ -438,9 +452,90 @@ async def diagnostic(req):
             if name in counters and type(counters[name]) is int and counters[name] >= 0
         },
     }
+    if req.query.get("developer") == "1":
+        snapshot = engine.snapshot()
+        printer = snapshot.get("printer") or {}
+        trace = getattr(engine, "stored_print_trace", None)
+        primary = getattr(engine.api, "cloud_engine", None)
+        sample = engine.mqtt_clock_sample
+        signal_age = round(time.monotonic() - sample[0]) if sample else None
+        own_signals = engine.developer_signals.read()
+        now_s = time.time()
+        last_mqtt_fans = {}
+        for signal in own_signals:
+            if signal["phase"] == "receive":
+                for name, value in signal.get("ventilateurs", {}).items():
+                    last_mqtt_fans[name] = {
+                        "value": value,
+                        "receive_ms": signal["ms"],
+                        "type": signal["type"],
+                    }
+        payload["developer"] = {
+            "signal_scope": "printer"
+            if primary and primary is not engine
+            else "printer_and_account",
+            "signals": own_signals,
+            "fans": {
+                "snapshot": {
+                    name: printer[name]
+                    for name in ("fan_speed_pct", "aux_fan_speed_pct", "box_fan_level")
+                    if type(printer.get(name)) in (int, float)
+                },
+                "latest_mqtt": last_mqtt_fans,
+            },
+            "mqtt_connected": bool(snapshot.get("mqtt_connected")),
+            "job_active": printer.get("job_in_progress") is True,
+            "freshness_s": {
+                key: max(0, round(now_s - datetime.fromisoformat(stamp).timestamp()))
+                if isinstance(stamp, str)
+                else None
+                for key in ("updated_at", "mqtt_updated_at")
+                for stamp in [snapshot.get(key)]
+            },
+            "finish_timing": {
+                "elapsed_min": printer.get("job_time_elapsed"),
+                "reported_remaining_min": printer.get("job_time_remaining"),
+                "mqtt_timestamp_vs_received_s": sample[1] if sample and signal_age <= 300 else None,
+                "clock_sample_age_s": signal_age,
+                "corrected_available": bool(printer.get("corrected_finish")),
+                "samples": safeget(engine, "duration_factor", None)[1]
+                if engine.duration_factor
+                else 0,
+                "speed_changed": engine.estimate_speed_changed,
+            },
+            "last_stored_print": trace[1] if trace and trace[0] is engine.printer else None,
+            "ace": [
+                {
+                    "loaded_index": box.get("loaded_slot")
+                    if type(box.get("loaded_slot")) is int
+                    else None,
+                    "observed_slot": next(
+                        (
+                            spool["display_slot"]
+                            for spool in box.get("spools") or []
+                            if type(box.get("loaded_slot")) is int
+                            and spool.get("local_slot") == box["loaded_slot"] + 1
+                            and spool.get("spool_loaded") is True
+                            and type(spool.get("display_slot")) is int
+                        ),
+                        None,
+                    ),
+                    "available_slots": [
+                        spool["display_slot"]
+                        for spool in box.get("spools") or []
+                        if spool.get("spool_loaded") is True
+                        and type(spool.get("display_slot")) is int
+                    ],
+                }
+                for box in printer.get("boxes") or []
+            ],
+        }
     return web.json_response(
         payload,
-        headers={"Content-Disposition": 'attachment; filename="diagnostic-anycubic.json"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="diagnostic-anycubic.json"',
+            "Cache-Control": "no-store",
+        },
     )
 
 

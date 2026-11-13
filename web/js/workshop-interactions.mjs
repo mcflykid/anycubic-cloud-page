@@ -48,7 +48,7 @@ export function initializeInteractions() {
     const saved = JSON.parse(localStorage.getItem('cloud-page-recent-searches') || '[]');
     if (Array.isArray(saved)) recent = saved.filter(value => typeof value === 'string').slice(0, 5);
   } catch {}
-  const tabs = () => [...document.querySelectorAll('#atelier-tabs [data-tab]')].filter(button => !button.disabled);
+  const tabs = () => [...document.querySelectorAll('#atelier-tabs [data-tab]')].filter(button => !button.disabled && !button.hidden);
   const openTab = tab => tabs().find(button => button.dataset.tab === tab)?.click();
   // Le libellé de rubrique vient de la navigation : il suit la langue et les onglets disponibles.
   const groupOf = tab => document.querySelector(`#atelier-tabs [data-tab="${tab}"]`)?.closest('[role=group]')?.getAttribute('aria-label') || '';

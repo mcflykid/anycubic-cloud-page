@@ -46,7 +46,11 @@ def build_web_assets(root):
         if path.is_file()
         # Les sources d’origine conservées à part ne font pas partie des ressources servies.
         and path.relative_to(root).parts[0] != "vendor"
-        and path.suffix in {".html", ".js", ".mjs", ".json", ".css", ".svg", ".png", ".woff2"}
+        and (
+            path.suffix in {".html", ".js", ".mjs", ".json", ".css", ".svg", ".png", ".woff2"}
+            or path.relative_to(root).parts[0] == "temoin"
+            and path.suffix in {".stl", ".3mf", ".gcode"}
+        )
     }
     missing = REQUIRED.difference(files)
     if missing:

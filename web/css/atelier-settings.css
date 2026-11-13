@@ -66,6 +66,47 @@
   border-block-start: var(--atelier-rule) solid var(--atelier-line);
 }
 .settings-firmware-row strong { overflow-wrap: anywhere; }
+/* Nouveautés du micrologiciel : versions, notes constructeur puis rappel de sécurité, comme la maquette notes-version. */
+.firmware-notes-body { display: grid; gap: var(--atelier-space-3); }
+.firmware-notes-body p { margin: 0; }
+.firmware-notes-versions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--atelier-space-2) var(--atelier-space-5);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+.firmware-notes-versions > div:not(.firmware-notes-meta) { display: grid; }
+.firmware-notes-versions span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.firmware-notes-versions strong { font: var(--atelier-card-title); font-weight: var(--atelier-semibold); font-variant-numeric: tabular-nums; }
+#firmware-notes-target { color: var(--atelier-accent); }
+.firmware-notes-arrow { color: var(--atelier-muted); }
+.firmware-notes-meta { display: grid; justify-items: end; gap: var(--atelier-space-1); margin-inline-start: auto; }
+.firmware-notes-versions .atelier-count[data-state="required"] { background: color-mix(in srgb, var(--atelier-error) 14%, transparent); color: var(--atelier-error); }
+.firmware-notes-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--atelier-space-2); }
+.firmware-notes-heading h3 { margin: 0; font: var(--atelier-text); font-weight: var(--atelier-semibold); }
+.firmware-notes-heading p { color: var(--atelier-muted); font: var(--atelier-caption); }
+.firmware-notes-text, .firmware-notes-empty {
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+  border-radius: var(--atelier-control-radius);
+  background: color-mix(in srgb, var(--atelier-muted) 8%, transparent);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.firmware-notes-empty { display: grid; gap: var(--atelier-space-1); text-align: center; background: none; border: var(--atelier-rule) dashed var(--atelier-line); white-space: normal; }
+.firmware-notes-empty[hidden], .firmware-notes-text[hidden] { display: none; }
+.firmware-notes-empty span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.firmware-notes-warning {
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border-radius: var(--atelier-control-radius);
+  background: color-mix(in srgb, var(--atelier-warning) 12%, transparent);
+  color: var(--atelier-warning);
+  font: var(--atelier-caption);
+}
+.firmware-notes-dialog > .atelier-card-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--atelier-space-2); }
+.firmware-notes-actions { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); margin-inline-start: auto; }
 .atelier-status[data-state="warning"]::before { background: var(--atelier-warning); }
 .atelier-status[data-state="unknown"]::before {
   background: transparent;
@@ -268,3 +309,56 @@ body:has(.workshop-frame) > #ai-dialog { width: min(var(--atelier-ai-dialog-widt
 .settings-row-footer > div { display: grid; min-width: 0; }
 .settings-row-footer strong { font-weight: var(--atelier-semibold); }
 #tab-settings .settings-row-footer p { margin: 0; color: var(--atelier-muted); font: var(--atelier-caption); }
+
+/* Le mode développeur reste discret : un simple « Ω » en texte, que le style commun des boutons enfoncés remplirait. */
+#tab-settings #developer-mode[aria-pressed] { border: 0; background: none; color: var(--atelier-muted); box-shadow: none; text-decoration: none; }
+#tab-settings #developer-mode[aria-pressed="true"] { color: var(--atelier-accent); font-weight: var(--atelier-semibold); }
+/* L’onglet Développeur réutilise les panneaux de l’atelier : un volet par outil, deux colonnes sur grand écran. */
+.developer-card { margin-block-start: var(--atelier-space-4); }
+.developer-card > .atelier-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(calc(15 * var(--atelier-compact-control)), 100%), 1fr));
+  align-items: start;
+  gap: var(--atelier-space-3);
+}
+.developer-card details {
+  min-inline-size: 0;
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+.developer-card details[open] > summary { margin-block-end: var(--atelier-space-2); }
+.developer-card details > :not(summary) + :not(summary) { margin-block-start: var(--atelier-space-2); }
+.developer-card [data-feedback], .developer-card [data-wide] { grid-column: 1 / -1; }
+.developer-card [data-feedback]:empty { display: none; }
+.developer-card .atelier-card-footer { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }
+.developer-card label { display: inline-grid; gap: var(--atelier-space-1); color: var(--atelier-muted); font: var(--atelier-caption); }
+.developer-card .developer-filters { display: flex; flex-wrap: wrap; gap: var(--atelier-space-3); }
+.developer-card pre, .developer-card .developer-log {
+  margin: 0;
+  max-block-size: calc(8 * var(--atelier-compact-control));
+  overflow: auto;
+  font: var(--atelier-caption);
+  font-family: var(--atelier-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.developer-card pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.developer-card .developer-log { padding: 0; list-style: none; }
+.developer-card .developer-log li { padding-block: var(--atelier-space-1); border-block-end: var(--atelier-rule) solid var(--atelier-line); overflow-wrap: anywhere; }
+.developer-card .developer-log li:last-child { border-block-end: 0; }
+.developer-card .developer-log:empty::before { content: attr(data-empty); color: var(--atelier-muted); font: var(--atelier-caption); }
+.developer-card .developer-log [data-attention="true"] { color: var(--atelier-warning); font-weight: var(--atelier-semibold); }
+.developer-card [data-ace-summary]:empty, .developer-card [data-finish-summary]:empty { display: none; }
+.developer-card [data-witness] img { display: block; max-inline-size: 100%; block-size: auto; }
+.developer-card [data-witness] ul { padding-inline-start: var(--atelier-space-4); }
+.developer-card code { overflow-wrap: anywhere; }
+.developer-card textarea { inline-size: 100%; box-sizing: border-box; }
+#atelier-tabs [data-tab="developer"][hidden], #atelier-tabs .developer-unread[hidden] { display: none; }
+#atelier-tabs .developer-unread {
+  display: inline-block;
+  flex: 0 0 var(--atelier-dot);
+  inline-size: var(--atelier-dot);
+  block-size: var(--atelier-dot);
+  border-radius: 50%;
+  background: currentColor;
+}

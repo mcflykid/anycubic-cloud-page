@@ -3,15 +3,20 @@ import { formatText, serverText, tr } from './workshop-ui.mjs';
 export const api = '/imprimante-api';
 
 /** Applique la cible propre au navigateur et réserve les reprises automatiques aux lectures. */
-export function createRequest(getPrinter) {
+export function createRequest(getPrinter, record = () => {}, simulate = () => undefined) {
   return async function request(path, options = {}) {
     const { timeoutMs, ...fetchOptions } = options;
     const target = options.printerKey ?? getPrinter();
-    const read = !options.method || options.method === 'GET';
+    const method = options.method?.toUpperCase() || 'GET';
+    const read = method === 'GET';
     let response;
     for (let attempt = 0; attempt < (read ? 2 : 1); attempt++) {
+      const started = performance.now();
+      const route = path.split('?')[0];
+      record(method, route, 'envoi', attempt + 1);
       try {
-        response = await fetch(api + path, {
+        const simulated = read && simulate(route);
+        response = (simulated && await simulated) || await fetch(api + path, {
           cache: 'no-store',
           signal: AbortSignal.timeout(timeoutMs ?? (path.startsWith('/files/') ? 45000 : 90000)),
           ...fetchOptions,
@@ -21,6 +26,7 @@ export function createRequest(getPrinter) {
           },
         });
       } catch {
+        record(method, route, 'interruption', attempt + 1, Math.round(performance.now() - started));
         if (read && attempt === 0) continue;
         throw new Error(
           path === '/upload'
@@ -34,6 +40,7 @@ export function createRequest(getPrinter) {
                 ),
         );
       }
+      record(method, route, 'réponse', attempt + 1, Math.round(performance.now() - started), response.status);
       if (read && [502, 503, 504].includes(response.status) && !response.headers.has('Retry-After') && attempt === 0) {
         await new Promise((resolve) => setTimeout(resolve, 1200));
         continue;

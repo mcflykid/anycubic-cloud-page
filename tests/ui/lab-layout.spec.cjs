@@ -10,7 +10,7 @@ test('Laboratoire regroupe dix sections et conserve les groupes en Standard',asy
  await expect(page.locator('.atelier-navigation')).toHaveCSS('display','block');
  const menu=await page.locator('#atelier-tabs').boundingBox();
  expect(menu.height).toBeLessThan(740);
- const tabs=page.locator('#atelier-tabs [data-tab]');
+ const tabs=page.locator('#atelier-tabs [data-tab]:not([hidden])');
  await expect(tabs).toHaveCount(10);
  for(const key of ['summary','overview','ace','files','upload','camera','history','fleet','statistics','settings']){
   await page.locator(`#atelier-tabs [data-tab=${key}]`).click();
@@ -21,7 +21,7 @@ test('Laboratoire regroupe dix sections et conserve les groupes en Standard',asy
  }
  await page.locator('#interface-style').selectOption('standard');
  await expect(page.locator('.atelier-nav-group')).toHaveCount(5);
- await expect(page.locator('#atelier-tabs [data-tab]')).toHaveCount(10);
+ await expect(page.locator('#atelier-tabs [data-tab]:not([hidden])')).toHaveCount(10);
  await page.locator('[data-tab=camera]').click();await expect(page.locator('#tab-camera')).toBeVisible();
 });
 

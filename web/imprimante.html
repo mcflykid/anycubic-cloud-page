@@ -26,12 +26,14 @@
 <div class="atelier-nav-group lab-nav-group" role="group" aria-label="Configuration" style="--section-count:1">
 <span class="atelier-nav-label lab-nav-heading" aria-hidden="true">Configuration</span>
 <button type="button" disabled data-tab="settings"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="white"/><circle cx="15" cy="17" r="3" fill="white"/></svg><span>Réglages</span></button>
+<button type="button" data-tab="developer" aria-controls="tab-developer" hidden disabled><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 8-4 4 4 4m8-8 4 4-4 4M14 5l-4 14"/></svg><span>Développeur</span><span class="developer-unread" aria-label="Nouvel incident HTTP" hidden></span></button>
 </div>
 </nav></div>
 <div id="message" class="notice" role="status" hidden><span id="message-text"></span><button type="button" id="message-error-help" aria-haspopup="dialog" hidden>Voir la fiche d’erreur</button><button type="button" id="message-close" aria-label="Fermer le message">Fermer</button></div><main id="atelier">
 <section id="tab-summary" class="tab-panel" aria-labelledby="summary-title">
   <h2 class="sr-only" id="summary-title">Résumé</h2>
   <div class="summary-grid atelier-summary-grid">
+    <div id="summary-heat-warning" class="print-heat-warning" role="status" hidden></div>
     <section class="atelier-card summary-printer">
       <header class="atelier-card-header"><h3>Imprimante</h3><span id="summary-printer-status" class="atelier-status offline">Chargement…</span></header>
       <div class="atelier-card-body summary-device">
@@ -57,6 +59,7 @@
 </section>
 <section id="tab-overview" class="tab-panel" hidden>
   <div class="printer-workspace">
+    <div id="printer-heat-warning" class="print-heat-warning" role="status" hidden></div>
     <section class="atelier-card" aria-labelledby="printer-task-title">
       <header class="atelier-card-header"><h2 id="printer-task-title">Impression</h2><p id="printer-status" class="atelier-status offline">Chargement…</p></header>
       <div class="atelier-card-body printer-task-body">
@@ -73,9 +76,9 @@
     <section class="atelier-card" aria-labelledby="printer-metrics-title">
       <header class="atelier-card-header"><h2 id="printer-metrics-title">Températures et ventilation</h2></header>
       <div class="atelier-card-body printer-metrics">
-        <table id="temperatures"><thead><tr><th scope="col"><span class="sr-only">Mesure</span></th><th scope="col">Actuelle</th><th scope="col">Cible</th></tr></thead><tbody>
-          <tr><th scope="row">Buse</th><td id="printer-nozzle-current">—</td><td id="printer-nozzle-target">—</td></tr>
-          <tr><th scope="row">Plateau</th><td id="printer-bed-current">—</td><td id="printer-bed-target">—</td></tr>
+      <table id="temperatures"><thead><tr><th scope="col"><span class="sr-only">Mesure</span></th><th scope="col">Actuelle</th><th scope="col">Cible</th></tr></thead><tbody>
+          <tr id="printer-nozzle-row"><th scope="row">Buse</th><td id="printer-nozzle-current">—</td><td id="printer-nozzle-target">—</td></tr>
+          <tr id="printer-bed-row"><th scope="row">Plateau</th><td id="printer-bed-current">—</td><td id="printer-bed-target">—</td></tr>
         </tbody></table>
         <dl id="printer-fans" class="atelier-measures"></dl>
       </div>
@@ -100,6 +103,7 @@
             <dl id="ace-stats" class="atelier-measures"></dl>
           </div>
         </div>
+        <div id="ace-drying-advice" class="ace-drying-advice" hidden><p id="ace-drying-advice-text" role="status"></p><div class="ace-drying-advice-actions"><button id="ace-drying-prepare" type="button" class="atelier-control atelier-control-primary">Préparer le séchage</button><button id="ace-drying-dismiss" type="button" class="atelier-control">Masquer 24 h</button></div></div>
         <div class="ace-relay-row"><div><strong>Relais automatique</strong><p id="ace-relay-state">—</p><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-tooltip-trigger="true" title="Quand une bobine se termine, l’ACE passe à une autre bobine chargée de même matière et couleur." aria-label="Aide sur le relais automatique des bobines">?</button></div><button type="button" id="ace-relay-open" class="atelier-control">Activer</button></div>
       </div>
       <footer class="atelier-card-footer ace-module-actions"><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="ace" aria-haspopup="dialog" aria-label="Aide">?</button><button type="button" id="go-drying" class="atelier-control">Régler le séchage</button><button type="button" id="go-spool" class="atelier-control">Configurer une bobine</button></footer>
@@ -335,7 +339,7 @@
   <div class="atelier-settings-row">
     <section class="atelier-card" aria-labelledby="settings-updates-title">
       <header class="atelier-card-header"><h2 id="settings-updates-title">Mises à jour</h2></header>
-      <div class="settings-firmwares"><div class="settings-firmware-row"><div><strong id="firmware-printer-model">Imprimante</strong><p id="firmware-printer-version">—</p></div><span id="firmware-printer-status" class="atelier-status" data-state="unknown">Vérification…</span><button type="button" class="atelier-control" data-command="firmware" aria-label="Mettre à jour l’imprimante" disabled>Mettre à jour</button></div><div class="settings-firmware-row"><div><strong id="firmware-ace-model">Module ACE</strong><p id="firmware-ace-version">—</p></div><span id="firmware-ace-status" class="atelier-status" data-state="unknown">Vérification…</span><button type="button" class="atelier-control" data-command="ace-firmware" aria-label="Mettre à jour le module ACE" disabled>Mettre à jour</button></div></div>
+      <div class="settings-firmwares"><div class="settings-firmware-row"><div><strong id="firmware-printer-model">Imprimante</strong><p id="firmware-printer-version">—</p><button type="button" id="firmware-printer-notes" hidden>Voir les nouveautés</button></div><span id="firmware-printer-status" class="atelier-status" data-state="unknown">Vérification…</span><button type="button" class="atelier-control" data-command="firmware" aria-label="Mettre à jour l’imprimante" disabled>Mettre à jour</button></div><div class="settings-firmware-row"><div><strong id="firmware-ace-model">Module ACE</strong><p id="firmware-ace-version">—</p><button type="button" id="firmware-ace-notes" hidden>Voir les nouveautés</button></div><span id="firmware-ace-status" class="atelier-status" data-state="unknown">Vérification…</span><button type="button" class="atelier-control" data-command="ace-firmware" aria-label="Mettre à jour le module ACE" disabled>Mettre à jour</button></div></div>
       <footer class="atelier-card-footer"><p>Une mise à jour proposée par Anycubic s’installe lorsque l’imprimante est libre.</p></footer>
     </section>
     <section class="atelier-card" id="settings-container" aria-labelledby="settings-container-title">
@@ -347,7 +351,7 @@
           <div><dt>Niveau des journaux</dt><dd><!-- CONTAINER_LOG_LEVEL --></dd></div>
           <div><dt>Format des journaux</dt><dd><!-- CONTAINER_LOG_FORMAT --></dd></div>
         </dl>
-        <div class="settings-container-links"><a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/INSTALLATION.md">Guide d’installation</a><button type="button" class="settings-log-link" id="settings-logs-open" aria-haspopup="dialog">Journaux du conteneur</button></div>
+        <div class="settings-container-links"><a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/INSTALLATION.md">Guide d’installation</a><button type="button" class="settings-log-link" id="settings-logs-open" aria-haspopup="dialog">Journaux du conteneur</button><button type="button" class="settings-log-link" id="developer-mode" aria-label="Mode développeur" aria-pressed="false">Ω</button></div>
       </div>
       <footer class="atelier-card-footer"><p>Ces paramètres se règlent dans le fichier Compose.</p></footer>
     </section>
@@ -385,6 +389,7 @@
 <section class="form-panel reset-card"><h3>↺ Réinitialisation usine</h3><p class="muted" id="reset-help">Rétablit les réglages d’usine. Une confirmation puis un code à recopier sont nécessaires.</p><button id="reset-open" type="button" class="danger" disabled>Réinitialiser</button></section>
 </div>
 </section>
+<section id="tab-developer" class="tab-panel" hidden></section>
 </main><footer class="printer-footer"><div class="footer-status"><a id="app-version" href="https://github.com/mcflykid/anycubic-cloud-page/releases/tag/v<!-- APP_VERSION -->"><span>Version</span>&nbsp;<!-- APP_VERSION --></a><p id="updated">Source : Anycubic Cloud et MQTT.</p></div><nav class="footer-links" aria-label="Informations sur le site"><a href="/imprimante-api/ui/about">Confidentialité</a><a href="/imprimante-api/ui/conditions">Conditions</a><a href="/imprimante-api/ui/cookies">Cookies</a><a class="footer-credits" href="/imprimante-api/ui/credits">Crédits</a></nav></footer></div>
 <dialog id="context-help-dialog" class="settings-dialog" aria-labelledby="context-help-title">
   <div class="dialog-top"><h2 id="context-help-title"></h2><button type="button" class="dialog-close" autofocus>Fermer</button></div>
@@ -621,6 +626,22 @@
     </form>
   </div>
   <footer class="atelier-card-footer"><button id="maintenance-history-toggle" class="atelier-control" type="button" aria-pressed="false">Historique des interventions</button><button id="maintenance-add" class="atelier-control" type="button">Ajouter une opération</button></footer>
+</dialog>
+<dialog id="firmware-notes-dialog" class="settings-dialog atelier-panel-dialog firmware-notes-dialog" aria-labelledby="firmware-notes-title">
+  <header class="atelier-card-header"><h2 id="firmware-notes-title">Nouveautés</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body firmware-notes-body">
+    <div class="firmware-notes-versions">
+      <div><span>Version installée</span><strong id="firmware-notes-current">—</strong></div>
+      <span class="firmware-notes-arrow" aria-hidden="true">→</span>
+      <div><span>Version proposée</span><strong id="firmware-notes-target">—</strong></div>
+      <div class="firmware-notes-meta"><span id="firmware-notes-date"></span><span id="firmware-notes-optional" class="atelier-count">Facultative</span><span id="firmware-notes-required" class="atelier-count" data-state="required" hidden>Obligatoire</span></div>
+    </div>
+    <div class="firmware-notes-heading"><h3>Nouveautés</h3><p id="firmware-notes-source">Texte fourni par Anycubic</p></div>
+    <p id="firmware-notes-text" class="firmware-notes-text"></p>
+    <p id="firmware-notes-empty" class="firmware-notes-empty" hidden><strong>Anycubic ne fournit pas de notes pour cette version.</strong><span>Consultez la page officielle du produit pour en savoir plus.</span></p>
+    <p class="firmware-notes-warning" role="note">L’installation n’est possible que lorsque l’imprimante est libre. Ne l’éteignez pas pendant la mise à jour.</p>
+  </div>
+  <footer class="atelier-card-footer"><a id="firmware-notes-official" href="https://wiki.anycubic.com/en/fdm-3d-printer" target="_blank" rel="noopener noreferrer">Page officielle du produit</a><span class="firmware-notes-actions"><button type="button" class="atelier-control" id="firmware-notes-later">Plus tard</button><button type="button" class="atelier-control atelier-control-primary" id="firmware-notes-install">Mettre à jour</button></span></footer>
 </dialog>
 <dialog id="print-dialog" class="confirmation-dialog" aria-labelledby="print-title">
   <header class="confirmation-heading"><h2 id="print-title">Lancer l’impression</h2></header>

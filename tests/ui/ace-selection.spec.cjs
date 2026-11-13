@@ -140,3 +140,30 @@ test('un emplacement inconnu propose uniquement la création et retrouve sa fich
  await expect(create).toBeVisible();
  await expect(profile).toBeHidden();
 });
+
+test('le conseil de séchage préremplit le formulaire sans démarrer le module', async ({page}) => {
+  const orders = [];
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), data = await response.json();
+    const box = data.printer.boxes[0];
+    data.drying_advice = {[box.box_id]: {humidity:48, material:'PETG', temperature:55, hours:6}};
+    await route.fulfill({response, json:data});
+  });
+  await page.route('**/imprimante-api/command', route => {
+    orders.push(route.request().postDataJSON());
+    return route.abort();
+  });
+  await login(page, 'ace');
+  const advice = page.locator('#ace-drying-advice');
+  await expect(advice).toContainText(/48.*PETG/);
+  await expect(advice.getByRole('button', {name:'Préparer PETG · 55 °C · 6 h'})).toBeVisible();
+  await advice.getByRole('button', {name:/^Préparer PETG/}).click();
+  await expect(page.locator('#dry-form [name=temperature]')).toHaveValue('55');
+  await expect(page.locator('#dry-form [name=hours]')).toHaveValue('6');
+  expect(orders).toHaveLength(0);
+  await page.keyboard.press('Escape');
+  await advice.getByRole('button', {name:'Masquer 24 h'}).click();
+  await page.reload();
+  await openSection(page, 'ace');
+  await expect(advice).toBeHidden();
+});

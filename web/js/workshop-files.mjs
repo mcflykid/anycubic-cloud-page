@@ -152,8 +152,11 @@ export function createFiles(request, command, addToQueue) {
         caption.append(node('strong', f.name));
         // Les extensions et le statut imprimable restent distincts pour les modèles non tranchés.
         const extension = f.name.match(/\.([^.]+)$/)?.[1]?.toLowerCase();
+        const storedGcodePackage = listedSource === 'local' &&
+          workshopState.snapshot?.printer?.machine_name === 'Anycubic Kobra S1' &&
+          f.name.toLowerCase().endsWith('.gcode.3mf');
         const format = f.is_dir ? tr('Dossier') : extension === 'gcode' ? 'G-code' : extension?.toUpperCase();
-        const printable = !f.is_dir && (listedSource === 'cloud' ? f.printable === true || (f.printable !== false && extension === 'gcode') : extension === 'gcode');
+        const printable = !f.is_dir && (listedSource === 'cloud' ? f.printable === true || (f.printable !== false && extension === 'gcode') : extension === 'gcode' || storedGcodePackage);
         if (format) caption.append(node('span', printable ? formatText('{0} · imprimable', format) : format));
         identity.append(caption);
         name.append(identity);
@@ -191,7 +194,7 @@ export function createFiles(request, command, addToQueue) {
               Ouvrir: tr('Afficher le contenu de ce dossier.'),
             }[label] || tr(label);
           if (label === 'Imprimer') {
-            if (listedSource !== 'cloud' && !String(f.name).toLowerCase().endsWith('.gcode')) {
+            if (listedSource !== 'cloud' && !printable) {
               b.disabled = true;
               b.title = tr('Le lancement direct de ce format attend une validation de compatibilité.');
             } else if (listedSource === 'cloud' && f.printable === false) {

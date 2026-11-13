@@ -21,7 +21,7 @@ test('Le menu mobile garde dix sections accessibles sans débordement horizontal
  await expect(tabs).toBeHidden();
  await page.locator('#section-menu-toggle').click();
  await expect(tabs).toHaveAttribute('data-open','true');
- await expect(tabs.locator('button')).toHaveCount(10);
+ await expect(tabs.locator('button:not([hidden])')).toHaveCount(10);
  await expect(tabs.getByRole('button')).toHaveCount(10);
  expect(await tabs.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);

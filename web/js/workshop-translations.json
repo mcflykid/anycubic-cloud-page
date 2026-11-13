@@ -1,4 +1,28 @@
 {
+  "Développeur": {
+    "en": "Developer",
+    "es": "Desarrollo",
+    "de": "Entwicklung",
+    "it": "Sviluppo"
+  },
+  "Mode développeur": {
+    "en": "Developer mode",
+    "es": "Modo de desarrollo",
+    "de": "Entwicklermodus",
+    "it": "Modalità sviluppatore"
+  },
+  "Nouvel incident HTTP": {
+    "en": "New HTTP incident",
+    "es": "Nuevo incidente HTTP",
+    "de": "Neuer HTTP-Vorfall",
+    "it": "Nuovo incidente HTTP"
+  },
+  "Ω": {
+    "en": "Ω",
+    "es": "Ω",
+    "de": "Ω",
+    "it": "Ω"
+  },
   "Détaillé": {
     "en": "Détaillé",
     "es": "Détaillé",
@@ -9916,5 +9940,167 @@
     "es": "Salir de la vista mural",
     "de": "Wandansicht verlassen",
     "it": "Esci dalla vista a parete"
+  },
+  "Voir les nouveautés": {
+    "en": "See what’s new",
+    "es": "Ver novedades",
+    "de": "Neuerungen anzeigen",
+    "it": "Vedi le novità"
+  },
+  "Nouveautés du micrologiciel": {
+    "en": "Firmware release notes",
+    "es": "Novedades del firmware",
+    "de": "Firmware-Versionshinweise",
+    "it": "Note sulla versione del firmware"
+  },
+  "Mise à jour obligatoire": {
+    "en": "Required update",
+    "es": "Actualización obligatoria",
+    "de": "Erforderliches Update",
+    "it": "Aggiornamento obbligatorio"
+  },
+  "Texte fourni par Anycubic": {
+    "en": "Text provided by Anycubic",
+    "es": "Texto proporcionado por Anycubic",
+    "de": "Text von Anycubic",
+    "it": "Testo fornito da Anycubic"
+  },
+  "Guide officiel du micrologiciel": {
+    "en": "Official firmware guide",
+    "es": "Guía oficial del firmware",
+    "de": "Offizielle Firmware-Anleitung",
+    "it": "Guida ufficiale del firmware"
+  },
+  "Anycubic ne fournit pas de notes pour cette version.": {
+    "en": "Anycubic provides no notes for this release.",
+    "es": "Anycubic no proporciona notas para esta versión.",
+    "de": "Anycubic stellt für diese Version keine Hinweise bereit.",
+    "it": "Anycubic non fornisce note per questa versione."
+  },
+  "{0} : {1} mesurés pour une cible de {2} depuis {3}.": {
+    "en": "{0}: measured {1} against a target of {2} for {3}.",
+    "es": "{0}: {1} medidos frente al objetivo de {2} durante {3}.",
+    "de": "{0}: Seit {3} wurden {1} bei einem Sollwert von {2} gemessen.",
+    "it": "{0}: misurati {1} rispetto al valore previsto di {2} da {3}."
+  },
+  "Préparer le séchage": {
+    "en": "Prepare drying",
+    "es": "Preparar el secado",
+    "de": "Trocknen vorbereiten",
+    "it": "Prepara l’asciugatura"
+  },
+  "Masquer 24 h": {
+    "en": "Hide for 24 h",
+    "es": "Ocultar durante 24 h",
+    "de": "Für 24 Stunden ausblenden",
+    "it": "Nascondi per 24 h"
+  },
+  "Humidité {0} : séchage {1} conseillé.": {
+    "en": "Humidity {0}: drying {1} is recommended.",
+    "es": "Humedad {0}: se recomienda secar {1}.",
+    "de": "Luftfeuchtigkeit {0}: Trocknung von {1} empfohlen.",
+    "it": "Umidità {0}: si consiglia di asciugare {1}."
+  },
+  "Nouveautés": {
+    "en": "What’s new",
+    "es": "Novedades",
+    "de": "Neuerungen",
+    "it": "Novità"
+  },
+  "Nouveautés · {0}": {
+    "en": "What’s new · {0}",
+    "es": "Novedades · {0}",
+    "de": "Neuerungen · {0}",
+    "it": "Novità · {0}"
+  },
+  "Version installée": {
+    "en": "Installed version",
+    "es": "Versión instalada",
+    "de": "Installierte Version",
+    "it": "Versione installata"
+  },
+  "Version proposée": {
+    "en": "Offered version",
+    "es": "Versión propuesta",
+    "de": "Angebotene Version",
+    "it": "Versione proposta"
+  },
+  "Publiée le {0}": {
+    "en": "Released on {0}",
+    "es": "Publicada el {0}",
+    "de": "Veröffentlicht am {0}",
+    "it": "Pubblicata il {0}"
+  },
+  "Facultative": {
+    "en": "Optional",
+    "es": "Opcional",
+    "de": "Optional",
+    "it": "Facoltativa"
+  },
+  "Obligatoire": {
+    "en": "Required",
+    "es": "Obligatoria",
+    "de": "Erforderlich",
+    "it": "Obbligatoria"
+  },
+  "Plus tard": {
+    "en": "Later",
+    "es": "Más tarde",
+    "de": "Später",
+    "it": "Più tardi"
+  },
+  "Page officielle du produit": {
+    "en": "Official product page",
+    "es": "Página oficial del producto",
+    "de": "Offizielle Produktseite",
+    "it": "Pagina ufficiale del prodotto"
+  },
+  "Consultez la page officielle du produit pour en savoir plus.": {
+    "en": "See the official product page to learn more.",
+    "es": "Consulte la página oficial del producto para más información.",
+    "de": "Weitere Informationen auf der offiziellen Produktseite.",
+    "it": "Consulta la pagina ufficiale del prodotto per saperne di più."
+  },
+  "L’installation n’est possible que lorsque l’imprimante est libre. Ne l’éteignez pas pendant la mise à jour.": {
+    "en": "Installation is only possible while the printer is idle. Do not turn it off during the update.",
+    "es": "La instalación solo es posible cuando la impresora está libre. No la apague durante la actualización.",
+    "de": "Die Installation ist nur möglich, wenn der Drucker frei ist. Schalten Sie ihn während des Updates nicht aus.",
+    "it": "L’installazione è possibile solo quando la stampante è libera. Non spegnerla durante l’aggiornamento."
+  },
+  "Séchage {0} conseillé.": {
+    "en": "{0} drying recommended.",
+    "es": "Secado de {0} recomendado.",
+    "de": "Trocknung für {0} empfohlen.",
+    "it": "Essiccazione {0} consigliata."
+  },
+  "Humidité moyenne de {0} sur 15 min avec du {1} chargé, sensible à l’humidité.": {
+    "en": "Average humidity of {0} over 15 min with {1} loaded, which is moisture-sensitive.",
+    "es": "Humedad media de {0} durante 15 min con {1} cargado, sensible a la humedad.",
+    "de": "Durchschnittliche Feuchte von {0} über 15 min mit geladenem {1}, das feuchtigkeitsempfindlich ist.",
+    "it": "Umidità media del {0} in 15 min con {1} caricato, sensibile all’umidità."
+  },
+  "Préparer {0} · {1} · {2}": {
+    "en": "Prepare {0} · {1} · {2}",
+    "es": "Preparar {0} · {1} · {2}",
+    "de": "{0} vorbereiten · {1} · {2}",
+    "it": "Prepara {0} · {1} · {2}"
+  },
+  "Le plateau n’atteint pas sa cible : {0} depuis {1} pour {2}.": {
+    "en": "The bed is not reaching its target: {0} for {1}, target {2}.",
+    "es": "La cama no alcanza su objetivo: {0} desde hace {1} para {2}.",
+    "de": "Das Druckbett erreicht sein Ziel nicht: {0} seit {1} bei Ziel {2}.",
+    "it": "Il piano non raggiunge l’obiettivo: {0} da {1} per {2}."
+  },
+  "La buse n’atteint pas sa cible : {0} depuis {1} pour {2}.": {
+    "en": "The nozzle is not reaching its target: {0} for {1}, target {2}.",
+    "es": "La boquilla no alcanza su objetivo: {0} desde hace {1} para {2}.",
+    "de": "Die Düse erreicht ihr Ziel nicht: {0} seit {1} bei Ziel {2}.",
+    "it": "L’ugello non raggiunge l’obiettivo: {0} da {1} per {2}."
+  },
+  "Vérifiez la porte, un courant d’air ou le capteur. Aucune action n’a été envoyée à l’imprimante.": {
+    "en": "Check the door, a draft or the sensor. No action was sent to the printer.",
+    "es": "Compruebe la puerta, una corriente de aire o el sensor. No se ha enviado ninguna acción a la impresora.",
+    "de": "Prüfen Sie Tür, Luftzug oder Sensor. Es wurde keine Aktion an den Drucker gesendet.",
+    "it": "Controlla lo sportello, una corrente d’aria o il sensore. Nessuna azione è stata inviata alla stampante."
   }
 }

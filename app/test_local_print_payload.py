@@ -137,10 +137,10 @@ class StoredFormatSafetyTests(unittest.IsolatedAsyncioTestCase):
     """Un modèle non qualifié ne doit jamais parvenir à l’ordre physique de lancement."""
 
     async def test_unverified_formats_are_rejected_before_any_send(self):
-        """Les paquets tranchés restent distincts des G-code simples tant que leur contrat est inconnu."""
+        """Les modèles non tranchés ne peuvent pas emprunter le parcours mémoire."""
         from printer_commands import execute_command
 
-        for filename in ("piece.3mf", "piece.gcode.3mf", "piece.stl", "piece.bin"):
+        for filename in ("piece.3mf", "piece.stl", "piece.bin"):
             printer = SimpleNamespace(
                 id=7,
                 connected_ace_units=0,
@@ -154,6 +154,33 @@ class StoredFormatSafetyTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(filename=filename), self.assertRaises(ValueError):
                 await execute_command(target, "print-local", {"name": filename, "path": "/"})
             printer.print_local_file.assert_not_awaited()
+
+    async def test_sliced_package_uses_the_internal_file_order_on_kobra_s1(self):
+        """Préserve le nom du paquet et l’affectation ACE du lancement mémoire."""
+        from printer_commands import execute_command
+
+        printer = SimpleNamespace(
+            id=7,
+            machine_name="Anycubic Kobra S1",
+            connected_ace_units=1,
+            is_available=True,
+            print_local_file=AsyncMock(return_value="order"),
+            print_udisk_file=AsyncMock(),
+            fw_version=None,
+        )
+        target = SimpleNamespace(printer=printer, api=SimpleNamespace(), slots=lambda data: [0])
+        data = {"name": "piece.GCODE.3MF", "path": "/jobs", "slots": [1]}
+
+        await execute_command(target, "print-local", data)
+        printer.print_local_file.assert_awaited_once_with(
+            file_name="piece.GCODE.3MF", file_path="jobs", slot_index_list=[0]
+        )
+        with self.assertRaises(ValueError):
+            await execute_command(target, "print-usb", data)
+        printer.print_udisk_file.assert_not_awaited()
+        printer.machine_name = "Anycubic Kobra X"
+        with self.assertRaises(ValueError):
+            await execute_command(target, "print-local", data)
 
 
 if __name__ == "__main__":

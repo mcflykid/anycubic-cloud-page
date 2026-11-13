@@ -26,6 +26,8 @@ async function photo(page, filename, fullPage = false) {
   const jpeg = filename.endsWith('.jpg');
   await page.screenshot({
     path: path.resolve('screenshots', filename), animations: 'disabled', fullPage,
+    // Le bouton du mode développeur reste hors des images publiques.
+    style: '#developer-mode, [data-tab="developer"] { display: none !important; }',
     ...(jpeg ? {type: 'jpeg', quality: 86} : {}),
   });
 }
@@ -86,7 +88,7 @@ async function captureStyles(page, browser) {
     await page.reload();
     await openSection(page, 'summary');
     await visibleImages(page);
-    samples.push({name, jpeg:(await page.locator('.workshop-frame').screenshot({type:'jpeg', quality:80})).toString('base64')});
+    samples.push({name, jpeg:(await page.locator('.workshop-frame').screenshot({type:'jpeg', quality:80, style:'#developer-mode, [data-tab="developer"] { display: none !important; }'})).toString('base64')});
   }
   const sheet = await browser.newPage({viewport:desktop});
   await sheet.setContent(`<style>
@@ -129,7 +131,7 @@ async function captureDiscordAlertSettings(page) {
   const address = page.getByLabel('Adresse du webhook Discord');
   const fictitiousUrl = ['https:', '', 'discord.com', 'api', 'webhooks', '12345678901234567', 'c'.repeat(64)].join('/');
   await address.fill(fictitiousUrl);
-  await page.getByRole('checkbox', {name:'Activer les notifications', exact:true}).check();
+  await page.getByRole('checkbox', {name:'Activer les alertes', exact:true}).check();
   await page.getByLabel('Mot de passe web').fill(password);
   await page.getByRole('button', {name:'Enregistrer', exact:true}).click();
   await page.getByText('Réglage Discord enregistré.', {exact:true}).waitFor();
@@ -246,6 +248,35 @@ async function capturePrintConfirmation(page) {
   await page.keyboard.press('Escape');
 }
 
+/** Choisit un état fictif de la démonstration ; cette route n’existe pas sur une installation réelle. */
+async function demoScenario(page, name) {
+  const response = await page.request.post(new URL('/imprimante-api/demo/scenario', page.url()).href, {
+    data: {name}, headers: {Origin: new URL(page.url()).origin},
+  });
+  if (!response.ok()) throw new Error('État fictif refusé : ' + name);
+  await page.waitForResponse(answer => answer.url().includes('/imprimante-api/status'));
+}
+
+/** Montre les nouveautés 1.18.3 à 1 440 px, comme leurs maquettes. */
+async function captureReleaseViews(page) {
+  await page.setViewportSize({width: 1440, height: 900});
+  await demoScenario(page, 'chauffe-lente');
+  await openSection(page, 'overview');
+  await page.locator('#printer-heat-warning').waitFor();
+  await photo(page, '44-chauffe-anormale.png');
+  await demoScenario(page, 'sechage-conseille');
+  await openSection(page, 'ace');
+  await page.locator('#ace-drying-advice').waitFor();
+  await photo(page, '45-sechage-conseille.png');
+  await demoScenario(page, 'mise-a-jour-notes');
+  await openSection(page, 'settings');
+  await page.locator('#firmware-printer-notes').click();
+  await page.locator('#firmware-notes-dialog').waitFor();
+  await photo(page, '46-notes-micrologiciel.png');
+  await page.keyboard.press('Escape');
+
+}
+
 async function main() {
   const port = process.env.UI_PORT || '8765';
   const base = 'http://127.0.0.1:' + port;
@@ -267,6 +298,12 @@ async function main() {
     if (process.argv.includes('--print-confirmation')) {
       await signIn(page, base);
       await capturePrintConfirmation(page);
+      return;
+    }
+    if (process.argv.includes('--nouveautes')) {
+      await signIn(page, base);
+      await page.waitForURL(/imprimante\.html$/);
+      await captureReleaseViews(page);
       return;
     }
     if (process.argv.includes('--dialogs')) {

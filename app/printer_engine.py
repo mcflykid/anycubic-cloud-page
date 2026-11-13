@@ -32,9 +32,10 @@ from ace_alerts import AceAlerts
 from maintenance import maintenance_rows
 from print_queue import read_queue
 from command_journal import ACTIONS, MQTT_CONFIRMATIONS, command_mqtt_context, mqtt_digest
+from developer_signals import DeveloperSignals, mqtt_clock_delta, mqtt_summary, stored_trace_context
 from filament_catalog import editable_materials, filament_profile_for_sku
 from idle_controls import idle_limits, print_limits
-from native_controls import ace_model, task_details
+from native_controls import ace_model, firmware_release_notes, task_details
 from notification_service import AccountNotifications
 from operational_logging import log_event, safe_exception_frames
 from printer_commands import execute_command, slot_indices
@@ -75,9 +76,24 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                 "custom",
             )
         method = getattr(getattr(endpoint, "method", None), "name", None)
+        signals = getattr(getattr(self, "cloud_engine", None), "developer_signals", None)
+        if signals:
+            signals.add("cloud", "send", endpoint=endpoint_name, method=method)
         try:
             response = await super()._fetch_api_resp(*args, **kwargs)
         except Exception as error:
+            if signals:
+                signals.add(
+                    "cloud",
+                    "error",
+                    endpoint=endpoint_name,
+                    http=401
+                    if isinstance(error, AnycubicHTTPUnauthorized)
+                    else 429
+                    if isinstance(error, AnycubicRateLimited)
+                    else None,
+                    duration_ms=round((time.monotonic() - started) * 1000),
+                )
             log_event(
                 logging.getLogger("cloud_page.cloud"),
                 logging.WARNING,
@@ -97,6 +113,14 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             )
             raise
         code = response.get("code") if isinstance(response, dict) else None
+        if signals:
+            signals.add(
+                "cloud",
+                "receive",
+                endpoint=endpoint_name,
+                code=code if type(code) is int else None,
+                duration_ms=round((time.monotonic() - started) * 1000),
+            )
         api_outcome = (
             "json_success"
             if type(code) is int and code == 1
@@ -172,6 +196,12 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                 raise ValueError("Imprimante non disponible")
             mapping = (data.get("ams_info") or {}).get("ams_box_mapping") or []
             validate_print_indices(printer, [row["ams_index"] for row in mapping])
+            trace = stored_trace_context.get()
+            if trace is not None and (data.get("data") or {}).get("filetype") in (1, 2):
+                trace["serialized_mapping"] = [
+                    {"ams_index": row["ams_index"], "paint_index": row.get("paint_index")}
+                    for row in mapping
+                ]
         context = command_mqtt_context.get()
         sent_at = time.time()
         if context and data["order_id"] == AnycubicOrderID.START_PRINT.value:
@@ -198,6 +228,16 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                 await tracker.watch(entry, order_id, digest, sent_at)
         return result
 
+    def _mqtt_publish_to_printer(self, printer, endpoint, payload):
+        """La publication et sa confirmation sont des observations indépendantes."""
+        primary = getattr(self, "cloud_engine", None)
+        registry = getattr(primary, "fleet_registry", None)
+        owner = registry.owner(str(printer.key)) if registry else primary
+        signals = getattr(owner, "developer_signals", None)
+        if signals and self._mqtt_client is not None:
+            signals.add("mqtt", "send", **mqtt_summary(payload))
+        return super()._mqtt_publish_to_printer(printer, endpoint, payload)
+
     def cloud_printer_updated(self):
         """Le rappel sans argument de la bibliothèque hérite du propriétaire du message actuellement routé."""
         owner = getattr(self, "message_engine", None)
@@ -213,15 +253,35 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             owner = registry.owner(get_part_from_mqtt_topic(str(message.topic), 6))
         self.message_engine = owner
         try:
-            with contextlib.suppress(Exception):
+            signals = getattr(owner, "developer_signals", None)
+            try:
                 payload = json.loads(message.payload)
-                kind, action = payload.get("type"), payload.get("action")
+            except (UnicodeError, ValueError, TypeError):
+                payload = None
+            with contextlib.suppress(Exception):
                 target_matches = (
                     owner
                     and owner.printer
                     and get_part_from_mqtt_topic(str(message.topic), 6) == str(owner.printer.key)
                 )
                 retained = getattr(message, "retain", False)
+                if target_matches and signals:
+                    signals.add(
+                        "mqtt",
+                        "receive",
+                        retained=bool(retained),
+                        bytes=len(message.payload),
+                        **mqtt_summary(payload),
+                    )
+                    if (
+                        not retained
+                        and isinstance(payload, dict)
+                        and payload.get("type") in {"print", "status"}
+                    ):
+                        offset = mqtt_clock_delta(payload.get("timestamp"), time.time())
+                        if offset is not None:
+                            owner.mqtt_clock_sample = (time.monotonic(), offset)
+                kind, action = payload.get("type"), payload.get("action")
                 if kind == "axis" and action == "query":
                     # Un rapport de position hérité ne rafraîchit pas les mesures de la machine.
                     return
@@ -312,6 +372,9 @@ class Engine:
         self.estimate_speed = None
         self.estimate_speed_changed = False
         self.print_timeline = (None, [])
+        self.stored_print_trace = None
+        self.developer_signals = DeveloperSignals()
+        self.mqtt_clock_sample = None
         self.account = AccountAuth()
         self.printer = None
         self.ok = False
@@ -901,6 +964,7 @@ class Engine:
         fields["firmware_updating"] = safeget(p, "fw_version.is_updating")
         fields["firmware_update_required"] = None
         fields["firmware_update_available"] = safeget(p, "fw_version.update_available")
+        fields["firmware_notes"] = firmware_release_notes(safeget(p, "fw_version"))
         fields["ace_updates"] = [
             {
                 "current": safeget(fw, "firmware_version"),
@@ -908,6 +972,7 @@ class Engine:
                 "available": safeget(fw, "update_available"),
                 "progress": safeget(fw, "total_progress"),
                 "updating": safeget(fw, "is_updating"),
+                "notes": firmware_release_notes(fw),
             }
             for fw in (safeget(p, "multi_color_box_fw_version") or [])
         ]

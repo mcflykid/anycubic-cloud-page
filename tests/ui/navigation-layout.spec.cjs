@@ -5,10 +5,10 @@ test('les dix sections restent visibles sans barre horizontale à 1249 px',async
   await page.setViewportSize({width:1249,height:900});
   await login(page);
   const navigation=page.locator('#atelier-tabs');
-  await expect(navigation.locator('[data-tab]')).toHaveCount(10);
+  await expect(navigation.locator('[data-tab]:not([hidden])')).toHaveCount(10);
   for (const style of ['standard', 'aurora', 'lab']) {
     await page.locator('html').evaluate((element,value)=>element.setAttribute('data-style',value),style);
-    const dimensions=await navigation.evaluate(el=>({viewport:innerWidth,display:getComputedStyle(el).display,width:el.getBoundingClientRect().width,overflow:getComputedStyle(el).overflowX,shellClass:document.querySelector('.printer-shell').className,buttons:[...el.querySelectorAll('button')].map(button=>{const box=button.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(button);const text=[...range.getClientRects()];return {label:button.innerText,left:box.left,right:box.right,width:box.width,display:getComputedStyle(button).display,visible:getComputedStyle(button).visibility!=='hidden'&&box.width>0,textFits:text.every(rect=>rect.left>=box.left-1&&rect.right<=box.right+1)};})}));
+    const dimensions=await navigation.evaluate(el=>({viewport:innerWidth,display:getComputedStyle(el).display,width:el.getBoundingClientRect().width,overflow:getComputedStyle(el).overflowX,shellClass:document.querySelector('.printer-shell').className,buttons:[...el.querySelectorAll('button:not([hidden])')].map(button=>{const box=button.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(button);const text=[...range.getClientRects()];return {label:button.innerText,left:box.left,right:box.right,width:box.width,display:getComputedStyle(button).display,visible:getComputedStyle(button).visibility!=='hidden'&&box.width>0,textFits:text.every(rect=>rect.left>=box.left-1&&rect.right<=box.right+1)};})}));
     expect(['auto','scroll']).not.toContain(dimensions.overflow);
     expect(dimensions.buttons.every(button=>button.visible&&button.left>=0&&button.right<=1249&&(style==='aurora'||button.textFits)),`${style}: ${JSON.stringify(dimensions)}`).toBe(true);
   }
@@ -24,7 +24,7 @@ test('le menu mobile ouvre une grille de dix sections accessible et se referme a
   await expect(toggle).toHaveAttribute('aria-expanded','true');
   const navigation=page.getByRole('navigation',{name:'Sections de l’atelier'});
   await expect(navigation).toBeVisible();
-  await expect(navigation.locator('[data-tab]')).toHaveCount(10);
+  await expect(navigation.locator('[data-tab]:not([hidden])')).toHaveCount(10);
   await expect(navigation).toHaveAttribute('data-phase','');
   await expect(page.getByRole('button',{name:'Statistiques'})).toBeVisible();
   await page.screenshot({path:'test-results/navigation-mobile-grid.png',fullPage:false});
@@ -55,7 +55,7 @@ test('la barre commune aligne les commandes et suit le mode de couleur', async (
   await expect(toggle).toHaveAccessibleName('Activer le mode sombre');
   const groups = page.locator('#atelier-tabs .atelier-nav-label');
   await expect(groups.first()).toHaveCSS('text-align', 'center');
-  const rows = await page.locator('#atelier-tabs [data-tab]').evaluateAll(
+  const rows = await page.locator('#atelier-tabs [data-tab]:not([hidden])').evaluateAll(
     items => items.map(item => Math.round(item.getBoundingClientRect().top)),
   );
   expect(new Set(rows).size).toBe(1);

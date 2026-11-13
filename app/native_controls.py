@@ -1,6 +1,7 @@
 """Paramètres de commandes validés et informations de tranche autorisées pour l’interface."""
 
 import math
+from html.parser import HTMLParser
 
 TIMELAPSE_GALLERY_ENABLED = False
 PARAMS = (
@@ -64,6 +65,55 @@ def task_details(project):
         "estimated_time": result.get("print_time"),
         "material_grams": round(grams, 2) if grams is not None else None,
         "parameters": {k: params[k] for k in PARAMS if k in params},
+    }
+
+
+class FirmwareNoteText(HTMLParser):
+    """Extrait les paragraphes et listes sous forme de texte, sans contenu actif."""
+
+    def __init__(self):
+        """Prépare un tampon borné par le texte transmis au parseur."""
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.suppressed = None
+
+    def handle_starttag(self, tag, attrs):
+        """Ignore les blocs actifs et conserve des séparateurs de lecture."""
+        if self.suppressed:
+            return
+        if tag in ("script", "style"):
+            self.suppressed = tag
+        elif tag in ("p", "br", "li"):
+            self.parts.append("\n• " if tag == "li" else "\n")
+
+    def handle_endtag(self, tag):
+        """Ferme un bloc actif ou sépare deux paragraphes."""
+        if self.suppressed == tag:
+            self.suppressed = None
+        elif not self.suppressed and tag in ("p", "li"):
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        """Recopie uniquement le texte visible."""
+        if not self.suppressed:
+            self.parts.append(data)
+
+
+def firmware_release_notes(firmware):
+    """Renvoie une note bornée et les seuls indicateurs de version établis par le modèle."""
+    description = getattr(firmware, "_update_desc", None)
+    parser = FirmwareNoteText()
+    if isinstance(description, str):
+        parser.feed(description[:16_000])
+        parser.close()
+    text = "\n".join(line.strip() for line in "".join(parser.parts).splitlines() if line.strip())
+    stamp = getattr(firmware, "_update_date", None)
+    if type(stamp) is int and stamp >= 100_000_000_000:
+        stamp //= 1000
+    return {
+        "text": text[:4000],
+        "published": stamp if type(stamp) is int and 946684800 <= stamp <= 4102444800 else None,
+        "required": str(getattr(firmware, "_force_update", "")).lower() in ("1", "true"),
     }
 
 

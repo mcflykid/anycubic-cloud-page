@@ -39,8 +39,9 @@ test('les paires de cartes partagent les mêmes largeurs, hauteurs et séparatio
       return bounds.top + bounds.height / 2;
     }),
   );
-  expect(linkCenters).toHaveLength(2);
-  expect(Math.abs(linkCenters[0] - linkCenters[1])).toBeLessThan(1);
+  // Guide d’installation, Journaux du conteneur et Mode développeur restent sur une même ligne.
+  expect(linkCenters).toHaveLength(3);
+  expect(linkCenters.every(center => Math.abs(center - linkCenters[0]) < 1)).toBe(true);
 });
 
 test('le résumé garde le nom long et les huit bobines dans les limites de la page', async ({page})=>{

@@ -7,6 +7,7 @@ import {
   mins,
   node,
   set,
+  timeZone,
   tr,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
@@ -341,10 +342,40 @@ export function createOverview(request) {
         : ace
           ? tr('Aucune mise à jour proposée par Anycubic.')
           : tr('Version de l’ACE non reçue. Actualisez les informations.');
-    for (const [id, current, target, available, updating] of [
-      ['printer', p.firmware, p.firmware_available, p.firmware_update_available, p.firmware_updating],
-      ['ace', ace?.current ?? p.multi_color_box_fw_version, ace?.target, ace?.available, ace?.updating],
+    for (const [id, current, target, available, updating, notes] of [
+      ['printer', p.firmware, p.firmware_available, p.firmware_update_available, p.firmware_updating, p.firmware_notes],
+      ['ace', ace?.current ?? p.multi_color_box_fw_version, ace?.target, ace?.available, ace?.updating, ace?.notes],
     ]) {
+      const release = $(`firmware-${id}-notes`);
+      release.hidden = available !== true;
+      release.onclick = () => {
+        const model = id === 'printer' ? p.machine_name : p.boxes?.[0]?.model;
+        set('firmware-notes-title', model ? formatText('Nouveautés · {0}', model) : tr('Nouveautés'));
+        set('firmware-notes-current', fmt(current));
+        set('firmware-notes-target', fmt(target));
+        // La date Cloud est un jour de publication : l’heure de minuit n’apporte rien.
+        set('firmware-notes-date', notes?.published
+          ? formatText('Publiée le {0}', new Date(notes.published * 1000).toLocaleDateString(locale, {timeZone}))
+          : '');
+        $('firmware-notes-required').hidden = !notes?.required;
+        $('firmware-notes-optional').hidden = !!notes?.required;
+        $('firmware-notes-source').hidden = !notes?.text;
+        $('firmware-notes-text').hidden = !notes?.text;
+        $('firmware-notes-empty').hidden = !!notes?.text;
+        set('firmware-notes-text', notes?.text || '');
+        $('firmware-notes-official').href = id === 'printer' && p.machine_name === 'Anycubic Kobra S1'
+          ? 'https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/firmware-update-guide'
+          : id === 'ace' && p.boxes?.[0]?.model === 'ACE 2 Pro'
+            ? 'https://wiki.anycubic.com/en/fdm-3d-printer/s1-ace-2-pro'
+            : 'https://wiki.anycubic.com/en/fdm-3d-printer';
+        const install = document.querySelector(`[data-command=${id === 'printer' ? 'firmware' : 'ace-firmware'}]`);
+        // « Mettre à jour » reprend le bouton de la carte : mêmes conditions, même confirmation et même mot de passe.
+        $('firmware-notes-install').disabled = install.disabled;
+        $('firmware-notes-install').title = install.title;
+        $('firmware-notes-install').onclick = () => { $('firmware-notes-dialog').close(); install.click(); };
+        $('firmware-notes-later').onclick = () => $('firmware-notes-dialog').close();
+        $('firmware-notes-dialog').showModal();
+      };
       set(
         `firmware-${id}-version`,
         available === true

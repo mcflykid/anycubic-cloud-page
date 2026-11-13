@@ -24,7 +24,8 @@ function connectOrgans(dialog, diagram, connectors) {
   const bendX = artwork.x + artwork.width * 260 / view.width - rect.x;
   const shapes = [];
   for (const [name, [left, top]] of Object.entries(organPoints)) {
-    const row = dialog.querySelector(`[data-organ="${name}"]`);
+    // Les repères déjà tracés portent aussi data-organ et précèdent les lignes du formulaire.
+    const row = dialog.querySelector(`.current-control-row[data-organ="${name}"]`);
     const label = row.querySelector('label').getBoundingClientRect();
     const x = artwork.x + artwork.width * left / view.width - rect.x;
     const y = artwork.y + artwork.height * top / view.height - rect.y;

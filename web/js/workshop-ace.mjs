@@ -113,6 +113,26 @@ export function createAce(command, refresh) {
   /** Affiche les bobines et le séchage ; distingue la lecture RFID de la saisie manuelle. */
   function renderAce(p) {
     const box = selectedBox();
+    const advice = workshopState.snapshot?.drying_advice?.[box?.box_id];
+    const adviceKey = `cloud-page-drying-advice:${workshopState.selectedPrinter}:${box?.box_id}`;
+    let until = 0;
+    try { until = Number(localStorage.getItem(adviceKey)); } catch {}
+    $('ace-drying-advice').hidden = !advice || until > Date.now();
+    if (advice) {
+      const text = $('ace-drying-advice-text');
+      text.replaceChildren(
+        node('strong', formatText('Séchage {0} conseillé.', advice.material)),
+        ' ' + formatText('Humidité moyenne de {0} sur 15 min avec du {1} chargé, sensible à l’humidité.',
+          fmt(advice.humidity, ' %'), advice.material),
+      );
+      set('ace-drying-prepare', formatText('Préparer {0} · {1} · {2}', advice.material,
+        fmt(advice.temperature, ' °C'), fmt(advice.hours, ' h')));
+      $('ace-drying-prepare').onclick = () => openDrying(advice);
+      $('ace-drying-dismiss').onclick = () => {
+        try { localStorage.setItem(adviceKey, String(Date.now() + 86400000)); } catch {}
+        $('ace-drying-advice').hidden = true;
+      };
+    }
     const model = box?.model || tr(box ? 'Module ACE' : 'Aucun module ACE');
     set('ace-model', model);
     set('ace-module-name', model);
@@ -329,14 +349,15 @@ export function createAce(command, refresh) {
       hours: Number($('dry-form').elements.hours.defaultValue),
     };
   }
-  $('go-drying').onclick = () => {
-    const settings = dryingSettings();
+  /** Préremplit la fenêtre en gardant la confirmation de séchage habituelle. */
+  function openDrying(settings) {
     dryForm.elements.temperature.value = settings.temperature;
     dryForm.elements.hours.value = settings.hours;
     updateDryFields();
     if (!$('dry-dialog').open) $('dry-dialog').showModal();
     dryForm.elements.temperature.focus({ preventScroll: true });
-  };
+  }
+  $('go-drying').onclick = () => openDrying(dryingSettings());
   relayButton.onclick = () => {
     const enabled = selectedBox()?.auto_feed;
     if (relayButton.disabled || typeof enabled !== 'boolean') return;

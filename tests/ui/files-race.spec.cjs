@@ -159,7 +159,7 @@ test('l’ordre des bobines se règle dans la confirmation du fichier choisi', a
   commands.push(route.request().postDataJSON());
   return route.fulfill({json:{ok:true,message:'Simulation uniquement'}});
  });
- await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{files:[{name:'piece.gcode'}],path:'/'}}));
+ await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{files:[{name:'piece.gcode.3mf'}],path:'/'}}));
  await login(page, 'files');
  const row = page.locator('#file-rows tr').first();
  await row.getByRole('button', {name:'Imprimer',exact:true}).click();
@@ -179,5 +179,5 @@ test('l’ordre des bobines se règle dans la confirmation du fichier choisi', a
  expect(commands).toHaveLength(0);
  await dialog.getByRole('button', {name:'Lancer l’impression',exact:true}).click();
  await expect.poll(() => commands.length).toBe(1);
- expect(commands[0]).toMatchObject({action:'print-local',name:'piece.gcode',slots:[1,3,2]});
+ expect(commands[0]).toMatchObject({action:'print-local',name:'piece.gcode.3mf',slots:[1,3,2]});
 });

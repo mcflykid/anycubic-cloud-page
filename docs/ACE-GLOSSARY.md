@@ -30,3 +30,7 @@ Pour ajouter une référence personnelle depuis la fiche d’un emplacement, sui
 Le contrôle compare les grammes par filament fournis par la tranche aux pourcentages qualifiés des bobines affectées. En l’absence de masse nominale précise, il estime le restant sur la base d’une bobine de 1 kg. Une mesure inconnue ou non qualifiée ne déclenche aucune alerte. Lorsque le relais est activé, seules les bobines du même ACE dont la matière et la couleur correspondent, et qui ne sont pas déjà affectées, peuvent contribuer à l’estimation.
 
 En cours d’impression, l’estimation utilise la progression globale uniquement pour une tâche monofilament dont l’atelier identifie une seule bobine engagée de la bonne matière. Le calcul suppose une consommation proportionnelle à la progression. Il ne répartit pas la consommation d’une tâche multicolore sans données par filament.
+
+## Conseil de séchage
+
+L’atelier utilise une fenêtre d’au moins quinze minutes et les préréglages de l’installation. Les seuils de 40 % pour le PLA et de 30 % pour les matières sensibles sont des seuils de conseil du projet. La fiche Anycubic confirme que l’humidité peut remonter après l’arrêt du séchage et indique une limite de 65 °C pour l’ACE 2 Pro. Le conseil ouvre la fenêtre de réglage. Le lancement demande toujours une confirmation. [Conseils Anycubic ACE 2 Pro](https://wiki.anycubic.com/en/fdm-3d-printer/ace-2-pro/warm-tips)

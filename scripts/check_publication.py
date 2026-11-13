@@ -11,6 +11,7 @@ import subprocess
 import sys
 import zlib
 from xml.etree import ElementTree as ET
+from zipfile import BadZipFile, ZipFile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PRIVATE_FILE = ".publication-private-patterns"
@@ -399,6 +400,21 @@ def inspect_file(root, relative, private_patterns=()):
         reasons.update(findings(metadata, private_patterns))
     if path.suffix.lower() in {".key", ".pem", ".crt"}:
         reasons.add("certificate/key file")
+    if path.suffix.lower() == ".3mf":
+        # L’archive peut cacher des réglages et des traces d’installation dans ses entrées compressées.
+        try:
+            with ZipFile(path) as archive:
+                entries = archive.infolist()
+                if sum(entry.file_size for entry in entries) > 32 * 1024 * 1024:
+                    raise ValueError("Archive 3MF trop volumineuse pour le contrôle")
+                for entry in entries:
+                    member = archive.read(entry)
+                    reasons.update(findings(os.fsencode(entry.filename), private_patterns))
+                    reasons.update(findings(member, private_patterns))
+                    for metadata in [*png_text(member), *jpeg_text(member)]:
+                        reasons.update(findings(metadata, private_patterns))
+        except (BadZipFile, OSError, ValueError, RuntimeError) as error:
+            raise ValueError("Archive 3MF non contrôlable") from error
     return reasons
 
 

@@ -119,7 +119,7 @@ export function initializeWorkshopNavigation() {
     if (compact.matches) close(true);
   });
   navigation.addEventListener('animationend', event => {
-    const tabs = navigation.querySelectorAll('[data-tab]');
+    const tabs = navigation.querySelectorAll('[data-tab]:not([hidden])');
     if (event.animationName === 'tile-enter' && event.target === tabs[tabs.length - 1] &&
       navigation.dataset.phase === 'opening') navigation.dataset.phase = '';
     if (event.animationName === 'tile-exit' && event.target === tabs[0] &&

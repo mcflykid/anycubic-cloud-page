@@ -46,6 +46,9 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [39-impression-demarrage-confirme.png](39-impression-demarrage-confirme.png) | Démarrage confirmé par un rapport fictif corrélé à la demande. |
 | [40-impression-options-indisponibles.png](40-impression-options-indisponibles.png) | Réglages de préparation et de séchage présentés avec leur motif d’indisponibilité. |
 | [41-confirmation-impression-sombre.png](41-confirmation-impression-sombre.png) | Fenêtre de confirmation en thème sombre. |
+| [44-chauffe-anormale.png](44-chauffe-anormale.png) | Bandeau de chauffe lente du plateau, produit par un état fictif de la démonstration. |
+| [45-sechage-conseille.png](45-sechage-conseille.png) | Conseil de séchage PETG sur la carte ACE, sans lancement automatique. |
+| [46-notes-micrologiciel.png](46-notes-micrologiciel.png) | Nouveautés d’une mise à jour du micrologiciel, avec un texte d’exemple fictif. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
@@ -53,6 +56,7 @@ La capture de session présente deux noms d’imprimantes fictifs pour illustrer
 
 `node scripts/capture_demo.cjs --dialogs` actualise les captures des fenêtres de la version 1.13.0.
 `node scripts/capture_demo.cjs --print-confirmation` actualise les captures du lancement d’impression.
+`node scripts/capture_demo.cjs --nouveautes` actualise les captures 44 à 46 à 1 440 px avec des données fictives.
 
 ## Comparaison historique avec la version 1.8.0
 

@@ -2,6 +2,8 @@ import {
   $,
   date,
   formatText,
+  fmt,
+  mins,
   finishEstimate,
   taskFinish,
   printTimeline,
@@ -13,6 +15,7 @@ import {
   tr,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
+import { createDeveloperTools } from './workshop-developer.mjs';
 import { createRequest } from './workshop-api.mjs';
 import { createCamera } from './workshop-camera.mjs';
 import { createTemperatureLoader } from './workshop-temperatures.mjs';
@@ -86,7 +89,12 @@ async function choosePrinter() {
   location.reload();
 }
 $('printer-selector').onchange = choosePrinter;
-const request = createRequest(() => workshopState.selectedPrinter);
+const developer = createDeveloperTools(workshopState, (...args) => request(...args), () => ({
+  commande: commandDiagnostic(),
+  incident_cloud: !!connectionNotice,
+  bandeau_visible: !$("message").hidden,
+}));
+const request = createRequest(() => workshopState.selectedPrinter, developer.record, developer.simulate);
 bindMaintenance(request);
 const loadTemperatures = createTemperatureLoader(
   request,
@@ -111,7 +119,7 @@ if (logoutForm) logoutForm.addEventListener('submit', (event) => {
   void camera.close().finally(() => HTMLFormElement.prototype.submit.call(logoutForm));
 });
 
-const { command, observeCommand } = createCommands(request, refresh);
+const { command, observeCommand, diagnostic: commandDiagnostic } = createCommands(request, refresh);
 const overview = createOverview(request);
 const ace = createAce(command, refresh);
 const printQueue = bindPrintQueue(request, command);
@@ -179,6 +187,22 @@ async function refreshState() {
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
+    const alerts = d.heat_alerts || [];
+    for (const id of ['summary-heat-warning', 'printer-heat-warning']) {
+      const banner = $(id);
+      banner.replaceChildren(...alerts.map(alert => node('strong', formatText(
+        alert.part === 'bed'
+          ? 'Le plateau n’atteint pas sa cible : {0} depuis {1} pour {2}.'
+          : 'La buse n’atteint pas sa cible : {0} depuis {1} pour {2}.',
+        fmt(alert.actual, ' °C'), mins(alert.seconds / 60), fmt(alert.target, ' °C'),
+      ))));
+      if (alerts.length) banner.append(node('span', tr('Vérifiez la porte, un courant d’air ou le capteur. Aucune action n’a été envoyée à l’imprimante.')));
+      banner.hidden = !alerts.length;
+    }
+    // La ligne concernée reste repérable dans le tableau, même après lecture du bandeau.
+    for (const part of ['nozzle', 'bed']) {
+      $(`printer-${part}-row`).classList.toggle('heat-alert', alerts.some(alert => alert.part === part));
+    }
     $('summary-maintenance-due').hidden = !p?.maintenance_due;
     set('summary-maintenance-due', p?.maintenance_due ? formatText('Entretien : {0} à faire', p.maintenance_due) : '');
     $('maintenance-count').hidden = !p?.maintenance_due;
@@ -252,6 +276,8 @@ async function refreshState() {
 }
 /** Change le panneau actif, charge ses données et ferme la session vidéo lorsque l’utilisateur quitte la caméra. */
 function showTab(name) {
+  if (name === 'developer' && document.querySelector('[data-tab="developer"]').hidden) return;
+  if (workshopState.currentTab !== name) developer.leave(workshopState.currentTab);
   workshopState.currentTab = name;
   for (const panel of document.querySelectorAll('.tab-panel'))
     panel.hidden = panel.id !== `tab-${name}`;
@@ -270,11 +296,12 @@ function showTab(name) {
   if (name === 'settings') settings.enter();
   if (name === 'camera') timelapses.loadTimelapse();
   if (name !== 'camera') void camera.close();
+  developer.show();
 }
 // Les onglets restent inactifs jusqu’au chargement des modules et de leurs gestionnaires.
 for (const button of document.querySelectorAll('[data-tab]')) {
   button.onclick = () => showTab(button.dataset.tab);
-  button.disabled = false;
+  button.disabled = button.hidden;
 }
 // Les liens du résumé ouvrent les sections déjà chargées sans émettre d’ordre.
 for (const button of document.querySelectorAll('[data-summary-open]')) {

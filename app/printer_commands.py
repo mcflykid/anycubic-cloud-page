@@ -18,6 +18,7 @@ from print_preflight import ensure_firmware_ready, validate_print_indices
 from printer_values import filepath, integer, now, safeget
 from printer_files import invalidate_local_preview
 from operational_logging import log_event
+from developer_signals import stored_trace_context
 
 
 def slot_indices(target, data):
@@ -218,20 +219,22 @@ async def execute_command(target, name, d):
         if not filename or "/" in filename or "\x00" in filename or len(filename) > 255:
             raise ValueError("Nom de fichier invalide")
         kw = {"file_name": filename, "file_path": filepath(d.get("path")).strip("/") or "/"}
+        trace = None
         if name.startswith("print"):
-            if not filename.casefold().endswith(".gcode"):
+            suffix = filename.casefold()
+            # Le Slicer confirme ce format depuis la mémoire de la S1. L’USB conserve son propre contrat.
+            if (
+                source == "local"
+                and suffix.endswith(".gcode.3mf")
+                and p.machine_name == "Anycubic Kobra S1"
+            ):
+                file_format = "gcode_3mf"
+            elif suffix.endswith(".gcode"):
+                file_format = "gcode"
+            else:
                 raise ValueError(
                     "Le lancement direct de ce format n’est pas encore validé. Utilisez un fichier .gcode tranché pour cette imprimante."
                 )
-            file_format = (
-                "gcode_3mf"
-                if filename.casefold().endswith(".gcode.3mf")
-                else "gcode"
-                if filename.casefold().endswith(".gcode")
-                else "3mf"
-                if filename.casefold().endswith(".3mf")
-                else "other"
-            )
             log_event(
                 logging.getLogger("cloud_page.commands"),
                 logging.INFO,
@@ -245,11 +248,30 @@ async def execute_command(target, name, d):
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             kw["slot_index_list"] = target.slots(d)
-        result = await dispatch_command(
-            getattr(p, ("delete_" if name.startswith("delete") else "print_") + source + "_file")(
-                **kw
+            if hasattr(target, "stored_print_trace"):
+                # La trace reste attachée à la machine qui a reçu la demande.
+                target.stored_print_trace = (
+                    p,
+                    {
+                        "source": source,
+                        "format": file_format,
+                        "requested_slots": [integer(value, 1, 8) for value in d.get("slots") or []],
+                        "prepared_ace_indices": kw["slot_index_list"],
+                        "cloud_accepted": None,
+                    },
+                )
+                trace = target.stored_print_trace[1]
+        token = stored_trace_context.set(trace)
+        try:
+            result = await dispatch_command(
+                getattr(
+                    p, ("delete_" if name.startswith("delete") else "print_") + source + "_file"
+                )(**kw)
             )
-        )
+            if trace is not None:
+                trace["cloud_accepted"] = bool(result)
+        finally:
+            stored_trace_context.reset(token)
     elif name in ["delete-cloud", "print-cloud"]:
         f = target.cloudfiles.get(str(d.get("handle")))
         if f is None:

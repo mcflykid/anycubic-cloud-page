@@ -1,5 +1,14 @@
 # Changements
 
+## 1.18.3 — 2026-11-14
+
+- Corrige le retracé des repères de Commandes courantes, qui levait une erreur après un redimensionnement (#401).
+- Signale une chauffe lente ou une chute de température par un bandeau sur le Résumé et l’Imprimante, sans action sur la machine (Refs #356).
+- Conseille un séchage quand l’humidité de l’ACE reste élevée pour une matière sensible, sans rien lancer (Refs #344).
+- Affiche les nouveautés d’une mise à jour du micrologiciel avant son installation (Refs #359).
+- Prépare le lancement des paquets `.gcode.3mf` depuis la mémoire interne de la Kobra S1 pour la recette matérielle (Refs #394).
+- Actualise les captures de démonstration et ajoute celles des nouveautés.
+
 ## 1.18.2 — 2026-11-13
 
 - Retire le bandeau d’attente dès que la même tâche confirme la pause, la reprise ou l’arrêt, et traduit les phases de préparation (#388, #393).

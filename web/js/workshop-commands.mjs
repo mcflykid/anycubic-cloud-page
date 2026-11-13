@@ -32,6 +32,21 @@ export function createCommands(request, refresh) {
     if (banner.firstChild === pendingCommand.text) message('');
     pendingCommand = null;
   }
+  function diagnostic(snapshot = workshopState.snapshot) {
+    if (!pendingCommand) return {état: 'Aucune transition en attente'};
+    const printer = snapshot?.printer;
+    return {
+      état: 'Confirmation machine en attente',
+      phase_attendue: pendingCommand.state,
+      phase_observée: Object.values(confirmedStates).includes(printer?.job_state) ? printer.job_state : null,
+      cloud_disponible: snapshot?.ok === true,
+      machine_en_ligne: printer?.printer_online === true,
+      même_machine: pendingCommand.target === workshopState.selectedPrinter,
+      même_tâche: pendingCommand.projectKey === printer?.command_project,
+      attente_s: Math.round((performance.now() - pendingCommand.since) / 1000),
+      bandeau_visible: $('message-text').firstChild === pendingCommand.text && !$('message').hidden,
+    };
+  }
   /** Demande un jeton serveur lié à la cible et à l’action, sans joindre le mot de passe à la commande. */
   async function authorize(action, target, password, signal) {
     const result = await request('/reauth', {
@@ -184,7 +199,7 @@ export function createCommands(request, refresh) {
       });
       notify(d.message);
       if (confirmedState && projectKey) {
-        pendingCommand = {target, projectKey, state:confirmedState, text:$('message-text').firstChild};
+        pendingCommand = {target, projectKey, state:confirmedState, since:performance.now(), text:$('message-text').firstChild};
       }
       if (printing) followPrintStart(d);
       await refresh();
@@ -203,7 +218,7 @@ export function createCommands(request, refresh) {
     }
   }
 
-  return { command, observeCommand };
+  return { command, observeCommand, diagnostic };
 }
 
 /** Présente les divergences de bobines avant confirmation ; les données manquantes restent explicites. */
