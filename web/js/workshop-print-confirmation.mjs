@@ -137,6 +137,8 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   }
   $('print-ace-rows').replaceChildren();
   $('print-ace').disabled = false;
+  $('print-options').open = false;
+  $('print-drying-mode').value = 'off';
   printTarget = target;
   const title = $('print-name');
   title.textContent = title.title = name;
@@ -223,6 +225,7 @@ export function showPrintProgress(text, reference, cancel) {
   $('print-no').hidden = $('print-yes').hidden = true;
   $('print-mapping').hidden = true;
   $('print-ace').disabled = true;
+  $('print-options').open = false;
   set('print-result', text);
   $('print-result').hidden = $('print-progress').hidden = false;
   $('print-result').focus();

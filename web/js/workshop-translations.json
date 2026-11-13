@@ -5774,5 +5774,37 @@
   "L’annulation n’a pas été confirmée.": [
     "Cancellation was not confirmed.",
     "La cancelación no se ha confirmado."
+  ],
+  "Options de préparation et de séchage": [
+    "Preparation and drying options",
+    "Opciones de preparación y secado"
+  ],
+  "Ces réglages de lancement attendent une validation pour cette imprimante.": [
+    "These launch settings still need validation for this printer.",
+    "Estos ajustes de inicio aún requieren validación para esta impresora."
+  ],
+  "Mise à niveau du plateau": [
+    "Bed leveling",
+    "Nivelación de la base"
+  ],
+  "Compensation de résonance": [
+    "Vibration compensation",
+    "Compensación de resonancia"
+  ],
+  "Options de séchage": [
+    "Drying options",
+    "Opciones de secado"
+  ],
+  "Impression avec séchage simultané": [
+    "Print and dry simultaneously",
+    "Imprimir con secado simultáneo"
+  ],
+  "Séchage puis impression": [
+    "Dry before printing",
+    "Secar antes de imprimir"
+  ],
+  "Timelapse": [
+    "Timelapse",
+    "Vídeo acelerado"
   ]
 }
