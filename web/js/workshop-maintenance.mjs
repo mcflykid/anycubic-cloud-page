@@ -1,20 +1,23 @@
+import { workshopState } from './workshop-state.mjs';
 import { $, confirmAction, date, fmt, formatText, node, set, tr } from './workshop-ui.mjs';
 
 /** Lie le registre local à sa fenêtre sans envoyer de commande à l’imprimante. */
 export function bindMaintenance(request) {
   const dialog = $('maintenance-dialog'), form = $('maintenance-form');
-  let edited, busy = false;
+  let edited, target, busy = false;
 
   /** Préserve les heures observées et affiche les échéances inconnues après une remise à zéro. */
   function render({items, hours}) {
     set('maintenance-hours', hours == null ? tr('Compteur d’heures indisponible.')
       : formatText('Compteur actuel : {0}', fmt(hours, ' h')));
+    $('maintenance-last-hours').placeholder = hours ?? '';
+    $('maintenance-last-hours').max = hours ?? '';
     $('maintenance-list').replaceChildren(...items.map(item => {
       const row = node('li');
       const state = !item.enabled ? tr('Désactivé') : item.elapsed == null ? tr('Échéance inconnue')
         : item.elapsed >= item.interval ? tr('À faire')
         : item.elapsed >= item.interval * .8 ? tr('Bientôt') : tr('À jour');
-      row.append(node('strong', item.name), node('p', [state,
+      row.append(node('strong', tr(item.name)), node('p', [state,
         item.elapsed == null ? null : formatText('{0} sur {1}', fmt(item.elapsed, ' h'), fmt(item.interval, ' h')),
       ].filter(Boolean).join(' · ')));
       if (item.enabled && Number.isFinite(item.elapsed)) {
@@ -28,8 +31,14 @@ export function bindMaintenance(request) {
       done.type = edit.type = remove.type = 'button';
       done.disabled = hours == null;
       done.onclick = async () => {
-        if (await confirmAction(formatText('Enregistrer l’intervention pour « {0} » ?', item.name)))
-          if (await load({action:'done', id:item.id, note:$('maintenance-note').value})) $('maintenance-note').value = '';
+        if (!(await confirmAction(formatText('Enregistrer l’intervention pour « {0} » ?', tr(item.name))))) return;
+        const last = $('maintenance-last-hours');
+        if (!last.reportValidity()) return;
+        if (await load({action:'done', id:item.id, note:$('maintenance-note').value,
+          last_hours:last.value === '' ? null : last.valueAsNumber})) {
+          $('maintenance-note').value = '';
+          last.value = '';
+        }
       };
       edit.onclick = () => {
         edited = item.id;
@@ -55,14 +64,17 @@ export function bindMaintenance(request) {
   }
 
   /** Sérialise les modifications de la fenêtre et garde les données en cas d’échec. */
-  async function load(data) {
-    if (busy) return false;
+  async function load(data, printerKey = target) {
+    if (busy || printerKey !== workshopState.selectedPrinter) return false;
     busy = true;
     set('maintenance-state', '');
     try {
-      render(await request('/maintenance', data ? {
-        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data),
-      } : undefined));
+      const result = await request('/maintenance', {
+        printerKey,
+        ...(data ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)} : {}),
+      });
+      if (printerKey !== workshopState.selectedPrinter || !dialog.open) return false;
+      render(result);
       return true;
     } catch (error) {
       set('maintenance-state', error.message);
@@ -73,9 +85,11 @@ export function bindMaintenance(request) {
   }
 
   $('maintenance-open').onclick = () => {
+    target = workshopState.selectedPrinter;
     edited = undefined;
     form.reset();
     $('maintenance-note').value = '';
+    $('maintenance-last-hours').value = '';
     dialog.showModal();
     void load();
   };

@@ -7,12 +7,28 @@ import uuid
 from notification_delivery import private_json
 
 
-def maintenance_rows(path, hours):
+DEFAULT_OPERATIONS = (
+    ("nozzle", "Nettoyer la buse et le capot de ventilation", 50),
+    ("bed", "Nettoyer et dégraisser le plateau", 50),
+    ("axes", "Graisser les axes et tiges", 200),
+    ("belts", "Vérifier la tension des courroies", 300),
+    ("ptfe", "Inspecter le tube PTFE et le coupe-filament", 500),
+)
+
+
+def maintenance_rows(path, hours, *, defaults=False):
     """Renvoie les opérations enregistrées et calcule l’échéance si le compteur est cohérent."""
     try:
         rows = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return []
+        rows = (
+            [
+                {"id": key, "name": name, "interval": interval, "enabled": True, "history": []}
+                for key, name, interval in DEFAULT_OPERATIONS
+            ]
+            if defaults
+            else []
+        )
     result = []
     for row in rows:
         previous = row.get("last_hours")
@@ -28,9 +44,9 @@ def maintenance_rows(path, hours):
     return result
 
 
-def update_maintenance(path, data, hours, now):
+def update_maintenance(path, data, hours, now, *, defaults=False):
     """Ajoute, modifie, retire ou enregistre une opération et persiste l’historique local."""
-    rows = maintenance_rows(path, None)
+    rows = maintenance_rows(path, None, defaults=defaults)
     for row in rows:
         row.pop("elapsed", None)
     action = data.get("action")
@@ -59,6 +75,11 @@ def update_maintenance(path, data, hours, now):
             raise ValueError("Compteur d’heures indisponible.")
         if not isinstance(note, str) or len(note) > 500:
             raise ValueError("Note ou étiquettes invalides.")
+        if data.get("last_hours") is not None:
+            declared = data["last_hours"]
+            if type(declared) not in (int, float) or not 0 <= declared <= hours:
+                raise ValueError("Compteur d’heures indisponible.")
+            hours = declared
         existing.update(last_hours=hours, last_time=now)
         existing["history"] = [
             *existing["history"],

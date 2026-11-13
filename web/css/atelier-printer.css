@@ -96,3 +96,8 @@
 /* Les commandes gardent leur place quand la chronologie est repliée. */
 #printer-timeline:not([open]):not([hidden]) { display: inline-block; margin-inline-start: var(--atelier-space-2); }
 #printer-timeline summary { cursor: pointer; }
+
+.timeline-markers { position: relative; margin: var(--atelier-space-4); block-size: var(--atelier-control); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+.timeline-markers button { position: absolute; inset-inline-start: var(--timeline-position); transform: translateX(-50%); }
+.timeline-markers button:focus-visible { z-index: 1; }
+.print-timeline li:focus { outline: var(--atelier-rule) solid var(--atelier-accent); }

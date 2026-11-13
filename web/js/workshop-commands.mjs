@@ -111,6 +111,7 @@ export function createCommands(request, refresh) {
       const filaments = rows?.length ? {
         materials: rows.map(row => row.material),
         colors: rows.map(row => row.color),
+        slots: data.slots,
       } : undefined;
       const checkAdvice = filaments && (slots => filamentAdvice(request, {
         materials:filaments.materials, colors:filaments.colors.every(Boolean) ? filaments.colors : [],
@@ -118,9 +119,24 @@ export function createCommands(request, refresh) {
       }, target));
       const confirmation = await confirmPrint({
         target, name:data.name, details:data.details, image, question, readSlots:slots, filaments, checkAdvice,
+        initialSlots:data.slots,
+        queue: action === 'print-cloud' && !data.fromQueue ? async selected => {
+          try {
+            await request('/print-queue', {
+              method:'POST', printerKey:target, headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({action:'add', handle:data.handle, slots:selected}),
+            });
+            notify(tr('Fichier ajouté à la file d’attente.'));
+            return true;
+          } catch (error) {
+            notify(error.message, true);
+            return false;
+          }
+        } : undefined,
       });
       if (!confirmation) return null;
-      data = { ...data, slots: confirmation.slots };
+      const {fromQueue, ...payload} = data;
+      data = { ...payload, slots: confirmation.slots };
     } else if (question && !sensitive &&
         !(await confirmAction(question, destructiveLabels[action]))) return null;
     if (action === 'idle-settings') data = { ...data, confirmed: !!question || data.confirmed === true };

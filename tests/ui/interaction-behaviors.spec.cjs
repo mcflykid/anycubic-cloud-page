@@ -60,7 +60,7 @@ test('le glissement peint une plage sans ordre et Maj+clic la complète',async({
 test('la palette filtre les sections et ne prend pas le raccourci dans un champ',async({page})=>{
  await login(page);
  await page.keyboard.press('Control+k');
- const search=page.getByRole('searchbox',{name:'Rechercher une section'});
+ const search=page.getByRole('combobox',{name:'Rechercher une section'});
  await search.fill('camera');
  await expect(page.locator('.quick-results button')).toHaveCount(1);
  await page.keyboard.press('Enter');

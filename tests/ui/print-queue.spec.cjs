@@ -50,3 +50,20 @@ test('une impression terminée propose la suivante sans lancer de commande', asy
   );
   expect(orders).toBe(0);
 });
+
+test('la confirmation mémorise les emplacements sans envoyer d’ordre', async ({page}) => {
+  let added, orders = 0;
+  await page.route('**/imprimante-api/print-queue', route => {
+    added = route.request().postDataJSON();
+    return route.fulfill({json:{items:[]}});
+  });
+  await page.route('**/imprimante-api/command', route => { orders++; return route.abort(); });
+  await login(page, 'files');
+  await page.locator('[data-source=cloud]').click();
+  await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+  await page.locator('#print-slots').fill('1, 3');
+  await page.locator('#print-queue-add').click();
+  await expect(page.locator('#print-dialog')).toBeHidden();
+  expect(added).toMatchObject({action:'add', slots:[1,3]});
+  expect(orders).toBe(0);
+});

@@ -54,6 +54,14 @@ _LANGUAGES = {
 }
 
 ACE_TITLES = {
+    "maintenance_due": ("Entretien", "Maintenance", "Mantenimiento", "Wartung", "Manutenzione"),
+    "queue_next": (
+        "Vérifiez que le plateau est libre.",
+        "Check that the build plate is clear.",
+        "Comprueba que la placa está libre.",
+        "Prüfen Sie, ob die Druckplatte frei ist.",
+        "Verifica che il piano di stampa sia libero.",
+    ),
     "ace_drying_done": (
         "Séchage ACE terminé",
         "ACE drying completed",
@@ -204,7 +212,9 @@ def format_message(event, config):
                 content += f" · {clean_label(title, 100)}"
                 if event.result == "ace_load_failed":
                     content += "\nhttps://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/NOTIFICATIONS.md"
-        if config.include_filename and (filename := clean_label(event.filename, 140)):
+        if (config.include_filename or event.result == "maintenance_due") and (
+            filename := clean_label(event.filename, 140)
+        ):
             content += f"\n{filename}"
     return message_payload(content)
 

@@ -225,7 +225,25 @@ async def errors(request, handler):
 
 async def status(req):
     """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
-    snapshot = request_engine(req).snapshot()
+    engine = request_engine(req)
+    snapshot = engine.snapshot()
+    printer = snapshot.get("printer")
+    if (
+        isinstance(req, web.Request)
+        and printer
+        and isinstance(getattr(engine, "state_dir", None), pathlib.Path)
+    ):
+        hours = (printer.get("statistics") or {}).get("hours")
+        try:
+            rows = await asyncio.to_thread(
+                maintenance_rows, engine.state_dir / "maintenance.json", hours
+            )
+            printer["maintenance_due"] = sum(
+                row["enabled"] and row["elapsed"] is not None and row["elapsed"] >= row["interval"]
+                for row in rows
+            )
+        except (OSError, ValueError):
+            pass
     if isinstance(req, web.Request) and (tracking := req.query.get("print_tracking")):
         tracker = req.app.get(COMMAND_MQTT_KEY)
         if tracker and re.fullmatch(r"[a-f0-9-]{36}|[a-f0-9]{24}", tracking):
@@ -260,12 +278,15 @@ async def maintenance(req):
         raise ValueError("Connexion en cours")
     hours = (engine.snapshot().get("printer", {}).get("statistics") or {}).get("hours")
     path = engine.state_dir / "maintenance.json"
+    defaults = "kobra s1" in str(safeget(engine, "printer.machine_name", "")).casefold()
     if req.method == "POST":
         data = await json_object(req)
         async with engine.lock:
-            rows = await asyncio.to_thread(update_maintenance, path, data, hours, int(time.time()))
+            rows = await asyncio.to_thread(
+                update_maintenance, path, data, hours, int(time.time()), defaults=defaults
+            )
     else:
-        rows = await asyncio.to_thread(maintenance_rows, path, hours)
+        rows = await asyncio.to_thread(maintenance_rows, path, hours, defaults=defaults)
     return web.json_response({"items": rows, "hours": hours}, headers={"Cache-Control": "no-store"})
 
 
@@ -279,6 +300,13 @@ async def print_queue(req):
         if not isinstance(handle, str):
             raise ValueError("Fichier introuvable")
         file = engine.cloudfiles.get(handle)
+        selected = data.get("slots", [])
+        if (
+            not isinstance(selected, list)
+            or len(selected) > 8
+            or any(type(slot) is not int or not 1 <= slot <= 8 for slot in selected)
+        ):
+            raise ValueError("Emplacement ACE invalide.")
         entry = None
         if file and safeget(file, "gcode_id", 0):
             seconds = safeget(file, "_estimate")
@@ -288,9 +316,11 @@ async def print_queue(req):
             details.update(
                 printer_files.cloud_filament_details(file, safeget(engine, "printer.machine_name"))
             )
-            entry = {"name": file.old_filename, "details": details}
+            entry = {"name": file.old_filename, "details": details, "slots": selected}
         async with engine.lock:
-            rows = await asyncio.to_thread(update_queue, path, action, handle, entry)
+            rows = await asyncio.to_thread(
+                update_queue, path, action, handle, entry, data.get("before")
+            )
     else:
         rows = await asyncio.to_thread(read_queue, path)
     return web.json_response(
@@ -705,6 +735,9 @@ async def command(req):
                     )
                     slot = integer(d.get("slot", 1), 1, 4) - 1 if name == "feed" else None
                     alerts.command(name, box, slot, int(time.time()))
+                    if name == "dry-stop" and engine.ace_alert_scope is not None:
+                        with contextlib.suppress(OSError):
+                            await asyncio.to_thread(alerts.save, engine.ace_alert_scope)
             engine.event(str(name), "Acceptée")
             result = {"ok": True, "message": message}
             if name in ("print-cloud", "print-local", "print-usb", "task-reprint") and audit.get(

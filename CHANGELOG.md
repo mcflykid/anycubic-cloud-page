@@ -4,6 +4,9 @@
 
 - Ajoute un réglage de contraste élevé pour les trois styles et les modes clair et sombre (#360).
 - Ajoute l’allemand et l’italien à l’atelier et aux notifications Discord (#361).
+- La vue mur affiche les images d’un lecteur caméra déjà ouvert dans le même navigateur et revient à l’aperçu du fichier quand il se ferme (#346).
+- Les alertes Discord conservent les séchages en cours lors d’un redémarrage (#345).
+- La file mémorise les affectations ACE et propose le fichier suivant après la fin d’une impression. Les rappels d’entretien acceptent le compteur de la dernière intervention. La chronologie ajoute des repères navigables au clavier (#349, #357, #358).
 
 ## 1.16.0 — 2026-11-13
 

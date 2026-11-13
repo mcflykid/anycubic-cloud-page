@@ -51,3 +51,22 @@ class AceAlertTests(unittest.TestCase):
         self.alerts.command("retract", 0, None, 170)
         self.assertEqual(self.events(500), ["ace_load_failed"])
         self.assertEqual(self.events(510), [])
+
+    def test_restart_preserves_an_observed_drying_cycle(self):
+        """Un cycle commencé avant le redémarrage peut se terminer une seule fois."""
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "alerts.json"
+            self.alerts = AceAlerts(path)
+            self.assertEqual(self.events(100), [])
+            self.alerts.save("fixture")
+            self.alerts = AceAlerts(path)
+            self.alerts.restore("fixture")
+            self.box["drying"] = {"is_drying": False}
+            self.assertEqual(self.events(220), ["ace_drying_done"])
+            self.alerts.save("fixture")
+            self.alerts = AceAlerts(path)
+            self.alerts.restore("fixture")
+            self.assertEqual(self.events(221), [])

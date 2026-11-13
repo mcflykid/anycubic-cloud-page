@@ -43,7 +43,7 @@
           </div>
           <div class="atelier-progress-group" id="summary-progress-wrap" hidden><label for="summary-progress">Progression <strong id="summary-progress-text"></strong></label><progress id="summary-progress" value="0" max="100"></progress></div>
           <p id="summary-finish" class="muted" tabindex="0" hidden></p>
-          <dl id="summary-printer-values" class="atelier-measures"></dl>
+          <dl id="summary-printer-values" class="atelier-measures"></dl><p id="summary-maintenance-due" hidden>Entretien</p>
         </div>
       </div>
       <footer class="atelier-card-footer"><button type="button" class="atelier-control" data-summary-open="overview">Ouvrir l’imprimante</button><a class="atelier-control" href="/mur">Vue mur</a></footer>
@@ -84,7 +84,7 @@
   </div>
   <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
     <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
-    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien</button><button id="queue-open" type="button" aria-haspopup="dialog">File d’attente</button><details id="printer-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><ol></ol></details></div>
+    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien <span id="maintenance-count" hidden></span></button><button id="queue-open" type="button" aria-haspopup="dialog">File d’attente</button><details id="printer-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><div class="timeline-markers"></div><ol></ol></details></div>
   </section>
 </section>
 <section id="tab-ace" class="tab-panel" hidden>
@@ -585,12 +585,12 @@
 <dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2></div><div class="confirmation-body"><p id="confirm-text"></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
 <dialog id="queue-dialog" class="settings-dialog" aria-labelledby="queue-title">
   <header class="dialog-top"><h2 id="queue-title">File d’attente</h2><button class="dialog-close" type="button">Fermer</button></header>
-  <p id="queue-state" role="status"></p><ol id="queue-list"></ol>
+  <p id="queue-state" role="status"></p><p id="queue-totals"></p><ol id="queue-list"></ol>
   <button id="queue-next" type="button" disabled>Plateau libéré, préparer la suivante</button>
 </dialog>
 <dialog id="maintenance-dialog" class="settings-dialog" aria-labelledby="maintenance-title">
   <header class="dialog-top"><h2 id="maintenance-title">Entretien</h2><button class="dialog-close" type="button">Fermer</button></header>
-  <p id="maintenance-hours"></p><label class="atelier-field">Note locale<input id="maintenance-note" maxlength="500"></label><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>
+  <p id="maintenance-hours"></p><label class="atelier-field">Compteur de la dernière intervention<input id="maintenance-last-hours" type="number" min="0" step="0.1"></label><label class="atelier-field">Note locale<input id="maintenance-note" maxlength="500"></label><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>
   <form id="maintenance-form">
     <label class="atelier-field">Opération<input name="name" required maxlength="100"></label>
     <label class="atelier-field">Intervalle en heures<input name="interval" type="number" required min="1" max="10000"></label>
@@ -630,6 +630,6 @@
     <p id="print-question"></p>
     <p id="print-target" role="status"></p>
   </div>
-  <footer class="confirmation-footer"><button id="print-no" type="button" autofocus>Annuler</button><button id="print-yes" type="button" class="primary">Lancer l’impression</button><p id="print-result" tabindex="-1" role="status" hidden></p><button id="print-cancel-transfer" type="button" hidden>Annuler le lancement</button><button id="print-close" type="button" hidden>Fermer</button><button id="print-error-help" type="button" hidden>Aide</button><progress id="print-progress" aria-labelledby="print-result" hidden></progress></footer>
+  <footer class="confirmation-footer"><button id="print-no" type="button" autofocus>Annuler</button><button id="print-queue-add" type="button" hidden>Ajouter à la file</button><button id="print-yes" type="button" class="primary">Lancer l’impression</button><p id="print-result" tabindex="-1" role="status" hidden></p><button id="print-cancel-transfer" type="button" hidden>Annuler le lancement</button><button id="print-close" type="button" hidden>Fermer</button><button id="print-error-help" type="button" hidden>Aide</button><progress id="print-progress" aria-labelledby="print-result" hidden></progress></footer>
 </dialog>
 <noscript>JavaScript est nécessaire pour cet atelier.</noscript><script id="workshop-script" type="module" src="/imprimante-api/ui/js/imprimante.js"></script></body></html>

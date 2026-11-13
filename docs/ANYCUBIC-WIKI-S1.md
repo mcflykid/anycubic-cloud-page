@@ -27,3 +27,7 @@ Une prochaine étape possible : des conseils intégrés à la page qui en a beso
 ## Accès depuis l’atelier
 
 Les boutons **Aide** des fichiers, de la caméra, du module ACE et des événements de connexion ouvrent un conseil local. Le panneau Calibrations propose le guide de débit lorsque les réglages machine sont disponibles. Les liens ci-dessus permettent de consulter le document du constructeur séparément. Fermer le dialogue rend l’accès à la section en cours. Ces conseils ne sont pas des notifications et ne commandent pas la machine.
+
+## Rappels d’entretien
+
+Les opérations proposées pour la Kobra S1 reprennent les points d’entretien de la fiche constructeur. Les intervalles configurables de 50, 200, 300 et 500 heures sont des valeurs de départ de l’atelier. Saisissez le compteur de la dernière intervention pour commencer à suivre son échéance.

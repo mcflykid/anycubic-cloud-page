@@ -133,7 +133,7 @@ export function updatePrintConfirmation(available = statusAvailable, observedRef
 }
 
 /** Rend les données connues de la source et demande une validation liée à l’imprimante affichée. */
-export function confirmPrint({target, name, details = {}, image, advice = '', question, readSlots, mappingText = '', filaments, checkAdvice}) {
+export function confirmPrint({target, name, details = {}, image, advice = '', question, readSlots, mappingText = '', filaments, checkAdvice, queue, initialSlots = []}) {
   const dialog = $('print-dialog');
   if (dialog.open) return Promise.resolve(null);
   clearTimeout(trackingTimer);
@@ -177,7 +177,7 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   set('print-mapping-summary', mappingText);
   const mapping = $('print-slots');
   $('print-mapping').dataset.manual = readSlots ? 'yes' : '';
-  mapping.value = '';
+  mapping.value = initialSlots.join(', ');
   mapping.oninput = () => mapping.setCustomValidity('');
   mapping.setCustomValidity('');
   $('print-advice').hidden = !advice;
@@ -185,6 +185,8 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   set('print-question', question);
   dialog.dataset.phase = 'confirmation';
   $('print-no').hidden = $('print-yes').hidden = false;
+  const enqueue = $('print-queue-add');
+  enqueue.hidden = !queue;
   for (const id of ['print-result', 'print-close', 'print-error-help', 'print-progress', 'print-cancel-transfer']) $(id).hidden = true;
   dialog.showModal();
   updatePrintConfirmation();
@@ -196,12 +198,27 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
     };
     dialog.onclose = () => { if (!dialog.open) resolve(null); };
     $('print-no').onclick = finish;
+    const saveToQueue = async () => {
+      if (!queue || enqueue.disabled || printTarget !== workshopState.selectedPrinter) return;
+      try {
+        const values = assignment && !$('print-ace').hidden ? assignment.slots : readSlots?.(mapping.value);
+        enqueue.disabled = true;
+        if (await queue(values?.every(Boolean) ? values : []) && dialog.open && enqueue.onclick === saveToQueue) finish();
+      } catch (error) {
+        mapping.setCustomValidity(error.message);
+        mapping.reportValidity();
+      } finally {
+        enqueue.disabled = false;
+      }
+    };
+    enqueue.onclick = saveToQueue;
     dialog.oncancel = event => { event.preventDefault(); finish(); };
     $('print-yes').onclick = () => {
       updatePrintConfirmation();
-      if ($('print-yes').disabled) return;
+      if ($('print-yes').disabled || enqueue.disabled) return;
       try {
         const slots = assignment && !$('print-ace').hidden ? assignment.slots : readSlots?.(mapping.value);
+        enqueue.hidden = true;
         dialog.dataset.phase = 'confirmed';
         $('print-yes').disabled = true;
         resolve({slots});

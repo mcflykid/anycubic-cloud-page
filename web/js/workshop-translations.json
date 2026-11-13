@@ -9160,5 +9160,53 @@
     "es": "Alto",
     "de": "Hoch",
     "it": "Alto"
+  },
+  "Compteur actuel": {
+    "en": "Current counter",
+    "es": "Contador actual",
+    "de": "Aktueller Zähler",
+    "it": "Contatore attuale"
+  },
+  "Nettoyer la buse et le capot de ventilation": {
+    "en": "Clean the nozzle and fan cover",
+    "es": "Limpiar la boquilla y la cubierta del ventilador",
+    "de": "Düse und Lüfterabdeckung reinigen",
+    "it": "Pulire l’ugello e il coperchio della ventola"
+  },
+  "Nettoyer et dégraisser le plateau": {
+    "en": "Clean and degrease the build plate",
+    "es": "Limpiar y desengrasar la placa",
+    "de": "Druckplatte reinigen und entfetten",
+    "it": "Pulire e sgrassare il piano"
+  },
+  "Graisser les axes et tiges": {
+    "en": "Lubricate the axes and rods",
+    "es": "Lubricar los ejes y las varillas",
+    "de": "Achsen und Stangen schmieren",
+    "it": "Lubrificare gli assi e le aste"
+  },
+  "Vérifier la tension des courroies": {
+    "en": "Check belt tension",
+    "es": "Comprobar la tensión de las correas",
+    "de": "Riemenspannung prüfen",
+    "it": "Controllare la tensione delle cinghie"
+  },
+  "Inspecter le tube PTFE et le coupe-filament": {
+    "en": "Inspect the PTFE tube and filament cutter",
+    "es": "Inspeccionar el tubo PTFE y el cortafilamento",
+    "de": "PTFE-Schlauch und Filamentschneider prüfen",
+    "it": "Ispezionare il tubo PTFE e il tagliafilamento"
+  },
+  "Compteur de la dernière intervention": {
+    "en": "Counter at last maintenance",
+    "es": "Contador en el último mantenimiento",
+    "de": "Zählerstand bei der letzten Wartung",
+    "it": "Contatore all’ultimo intervento"
+  },
+  "Une bobine sélectionnée est indisponible.": {
+    "en": "A selected spool is unavailable.",
+    "es": "Una bobina seleccionada no está disponible.",
+    "de": "Eine ausgewählte Spule ist nicht verfügbar.",
+    "it": "Una bobina selezionata non è disponibile."
   }
 }

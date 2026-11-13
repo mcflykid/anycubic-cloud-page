@@ -21,6 +21,26 @@ export function createCamera(request, getPrinter) {
     $('camera-state').dataset.visualState = state;
   }
 
+  // La vue mur peut réutiliser les images d’un lecteur ouvert sans créer de session Cloud.
+  const wall = typeof BroadcastChannel === 'function' ? new BroadcastChannel('cloud-page-wall-camera') : null;
+  let frameAt = 0;
+  if (wall) wall.onmessage = ({data}) => {
+    if (data?.kind !== 'request' || !viewer || data.printer !== viewer.printer ||
+        typeof data.request !== 'string' || Date.now() - frameAt < 750) return;
+    const video = $('camera-video').querySelector('video');
+    if (!track || !video?.videoWidth || video.readyState < 2) return;
+    frameAt = Date.now();
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.min(960, video.videoWidth);
+    canvas.height = Math.round(canvas.width * video.videoHeight / video.videoWidth);
+    try {
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      wall.postMessage({kind:'frame', request:data.request, printer:viewer.printer, image:canvas.toDataURL('image/jpeg', .75)});
+    } catch {
+      // L’aperçu de tâche reste disponible si le navigateur interdit la capture du flux.
+    }
+  };
+
   function stopPresence() {
     if (presenceTimer !== null) clearInterval(presenceTimer);
     presenceTimer = null;

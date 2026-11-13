@@ -28,6 +28,8 @@ from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
 from cloud_budget import CloudRequestBudget
 from ace_alerts import AceAlerts
+from maintenance import maintenance_rows
+from print_queue import read_queue
 from command_journal import ACTIONS, MQTT_CONFIRMATIONS, command_mqtt_context, mqtt_digest
 from filament_catalog import editable_materials, filament_profile_for_sku
 from idle_controls import idle_limits, print_limits
@@ -279,6 +281,7 @@ class Engine:
         self.notification_delivery = None
         self.ace_alerts = AceAlerts()
         self.ace_alert_scope = None
+        self.queue_observed = None
         self.state_dir = pathlib.Path("/appdata/state")
         self.catalogue_source = False
         self.transport_only = False
@@ -437,9 +440,14 @@ class Engine:
             return
         targets = [self, *self.fleet_registry.entries.values()] if self.fleet_registry else [self]
         for target in targets:
-            if target.ace_alert_scope not in (None, scope):
-                target.ace_alerts = AceAlerts()
-            target.ace_alert_scope = scope
+            if target.ace_alert_scope != scope:
+                if target.ace_alert_scope is not None:
+                    target.ace_alerts = AceAlerts()
+                target.ace_alert_scope = scope
+                target.queue_observed = None
+                target.ace_alerts.path = target.state_dir / "ace-alerts.json"
+                await asyncio.to_thread(target.ace_alerts.restore, scope)
+            previous = (target.ace_alerts.drying.copy(), target.ace_alerts.stops.copy())
             printer = target.snapshot().get("printer") or {}
             events = (
                 target.ace_alerts.sample(
@@ -448,9 +456,66 @@ class Engine:
                 if target.printer
                 else []
             )
+            if target.printer and printer.get("printer_online") is True:
+                stamp = int(time.time())
+                machine_scope = (scope, printer_key(target.printer.id))
+                if "maintenance_due" in delivery.config.ace_events:
+                    hours = (printer.get("statistics") or {}).get("hours")
+                    rows = await asyncio.to_thread(
+                        maintenance_rows, target.state_dir / "maintenance.json", hours
+                    )
+                    events.extend(
+                        AceAlerts.event(
+                            printer,
+                            machine_scope,
+                            None,
+                            stamp,
+                            (row["id"], row.get("last_time")),
+                            "maintenance_due",
+                            detail=row["name"],
+                        )
+                        for row in rows
+                        if row["enabled"]
+                        and row["elapsed"] is not None
+                        and row["elapsed"] >= row["interval"]
+                    )
+                project = printer.get("command_project")
+                previous_job = target.queue_observed
+                target.queue_observed = (project, printer.get("job_in_progress") is True)
+                if (
+                    "queue_next" in delivery.config.ace_events
+                    and project
+                    and previous_job == (project, True)
+                    and printer.get("job_complete") is True
+                ):
+                    rows = await asyncio.to_thread(
+                        read_queue, target.state_dir / "print-queue.json"
+                    )
+                    next_file = next(
+                        (
+                            row
+                            for row in rows
+                            if safeget(target.cloudfiles.get(row["handle"]), "gcode_id")
+                        ),
+                        None,
+                    )
+                    if next_file:
+                        events.append(
+                            AceAlerts.event(
+                                printer,
+                                machine_scope,
+                                None,
+                                stamp,
+                                project,
+                                "queue_next",
+                                detail=next_file["name"],
+                            )
+                        )
             await delivery.observe(
                 [event for event in events if event.result in delivery.config.ace_events]
             )
+            if previous != (target.ace_alerts.drying, target.ace_alerts.stops):
+                await asyncio.to_thread(target.ace_alerts.save, scope)
 
     def mqtt_changed(self):
         """Marque la fraîcheur des données lors d’une notification MQTT."""

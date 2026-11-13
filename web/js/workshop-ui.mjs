@@ -309,11 +309,38 @@ export function printTimeline(id, events = []) {
     finished: 'Impression terminée', failed: 'Impression arrêtée', spool: 'Changement de bobine',
     filament_low: 'Filament bientôt épuisé',
   };
-  section.querySelector('ol').replaceChildren(...events.filter(event => labels[event.kind]).map(event => {
+  const list = section.querySelector('ol');
+  const entries = events.filter(event => labels[event.kind]);
+  const signature = JSON.stringify(entries);
+  if (section.dataset.events === signature) return;
+  section.dataset.events = signature;
+  const first = entries[0]?.time, last = entries.at(-1)?.time;
+  const markers = section.querySelector('.timeline-markers');
+  markers?.replaceChildren();
+  list.replaceChildren(...entries.map((event, index) => {
     const slots = event.kind === 'spool' ? event.slots.map(([box, slot]) =>
       formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
     const shortages = event.kind === 'filament_low' ? (event.shortages || []).map(slot => formatText('Emplacement {0}', slot)).join(', ') : '';
-    return node('li', [date(event.time), tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · '));
+    const text = [date(event.time), tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · ');
+    const item = node('li', text);
+    if (markers) {
+      item.tabIndex = -1;
+      const marker = node('button', '•');
+      marker.type = 'button';
+      marker.title = text;
+      marker.setAttribute('aria-label', text);
+      marker.style.setProperty('--timeline-position', (last > first ? 100 * (event.time - first) / (last - first) : 50) + '%');
+      marker.onclick = () => item.focus();
+      marker.onkeydown = event => {
+        const offset = {ArrowLeft:-1, ArrowRight:1}[event.key];
+        if (offset && markers.children[index + offset]) {
+          event.preventDefault();
+          markers.children[index + offset].focus();
+        }
+      };
+      markers.append(marker);
+    }
+    return item;
   }));
 }
 /** Renvoie l’élément HTML par identifiant ; les contrôles de cette page partagent ce point d’accès. */

@@ -160,6 +160,10 @@ async function refreshState() {
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
+    $('summary-maintenance-due').hidden = !p?.maintenance_due;
+    $('maintenance-count').hidden = !p?.maintenance_due;
+    set('maintenance-count', p?.maintenance_due || '');
+
     void printQueue.observe(p, workshopState.selectedPrinter);
     finishEstimate('summary-finish', p?.corrected_finish);
     finishEstimate('printer-finish', p?.corrected_finish);

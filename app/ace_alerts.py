@@ -3,20 +3,38 @@
 import hashlib
 import json
 
-from notification_delivery import PrintEvent
+from notification_delivery import PrintEvent, private_json, read_private_json
 
 
 class AceAlerts:
     """Conserve les transitions par boîtier et corrèle les commandes avec leur état observé."""
 
-    def __init__(self):
+    def __init__(self, path=None):
         """Attend un premier relevé pour établir la référence du boîtier."""
+        self.path = path
         self.drying = {}
         self.pending = {}
         self.stops = {}
         self.low = set()
         self.project = None
         self.refusals = []
+
+    def restore(self, scope):
+        """Recharge les séchages en cours du même compte après un redémarrage."""
+        if self.path is None:
+            return
+        try:
+            stored = read_private_json(self.path, 16384)
+            if stored.get("scope") == scope:
+                self.drying = {int(box): pair for box, pair in stored["drying"].items()}
+                self.stops = {int(box): end for box, end in stored["stops"].items()}
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            pass
+
+    def save(self, scope):
+        """Garde l’échéance du séchage et les arrêts demandés sous droits privés."""
+        if self.path is not None:
+            private_json(self.path, {"scope": scope, "drying": self.drying, "stops": self.stops})
 
     def command(self, action, box, slot, stamp):
         """Enregistre une commande acceptée pendant sa fenêtre de confirmation."""
@@ -58,9 +76,8 @@ class AceAlerts:
             if dry.get("is_drying") is True and type(remaining) is int and 0 <= remaining <= 1440:
                 # Une baisse du compteur est une preuve plus précise que l’heure du premier relevé.
                 end = stamp + 60 * remaining
-                self.drying[box_id] = (
-                    (min(end, previous[0]), previous[1]) if previous else (end, stamp)
-                )
+                if previous is None or end < previous[0]:
+                    self.drying[box_id] = (end, previous[1] if previous else stamp)
             elif dry.get("is_drying") is False and previous:
                 self.drying.pop(box_id)
                 end, started = previous
@@ -95,12 +112,12 @@ class AceAlerts:
         return events
 
     @staticmethod
-    def event(printer, scope, box, stamp, occurrence, result, slot=None, code=""):
+    def event(printer, scope, box, stamp, occurrence, result, slot=None, code="", detail=""):
         """Construit une référence stable, sans identifiant privé visible dans le message."""
         key = hashlib.sha256(
             json.dumps([scope, box, occurrence, result, slot]).encode()
         ).hexdigest()
         label = printer.get("name")
         return PrintEvent(
-            key, stamp, result, label if isinstance(label, str) else "", "", code, slot
+            key, stamp, result, label if isinstance(label, str) else "", detail, code, slot
         )
