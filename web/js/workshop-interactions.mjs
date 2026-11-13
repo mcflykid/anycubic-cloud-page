@@ -67,7 +67,7 @@ export function initializeInteractions() {
         '#tasks-list:not(:empty) .history-card-name, #tasks-gallery .history-card-name',
       )].map(name => [
         name.textContent, () => {
-          const detail = name.closest('tr, .history-gallery-card')?.querySelector('.history-detail');
+          const detail = name.closest('tr, .history-gallery-card')?.querySelector('.history-detail, .task-thumbnail');
           openTab('history');
           detail?.click();
         },
