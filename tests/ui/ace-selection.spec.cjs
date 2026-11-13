@@ -71,6 +71,11 @@ test('les bobines et les commandes ACE restent alignées en mode sombre', async 
 });
 
 test('un emplacement ACE ouvre une fiche de filament sans commande', async ({page}) => {
+ await page.route('**/imprimante-api/status', async route => {
+  const response = await route.fetch(), json = await response.json();
+  Object.assign(json.printer.boxes[0].spools[0], {material_type: 'PLA Marble', rfid: true});
+  await route.fulfill({response, json});
+ });
  const commands = [];
  page.on('request', request => {
   if (request.url().endsWith('/imprimante-api/command')) commands.push(request);
@@ -79,7 +84,7 @@ test('un emplacement ACE ouvre une fiche de filament sans commande', async ({pag
  const row = page.locator('#spools .ace-spool-row').first();
  const trigger = row.getByRole('button', {name: /Emplacement 1/});
  await trigger.click();
- const dialog = page.getByRole('dialog', {name: 'Fiche filament'});
+ const dialog = page.getByRole('dialog', {name: 'Fiche filament', exact: true});
  await expect(dialog).toBeVisible();
  await expect(dialog.locator('#filament-slot-title')).toContainText('Emplacement 1');
  await expect(dialog.getByRole('link', {name: 'Catalogue Anycubic'})).toHaveAttribute('href', 'https://3dfilamentprofiles.com/filaments/anycubic');
@@ -88,25 +93,40 @@ test('un emplacement ACE ouvre une fiche de filament sans commande', async ({pag
  expect(commands).toHaveLength(0);
 });
 
-test('une fiche personnelle est importée puis retrouvée après rechargement', async ({page}) => {
+test('un emplacement inconnu propose uniquement la création et retrouve sa fiche après rechargement', async ({page}) => {
+ let color;
+ await page.route('**/imprimante-api/status', async route => {
+  const response = await route.fetch(), json = await response.json();
+  if (color) json.printer.boxes[0].spools[0].color = color;
+  await route.fulfill({response, json});
+ });
  await login(page, 'ace');
  const trigger = page.locator('#spools .ace-profile-open').first();
+ const create = page.getByRole('dialog', {name: 'Créer sa fiche filament'});
+ const profile = page.getByRole('dialog', {name: 'Fiche filament', exact: true});
  await trigger.click();
- const dialog = page.getByRole('dialog', {name: 'Fiche filament'});
- await dialog.getByText('Créer sa fiche filament', {exact: true}).click();
- const input = dialog.getByLabel('Importer une fiche JSON');
+ await expect(create).toBeVisible();
+ await expect(profile).toBeHidden();
+ await expect(create.getByRole('link', {name: 'Tutoriel de création d’une fiche'})).toBeVisible();
+ const input = create.getByLabel('Importer une fiche JSON');
  const fixture = {name: 'Mon PLA fictif', url: 'https://example.com/pla', density: 1.24, drying: [45, 50]};
- await input.setInputFiles({name: 'pla.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(fixture))});
- await expect(dialog.locator('#filament-profile-import-state')).toHaveText('Fiche personnelle enregistrée dans ce navigateur.');
- await expect(dialog.locator('#filament-profile-facts')).toContainText('1,24 g/cm³');
- await expect(dialog.locator('#filament-profile-facts')).not.toContainText('Température du plateau');
- await input.setInputFiles({name: 'invalid.json', mimeType: 'application/json',
-  buffer: Buffer.from(JSON.stringify({...fixture, url: 'javascript:alert(1)'}))});
- await expect(dialog.locator('#filament-profile-import-state')).toContainText('Import impossible');
+ const importFile = data => input.setInputFiles({name: 'pla.json', mimeType: 'application/json',
+  buffer: Buffer.from(JSON.stringify(data))});
+ await importFile({...fixture, url: 'http://example.com/pla'});
+ await expect(create.getByRole('status')).toContainText('Import impossible');
+ await importFile(fixture);
+ await expect(profile).toBeVisible();
+ await expect(profile.locator('#filament-profile-facts')).toContainText('1,24 g/cm³');
+ await expect(profile.locator('#filament-profile-facts')).not.toContainText('Température du plateau');
  await page.reload();
  await openSection(page, 'ace');
  await trigger.click();
- await dialog.locator('#filament-profile-reference').selectOption({label: 'Mon PLA fictif · Fiche personnelle'});
- await expect(dialog.getByRole('link', {name: 'Source de la fiche'})).toHaveAttribute('href', fixture.url);
- await expect(dialog.locator('#filament-profile-facts')).toContainText('45–50 °C');
+ await expect(profile.getByRole('link', {name: 'Source de la fiche'})).toHaveAttribute('href', fixture.url);
+ await expect(profile.locator('#filament-profile-facts')).toContainText('45–50 °C');
+ color = [1, 2, 3];
+ await page.reload();
+ await openSection(page, 'ace');
+ await trigger.click();
+ await expect(create).toBeVisible();
+ await expect(profile).toBeHidden();
 });

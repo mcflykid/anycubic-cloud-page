@@ -1,13 +1,15 @@
 # Créer une fiche filament
 
-Une fiche personnelle se consulte depuis **ACE et filaments** en cliquant sur le nom d’un emplacement, par exemple **Emplacement 3 · PLA Marble**. Les caractéristiques de la fiche décrivent le filament. Le restant et l’identification RFID affichés dans la fenêtre proviennent de l’ACE.
+Dans **ACE et filaments**, cliquez sur le nom d’un emplacement, par exemple **Emplacement 3 · PLA Marble**. Si une fiche est associée à la bobine, ses caractéristiques s’affichent avec le restant et l’identification RFID rapportés par l’ACE. Si la référence est inconnue, l’atelier ouvre **Créer sa fiche filament**.
 
 ## Préparer la fiche
 
 1. Ouvrez la fiche technique de la bobine et relevez les valeurs applicables à sa référence exacte. Utilisez une adresse HTTPS publique sans paramètres d’accès.
 2. Copiez l’exemple ci-dessous dans un fichier texte UTF-8 nommé `mon-filament.json`. Remplacez le nom, le lien et les valeurs par ceux de votre bobine. Supprimez les champs inconnus. Les nombres utilisent un point comme séparateur décimal.
-3. Ouvrez un emplacement dans l’atelier, dépliez **Créer sa fiche filament**, puis choisissez le fichier dans **Importer une fiche JSON**.
-4. Vérifiez le nom et les valeurs affichées. La fiche reste disponible dans le sélecteur de ce navigateur. Réimporter le même nom remplace sa version précédente. Gardez le fichier JSON pour le réimporter sur un autre appareil.
+3. Cliquez sur l’emplacement de la bobine. Dans **Créer sa fiche filament**, choisissez le fichier dans **Importer une fiche JSON**.
+4. Vérifiez le nom et les valeurs affichées. Le prochain clic sur cet emplacement ouvre la fiche enregistrée dans ce navigateur. Gardez le fichier JSON pour le réimporter sur un autre appareil.
+
+L’association tient compte de l’imprimante, du module ACE, de l’emplacement et des données d’identification visibles. Si vous remplacez une bobine par une autre qui a la même matière, la même couleur et le même état RFID, ces données seules ne permettent pas de distinguer les deux bobines.
 
 ```json
 {

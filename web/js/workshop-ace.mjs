@@ -93,7 +93,7 @@ export function createAce(command, refresh) {
   $('ace-module-name').after(selectorLabel);
   selector.onchange = () => {
     selectedBoxId = selector.value;
-    for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog']) if ($(id).open) $(id).close();
+    for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog', 'filament-profile-dialog', 'filament-profile-create']) if ($(id).open) $(id).close();
     renderAce(workshopState.snapshot.printer);
   };
   const lastDryingSettings = new Map();
@@ -138,7 +138,7 @@ export function createAce(command, refresh) {
     const previous = selectedBoxId;
     selectedBoxId = box ? String(box.box_id) : null;
     if (previous !== null && previous !== selectedBoxId) {
-      for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog']) if ($(id).open) $(id).close();
+      for (const id of ['spool-dialog', 'dry-dialog', 'confirm-dialog', 'filament-profile-dialog', 'filament-profile-create']) if ($(id).open) $(id).close();
     }
     selector.replaceChildren(...(p.boxes || []).map((entry, index) =>
       new Option(`${tr('Module ACE')} ${index + 1} · ${entry.model || tr('Non renseigné')}`, String(entry.box_id)),
@@ -186,7 +186,10 @@ export function createAce(command, refresh) {
         const profile = node('button', title + ' · ' + (spool.material_type || tr('Non renseigné')), 'ace-profile-open');
         profile.type = 'button';
         profile.setAttribute('aria-haspopup', 'dialog');
-        profile.onclick = () => openFilamentProfile(spool, spool.display_slot ?? spool.slot);
+        profile.onclick = () => openFilamentProfile(spool, {
+          printer: workshopState.selectedPrinter, box: box.box_id,
+          slot: spool.local_slot ?? spool.slot, displaySlot: spool.display_slot ?? spool.slot,
+        });
         copy.append(profile);
         if (typeof spool.rfid === 'boolean')
           copy.append(node('p', tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle')));

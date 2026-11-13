@@ -28,21 +28,22 @@ function validateProfile(data) {
   return profile;
 }
 
-/** Les fiches personnelles restent dans le navigateur et survivent à une mise à jour du conteneur. */
+/** Récupère aussi les fiches personnelles importées avant l’ajout des associations. */
 function readCustomProfiles() {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    return Array.isArray(data) ? data.slice(0, 100).map(validateProfile) : [];
+    const profiles = Array.isArray(data) ? data : data.profiles;
+    return {
+      profiles: profiles.slice(0, 100).map(validateProfile),
+      assignments: Array.isArray(data.assignments) ? data.assignments : [],
+    };
   } catch {
-    return [];
+    return {profiles: [], assignments: []};
   }
 }
 
-/** Présente la télémétrie du créneau et les données de la référence confirmée par l’utilisateur. */
-export function openFilamentProfile(spool, slot) {
-  const dialog = $('filament-profile-dialog'), reference = $('filament-profile-reference');
-  const reading = $('filament-profile-reading'), facts = $('filament-profile-facts');
-  set('filament-slot-title', formatText('Emplacement {0}', slot));
+/** Conserve la palette rapportée par l’ACE comme indice lors d’un changement de bobine. */
+function spoolPalette(spool) {
   const colors = Array.isArray(spool.color) ? spool.color : [];
   const hex = [];
   for (let i = 0; i + 2 < colors.length; i += 3) {
@@ -50,83 +51,91 @@ export function openFilamentProfile(spool, slot) {
     if (rgb.every(value => Number.isInteger(value) && value >= 0 && value <= 255))
       hex.push('#' + rgb.map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase());
   }
-  /** Garde les valeurs et leur provenance associées dans les listes descriptives. */
-  function item(label, value) {
-    const pair = node('div');
-    pair.append(node('dt', tr(label)), node('dd', value));
-    return pair;
-  }
-  reading.replaceChildren(
+  return hex;
+}
+
+/** Garde les valeurs et leur libellé associés dans les listes descriptives. */
+function item(label, value) {
+  const pair = node('div');
+  pair.append(node('dt', tr(label)), node('dd', value));
+  return pair;
+}
+
+/** Affiche les caractéristiques de la référence et les données rapportées par l’ACE. */
+function showProfile(spool, title, hex, name, profile, personal) {
+  set('filament-slot-title', title);
+  set('filament-profile-reference', name);
+  $('filament-profile-reading').replaceChildren(
     item('Matériau', spool.material_type || '—'),
     item('Couleur du filament', hex.join(' · ') || '—'),
     item('Filament restant', fmt(spool.remaining_percent, ' %')),
     item('Identification RFID', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
       ? 'Configuration manuelle' : 'Inconnu')),
   );
-  let custom = readCustomProfiles();
-  const upload = $('filament-profile-import');
-  upload.value = '';
+  const source = $('filament-profile-source');
+  source.href = profile.url;
+  source.textContent = tr(personal ? 'Source de la fiche' : 'Fiche fabricant');
+  const range = ([min, max], unit) => fmt(min) + '–' + fmt(max, unit);
+  const values = [
+    ['Densité', profile.density == null ? null : new Intl.NumberFormat(document.documentElement.lang,
+      {maximumFractionDigits: 3}).format(profile.density) + ' g/cm³'],
+    ['Température de la buse', profile.nozzle && range(profile.nozzle, ' °C')],
+    ['Température du plateau', profile.bed && range(profile.bed, ' °C')],
+    ['Température de séchage', profile.drying && range(profile.drying, ' °C')],
+    ['Durée (heures)', profile.hours && range(profile.hours, ' h')],
+    ['Vitesse d’impression', profile.speed && range(profile.speed, ' mm/s')],
+    ['Débit volumique maximal', profile.flow == null ? null : fmt(profile.flow, ' mm³/s')],
+    ['Diamètre minimal de buse', profile.minNozzle == null ? null : fmt(profile.minNozzle, ' mm')],
+    ['Matériau de la buse', profile.nozzleMaterial ? tr(profile.nozzleMaterial) : null],
+  ];
+  $('filament-profile-facts').replaceChildren(...values.filter(([, value]) => value != null)
+    .map(([label, value]) => item(label, value)));
+  $('filament-profile-dialog').showModal();
+}
+
+/** Ouvre la fiche associée à l’emplacement ACE, ou le formulaire d’import si l’identité reste inconnue. */
+export function openFilamentProfile(spool, {printer, box, slot, displaySlot}) {
+  const title = formatText('Emplacement {0}', displaySlot), hex = spoolPalette(spool);
+  const material = spool.material_type;
+  const position = JSON.stringify([printer, box, slot]);
+  // Le restant varie avec l’impression et ne fait donc pas partie de l’identité.
+  const signature = JSON.stringify([material, hex, spool.rfid, spool.spool_loaded]);
+  const saved = readCustomProfiles();
+  const assignment = saved.assignments.find(entry => entry?.position === position && entry.signature === signature);
+  const personal = saved.profiles.find(profile => profile.name === assignment?.name);
+  if (personal) return showProfile(spool, title, hex, personal.name, personal, true);
+
+  const exact = spool.spool_loaded !== false && spool.rfid === true &&
+    Object.hasOwn(manufacturerProfiles, material) && !['PETG', 'PLA Basic', 'PLA+'].includes(material);
+  if (exact) return showProfile(spool, title, hex, material, manufacturerProfiles[material], false);
+
+  const create = $('filament-profile-create'), upload = $('filament-profile-import');
+  set('filament-profile-create-slot', material ? title + ' · ' + material : title);
   set('filament-profile-import-state', '');
-  /** Affiche les références personnelles séparément des fiches fournies. */
-  function choices(value) {
-    reference.replaceChildren(new Option(tr('Choisir la référence de la bobine'), ''),
-      ...Object.keys(manufacturerProfiles).map(name => new Option(name, name)),
-      ...custom.map((profile, index) => new Option(profile.name + ' · ' + tr('Fiche personnelle'), 'custom:' + index)));
-    reference.value = value;
-  }
-  const exact = spool.rfid === true && Object.hasOwn(manufacturerProfiles, spool.material_type) &&
-    !['PETG', 'PLA Basic', 'PLA+'].includes(spool.material_type);
-  choices(exact ? spool.material_type : '');
-  /** Les champs omis restent inconnus et une fiche ne modifie aucun ordre ACE. */
-  function renderProfile() {
-    const personal = reference.value.startsWith('custom:');
-    const profile = personal ? custom[Number(reference.value.slice(7))] : manufacturerProfiles[reference.value];
-    const source = $('filament-profile-source');
-    source.hidden = !profile;
-    if (!profile) {
-      source.removeAttribute('href');
-      facts.replaceChildren();
-      return;
-    }
-    source.href = profile.url;
-    source.textContent = tr(personal ? 'Source de la fiche' : 'Fiche fabricant');
-    const range = ([min, max], unit) => fmt(min) + '–' + fmt(max, unit);
-    const values = [
-      ['Densité', profile.density == null ? null : new Intl.NumberFormat(document.documentElement.lang,
-        {maximumFractionDigits: 3}).format(profile.density) + ' g/cm³'],
-      ['Température de la buse', profile.nozzle && range(profile.nozzle, ' °C')],
-      ['Température du plateau', profile.bed && range(profile.bed, ' °C')],
-      ['Température de séchage', profile.drying && range(profile.drying, ' °C')],
-      ['Durée (heures)', profile.hours && range(profile.hours, ' h')],
-      ['Vitesse d’impression', profile.speed && range(profile.speed, ' mm/s')],
-      ['Débit volumique maximal', profile.flow == null ? null : fmt(profile.flow, ' mm³/s')],
-      ['Diamètre minimal de buse', profile.minNozzle == null ? null : fmt(profile.minNozzle, ' mm')],
-      ['Matériau de la buse', profile.nozzleMaterial ? tr(profile.nozzleMaterial) : null],
-    ];
-    facts.replaceChildren(...values.filter(([, value]) => value != null).map(([label, value]) => item(label, value)));
-  }
+  upload.value = '';
   upload.onchange = async () => {
     const file = upload.files[0];
     if (!file) return;
+    const currentImport = upload.onchange;
     try {
       if (file.size > 16384) throw new TypeError();
       const profile = validateProfile(JSON.parse(await file.text()));
-      if (!dialog.open) return;
-      const next = custom.filter(entry => entry.name !== profile.name);
-      if (next.length >= 100) throw new TypeError();
-      next.push(profile);
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      custom = next;
-      choices('custom:' + (custom.length - 1));
-      renderProfile();
-      set('filament-profile-import-state', tr('Fiche personnelle enregistrée dans ce navigateur.'));
+      if (!create.open || currentImport !== upload.onchange || upload.files[0] !== file) return;
+      const latest = readCustomProfiles();
+      const profiles = latest.profiles.filter(entry => entry.name !== profile.name);
+      if (profiles.length >= 100) throw new TypeError();
+      profiles.push(profile);
+      const assignments = latest.assignments.filter(entry => entry?.position !== position);
+      assignments.push({position, signature, name: profile.name});
+      localStorage.setItem(storageKey, JSON.stringify({profiles, assignments}));
+      create.close();
+      showProfile(spool, title, hex, profile.name, profile, true);
     } catch {
-      set('filament-profile-import-state', tr('Import impossible. Vérifiez le fichier et le stockage du navigateur.'));
+      if (create.open && currentImport === upload.onchange && upload.files[0] === file)
+        set('filament-profile-import-state', tr('Import impossible. Vérifiez le fichier et le stockage du navigateur.'));
     } finally {
-      upload.value = '';
+      if (upload.files[0] === file) upload.value = '';
     }
   };
-  reference.onchange = renderProfile;
-  renderProfile();
-  dialog.showModal();
+  create.showModal();
 }
