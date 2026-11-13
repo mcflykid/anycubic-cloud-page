@@ -109,6 +109,8 @@ html[data-style] #tab-fleet #monitor-grid.monitor-grid {
   #tab-fleet .monitor-settings {
     justify-content: end;
     align-items: end;
+    /* Une police plus large (Linux) ne doit pas renvoyer la suspension sous l’historique. */
+    flex-wrap: nowrap;
     padding-block: var(--atelier-space-2);
   }
   #tab-fleet #monitor-grid .monitor-card {
