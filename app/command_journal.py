@@ -303,6 +303,8 @@ class JournalMQTT:
         self.journal = journal
         self.loop = loop
         self.pending = {}
+        self.print_starts = OrderedDict()
+        self.print_sends = OrderedDict()
         self.early = OrderedDict()
         self.writes = set()
         try:
@@ -349,6 +351,14 @@ class JournalMQTT:
                 self.apply_report(key, signature, received_at)
                 break
 
+    def mark_print_send(self, entry, sent_at):
+        """Signale le passage du transfert à l’appel d’envoi de l’ordre Anycubic."""
+        key = (entry["printer"], entry.get("request_id"))
+        self.print_sends[key] = sent_at
+        self.print_sends.move_to_end(key)
+        while len(self.print_sends) > 128:
+            self.print_sends.popitem(last=False)
+
     async def flush(self):
         """Attend les confirmations déjà reçues avant de fermer le suivi."""
         if self.writes:
@@ -382,6 +392,12 @@ class JournalMQTT:
             return
         if signature not in MQTT_CONFIRMATIONS.get(order["order"], ()):
             return
+        if order["order"] == 1:
+            reference = (entry["printer"], entry.get("request_id"))
+            self.print_starts[reference] = received_at
+            self.print_starts.move_to_end(reference)
+            while len(self.print_starts) > 128:
+                self.print_starts.popitem(last=False)
         self.pending.pop(key)
         entry.pop("mqtt")
         entry["outcome"] = "confirmée"

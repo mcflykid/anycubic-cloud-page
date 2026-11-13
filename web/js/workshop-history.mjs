@@ -720,9 +720,9 @@ export function createHistory(request, command, selectedBox) {
       task.printer_key === workshopState.selectedPrinter && printer?.printer_online && printer.is_available;
   }
   /** Garde la référence de la fiche même si un rafraîchissement réordonne l’historique. */
-  function prepareReprint(task, details, image) {
+  function prepareReprint(task, details, image, filaments) {
     if (!canReprint(task)) return;
-    reprintTask = {task, details, image};
+    reprintTask = {task, details, image, filaments};
     set('reprint-task-name', task.name);
     set('reprint-target', workshopState.snapshot?.printer?.name || task.printer);
     const form = $('task-reprint-form');
@@ -922,10 +922,10 @@ export function createHistory(request, command, selectedBox) {
       dialog.close();
       void openRating(t);
     };
-    let printDetails;
+    let printDetails, printFilaments;
     reprint.onclick = () => {
       dialog.close();
-      prepareReprint(t, printDetails, image.hidden ? undefined : image.currentSrc);
+      prepareReprint(t, printDetails, image.hidden ? undefined : image.currentSrc, printFilaments);
     };
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;
@@ -940,6 +940,10 @@ export function createHistory(request, command, selectedBox) {
       const d = await request('/extras/task?key=' + encodeURIComponent(t.key));
       if (!current()) return;
       printDetails = {seconds: d.estimated_seconds, grams: d.material_grams};
+      printFilaments = {
+        materials: d.materials?.map(row => row.material),
+        colors: d.materials?.map(row => row.color?.match(/[0-9a-f]{2}/gi)?.map(value => parseInt(value, 16))),
+      };
       $('past-task-state').querySelector('span').textContent = tr(t.status);
       $('past-task-state').dataset.state = t.status_code === 3 ? 'stopped' : 'active';
       const hasDiagnostic = !!(d.reason || d.reason_code || d.help_url);
@@ -1053,13 +1057,15 @@ export function createHistory(request, command, selectedBox) {
       const confirmation = await confirmPrint({
         target, name: task.name, advice, details: selection.details, image: selection.image,
         question: formatText(wording, task.name, $('reprint-target').textContent, mapping.join(', ')),
+        filaments: selection.filaments ? {...selection.filaments, slots: mapping} : undefined,
+        checkAdvice: slots => filamentAdvice(request, {key: task.key, slots}, target),
       });
       if (!confirmation) return;
       if (!dialog.open || target !== workshopState.selectedPrinter || selection !== reprintTask) {
         closePrintConfirmation();
         return;
       }
-      const ok = await command('task-reprint', {key: task.key, slots: mapping});
+      const ok = await command('task-reprint', {key: task.key, slots: confirmation.slots ?? mapping});
       if (ok) dialog.close();
     } catch (error) {
       message(error.message, true);

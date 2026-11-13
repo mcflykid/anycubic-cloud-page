@@ -272,6 +272,9 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 #print-advice { white-space: pre-line; }
 #print-dialog .confirmation-body > p { margin-block: var(--atelier-space-3) 0; }
 #print-result { flex: 1; margin: 0; overflow-wrap: anywhere; }
+#print-ace { margin: var(--atelier-space-3) 0 0; border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
+#print-ace-rows { display: grid; gap: var(--atelier-space-2); }
+.print-ace-row select { max-width: 100%; }
 #print-progress { flex-basis: 100%; width: 100%; accent-color: var(--atelier-accent); }
 .reset-challenge {
   display: flex;

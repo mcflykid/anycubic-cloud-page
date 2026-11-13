@@ -5694,5 +5694,57 @@
   "Ordre des bobines pour l’impression : {0}": [
     "Spool order for this print: {0}",
     "Orden de las bobinas para esta impresión: {0}"
+  ],
+  "Demande acceptée par Anycubic. En attente du démarrage.": [
+    "Request accepted by Anycubic. Waiting for print to start.",
+    "Solicitud aceptada por Anycubic. Esperando el inicio de la impresión."
+  ],
+  "Préparation en cours sur l’imprimante.": [
+    "Printer is preparing the job.",
+    "La impresora está preparando la tarea."
+  ],
+  "Démarrage confirmé par l’imprimante.": [
+    "Printer confirmed the print started.",
+    "La impresora confirmó el inicio de la impresión."
+  ],
+  "Démarrage non confirmé. Vérifiez l’état de l’imprimante.": [
+    "Start unconfirmed. Check the printer status.",
+    "Inicio sin confirmar. Comprueba el estado de la impresora."
+  ],
+  "Emplacement {0} : bobine indisponible.": [
+    "Slot {0}: spool unavailable.",
+    "Ranura {0}: bobina no disponible."
+  ],
+  "Affectations ACE": [
+    "ACE assignments",
+    "Asignaciones del ACE"
+  ],
+  "Filament {0} · {1}": [
+    "Filament {0} · {1}",
+    "Filamento {0} · {1}"
+  ],
+  "Choisir un emplacement": [
+    "Select a slot",
+    "Seleccionar una ranura"
+  ],
+  "Emplacement vide": [
+    "Empty slot",
+    "Ranura vacía"
+  ],
+  "Emplacement {0} · {1}": [
+    "Slot {0} · {1}",
+    "Ranura {0} · {1}"
+  ],
+  "Choisissez un emplacement pour chaque filament.": [
+    "Select a slot for each filament.",
+    "Selecciona una ranura para cada filamento."
+  ],
+  "Transfert du fichier en cours…": [
+    "Transferring the file…",
+    "Transfiriendo el archivo…"
+  ],
+  "Envoi de l’ordre d’impression à Anycubic…": [
+    "Sending print command to Anycubic…",
+    "Enviando la orden de impresión a Anycubic…"
   ]
 }

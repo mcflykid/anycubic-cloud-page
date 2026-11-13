@@ -7,6 +7,39 @@ from print_preflight import ensure_firmware_ready
 from printer_commands import execute_command
 
 
+class LaunchTrackingTests(unittest.TestCase):
+    """Le suivi ne doit jamais confondre une tâche précédente avec le lancement demandé."""
+
+    def test_tracking_uses_cloud_file_reference_and_previous_project(self):
+        """Un accusé sans référence de fichier ne permet pas de corréler le démarrage."""
+        from print_preflight import launch_tracking, print_file_references
+
+        previous = "fixture-previous"
+        response = SimpleNamespace(event_dict={"gcode_id": 42, "cloud_file_id": 52})
+        tracking = launch_tracking(previous, response)
+        self.assertEqual(tracking["previous_project"], previous)
+        self.assertEqual(tracking["files"], print_file_references(42, 52))
+        self.assertEqual(len(tracking["files"]), 2)
+        self.assertIsNone(launch_tracking(previous, SimpleNamespace(event_dict={})))
+
+    def test_selected_spool_must_still_be_present(self):
+        """Un emplacement retiré ou vide doit être refusé avant la conversion d’indices."""
+        from print_preflight import validate_print_indices
+
+        box = [
+            {"display_slot": 1, "spool_loaded": True},
+            {"display_slot": 2, "spool_loaded": False},
+        ]
+        printer = SimpleNamespace(
+            primary_multi_color_box_spool_info_object=box,
+            print_slot_numbers_to_indices=lambda slots: [slot - 1 for slot in slots],
+        )
+        validate_print_indices(printer, [0])
+        for selected in ([1], [2]):
+            with self.assertRaisesRegex(ValueError, "bobine sélectionnée"):
+                validate_print_indices(printer, selected)
+
+
 class FirmwarePreflightTests(unittest.IsolatedAsyncioTestCase):
     """Une proposition de mise à jour ne vaut pas mise à jour en cours."""
 

@@ -21,7 +21,7 @@ from file_preview import find_project_preview_url
 from file_uploads import purge_abandoned_uploads, upload_operation
 from cloud_extras import download_preview, trusted_url
 from temperature_history import TemperatureHistory, ace_readings
-from print_preflight import ensure_firmware_ready, evaluate_preflight
+from print_preflight import ensure_firmware_ready, evaluate_preflight, launch_tracking_for_gcode
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from printer_engine import CloudPageAPI as CloudPageAPI, Engine, engine
 from fleet_health import FleetHealth
@@ -215,7 +215,16 @@ async def errors(request, handler):
 
 async def status(req):
     """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
-    return web.json_response(request_engine(req).snapshot(), headers={"Cache-Control": "no-store"})
+    snapshot = request_engine(req).snapshot()
+    if isinstance(req, web.Request) and (tracking := req.query.get("print_tracking")):
+        tracker = req.app.get(COMMAND_MQTT_KEY)
+        if tracker and re.fullmatch(r"[a-f0-9-]{36}|[a-f0-9]{24}", tracking):
+            reference = (req.get("printer_key"), tracking)
+            received = tracker.print_starts.get(reference)
+            sent = tracker.print_sends.get(reference)
+            snapshot["print_sending"] = sent is not None and time.time() - sent <= 300
+            snapshot["print_started"] = received is not None and time.time() - received <= 300
+    return web.json_response(snapshot, headers={"Cache-Control": "no-store"})
 
 
 async def printers(req):
@@ -526,6 +535,9 @@ async def command(req):
                     await save_command_event(req, audit)
 
             dispatch = command_dispatch.set(before_send)
+            previous_project = (
+                engine.command_project_key() if name in ("print-cloud", "task-reprint") else None
+            )
             try:
                 message = await engine.action(name, d)
             except Exception as error:
@@ -569,6 +581,18 @@ async def command(req):
                     audit["outcome"] = "acceptée"
             engine.event(str(name), "Acceptée")
             result = {"ok": True, "message": message}
+            if name in ("print-cloud", "print-local", "print-usb", "task-reprint") and audit.get(
+                "request_id"
+            ):
+                result["print_reference"] = audit["request_id"]
+            if name in ("print-cloud", "task-reprint"):
+                gcode_id = (
+                    safeget(engine.cloudfiles.get(str(d.get("handle"))), "gcode_id")
+                    if name == "print-cloud"
+                    else engine.extras.tasks.get(str(d.get("key")), {}).get("gcode_id")
+                )
+                if tracking := launch_tracking_for_gcode(previous_project, gcode_id):
+                    result["print_tracking"] = tracking
             engine.commands[requestid] = result
             while len(engine.commands) > 200:
                 engine.commands.popitem(last=False)

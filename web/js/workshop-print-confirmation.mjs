@@ -1,17 +1,105 @@
-import { $, fmt, locale, mins, set, tr } from './workshop-ui.mjs';
+import { $, fmt, formatText, locale, mins, node, set, tr } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { openErrorSheet } from './workshop-error-catalogue.mjs';
 
 let printTarget;
 let statusAvailable = false;
+let tracking;
+let trackingTimer;
+let assignment;
+
+/** Garde les numéros globaux utilisés par l’ordre d’impression. */
+function slotChoices(printer) {
+  return (printer?.boxes || []).flatMap(box => box.spools || [])
+    .filter(spool => Number.isInteger(spool.display_slot ?? spool.slot) && (spool.display_slot ?? spool.slot) <= 8);
+}
+
+/** Actualise les choix après une modification des bobines, en préservant le focus. */
+function renderAssignments() {
+  const rows = $('print-ace-rows');
+  const spools = slotChoices(workshopState.snapshot?.printer);
+  const visible = !!assignment && spools.length > 0;
+  $('print-ace').hidden = !visible;
+  $('print-mapping-summary').hidden = visible || !$('print-mapping-summary').textContent;
+  if (!visible) return;
+  const signature = JSON.stringify(spools.map(spool => [
+    spool.display_slot ?? spool.slot, spool.material_type, spool.color, spool.spool_loaded,
+  ]));
+  if (assignment.signature === signature) return;
+  const changed = assignment.signature != null;
+  assignment.signature = signature;
+  const focused = rows.contains(document.activeElement) ? Number(document.activeElement.dataset.filament) : -1;
+  rows.replaceChildren(...assignment.materials.map((material, index) => {
+    const label = node('label', undefined, 'atelier-field print-ace-row');
+    const title = node('span', formatText('Filament {0} · {1}', index + 1, material || tr('Matière non renseignée')));
+    const color = assignment.colors[index];
+    if (color?.length === 3) {
+      const swatch = node('span', undefined, 'material-color');
+      swatch.style.backgroundColor = `rgb(${color.join(',')})`;
+      title.prepend(swatch);
+    }
+    const select = node('select');
+    select.dataset.filament = index;
+    select.append(new Option(tr('Choisir un emplacement'), ''));
+    for (const spool of spools) {
+      const slot = spool.display_slot ?? spool.slot;
+      const name = spool.spool_loaded === false ? tr('Emplacement vide')
+        : spool.material_type || tr('Matière non renseignée');
+      const color = spool.color?.slice(0, 3);
+      const hex = color?.length === 3 && color.every(value => Number.isInteger(value) && value >= 0 && value <= 255)
+        ? ' · #' + color.map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase() : '';
+      const option = new Option(formatText('Emplacement {0} · {1}', slot, name) + hex, slot);
+      option.disabled = spool.spool_loaded !== true;
+      select.append(option);
+    }
+    select.value = assignment.slots[index] || '';
+    if (!select.value || select.selectedOptions[0]?.disabled) {
+      select.value = '';
+      assignment.slots[index] = 0;
+    }
+    select.onchange = () => {
+      assignment.slots[index] = Number(select.value);
+      updatePrintConfirmation();
+      void assignment.updateAdvice?.([...assignment.slots]);
+    };
+    label.append(title, select);
+    return label;
+  }));
+  if (focused >= 0) rows.querySelector(`[data-filament="${focused}"]`)?.focus();
+  if (changed) void assignment.updateAdvice?.([...assignment.slots]);
+}
+
+/** Demande la preuve MQTT de l’ordre courant uniquement pendant son suivi. */
+export function printTrackingQuery() {
+  return $('print-dialog').open && tracking?.reference
+    ? '?' + new URLSearchParams({print_tracking: tracking.reference}) : '';
+}
 
 /** Répercute le relevé courant dans la confirmation avant tout envoi. */
-export function updatePrintConfirmation(available = statusAvailable) {
+export function updatePrintConfirmation(available = statusAvailable, observedReference = '') {
   statusAvailable = available;
   const dialog = $('print-dialog');
-  if (!dialog.open || dialog.dataset.phase !== 'confirmation') return;
+  if (!dialog.open) return;
   const {selectedPrinter, snapshot, busy} = workshopState;
   const printer = snapshot?.printer;
+  if (dialog.dataset.phase === 'pending' && available && printTarget === selectedPrinter &&
+      tracking?.reference && tracking.reference === observedReference && snapshot.print_sending === true) {
+    set('print-result', tr('Envoi de l’ordre d’impression à Anycubic…'));
+  }
+  if (dialog.dataset.phase === 'tracking') {
+    if (!available || printTarget !== selectedPrinter || printer?.printer_online !== true) return;
+    const file = tracking.file;
+    const matches = file && printer.command_project && printer.command_project !== file.previous_project &&
+      printer.job_file_references?.some(reference => file.files.includes(reference));
+    if (tracking.reference && observedReference === tracking.reference && snapshot.print_started === true) {
+      showPrintResult(tr('Démarrage confirmé par l’imprimante.'));
+    } else if (matches && ['checking', 'downloading', 'preheating', 'leveling', 'slicing'].includes(printer.job_state)) {
+      set('print-result', tr('Préparation en cours sur l’imprimante.'));
+    }
+    return;
+  }
+  if (dialog.dataset.phase !== 'confirmation') return;
+  renderAssignments();
   const state = printTarget !== selectedPrinter ? 'La cible a changé : commande annulée.'
     : busy ? 'Une opération est déjà en cours.'
     : !statusAvailable ? 'Cloud indisponible'
@@ -19,14 +107,34 @@ export function updatePrintConfirmation(available = statusAvailable) {
     : printer.firmware_updating === true || printer.ace_updates?.some(entry => entry.updating === true) ? 'Mise à jour en cours'
     : printer.is_available !== true || printer.job_in_progress ? 'Imprimante non disponible'
     : '';
-  $('print-yes').disabled = !!state;
-  set('print-target', tr(state || 'Disponible'));
+  const missing = assignment && (assignment.requiresAce || !$('print-ace').hidden) &&
+    ($('print-ace').hidden || assignment.materials.some((_, index) => !assignment.slots[index]));
+  $('print-yes').disabled = !!state || !!missing;
+  set('print-target', tr(state || (missing ? 'Choisissez un emplacement pour chaque filament.' : 'Disponible')));
 }
 
 /** Rend les données connues de la source et demande une validation liée à l’imprimante affichée. */
-export function confirmPrint({target, name, details = {}, image, advice = '', question, readSlots, mappingText = ''}) {
+export function confirmPrint({target, name, details = {}, image, advice = '', question, readSlots, mappingText = '', filaments, checkAdvice}) {
   const dialog = $('print-dialog');
   if (dialog.open) return Promise.resolve(null);
+  clearTimeout(trackingTimer);
+  tracking = null;
+  assignment = filaments?.materials?.length
+    ? {materials: filaments.materials, colors: filaments.colors || [], slots: [...(filaments.slots || [])],
+        requiresAce: slotChoices(workshopState.snapshot?.printer).length > 0} : null;
+  if (assignment && checkAdvice) {
+    const current = assignment;
+    let revision = 0;
+    current.updateAdvice = async slots => {
+      const checked = ++revision;
+      const advice = await checkAdvice(slots.filter(Boolean)).catch(() => tr('Métadonnées de filament incomplètes : vérifiez les bobines et les emplacements.'));
+      if (assignment !== current || checked !== revision || !dialog.open || dialog.dataset.phase !== 'confirmation') return;
+      $('print-advice').hidden = !advice;
+      set('print-advice', advice);
+    };
+  }
+  $('print-ace-rows').replaceChildren();
+  $('print-ace').disabled = false;
   printTarget = target;
   const title = $('print-name');
   title.textContent = title.title = name;
@@ -70,7 +178,7 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
       updatePrintConfirmation();
       if ($('print-yes').disabled) return;
       try {
-        const slots = readSlots?.(mapping.value);
+        const slots = assignment && !$('print-ace').hidden ? assignment.slots : readSlots?.(mapping.value);
         dialog.dataset.phase = 'confirmed';
         $('print-yes').disabled = true;
         resolve({slots});
@@ -83,22 +191,44 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
 }
 
 /** Garde le pied visible pendant l’appel et laisse la fermeture distincte de l’arrêt d’impression. */
-export function showPrintProgress(text) {
+export function showPrintProgress(text, reference) {
   const dialog = $('print-dialog');
   if (!dialog.open || dialog.dataset.phase !== 'confirmed') return;
+  tracking = {reference};
   dialog.dataset.phase = 'pending';
   dialog.oncancel = event => event.preventDefault();
   $('print-no').hidden = $('print-yes').hidden = true;
   $('print-mapping').hidden = true;
+  $('print-ace').disabled = true;
   set('print-result', text);
   $('print-result').hidden = $('print-progress').hidden = false;
   $('print-result').focus();
 }
 
+/** Attend un rapport de démarrage corrélé à l’ordre, sans bloquer la fermeture de la fenêtre. */
+export function followPrintStart(result) {
+  const dialog = $('print-dialog');
+  if (!dialog.open || dialog.dataset.phase !== 'pending') return;
+  if (!result.print_reference) {
+    showPrintResult(result.message || tr('Demande traitée. Vérifiez l’état de l’imprimante.'));
+    return;
+  }
+  tracking = {reference: result.print_reference, file: result.print_tracking};
+  dialog.dataset.phase = 'tracking';
+  dialog.oncancel = null;
+  set('print-result', tr('Demande acceptée par Anycubic. En attente du démarrage.'));
+  const close = $('print-close');
+  close.hidden = false;
+  close.onclick = () => dialog.close();
+  trackingTimer = setTimeout(() => showPrintResult(tr('Démarrage non confirmé. Vérifiez l’état de l’imprimante.')), 300000);
+}
+
 /** Affiche la réponse de la demande et l’aide locale si le serveur a fourni un code reconnu. */
 export function showPrintResult(text, sheet) {
   const dialog = $('print-dialog');
-  if (!dialog.open || dialog.dataset.phase !== 'pending') return;
+  if (!dialog.open || !['pending', 'tracking'].includes(dialog.dataset.phase)) return;
+  clearTimeout(trackingTimer);
+  tracking = null;
   dialog.dataset.phase = 'result';
   dialog.oncancel = null;
   $('print-progress').hidden = true;

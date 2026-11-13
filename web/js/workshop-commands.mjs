@@ -1,7 +1,7 @@
 import { openErrorSheet } from './workshop-error-catalogue.mjs';
 import { $, confirmAction, formatText, message, set, tr } from './workshop-ui.mjs';
 import { workshopState, setBusy } from './workshop-state.mjs';
-import { closePrintConfirmation, confirmPrint, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
+import { closePrintConfirmation, confirmPrint, followPrintStart, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {
@@ -132,15 +132,16 @@ export function createCommands(request, refresh) {
         data = { ...data, confirmation };
       }
       notify(tr('Demande en cours…'));
-      if (printing) showPrintProgress(tr('Demande en cours…'));
+      const requestId = crypto.randomUUID();
+      if (printing) showPrintProgress(tr('Demande en cours…'), requestId);
       const d = await request('/command', {
         printerKey: target,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...data, request_id: crypto.randomUUID() }),
+        body: JSON.stringify({ action, ...data, request_id: requestId }),
       });
       notify(d.message);
-      if (printing) showPrintResult(d.message || tr('Demande traitée. Vérifiez l’état de l’imprimante.'));
+      if (printing) followPrintStart(d);
       await refresh();
       return d;
     } catch (e) {

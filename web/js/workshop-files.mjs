@@ -14,7 +14,7 @@ import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
 import { createFileThumbnails } from './workshop-file-previews.mjs';
 import { createUploadMotion } from './workshop-upload-motion.mjs';
-import { closePrintConfirmation, confirmPrint, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
+import { closePrintConfirmation, confirmPrint, followPrintStart, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
 import { bindFileDialogs } from './workshop-file-dialogs.mjs';
 
 import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
@@ -461,8 +461,11 @@ export function createFiles(request, command) {
         const confirmation = await confirmPrint({
           target, name: file.name, details, advice, question: tr('Vérifiez que le plateau est libre.'),
           mappingText: mapping.length ? formatText('Ordre des bobines pour l’impression : {0}', mapping.join(', ')) : '',
+          filaments: {...metadata, slots: mapping},
+          checkAdvice: slots => filamentAdvice(request, {...metadata, slots}, target),
         });
         if (!confirmation) return;
+        if (confirmation.slots) data.set('slots', JSON.stringify(confirmation.slots));
       } catch (err) { message(err.message, true); return; }
     } else if (!(await confirmAction(formatText('Envoyer « {0} » dans votre espace cloud ?', file.name)))) return;
     if (target !== workshopState.selectedPrinter) {
@@ -481,7 +484,7 @@ export function createFiles(request, command) {
     setBusy(true);
     setUploadPending(true);
     set('upload-state', tr('Envoi en cours. Ne fermez pas cette page.'));
-    if (printing) showPrintProgress(tr('Transfert et demande d’impression en cours…'));
+    if (printing) showPrintProgress(tr('Transfert du fichier en cours…'), uploadAttempt.id);
     try {
       const result = await request('/upload', {
         method: 'POST',
@@ -491,7 +494,7 @@ export function createFiles(request, command) {
       uploadAttempt = null;
       set('upload-state', result.message);
       message(result.message);
-      if (printing) showPrintResult(result.message || tr('Demande traitée. Vérifiez l’état de l’imprimante.'));
+      if (printing) followPrintStart(result);
       void loadCloudStorage();
     } catch (err) {
       set('upload-state', err.message);

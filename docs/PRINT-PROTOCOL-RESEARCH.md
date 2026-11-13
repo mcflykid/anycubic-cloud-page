@@ -83,3 +83,10 @@ Le binaire Slicer Next expose plusieurs refus côté interface — machine hors 
 ## Conclusion
 
 Le contrat de base `filetype`/`filename`/`filepath` du lancement mémoire et USB concorde avec une référence indépendante. Le mapping `ams_info` ajouté aux fichiers stockés n’est pas documenté comme nécessaire et son effet reste inconnu; c’est le principal écart concret à qualifier pour #142/#103. Le `.gcode.3mf` est bien reconnu par le slicer comme un paquet tranché, mais son lancement via l’ordre direct n’est pas spécifié. Le binaire fournit un schéma JSON sérialisé de séchage pour les tâches en lot, sans établir qu’il s’applique au lancement direct. Les gardes actuelles de refus couvrent mise à jour confirmée et disponibilité signalée, pas toutes les incompatibilités montrées dans l’interface Slicer.
+
+## Affectations et suivi du lancement (#331, #332)
+
+- Le serveur recontrôle la présence des bobines sélectionnées avant le transfert éventuel puis à la construction de l’ordre. Le parcours d’envoi et la relance depuis une fiche détaillée affichent une affectation par filament lorsque leurs données de tranche sont disponibles. Les fichiers stockés sans cette information conservent la saisie de l’ordre des emplacements.
+- Les écarts de matière et de couleur restent deux avertissements distincts. Le blocage d’un mélange de matières et les réglages de préparation ou de séchage liés au lancement demandent une qualification par modèle et par parcours.
+- Le transfert et l’appel d’envoi affichent une progression indéterminée. Le message de démarrage exige un rapport MQTT non retenu avec la signature et la référence de l’ordre attendu, pour la même imprimante. Un relevé de préparation est indicatif et n’est affiché que si un nouveau projet possède la référence attendue du G-code. Au bout de cinq minutes sans rapport corrélé, la fenêtre indique que le démarrage reste non confirmé.
+- La confirmation peut être annulée avant émission. Une fois l’ordre engagé, fermer son suivi n’envoie aucune commande à l’imprimante. La vérification du parcours d’annulation pendant le transfert et la validation des rapports sur une Kobra S1 restent à faire.

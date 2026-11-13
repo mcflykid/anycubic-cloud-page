@@ -261,3 +261,28 @@ class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(0)
             await engine.command_mqtt.flush()
             self.assertEqual(journal.rows()[0]["outcome"], "confirmée")
+
+    async def test_print_start_requires_matching_non_retained_order_report(self):
+        """Le démarrage observé est isolé par ordre et par imprimante."""
+        import asyncio
+        import time
+        from command_journal import JournalMQTT, mqtt_digest
+
+        with tempfile.TemporaryDirectory() as directory:
+            journal = CommandJournal(Path(directory) / "journal.jsonl")
+            tracker = JournalMQTT(journal, asyncio.get_running_loop())
+            entry = make_entry(
+                "print-cloud", "fixture-launch", "fixture-printer", None, None, None, {}
+            )
+            key = ("fixture-printer", entry["request_id"])
+            digest = mqtt_digest("fixture-order")
+            await tracker.watch(entry, 1, digest, time.time())
+            signature = ("print", "start", "printing")
+            tracker.apply_report(("other-printer", digest), signature, time.time())
+            tracker.apply_report(
+                ("fixture-printer", mqtt_digest("another-order")), signature, time.time()
+            )
+            self.assertNotIn(key, tracker.print_starts)
+            tracker.apply_report(("fixture-printer", digest), signature, time.time())
+            self.assertIn(key, tracker.print_starts)
+            await tracker.flush()

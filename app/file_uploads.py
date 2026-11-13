@@ -15,7 +15,7 @@ from aiohttp import web
 from command_journal import filtered_parameters, request_key
 from command_journal_web import recorded_command, save_command_event
 from operational_logging import log_event, safe_exception_frames
-from print_preflight import ensure_firmware_ready, ensure_storage_ready
+from print_preflight import ensure_firmware_ready, ensure_storage_ready, launch_tracking
 from printer_values import safeget
 from upload_formats import validate_cloud_model
 
@@ -146,6 +146,7 @@ async def upload_operation(req, engine, audit, *, storage_upload_operation, comm
                             full_file_path=str(path), file_name=filename
                         )
                     else:
+                        previous_project = engine.command_project_key()
                         func = (
                             engine.printer.print_and_upload_save_in_cloud
                             if mode == "save-print"
@@ -196,6 +197,10 @@ async def upload_operation(req, engine, audit, *, storage_upload_operation, comm
                 if audit and audit["outcome"] != "confirmée":
                     audit["outcome"] = "acceptée"
                 result = {"ok": True, "message": "Envoi accepté par Anycubic"}
+                if mode != "upload" and audit.get("request_id"):
+                    result["print_reference"] = audit["request_id"]
+                if mode != "upload" and (tracking := launch_tracking(previous_project, response)):
+                    result["print_tracking"] = tracking
                 engine.commands[rid] = result
                 return web.json_response(result)
 

@@ -14,7 +14,7 @@ from command_journal import dispatch_command
 from native_controls import ai_payload, axis_payload
 from idle_controls import print_limits, set_idle
 from filament_catalog import editable_materials
-from print_preflight import ensure_firmware_ready
+from print_preflight import ensure_firmware_ready, validate_print_indices
 from printer_values import filepath, integer, now, safeget
 from printer_files import invalidate_local_preview
 from operational_logging import log_event
@@ -27,7 +27,12 @@ def slot_indices(target, data):
         return None
     if not isinstance(values, list) or len(values) > 8:
         raise ValueError("Liste de bobines invalide")
-    return target.printer.print_slot_numbers_to_indices([integer(v, 1, 8) for v in values])
+    selected = [integer(v, 1, 8) for v in values]
+    p = target.printer
+    indices = p.print_slot_numbers_to_indices(selected)
+    if hasattr(p, "multi_color_box"):
+        validate_print_indices(p, indices)
+    return indices
 
 
 async def execute_command(target, name, d):

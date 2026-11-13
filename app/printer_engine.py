@@ -37,7 +37,7 @@ from printer_commands import execute_command, slot_indices
 from printer_registry import printer_key
 from printer_values import now, safeget, serial
 import printer_files
-from print_preflight import ensure_firmware_ready
+from print_preflight import ensure_firmware_ready, print_file_references, validate_print_indices
 from session_api import CloudSessionAuthError, SessionRecovery
 
 FIELDS = json.loads(pathlib.Path(__file__).with_name("fields.json").read_text())
@@ -157,8 +157,19 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                     None,
                 )
             ensure_firmware_ready(printer)
+            if printer is None or not printer.printer_online or not printer.is_available:
+                raise ValueError("Imprimante non disponible")
+            mapping = (data.get("ams_info") or {}).get("ams_box_mapping") or []
+            validate_print_indices(printer, [row["ams_index"] for row in mapping])
         context = command_mqtt_context.get()
         sent_at = time.time()
+        if context and data["order_id"] == AnycubicOrderID.START_PRINT.value:
+            tracker, entry, task = context
+            if (
+                asyncio.current_task() is task
+                and printer_key(data["printer_id"]) == entry["printer"]
+            ):
+                tracker.mark_print_send(entry, sent_at)
         result = await super()._send_anycubic_order(order_request, raw_data=raw_data)
         if context is None:
             return result
@@ -726,6 +737,9 @@ class Engine:
         # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
         fields.pop("job_image_url", None)
         fields["command_project"] = self.command_project_key()
+        fields["job_file_references"] = print_file_references(
+            safeget(p, "latest_project.gcode_id"), None
+        )
         fields["firmware"] = safeget(p, "fw_version.firmware_version")
         fields["firmware_available"] = safeget(p, "fw_version.available_version")
         fields["ace_available"] = [

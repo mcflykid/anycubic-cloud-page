@@ -13,7 +13,7 @@ import { workshopState } from './workshop-state.mjs';
 import { createRequest } from './workshop-api.mjs';
 import { createCamera } from './workshop-camera.mjs';
 import { createTemperatureLoader } from './workshop-temperatures.mjs';
-import { updatePrintConfirmation } from './workshop-print-confirmation.mjs';
+import { printTrackingQuery, updatePrintConfirmation } from './workshop-print-confirmation.mjs';
 import { createCommands } from './workshop-commands.mjs';
 import { createOverview } from './workshop-overview.mjs';
 import { createAce } from './workshop-ace.mjs';
@@ -133,14 +133,15 @@ async function refreshState() {
   let received = false;
   try {
     if (!printerCatalogueReady) await loadPrinters();
-    const d = await request('/status');
+    const trackingQuery = printTrackingQuery();
+    const d = await request('/status' + trackingQuery);
     received = true;
     if (connectionFailure && d.ok) {
       message('');
       connectionFailure = false;
     }
     workshopState.snapshot = d;
-    updatePrintConfirmation(d.ok === true);
+    updatePrintConfirmation(d.ok === true, new URLSearchParams(trackingQuery).get('print_tracking'));
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;

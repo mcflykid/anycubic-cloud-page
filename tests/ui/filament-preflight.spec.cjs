@@ -2,8 +2,8 @@ const {test,expect}=require('@playwright/test');
 const {login, openSection}=require('./helpers.cjs');
 
 test('les divergences de bobines sont affichées avant le lancement, sans blocage après confirmation',async({page})=>{
-  let uploads=0;
-  await page.route('**/imprimante-api/upload',route=>{uploads++;return route.fulfill({json:{ok:true,message:'Envoi fictif accepté'}});});
+  let uploads=0, payload;
+  await page.route('**/imprimante-api/upload',route=>{uploads++;payload=route.request().postData();return route.fulfill({json:{ok:true,message:'Envoi fictif accepté'}});});
   await login(page);
   await page.getByRole('button',{name:'Envoyer et imprimer',exact:true}).click();
   await page.locator('#upload-form input[type=file]').setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('; filament_type = ABS\n; filament_colour = #000000\n; estimated printing time (normal mode) = 14h 15m\n; total filament used [g] = 193.4\n; filament used [mm] = 64850\nG1 X1\n')});
@@ -16,14 +16,23 @@ test('les divergences de bobines sont affichées avant le lancement, sans blocag
   await expect(dialog).toContainText('groupes de température différents');
   await expect(dialog).toContainText('14 h 15 min');
   await expect(dialog).toContainText('193,4 g / 64,85 m');
+  const mapping = dialog.getByRole('combobox', {name:'Filament 1 · ABS'});
+  await expect(mapping).toHaveValue('1');
+  await mapping.selectOption('3');
   expect(uploads).toBe(0);
   await dialog.getByRole('button', {name:'Lancer l’impression',exact:true}).click();
   await expect.poll(()=>uploads).toBe(1);
+  expect(payload).toMatch(/name="slots"\r\n\r\n\[3\]/);
 });
 
 test('le transfert garde la fenêtre ouverte jusqu’à la réponse Anycubic', async ({page}) => {
-  let uploads = 0, release;
+  let uploads = 0, release, sending = false;
   const response = new Promise(resolve => { release = resolve; });
+  await page.route('**/imprimante-api/status*', async route => {
+    const response = await route.fetch(), json = await response.json();
+    json.print_sending = sending && new URL(route.request().url()).searchParams.has('print_tracking');
+    await route.fulfill({response,json});
+  });
   await page.route('**/imprimante-api/upload', async route => {
     uploads++;
     await response;
@@ -38,9 +47,12 @@ test('le transfert garde la fenêtre ouverte jusqu’à la réponse Anycubic', a
   try {
     await dialog.getByRole('button',{name:'Lancer l’impression'}).dblclick();
     await expect(dialog.getByRole('progressbar')).toBeVisible();
+    await expect(dialog).toContainText('Transfert du fichier en cours');
     await expect(dialog.getByRole('progressbar')).not.toHaveAttribute('value');
     await expect(dialog.getByRole('button',{name:'Annuler'})).toBeHidden();
     await expect.poll(() => uploads).toBe(1);
+    sending = true;
+    await expect(dialog).toContainText('Envoi de l’ordre d’impression à Anycubic');
   } finally {
     release();
   }
@@ -49,6 +61,34 @@ test('le transfert garde la fenêtre ouverte jusqu’à la réponse Anycubic', a
   await dialog.getByRole('button',{name:'Fermer'}).click();
   await expect(dialog).toBeHidden();
   expect(uploads).toBe(1);
+});
+
+test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({page}) => {
+  let state = {command_project:'ancien', job_state:'finished', job_in_progress:false, job_file_references:['fichier']}, started = false;
+  await page.route('**/imprimante-api/status*', async route => {
+    const response = await route.fetch(), json = await response.json();
+    Object.assign(json.printer, state);
+    json.print_started = started && new URL(route.request().url()).searchParams.get('print_tracking') === 'ordre';
+    await route.fulfill({response,json});
+  });
+  await page.route('**/imprimante-api/command', route => route.fulfill({json:{
+    ok:true, message:'Commande acceptée', print_reference:'ordre',
+    print_tracking:{previous_project:'ancien', files:['fichier']},
+  }}));
+  await login(page, 'files');
+  await page.locator('[data-source=cloud]').click();
+  await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+  const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
+  await dialog.getByRole('button',{name:'Lancer l’impression'}).click();
+  await expect(dialog).toContainText('En attente du démarrage');
+  state = {...state, command_project:'autre', job_file_references:['autre'], job_state:'printing', job_in_progress:true};
+  await page.waitForResponse(r => r.url().includes('/status?print_tracking=ordre'));
+  await expect(dialog).not.toContainText('Démarrage confirmé par l’imprimante');
+  state = {...state, command_project:'nouveau', job_file_references:['fichier'], job_state:'preheating'};
+  await expect(dialog).toContainText('Préparation en cours sur l’imprimante');
+  state = {...state, job_state:'printing'};
+  started = true;
+  await expect(dialog).toContainText('Démarrage confirmé par l’imprimante');
 });
 
 for (const scenario of ['refus avec code', 'réponse perdue']) {
