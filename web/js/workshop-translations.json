@@ -5683,6 +5683,14 @@
     "Make sure the build plate is clear.",
     "Comprueba que la base de impresión esté despejada."
   ],
+  "Transfert et demande d’impression en cours…": [
+    "Transferring file and requesting print…",
+    "Transfiriendo archivo y solicitando impresión…"
+  ],
+  "Demande traitée. Vérifiez l’état de l’imprimante.": [
+    "Request processed. Check the printer status.",
+    "Solicitud procesada. Comprueba el estado de la impresora."
+  ],
   "Ordre des bobines pour l’impression : {0}": [
     "Spool order for this print: {0}",
     "Orden de las bobinas para esta impresión: {0}"

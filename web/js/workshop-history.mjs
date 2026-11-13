@@ -18,7 +18,7 @@ import {
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { slots, filamentAdvice } from './workshop-commands.mjs';
-import { confirmPrint } from './workshop-print-confirmation.mjs';
+import { closePrintConfirmation, confirmPrint } from './workshop-print-confirmation.mjs';
 import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mjs';
 import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from './workshop-error-catalogue.mjs';
 
@@ -1054,7 +1054,11 @@ export function createHistory(request, command, selectedBox) {
         target, name: task.name, advice, details: selection.details, image: selection.image,
         question: formatText(wording, task.name, $('reprint-target').textContent, mapping.join(', ')),
       });
-      if (!confirmation || !dialog.open || target !== workshopState.selectedPrinter || selection !== reprintTask) return;
+      if (!confirmation) return;
+      if (!dialog.open || target !== workshopState.selectedPrinter || selection !== reprintTask) {
+        closePrintConfirmation();
+        return;
+      }
       const ok = await command('task-reprint', {key: task.key, slots: mapping});
       if (ok) dialog.close();
     } catch (error) {

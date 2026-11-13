@@ -191,6 +191,22 @@ async function capturePrintConfirmation(page) {
   await photo(page, '34-confirmation-impression.png');
   await page.setViewportSize(mobile);
   await photo(page, '35-confirmation-impression-mobile.png');
+  await page.setViewportSize(desktop);
+  let accept;
+  const response = new Promise(resolve => { accept = resolve; });
+  await page.route('**/imprimante-api/upload', async route => {
+    await response;
+    await route.fulfill({json:{ok:true,message:'Envoi accepté par Anycubic'}});
+  });
+  try {
+    await dialog.locator('#print-yes').click();
+    await dialog.locator('#print-progress').waitFor();
+    await photo(page, '36-impression-demande-en-cours.png');
+  } finally {
+    accept();
+  }
+  await dialog.locator('#print-close').waitFor();
+  await photo(page, '37-impression-reponse-cloud.png');
   await page.keyboard.press('Escape');
 }
 

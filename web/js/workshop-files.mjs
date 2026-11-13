@@ -14,7 +14,7 @@ import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
 import { createFileThumbnails } from './workshop-file-previews.mjs';
 import { createUploadMotion } from './workshop-upload-motion.mjs';
-import { confirmPrint } from './workshop-print-confirmation.mjs';
+import { closePrintConfirmation, confirmPrint, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
 import { bindFileDialogs } from './workshop-file-dialogs.mjs';
 
 import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
@@ -466,10 +466,14 @@ export function createFiles(request, command) {
       } catch (err) { message(err.message, true); return; }
     } else if (!(await confirmAction(formatText('Envoyer « {0} » dans votre espace cloud ?', file.name)))) return;
     if (target !== workshopState.selectedPrinter) {
+      if (printing) closePrintConfirmation();
       message(tr('La cible a changé : commande annulée.'), true); return;
     }
     if (workshopState.busy || file !== e.target.elements.file.files[0] ||
-        data.get('mode') !== e.target.elements.mode.value) return;
+        data.get('mode') !== e.target.elements.mode.value) {
+      if (printing) closePrintConfirmation();
+      return;
+    }
     const intent = JSON.stringify([data.get('mode'), data.get('slots'), target]);
     if (!uploadAttempt || uploadAttempt.file !== file || uploadAttempt.intent !== intent)
       uploadAttempt = { file, intent, id: crypto.randomUUID() };
@@ -477,6 +481,7 @@ export function createFiles(request, command) {
     setBusy(true);
     setUploadPending(true);
     set('upload-state', tr('Envoi en cours. Ne fermez pas cette page.'));
+    if (printing) showPrintProgress(tr('Transfert et demande d’impression en cours…'));
     try {
       const result = await request('/upload', {
         method: 'POST',
@@ -486,10 +491,12 @@ export function createFiles(request, command) {
       uploadAttempt = null;
       set('upload-state', result.message);
       message(result.message);
+      if (printing) showPrintResult(result.message || tr('Demande traitée. Vérifiez l’état de l’imprimante.'));
       void loadCloudStorage();
     } catch (err) {
       set('upload-state', err.message);
       message(err.message, true);
+      if (printing) showPrintResult(err.message, err.errorSheet);
     } finally {
       setUploadPending(false);
       setBusy(false);

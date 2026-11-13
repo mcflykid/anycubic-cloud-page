@@ -21,6 +21,63 @@ test('les divergences de bobines sont affichées avant le lancement, sans blocag
   await expect.poll(()=>uploads).toBe(1);
 });
 
+test('le transfert garde la fenêtre ouverte jusqu’à la réponse Anycubic', async ({page}) => {
+  let uploads = 0, release;
+  const response = new Promise(resolve => { release = resolve; });
+  await page.route('**/imprimante-api/upload', async route => {
+    uploads++;
+    await response;
+    await route.fulfill({json:{ok:true,message:'Envoi accepté par Anycubic'}});
+  });
+  await login(page, 'upload');
+  const form = page.locator('#upload-form');
+  await form.locator('input[type=file]').setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('G1 X1\n')});
+  await form.locator('[name=mode]').selectOption('temp-print');
+  await form.locator('button[type=submit]').click();
+  const dialog = page.getByRole('dialog', {name:'Lancer l’impression'});
+  try {
+    await dialog.getByRole('button',{name:'Lancer l’impression'}).dblclick();
+    await expect(dialog.getByRole('progressbar')).toBeVisible();
+    await expect(dialog.getByRole('progressbar')).not.toHaveAttribute('value');
+    await expect(dialog.getByRole('button',{name:'Annuler'})).toBeHidden();
+    await expect.poll(() => uploads).toBe(1);
+  } finally {
+    release();
+  }
+  await expect(dialog).toContainText('Envoi accepté par Anycubic');
+  await expect(dialog.getByRole('progressbar')).toBeHidden();
+  await dialog.getByRole('button',{name:'Fermer'}).click();
+  await expect(dialog).toBeHidden();
+  expect(uploads).toBe(1);
+});
+
+for (const scenario of ['refus avec code', 'réponse perdue']) {
+  test(`la fenêtre conserve le résultat après ${scenario}`, async ({page}) => {
+    let orders = 0;
+    await page.route('**/imprimante-api/command', route => {
+      orders++;
+      return scenario === 'réponse perdue' ? route.abort('timedout') : route.fulfill({
+        status:409, json:{ok:false,message:'Imprimante non disponible',reason_code:'10115'},
+      });
+    });
+    await login(page, 'files');
+    await page.locator('[data-source=cloud]').click();
+    await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+    const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
+    await dialog.getByRole('button',{name:'Lancer l’impression'}).click();
+    if (scenario === 'réponse perdue') {
+      await expect(dialog.locator('#print-result')).toContainText('Vérifiez l’état de la machine');
+      await expect(dialog.getByRole('button',{name:'Aide'})).toBeHidden();
+    } else {
+      await expect(dialog.locator('#print-result')).toContainText('10115');
+      await expect(dialog.getByRole('button',{name:'Aide'})).toBeVisible();
+    }
+    await expect(dialog.getByRole('button',{name:'Lancer l’impression'})).toBeHidden();
+    await dialog.getByRole('button',{name:'Fermer'}).click();
+    expect(orders).toBe(1);
+  });
+}
+
 for (const [language, title, theme] of [
   ['fr','Lancer l’impression','light'], ['en','Start print','dark'], ['es','Iniciar impresión','light'],
 ]) {

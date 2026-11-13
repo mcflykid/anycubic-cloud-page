@@ -1,5 +1,6 @@
 import { $, fmt, locale, mins, set, tr } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
+import { openErrorSheet } from './workshop-error-catalogue.mjs';
 
 let printTarget;
 let statusAvailable = false;
@@ -7,7 +8,8 @@ let statusAvailable = false;
 /** Répercute le relevé courant dans la confirmation avant tout envoi. */
 export function updatePrintConfirmation(available = statusAvailable) {
   statusAvailable = available;
-  if (!$('print-dialog').open) return;
+  const dialog = $('print-dialog');
+  if (!dialog.open || dialog.dataset.phase !== 'confirmation') return;
   const {selectedPrinter, snapshot, busy} = workshopState;
   const printer = snapshot?.printer;
   const state = printTarget !== selectedPrinter ? 'La cible a changé : commande annulée.'
@@ -50,26 +52,67 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   $('print-advice').hidden = !advice;
   set('print-advice', advice);
   set('print-question', question);
+  dialog.dataset.phase = 'confirmation';
+  $('print-no').hidden = $('print-yes').hidden = false;
+  for (const id of ['print-result', 'print-close', 'print-error-help', 'print-progress']) $(id).hidden = true;
   dialog.showModal();
   updatePrintConfirmation();
   return new Promise(resolve => {
-    const finish = (result) => {
+    const finish = () => {
       dialog.onclose = null;
       dialog.close();
-      resolve(result);
+      resolve(null);
     };
     dialog.onclose = () => { if (!dialog.open) resolve(null); };
-    $('print-no').onclick = () => finish(null);
-    dialog.oncancel = event => { event.preventDefault(); finish(null); };
+    $('print-no').onclick = finish;
+    dialog.oncancel = event => { event.preventDefault(); finish(); };
     $('print-yes').onclick = () => {
       updatePrintConfirmation();
       if ($('print-yes').disabled) return;
       try {
-        finish({slots: readSlots?.(mapping.value)});
+        const slots = readSlots?.(mapping.value);
+        dialog.dataset.phase = 'confirmed';
+        $('print-yes').disabled = true;
+        resolve({slots});
       } catch (error) {
         mapping.setCustomValidity(error.message);
         mapping.reportValidity();
       }
     };
   });
+}
+
+/** Garde le pied visible pendant l’appel et laisse la fermeture distincte de l’arrêt d’impression. */
+export function showPrintProgress(text) {
+  const dialog = $('print-dialog');
+  if (!dialog.open || dialog.dataset.phase !== 'confirmed') return;
+  dialog.dataset.phase = 'pending';
+  dialog.oncancel = event => event.preventDefault();
+  $('print-no').hidden = $('print-yes').hidden = true;
+  $('print-mapping').hidden = true;
+  set('print-result', text);
+  $('print-result').hidden = $('print-progress').hidden = false;
+  $('print-result').focus();
+}
+
+/** Affiche la réponse de la demande et l’aide locale si le serveur a fourni un code reconnu. */
+export function showPrintResult(text, sheet) {
+  const dialog = $('print-dialog');
+  if (!dialog.open || dialog.dataset.phase !== 'pending') return;
+  dialog.dataset.phase = 'result';
+  dialog.oncancel = null;
+  $('print-progress').hidden = true;
+  set('print-result', text);
+  const close = $('print-close'), help = $('print-error-help');
+  close.hidden = false;
+  close.onclick = () => dialog.close();
+  help.hidden = !sheet;
+  help.onclick = sheet ? () => openErrorSheet(sheet) : null;
+  close.focus();
+}
+
+/** Ferme une confirmation invalidée avant le premier appel. */
+export function closePrintConfirmation() {
+  const dialog = $('print-dialog');
+  if (dialog.dataset.phase === 'confirmed') dialog.close();
 }

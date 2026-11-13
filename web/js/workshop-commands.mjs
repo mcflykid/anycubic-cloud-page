@@ -1,7 +1,7 @@
 import { openErrorSheet } from './workshop-error-catalogue.mjs';
 import { $, confirmAction, formatText, message, set, tr } from './workshop-ui.mjs';
 import { workshopState, setBusy } from './workshop-state.mjs';
-import { confirmPrint } from './workshop-print-confirmation.mjs';
+import { closePrintConfirmation, confirmPrint, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
 export function slots(value) {
@@ -82,6 +82,7 @@ export function createCommands(request, refresh) {
       feedback?.(text, sheet);
     };
     if (workshopState.busy) {
+      closePrintConfirmation();
       notify(tr('Une opération est déjà en cours.'), true);
       return null;
     }
@@ -95,6 +96,7 @@ export function createCommands(request, refresh) {
       return null;
     }
     const filePrint = ['print-cloud', 'print-local', 'print-usb'].includes(action);
+    const printing = filePrint || action === 'task-reprint';
     const sensitive = sensitiveActions.has(action);
     const destructiveLabels = {
       cancel: tr('Arrêter l’impression'),
@@ -112,6 +114,7 @@ export function createCommands(request, refresh) {
         !(await confirmAction(question, destructiveLabels[action]))) return null;
     if (action === 'idle-settings') data = { ...data, confirmed: !!question || data.confirmed === true };
     if (target !== workshopState.selectedPrinter) {
+      if (printing) closePrintConfirmation();
       notify(tr('La cible a changé : commande annulée.'), true);
       return null;
     }
@@ -129,6 +132,7 @@ export function createCommands(request, refresh) {
         data = { ...data, confirmation };
       }
       notify(tr('Demande en cours…'));
+      if (printing) showPrintProgress(tr('Demande en cours…'));
       const d = await request('/command', {
         printerKey: target,
         method: 'POST',
@@ -136,10 +140,12 @@ export function createCommands(request, refresh) {
         body: JSON.stringify({ action, ...data, request_id: crypto.randomUUID() }),
       });
       notify(d.message);
+      if (printing) showPrintResult(d.message || tr('Demande traitée. Vérifiez l’état de l’imprimante.'));
       await refresh();
       return d;
     } catch (e) {
       notify(e.message, true, e.errorSheet);
+      if (printing) showPrintResult(e.message, e.errorSheet);
       if (e.errorSheet) {
         const help = $('message-error-help');
         help.hidden = false;

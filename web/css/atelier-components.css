@@ -271,6 +271,8 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 #print-mapping { margin-block-start: var(--atelier-space-3); }
 #print-advice { white-space: pre-line; }
 #print-dialog .confirmation-body > p { margin-block: var(--atelier-space-3) 0; }
+#print-result { flex: 1; margin: 0; overflow-wrap: anywhere; }
+#print-progress { flex-basis: 100%; width: 100%; accent-color: var(--atelier-accent); }
 .reset-challenge {
   display: flex;
   align-items: center;
