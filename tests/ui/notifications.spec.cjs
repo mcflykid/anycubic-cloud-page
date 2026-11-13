@@ -166,27 +166,33 @@ test('le journal historique filtre la liste par type et imprimante', async ({pag
 
 test('la cloche modifie ses messages et préserve le journal et les fiches', async ({page}) => {
  await openWorkshop(page);
- await page.locator('#notifications-toggle').click();
- const panel = page.locator('#notifications-panel');
- await panel.locator('.notification-open').first().click();
- await expect(page.locator('#notification-preview-dialog')).toBeVisible();
- await page.keyboard.press('Escape');
- await expect(panel.locator('#notifications-title')).toHaveText('Messages (1)');
- await panel.locator('#history-read-all').click();
- await expect(panel.locator('#notifications-title')).toHaveText('Messages (0)');
- await panel.locator('.notification-delete').first().click();
- await page.locator('#confirm-yes').click();
- await expect(panel.locator('.notification-row')).toHaveCount(2);
- await panel.locator('#history-delete-all').click();
- await page.locator('#confirm-no').click();
- await expect(panel.locator('.notification-row')).toHaveCount(2);
- await panel.locator('#history-delete-all').click();
- await page.locator('#confirm-yes').click();
- await expect(panel.locator('.notification-row')).toHaveCount(0);
- await page.keyboard.press('Escape');
- await expect(panel).toBeHidden();
- await openHistoryJournal(page);
- await expect(page.locator('.notification-row')).toHaveCount(3);
- const tasks = await page.request.get('/imprimante-api/extras/tasks');
- expect((await tasks.json()).items).toHaveLength(3);
+ try {
+  await page.locator('#notifications-toggle').click();
+  const panel = page.locator('#notifications-panel');
+  await panel.locator('.notification-open').first().click();
+  await expect(page.locator('#notification-preview-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(panel.locator('#notifications-title')).toHaveText('Messages (1)');
+  await panel.locator('#history-read-all').click();
+  await expect(panel.locator('#notifications-title')).toHaveText('Messages (0)');
+  await panel.locator('.notification-delete').first().click();
+  await page.locator('#confirm-yes').click();
+  await expect(panel.locator('.notification-row')).toHaveCount(2);
+  await panel.locator('#history-delete-all').click();
+  await page.locator('#confirm-no').click();
+  await expect(panel.locator('.notification-row')).toHaveCount(2);
+  await panel.locator('#history-delete-all').click();
+  await page.locator('#confirm-yes').click();
+  await expect(panel.locator('.notification-row')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await openHistoryJournal(page);
+  await expect(page.locator('.notification-row')).toHaveCount(3);
+  const tasks = await page.request.get('/imprimante-api/extras/tasks');
+  expect((await tasks.json()).items).toHaveLength(3);
+ } finally {
+  await page.request.post('/imprimante-api/demo/reset', {
+   data:{}, headers:{Origin:new URL(page.url()).origin},
+  });
+ }
 });
