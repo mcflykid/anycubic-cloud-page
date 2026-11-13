@@ -125,7 +125,7 @@ printer.example.com {
 }
 ```
 
-Les scripts, styles, illustrations et notices de l’atelier passent sous `/imprimante-api/ui/`. Les installations qui transmettent déjà `/imprimante-api/*` reçoivent ces ressources sans ajouter de chemins. Les en-têtes CSP et Referrer-Policy de l’autre site doivent être limités à son bloc, sans écraser ceux de l’application. Une CSP avec `form-action 'none'` bloque la connexion ; `Referrer-Policy: no-referrer` peut rendre Origin nul sur un formulaire. Conservez les en-têtes de sécurité de l’application et sa protection Origin.
+La vue mur, les scripts, styles, illustrations et notices de l’atelier passent sous `/imprimante-api/ui/`. Les installations qui transmettent déjà `/imprimante-api/*` reçoivent ces ressources sans ajouter de chemins. Les en-têtes CSP et Referrer-Policy de l’autre site doivent être limités à son bloc, sans écraser ceux de l’application. Une CSP avec `form-action 'none'` bloque la connexion ; `Referrer-Policy: no-referrer` peut rendre Origin nul sur un formulaire. Conservez les en-têtes de sécurité de l’application et sa protection Origin.
 
 ## Intégrer à une stack existante avec un .env central et DOCKERDIR
 

@@ -8,7 +8,7 @@ test('la vue mur affiche les relevés et ne déclenche aucune commande', async (
   if (request.method() === 'POST') writes.push(new URL(request.url()).pathname);
  });
  await page.getByRole('link',{name:'Vue mur'}).click();
- await expect(page).toHaveURL(/\/mur$/);
+ await expect(page).toHaveURL(/\/imprimante-api\/ui\/mur$/);
  await expect(page.locator('#wall-printer')).toHaveText('Kobra S1 · Démonstration');
  await expect(page.locator('#wall-ace')).toContainText('ACE 2 Pro');
  await expect(page.locator('#wall-progress-text')).toHaveText('100 %');

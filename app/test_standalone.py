@@ -108,6 +108,19 @@ class WebBoundary(unittest.IsolatedAsyncioTestCase):
             allow_redirects=False,
         )
 
+    async def test_wall_is_html_under_the_shared_proxy_prefix(self):
+        """Le chemin transmis par un proxy partagé conserve la protection de la session web."""
+        path = "/imprimante-api/ui/mur"
+        response = await self.client.get(path, allow_redirects=False)
+        self.assertEqual(response.status, 303)
+        self.assertEqual(response.headers["Location"], "/login")
+        self.assertEqual((await self.sign_in()).status, 303)
+        response = await self.client.get(path)
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.content_type, "text/html")
+        self.assertNotIn("Content-Disposition", response.headers)
+        self.assertIn('id="wall-printer"', await response.text())
+
     async def test_ui_redirects_and_api_returns_401_without_basic_challenge(self):
         """Les visiteurs voient la page française ; les appels API expirés ne reçoivent aucune fenêtre Basic."""
         response = await self.client.get("/", allow_redirects=False)

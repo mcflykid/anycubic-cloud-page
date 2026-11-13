@@ -958,6 +958,7 @@ async def versioned_asset(request):
 def install_ui_resources(app):
     """Sert les ressources via le préfixe déjà routé et conserve les anciennes adresses."""
     _, _, _, assets = build_web_assets(ROOT)
+    app.router.add_get(UI_PREFIX + "/mur", wall)
     for prefix in ("", UI_PREFIX):
         for name in assets:
             app.router.add_get(f"{prefix}/{name}", versioned_asset)
