@@ -5622,5 +5622,33 @@
   "Diamètre minimal de buse": [
     "Minimum nozzle diameter",
     "Diámetro mínimo de boquilla"
+  ],
+  "Créer sa fiche filament": [
+    "Create a filament profile",
+    "Crear una ficha de filamento"
+  ],
+  "Tutoriel de création d’une fiche": [
+    "Filament profile guide",
+    "Guía para crear una ficha"
+  ],
+  "Importer une fiche JSON": [
+    "Import a JSON profile",
+    "Importar una ficha JSON"
+  ],
+  "Fiche personnelle": [
+    "Custom profile",
+    "Ficha personal"
+  ],
+  "Source de la fiche": [
+    "Profile source",
+    "Fuente de la ficha"
+  ],
+  "Fiche personnelle enregistrée dans ce navigateur.": [
+    "Custom profile saved in this browser.",
+    "Ficha personal guardada en este navegador."
+  ],
+  "Import impossible. Vérifiez le fichier et le stockage du navigateur.": [
+    "Import failed. Check the file and browser storage.",
+    "No se pudo importar. Comprueba el archivo y el almacenamiento del navegador."
   ]
 }

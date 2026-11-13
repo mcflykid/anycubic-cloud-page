@@ -87,3 +87,26 @@ test('un emplacement ACE ouvre une fiche de filament sans commande', async ({pag
  await expect(trigger).toBeFocused();
  expect(commands).toHaveLength(0);
 });
+
+test('une fiche personnelle est importée puis retrouvée après rechargement', async ({page}) => {
+ await login(page, 'ace');
+ const trigger = page.locator('#spools .ace-profile-open').first();
+ await trigger.click();
+ const dialog = page.getByRole('dialog', {name: 'Fiche filament'});
+ await dialog.getByText('Créer sa fiche filament', {exact: true}).click();
+ const input = dialog.getByLabel('Importer une fiche JSON');
+ const fixture = {name: 'Mon PLA fictif', url: 'https://example.com/pla', density: 1.24, drying: [45, 50]};
+ await input.setInputFiles({name: 'pla.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(fixture))});
+ await expect(dialog.locator('#filament-profile-import-state')).toHaveText('Fiche personnelle enregistrée dans ce navigateur.');
+ await expect(dialog.locator('#filament-profile-facts')).toContainText('1,24 g/cm³');
+ await expect(dialog.locator('#filament-profile-facts')).not.toContainText('Température du plateau');
+ await input.setInputFiles({name: 'invalid.json', mimeType: 'application/json',
+  buffer: Buffer.from(JSON.stringify({...fixture, url: 'javascript:alert(1)'}))});
+ await expect(dialog.locator('#filament-profile-import-state')).toContainText('Import impossible');
+ await page.reload();
+ await openSection(page, 'ace');
+ await trigger.click();
+ await dialog.locator('#filament-profile-reference').selectOption({label: 'Mon PLA fictif · Fiche personnelle'});
+ await expect(dialog.getByRole('link', {name: 'Source de la fiche'})).toHaveAttribute('href', fixture.url);
+ await expect(dialog.locator('#filament-profile-facts')).toContainText('45–50 °C');
+});

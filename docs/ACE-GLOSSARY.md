@@ -23,3 +23,5 @@ Traduire les termes du tableau, les états disponible/hors ligne/inconnu, les co
 ## Profils et matériaux
 
 Le catalogue de lecture de l’atelier distingue la famille et les variantes commerciales (par exemple PLA, PLA+, PLA Glow). Il reconnaît les noms établis dans les profils S1, notamment PEBA, PET-CF et PA6-CF, sans recopier les profils. PAHT-CF est limité à l’identification du S1 Max. Une matière affichable n’est pas nécessairement modifiable dans l’ACE : les neuf valeurs éditables restent celles dont le client possède un parcours établi. Le serveur transmet cette même liste au formulaire. Une nouvelle valeur de commande attend une preuve de compatibilité ; la présence d’un profil de tranche ne suffit pas.
+
+Pour ajouter une référence personnelle depuis la fiche d’un emplacement, suivre le [tutoriel des fiches filament](FICHES-FILAMENT.md).
