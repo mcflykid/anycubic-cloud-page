@@ -47,7 +47,8 @@ test('la barre commune aligne les commandes et suit le mode de couleur', async (
   const controls = await page.locator('.portal-nav .atelier-control:visible').evaluateAll(
     items => items.map(item => item.getBoundingClientRect().height),
   );
-  expect(controls).toEqual([36, 36, 36, 36]);
+  await expect(page.locator('#quick-open')).toBeVisible();
+  expect(controls).toEqual([36, 36, 36, 36, 36]);
   await toggle.click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('#interface-theme')).toHaveValue('light');

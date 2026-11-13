@@ -247,6 +247,7 @@ html[data-style] .workshop-frame .printer-footer {
   html[data-style] .workshop-frame .atelier-navigation { padding-block-end: var(--atelier-space-2); }
 }
 .workshop-frame .portal-nav #interface-language { appearance: auto; }
+.workshop-frame .logout-icon { display: none; }
 .workshop-frame .portal-nav #notifications-toggle {
   width: var(--atelier-control);
   min-width: var(--atelier-control);
@@ -280,8 +281,22 @@ html[data-style] .workshop-frame .printer-footer {
     max-width: calc(2 * var(--atelier-touch-control));
     padding-inline: var(--atelier-space-2);
   }
+  html[data-style] .workshop-frame .portal-nav #quick-open {
+    width: var(--atelier-touch-control);
+    min-width: var(--atelier-touch-control);
+    padding-inline: 0;
+  }
   html[data-style] .workshop-frame .portal-nav .logout-form button {
-    padding-inline: var(--atelier-space-2);
+    width: var(--atelier-touch-control);
+    padding-inline: 0;
+  }
+  .workshop-frame .logout-icon { display: inline-block; }
+  .workshop-frame .logout-form button span {
+    position: absolute;
+    width: var(--atelier-rule);
+    height: var(--atelier-rule);
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 }
 

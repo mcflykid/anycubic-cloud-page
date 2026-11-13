@@ -1,4 +1,4 @@
-import { $, formatText, message, node, set, tr } from './workshop-ui.mjs';
+import { $, formatText, message, mins, node, set, tr } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 
 /** La file ne lance rien seule. Son premier fichier ouvre la confirmation d’impression habituelle. */
@@ -13,6 +13,8 @@ export function bindPrintQueue(request, command) {
     $('queue-list').replaceChildren(...rows.map((row, index) => {
       const item = node('li');
       item.append(node('strong', row.name));
+      if (Number.isFinite(row.details?.seconds))
+        item.append(node('p', tr('Durée estimée') + ' · ' + mins(row.details.seconds / 60)));
       if (!row.available) item.append(node('p', tr('Actualisez les fichiers Cloud pour vérifier cette entrée.')));
       for (const [action, label, disabled] of [
         ['up', 'Monter', index === 0], ['down', 'Descendre', index === rows.length - 1],
@@ -59,7 +61,7 @@ export function bindPrintQueue(request, command) {
     const row = rows[0];
     next.disabled = true;
     dialog.close();
-    const result = await command('print-cloud', {handle:row.handle, name:row.name},
+    const result = await command('print-cloud', {handle:row.handle, name:row.name, details:row.details},
       formatText('Vérifiez que le plateau est libre avant d’imprimer « {0} ».', row.name));
     if (result) await load({action:'remove', handle:row.handle});
   };

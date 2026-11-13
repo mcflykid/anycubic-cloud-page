@@ -352,6 +352,10 @@ class CloudExtras:
         while len(self.tasks) > 500:
             self.tasks.pop(next(iter(self.tasks)))
         if page == 1 and not all_printers:
+            own_history.sort(
+                key=lambda row: number(row.get("start_time") or row.get("create_time"), 0),
+                reverse=True,
+            )
             self.e.duration_factor = historical_duration_factor(own_history, self.e.printer.id)
         items.sort(key=lambda r: number(r.get("start"), 0), reverse=True)
         return {"items": items, "page": page, "has_more": more}

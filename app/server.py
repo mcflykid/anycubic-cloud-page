@@ -279,7 +279,13 @@ async def print_queue(req):
         if not isinstance(handle, str):
             raise ValueError("Fichier introuvable")
         file = engine.cloudfiles.get(handle)
-        entry = {"name": file.old_filename} if file and safeget(file, "gcode_id", 0) else None
+        entry = None
+        if file and safeget(file, "gcode_id", 0):
+            seconds = safeget(file, "_estimate")
+            details = (
+                {"seconds": seconds} if type(seconds) is int and 0 < seconds <= 30 * 86400 else {}
+            )
+            entry = {"name": file.old_filename, "details": details}
         async with engine.lock:
             rows = await asyncio.to_thread(update_queue, path, action, handle, entry)
     else:

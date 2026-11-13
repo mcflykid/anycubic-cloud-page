@@ -21,7 +21,13 @@ def update_queue(path, action, handle, entry=None):
     rows = read_queue(path)
     position = next((i for i, row in enumerate(rows) if row["handle"] == handle), None)
     if action == "add" and entry and position is None and len(rows) < 30:
-        rows.append({"handle": handle, "name": entry["name"]})
+        rows.append(
+            {
+                "handle": handle,
+                "name": entry["name"],
+                **({"details": entry["details"]} if entry.get("details") else {}),
+            }
+        )
     elif action == "remove" and position is not None:
         rows.pop(position)
     elif action in ("up", "down") and position is not None:

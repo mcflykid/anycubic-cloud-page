@@ -9,7 +9,7 @@ test('l’atelier ouvre Résumé et termine par Statistiques puis Réglages',asy
   await expect(page.locator('#tab-summary')).toBeVisible();
   await expect(page.locator('#summary-job')).toHaveText('Cube de calibration · PLA');
   await expect(page.locator('#summary-ace-boxes')).toContainText('ACE 2 Pro');
-  await expect(page.locator('.nav-actions .quick-open')).toHaveCount(0);
+  await expect(page.locator('.nav-actions .quick-open')).toBeVisible();
   const tabs=await page.locator('#atelier-tabs [data-tab]').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab));
   expect(tabs).toEqual(['summary','overview','ace','files','upload','camera','history','fleet','statistics','settings']);
   await page.getByRole('button',{name:'Ouvrir l’imprimante'}).click();
