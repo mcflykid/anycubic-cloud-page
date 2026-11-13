@@ -1,5 +1,21 @@
 """Vocabulaire original de matières, distinct des capacités de commande d’un modèle."""
 
+import json
+from pathlib import Path
+
+# Les SKU publics sont documentés par fiche. Un doublon est exclu même si le catalogue évolue.
+_PROFILE_SKUS = json.loads(Path(__file__).with_name("filament-profile-skus.json").read_text())
+_SKU_PROFILES = {}
+for _profile, _skus in _PROFILE_SKUS.items():
+    for _sku in _skus:
+        _SKU_PROFILES[_sku] = None if _sku in _SKU_PROFILES else _profile
+
+
+def filament_profile_for_sku(sku):
+    """Renvoie la fiche intégrée pour un SKU public exact et univoque, sinon None."""
+    return _SKU_PROFILES.get(sku) if isinstance(sku, str) else None
+
+
 # Les noms des profils sont des repères de lecture, jamais une preuve de compatibilité ACE.
 FAMILIES = frozenset(
     {

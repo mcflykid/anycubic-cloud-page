@@ -239,6 +239,34 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(data["spools"][1]["rfid"])
         self.assertNotIn("sku", str(data))
 
+    async def test_rfid_product_profile_uses_current_slot_and_public_sku(self):
+        """Expose la fiche résolue et garde les SKU connus ou inconnus côté serveur."""
+        slots = [
+            SimpleNamespace(index=0, sku="AHLSMW-101", rfid=True, spool_loaded=True),
+            SimpleNamespace(index=1, sku="AHLSMW-101", rfid=False, spool_loaded=True),
+            SimpleNamespace(index=2, sku="UNKNOWN", rfid=True, spool_loaded=True),
+            SimpleNamespace(index=3, sku="AHLSBR-101", rfid=True, spool_loaded=False),
+        ]
+        self.e.printer = SimpleNamespace(
+            multi_color_box=[SimpleNamespace(box_id=0, loaded_slot=0, slots=slots)],
+            primary_multi_color_box_spool_info_object=[
+                {"local_slot": index, "material_type": "PLA Marble"} for index in range(1, 5)
+            ],
+        )
+        self.e.api = None
+        spools = self.e.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertEqual(spools[0]["filament_profile"], "PLA Marble")
+        for spool in spools[1:]:
+            self.assertNotIn("filament_profile", spool)
+        self.assertNotIn("AHLSMW-101", str(spools))
+        self.assertNotIn("UNKNOWN", str(spools))
+        slots[0].sku = "AHFGBL-101"
+        updated = self.e.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertEqual(updated[0]["filament_profile"], "PLA Glow")
+        slots[0].sku = "UNKNOWN"
+        updated = self.e.snapshot()["printer"]["boxes"][0]["spools"]
+        self.assertNotIn("filament_profile", updated[0])
+
     async def test_ace2_manual_values_are_unknown_and_qualified_zero_is_preserved(self):
         """La génération identifiée qualifie les valeurs firmware sans inventer marque ni masse."""
         self.e.printer = SimpleNamespace(

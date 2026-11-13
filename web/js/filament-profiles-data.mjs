@@ -67,6 +67,7 @@ export const manufacturerProfiles = {
   },
   'PLA Glow': {
     url: 'https://store.anycubic.com/products/pla-glow',
+    datasheet: 'https://cdn.shopify.com/s/files/1/0245/5519/2380/files/ANYCUBIC_TDS_PLA_Glow_V3.0.pdf?v=1758527363',
     density: 1.26, nozzle: [200, 230], bed: [60, 70], drying: [60, 65], hours: [6, 8],
     speed: [50, 250], flow: 12, minNozzle: 0.4,
   },

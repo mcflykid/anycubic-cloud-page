@@ -2,6 +2,12 @@
 
 Dans **ACE et filaments**, cliquez sur le nom d’un emplacement, par exemple **Emplacement 3 · PLA Marble**. Si une fiche est associée à la bobine, ses caractéristiques s’affichent avec le restant et l’identification RFID rapportés par l’ACE. Si la référence est inconnue, l’atelier ouvre **Créer sa fiche filament**.
 
+## Reconnaissance automatique
+
+Pour une bobine chargée et reconnue par RFID, le serveur compare le SKU de l’emplacement courant aux références commerciales publiées dans les variantes des fiches produit Anycubic. La correspondance doit être exacte et pointer vers une seule fiche embarquée. Le navigateur reçoit le nom de la fiche. Un SKU absent ou inconnu mène à la création d’une fiche personnelle, sauf si une fiche personnelle a déjà été associée dans ce navigateur.
+
+Le [catalogue des SKU](../app/filament-profile-skus.json) reprend les variantes publiques des [fiches produit référencées](../web/js/filament-profiles-data.mjs). Les caractéristiques sont livrées avec Anycubic Cloud Page et consultables sans requête vers une base tierce. Lorsqu’un PDF constructeur a été vérifié, la fenêtre propose aussi **Fiche technique du fabricant (PDF)**. Pour le PLA Glow, la page produit et la fiche technique v3.0 présentent des plages distinctes pour le plateau et la vitesse. Les valeurs affichées suivent la page produit indiquée dans la fenêtre.
+
 ## Préparer la fiche
 
 1. Ouvrez la fiche technique de la bobine et relevez les valeurs applicables à sa référence exacte. Utilisez une adresse HTTPS publique sans paramètres d’accès.

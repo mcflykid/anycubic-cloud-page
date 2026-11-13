@@ -28,7 +28,7 @@ from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
 from cloud_budget import CloudRequestBudget
 from command_journal import ACTIONS, MQTT_CONFIRMATIONS, command_mqtt_context, mqtt_digest
-from filament_catalog import editable_materials
+from filament_catalog import editable_materials, filament_profile_for_sku
 from idle_controls import idle_limits, print_limits
 from native_controls import ace_model, task_details
 from notification_service import AccountNotifications
@@ -757,16 +757,26 @@ class Engine:
         # Le support interne Kobra X est livré dans la même liste que les ACE.
         rack = safeget(p, "kobra_x_internal_material_rack")
         for idx, box in enumerate(box for box in p.multi_color_box or [] if box is not rack):
+            spools = safeget(
+                p,
+                ("primary" if idx == 0 else "secondary") + "_multi_color_box_spool_info_object",
+                [],
+            )
+            # Le modèle associe déjà le SKU à la bobine courante après chaque mise à jour MQTT.
+            slots = {slot.index + 1: slot for slot in (safeget(box, "slots") or [])}
+            if spools is not None:
+                spools = [spool.copy() for spool in spools]
+            for spool in spools or []:
+                slot = slots.get(spool.get("local_slot"))
+                if slot and slot.rfid is True and slot.spool_loaded is True:
+                    profile = filament_profile_for_sku(slot.sku)
+                    if profile:
+                        spool["filament_profile"] = profile
             boxes.append(
                 {
                     "box_id": safeget(box, "box_id", idx),
                     "index": idx,
-                    "spools": safeget(
-                        p,
-                        ("primary" if idx == 0 else "secondary")
-                        + "_multi_color_box_spool_info_object",
-                        [],
-                    ),
+                    "spools": spools,
                     "auto_feed": safeget(box, "auto_feed"),
                     "temperature": safeget(box, "current_temperature"),
                     "humidity": safeget(box, "humidity"),

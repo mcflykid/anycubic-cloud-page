@@ -74,6 +74,10 @@ function showProfile(spool, title, hex, name, profile, personal) {
   );
   const source = $('filament-profile-source');
   source.href = profile.url;
+  const datasheet = $('filament-profile-datasheet');
+  datasheet.hidden = !profile.datasheet;
+  if (profile.datasheet) datasheet.href = profile.datasheet;
+  else datasheet.removeAttribute('href');
   source.textContent = tr(personal ? 'Source de la fiche' : 'Fiche fabricant');
   const range = ([min, max], unit) => fmt(min) + '–' + fmt(max, unit);
   const values = [
@@ -100,14 +104,14 @@ export function openFilamentProfile(spool, {printer, box, slot, displaySlot}) {
   const position = JSON.stringify([printer, box, slot]);
   // Le restant varie avec l’impression et ne fait donc pas partie de l’identité.
   const signature = JSON.stringify([material, hex, spool.rfid, spool.spool_loaded]);
+  const reference = spool.filament_profile;
+  if (spool.spool_loaded !== false && spool.rfid === true && Object.hasOwn(manufacturerProfiles, reference))
+    return showProfile(spool, title, hex, reference, manufacturerProfiles[reference], false);
+
   const saved = readCustomProfiles();
   const assignment = saved.assignments.find(entry => entry?.position === position && entry.signature === signature);
   const personal = saved.profiles.find(profile => profile.name === assignment?.name);
   if (personal) return showProfile(spool, title, hex, personal.name, personal, true);
-
-  const exact = spool.spool_loaded !== false && spool.rfid === true &&
-    Object.hasOwn(manufacturerProfiles, material) && !['PETG', 'PLA Basic', 'PLA+'].includes(material);
-  if (exact) return showProfile(spool, title, hex, material, manufacturerProfiles[material], false);
 
   const create = $('filament-profile-create'), upload = $('filament-profile-import');
   set('filament-profile-create-slot', material ? title + ' · ' + material : title);

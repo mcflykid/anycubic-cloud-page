@@ -73,7 +73,7 @@ test('les bobines et les commandes ACE restent alignées en mode sombre', async 
 test('un emplacement ACE ouvre une fiche de filament sans commande', async ({page}) => {
  await page.route('**/imprimante-api/status', async route => {
   const response = await route.fetch(), json = await response.json();
-  Object.assign(json.printer.boxes[0].spools[0], {material_type: 'PLA Marble', rfid: true});
+  Object.assign(json.printer.boxes[0].spools[0], {material_type: 'PLA Glow', rfid: true, filament_profile: 'PLA Glow'});
   await route.fulfill({response, json});
  });
  const commands = [];
@@ -87,7 +87,9 @@ test('un emplacement ACE ouvre une fiche de filament sans commande', async ({pag
  const dialog = page.getByRole('dialog', {name: 'Fiche filament', exact: true});
  await expect(dialog).toBeVisible();
  await expect(dialog.locator('#filament-slot-title')).toContainText('Emplacement 1');
- await expect(dialog.getByRole('link', {name: 'Catalogue Anycubic'})).toHaveAttribute('href', 'https://3dfilamentprofiles.com/filaments/anycubic');
+ await expect(dialog.locator('#filament-profile-reference')).toHaveText('PLA Glow');
+ await expect(dialog.getByRole('link', {name: 'Fiche technique du fabricant (PDF)'}))
+  .toHaveAttribute('href', 'https://cdn.shopify.com/s/files/1/0245/5519/2380/files/ANYCUBIC_TDS_PLA_Glow_V3.0.pdf?v=1758527363');
  await page.keyboard.press('Escape');
  await expect(trigger).toBeFocused();
  expect(commands).toHaveLength(0);
@@ -97,6 +99,7 @@ test('un emplacement inconnu propose uniquement la création et retrouve sa fich
  let color;
  await page.route('**/imprimante-api/status', async route => {
   const response = await route.fetch(), json = await response.json();
+  Object.assign(json.printer.boxes[0].spools[0], {material_type: 'PLA Marble', rfid: true});
   if (color) json.printer.boxes[0].spools[0].color = color;
   await route.fulfill({response, json});
  });
@@ -117,6 +120,7 @@ test('un emplacement inconnu propose uniquement la création et retrouve sa fich
  await importFile(fixture);
  await expect(profile).toBeVisible();
  await expect(profile.locator('#filament-profile-facts')).toContainText('1,24 g/cm³');
+ await expect(profile.getByRole('link', {name: 'Fiche technique du fabricant (PDF)'})).toBeHidden();
  await expect(profile.locator('#filament-profile-facts')).not.toContainText('Température du plateau');
  await page.reload();
  await openSection(page, 'ace');

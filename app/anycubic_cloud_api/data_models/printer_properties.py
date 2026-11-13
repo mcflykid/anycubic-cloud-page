@@ -496,6 +496,11 @@ class AnycubicSpoolInfo:
         return self._index
 
     @property
+    def sku(self) -> str:
+        """Référence constructeur brute, réservée à la résolution de fiche côté serveur."""
+        return self._sku
+
+    @property
     def material_type(self) -> str:
         """Type de matériau rapporté par le constructeur."""
         return self._material_type
