@@ -657,9 +657,10 @@ class Engine:
         while True:
             poll_started = time.monotonic()
             observation = None
+            connection = "unavailable"
+            primary = not self.fleet_registry or self is self.fleet_registry.default
             try:
                 async with self.lock:
-                    primary = not self.fleet_registry or self is self.fleet_registry.default
                     if self.catalogue_source and self.api and not self.reconnect_required:
                         await self.refresh_catalogue()
                     reconnect = (
@@ -702,6 +703,7 @@ class Engine:
                     if self.transport.mqtt_auth_pending:
                         await self.restart_mqtt_auth(self.api)
                     self.mqtt_start()
+                    connection = "available"
                     try:
                         history_page = await self.print_history(1)
                         self.notifications_error = None
@@ -751,14 +753,22 @@ class Engine:
                         with contextlib.suppress(Exception):
                             owner.api.disconnect_mqtt()
                     self.printer = None
-            if observation is not None:
-                scope, source, rows, api = observation
-                # Vérifier les résultats hors du verrou de l’imprimante.
+            delivery = self.notification_delivery
+            if primary and delivery and delivery.config.enabled:
+                # L’alerte de connexion reste indépendante de l’historique et du verrou de l’imprimante.
                 try:
-                    await delivery.observe_cloud(
-                        scope, source, rows, partial(self.notifications.terminal_legacy_rows, api)
-                    )
-                    await self.observe_ace_alerts(scope, delivery)
+                    if getattr(self.account, "login_blocked", False):
+                        connection = "reconnect"
+                    await delivery.observe_connection(connection)
+                    if observation is not None:
+                        scope, source, rows, api = observation
+                        await delivery.observe_cloud(
+                            scope,
+                            source,
+                            rows,
+                            partial(self.notifications.terminal_legacy_rows, api),
+                        )
+                        await self.observe_ace_alerts(scope, delivery)
                 except Exception as error:
                     log_event(
                         OPS_LOG,

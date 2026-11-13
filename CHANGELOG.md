@@ -1,5 +1,11 @@
 # Changements
 
+## 1.18.0 — 2026-11-13
+
+- Retire le bandeau lorsque le Cloud répond. Sa fermeture manuelle est conservée pour l’incident en cours et un refus de renouvellement demande une reconnexion (#370).
+- Signale sur Discord les interruptions Cloud persistantes, les refus de renouvellement et les rétablissements lorsque le canal Alertes est activé (#370).
+- Affiche la couche en cours et le total connu dans le Résumé pendant une impression (#371).
+
 ## 1.17.0 — 2026-11-13
 
 - Ajoute un réglage de contraste élevé pour les trois styles et les modes clair et sombre (#360).

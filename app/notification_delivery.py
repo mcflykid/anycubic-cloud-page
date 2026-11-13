@@ -13,6 +13,7 @@ import re
 import stat
 import tempfile
 import time
+import uuid
 
 from notification_discord import DiscordConfig, DiscordResult
 from notification_service import normalize_error_code
@@ -27,7 +28,7 @@ _TTL = 600
 
 @dataclass(frozen=True)
 class PrintEvent:
-    """Résultat terminal associé à une impression identifiée et horodatée."""
+    """Événement horodaté transmis par le canal des alertes."""
 
     key: str
     timestamp: int
@@ -206,6 +207,8 @@ class Delivery:
         self.baseline = 0
         self.baseline_reason = "startup"
         self.last_cloud_at = None
+        self.connection_failures = 0
+        self.connection_alert = None
         self.scope = None
         self.lookup_after = 0
         self.revision = 0
@@ -265,6 +268,8 @@ class Delivery:
             self.revision += 1
             self.ready = False
             self.last_cloud_at = None
+            self.connection_failures = 0
+            self.connection_alert = None
             self.queue.clear()
 
     def note_gap(self, outcome, count=None):
@@ -370,6 +375,37 @@ class Delivery:
                 )
         if self.revision == revision:
             await self.observe(cloud_events(scope, rows, legacy), revision)
+
+    async def observe_connection(self, state):
+        """Signale une panne persistante et son retour, même sans accès à l’historique Cloud."""
+        async with self.observe_lock:
+            if not self.config.enabled or self.last_outcome == "unavailable":
+                return
+            self.connection_failures = 0 if state == "available" else self.connection_failures + 1
+            if state == "available":
+                result = "cloud_recovered" if self.connection_alert else None
+            elif state == "reconnect":
+                result = "cloud_reconnect" if self.connection_alert != "cloud_reconnect" else None
+            else:
+                result = (
+                    "cloud_unavailable"
+                    if self.connection_failures >= 2 and not self.connection_alert
+                    else None
+                )
+            if result and len(self.queue) < _MAX_QUEUE:
+                revision = self.revision
+                now = int(self.clock())
+                event = PrintEvent(
+                    hashlib.sha256(uuid.uuid4().bytes).hexdigest(),
+                    now,
+                    result,
+                    "Anycubic Cloud Page",
+                    "",
+                    "",
+                )
+                await self.enqueue(revision, [event], now)
+                if revision == self.revision and event.key in self.rows:
+                    self.connection_alert = None if state == "available" else result
 
     async def observe(self, events, revision=None):
         """Établit le point de départ et sérialise l’admission pour éviter les doublons."""

@@ -80,14 +80,20 @@ class AccountTests(unittest.IsolatedAsyncioTestCase):
             self.a.save({"access_token": token("other")})
         self.assertEqual(self.a.path.read_text(), before)
 
-    async def test_refresh_failure_falls_back_to_login(self):
-        """Vérifie que un renouvellement refusé déclenche une connexion complète."""
-        self.a.save({"access_token": token(), "refresh_token": "test-refresh"})
-        self.a.state["obtained_at"] = 0
-        self.a.refresh = AsyncMock(side_effect=AccountRefreshRejected())
-        self.a.login = AsyncMock()
-        await self.a.token(None)
-        self.a.login.assert_awaited_once()
+    async def test_refused_refresh_requests_manual_reconnection(self):
+        """Un refus explicite demande une action et ne boucle pas sur le mot de passe."""
+        for obtain in (self.a.token, self.a.renew_after_rejection):
+            self.a.save({"access_token": token(), "refresh_token": "fixture"})
+            self.a.state["obtained_at"] = 0
+            self.a.retry_succeeded()
+            self.a.refresh = AsyncMock(side_effect=AccountRefreshRejected("détail fournisseur"))
+            self.a.login = AsyncMock()
+            for _ in range(2):
+                with self.assertRaisesRegex(RuntimeError, "Reconnectez votre compte Anycubic"):
+                    await obtain(None)
+            self.a.refresh.assert_awaited_once()
+            self.a.login.assert_not_awaited()
+            self.assertNotIn("détail fournisseur", self.a.notice)
 
     async def test_valid_session_survives_provider_outage_with_backoff(self):
         """Vérifie que une session valide reste utilisable pendant le délai de repli."""
@@ -252,6 +258,15 @@ class AccountTests(unittest.IsolatedAsyncioTestCase):
                 await self.a.token(None)
         self.assertEqual(self.a.refresh.await_count, 8)
         self.a.login.assert_not_awaited()
+
+    async def test_http_bad_request_with_invalid_grant_requires_reconnection(self):
+        """Un refus OAuth explicite reste identifiable avec le statut HTTP 400."""
+        session = MagicMock()
+        response = MagicMock(status=400)
+        response.json = AsyncMock(return_value={"error": "invalid_grant"})
+        session.post.return_value.__aenter__ = AsyncMock(return_value=response)
+        with self.assertRaises(AccountRefreshRejected):
+            await self.a.post(session, "/api/login/oauth/refresh_token")
 
     async def test_http_refusal_is_distinct_from_server_outage(self):
         """Les statuts de refus n’exigent aucun message fournisseur et les 5xx restent temporaires."""

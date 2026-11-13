@@ -23,8 +23,15 @@ export function renderSummary(snapshot) {
     $('summary-progress').value = progress;
     set('summary-progress-text', fmt(progress, ' %'));
   }
+  const measures = [summaryValue('Temps restant', mins(printer?.job_time_remaining))];
+  const layer = printer?.job_current_layer;
+  const total = printer?.job_total_layers;
+  if (online && (printer.job_in_progress || printer.job_is_paused) && Number.isInteger(layer) && layer > 0) {
+    measures.push(summaryValue('Couche', Number.isInteger(total) && total >= layer
+      ? `${fmt(layer)} / ${fmt(total)}` : fmt(layer)));
+  }
   $('summary-printer-values').replaceChildren(
-    summaryValue('Temps restant', mins(printer?.job_time_remaining)),
+    ...measures,
     summaryValue('Buse', fmt(printer?.curr_nozzle_temp, ' °C')),
     summaryValue('Plateau', fmt(printer?.curr_hotbed_temp, ' °C')),
   );

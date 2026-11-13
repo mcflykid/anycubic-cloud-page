@@ -53,6 +53,30 @@ _LANGUAGES = {
     ),
 }
 
+CONNECTION_TITLES = {
+    "cloud_unavailable": (
+        "Connexion Anycubic Cloud interrompue",
+        "Anycubic Cloud connection interrupted",
+        "Conexión con Anycubic Cloud interrumpida",
+        "Anycubic-Cloud-Verbindung unterbrochen",
+        "Connessione ad Anycubic Cloud interrotta",
+    ),
+    "cloud_reconnect": (
+        "Reconnectez votre compte Anycubic",
+        "Reconnect your Anycubic account",
+        "Vuelve a conectar tu cuenta de Anycubic",
+        "Anycubic-Konto erneut verbinden",
+        "Ricollega il tuo account Anycubic",
+    ),
+    "cloud_recovered": (
+        "Connexion Anycubic Cloud rétablie",
+        "Anycubic Cloud connection restored",
+        "Conexión con Anycubic Cloud restablecida",
+        "Anycubic-Cloud-Verbindung wiederhergestellt",
+        "Connessione ad Anycubic Cloud ripristinata",
+    ),
+}
+
 ACE_TITLES = {
     "maintenance_due": ("Entretien", "Maintenance", "Mantenimiento", "Wartung", "Manutenzione"),
     "queue_next": (
@@ -190,7 +214,7 @@ def format_message(event, config):
     else:
         at = datetime.fromtimestamp(event.timestamp, timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         name = clean_label(event.printer, 80) or printer
-        titles = ACE_TITLES.get(event.result)
+        titles = CONNECTION_TITLES.get(event.result) or ACE_TITLES.get(event.result)
         title = (
             titles[tuple(_LANGUAGES).index(config.language)]
             if titles

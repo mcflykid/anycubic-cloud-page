@@ -7,6 +7,9 @@ import asyncio, base64, contextlib, hashlib, json, math, os, pathlib, secrets, t
 UC = "https://uc.makeronline.com"
 CLIENT_ID = "b269a3136d26ac6488bb"
 REDIRECT = "acnext://login"
+RECONNECT_NOTICE = (
+    "Renouvellement de la session Anycubic refusé. Reconnectez votre compte Anycubic."
+)
 
 
 def claims(token):
@@ -109,6 +112,13 @@ class AccountAuth:
                 result = await response.json()
             except (ValueError, aiohttp.ContentTypeError):
                 raise RuntimeError("Réponse de connexion Anycubic illisible") from None
+            if (
+                response.status == 400
+                and path.endswith("/refresh_token")
+                and isinstance(result, dict)
+                and result.get("error") == "invalid_grant"
+            ):
+                raise AccountRefreshRejected("Renouvellement Anycubic refusé")
             if response.status != 200 or not isinstance(result, dict):
                 raise RuntimeError("Connexion au compte Anycubic refusée")
             return result
@@ -207,9 +217,11 @@ class AccountAuth:
 
     def retry_failed(self, error):
         """Stoppe sur refus explicite ; les pannes temporaires suivent un délai de 30 secondes à 30 minutes."""
-        if isinstance(error, AccountLoginRejected):
+        if isinstance(error, (AccountLoginRejected, AccountRefreshRejected)):
             self.login_blocked = True
-            self.notice = str(error)
+            self.notice = (
+                RECONNECT_NOTICE if isinstance(error, AccountRefreshRejected) else str(error)
+            )
         else:
             self.retry_failures = min(self.retry_failures + 1, 7)
             self.retry_after = time.time() + min(1800, 30 * 2 ** (self.retry_failures - 1))
@@ -255,6 +267,8 @@ class AccountAuth:
             current = self.valid(token)
             try:
                 self.check_retry()
+            except AccountLoginRejected:
+                raise
             except RuntimeError:
                 if current:
                     return token
@@ -265,10 +279,7 @@ class AccountAuth:
                 return token
             try:
                 if self.state.get("refresh_token"):
-                    try:
-                        await self.refresh(session)
-                    except AccountRefreshRejected:
-                        await self.login(session)
+                    await self.refresh(session)
                 else:
                     await self.login(session)
                 self.retry_succeeded()
@@ -281,7 +292,7 @@ class AccountAuth:
                 aiohttp.ClientError,
             ) as error:
                 self.retry_failed(error)
-                if current:
+                if current and not self.login_blocked:
                     return token
                 raise RuntimeError(self.notice) from None
 
@@ -298,10 +309,7 @@ class AccountAuth:
             self.check_retry()
             try:
                 if self.state.get("refresh_token"):
-                    try:
-                        await self.refresh(session)
-                    except AccountRefreshRejected:
-                        await self.login(session)
+                    await self.refresh(session)
                 else:
                     await self.login(session)
                 self.retry_succeeded()

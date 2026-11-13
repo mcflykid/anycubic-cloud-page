@@ -37,7 +37,7 @@ export { previewJob } from './workshop-overview.mjs';
 
 let printerCatalogueReady = false,
   printerCataloguePending = false,
-  connectionFailure = false;
+  connectionNotice = null;
 /** Le choix reste propre au navigateur ; les valeurs périmées se replient sur le défaut fourni par le serveur. */
 async function loadPrinters() {
   if (printerCataloguePending) return;
@@ -144,6 +144,18 @@ correctFinish.onchange = () => {
   finishEstimate('printer-finish', estimate);
 };
 
+/** Un relevé répété conserve l’heure et respecte la fermeture manuelle du même incident. */
+function showConnectionNotice(text) {
+  if (text === connectionNotice?.text || (!text && !connectionNotice)) return;
+  if (!text) {
+    if ($('message-text').textContent === connectionNotice.rendered) message('');
+    connectionNotice = null;
+    return;
+  }
+  message(text, true);
+  connectionNotice = { text, rendered: $('message-text').textContent };
+}
+
 async function refreshState() {
   let received = false;
   try {
@@ -151,10 +163,6 @@ async function refreshState() {
     const trackingQuery = printTrackingQuery();
     const d = await request('/status' + trackingQuery);
     received = true;
-    if (connectionFailure && d.ok) {
-      message('');
-      connectionFailure = false;
-    }
     workshopState.snapshot = d;
     updatePrintConfirmation(d.ok === true, new URLSearchParams(trackingQuery).get('print_tracking'));
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
@@ -180,12 +188,10 @@ async function refreshState() {
       'updated',
       `${tr('Dernière actualisation')} : ${date([d.updated_at, d.mqtt_updated_at].filter(Boolean).sort().at(-1))} · ${timeZone}`,
     );
-    if (!d.ok && d.message) {
-      connectionFailure = true;
-      message(d.message, true);
-    }
-    if (d.account_message)
-      message(serverText(d.account_message, 'Échec de la lecture auprès d’Anycubic.'), true);
+    const cloudWarning = d.ok ? null : d.account_message || d.message;
+    showConnectionNotice(cloudWarning
+      ? serverText(cloudWarning, 'Échec de la lecture auprès d’Anycubic.')
+      : null);
     const diagnosticLink = $('diagnostic-download'),
       diagnosticQuery = workshopState.selectedPrinter
         ? '?' + new URLSearchParams({printer: workshopState.selectedPrinter})
@@ -226,9 +232,8 @@ async function refreshState() {
     if (received) console.warn('Échec du rendu après réception de l’état de l’atelier.');
     else updatePrintConfirmation(false);
     settings.disableQuickControls();
-    connectionFailure = true;
     set('connection', tr('Connexion indisponible'));
-    message(tr('Connexion au serveur momentanément indisponible.'), true);
+    showConnectionNotice(tr('Connexion au serveur momentanément indisponible.'));
   }
 }
 /** Change le panneau actif, charge ses données et ferme la session vidéo lorsque l’utilisateur quitte la caméra. */

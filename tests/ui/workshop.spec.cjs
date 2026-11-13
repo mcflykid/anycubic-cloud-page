@@ -336,3 +336,41 @@ test('la détection IA garde les réglages visibles en cas d’échec et suit le
  await toggle.uncheck();
  await expect(save).toBeDisabled();
 });
+
+test('le bandeau Cloud reste fermé pour le même incident et disparaît au rétablissement', async ({page}) => {
+  const outage = 'Connexion Anycubic temporairement indisponible. Nouvelle tentative différée.';
+  const reconnect = 'Renouvellement de la session Anycubic refusé. Reconnectez votre compte Anycubic.';
+  let state = {ok:false, account_message:outage};
+  let reads = 0;
+  await page.route(/\/imprimante-api\/status(?:\?|$)/, async route => {
+    const response = await route.fetch();
+    const json = {...await response.json(), ...state};
+    await route.fulfill({response, json});
+    reads++;
+  });
+  await login(page, 'summary');
+  const banner = page.locator('#message');
+  await expect(banner).toContainText(outage);
+  await page.locator('#message-close').click();
+  const first = reads;
+  await expect.poll(() => reads, {timeout: 8000}).toBeGreaterThan(first);
+  await expect(banner).toBeHidden();
+  state = {ok:false, account_message:reconnect};
+  await expect(banner).toContainText(reconnect, {timeout: 8000});
+  state = {ok:true, account_message:outage};
+  await expect(banner).toBeHidden({timeout: 8000});
+  state = {ok:false, account_message:outage};
+  await expect(banner).toContainText(outage, {timeout: 8000});
+});
+
+test('le Résumé affiche les couches rapportées pendant l’impression', async ({page}) => {
+  await page.route(/\/imprimante-api\/status(?:\?|$)/, async route => {
+    const response = await route.fetch();
+    const json = await response.json();
+    Object.assign(json.printer, {is_busy:true, job_in_progress:true, job_state:'printing', job_current_layer:97, job_total_layers:100});
+    await route.fulfill({response, json});
+  });
+  await login(page, 'summary');
+  await expect(page.locator('#summary-printer-values')).toContainText('Couche');
+  await expect(page.locator('#summary-printer-values')).toContainText('97 / 100');
+});

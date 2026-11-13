@@ -9208,5 +9208,23 @@
     "es": "Una bobina seleccionada no está disponible.",
     "de": "Eine ausgewählte Spule ist nicht verfügbar.",
     "it": "Una bobina selezionata non è disponibile."
+  },
+  "Couche": {
+    "en": "Layer",
+    "es": "Capa",
+    "de": "Schicht",
+    "it": "Strato"
+  },
+  "Renouvellement de la session Anycubic refusé. Reconnectez votre compte Anycubic.": {
+    "en": "Anycubic session renewal was refused. Reconnect your Anycubic account.",
+    "es": "Se rechazó la renovación de la sesión de Anycubic. Vuelve a conectar tu cuenta de Anycubic.",
+    "de": "Die Anycubic-Sitzung konnte nicht verlängert werden. Verbinden Sie Ihr Anycubic-Konto erneut.",
+    "it": "Rinnovo della sessione Anycubic rifiutato. Ricollega il tuo account Anycubic."
+  },
+  "Connexion Anycubic temporairement indisponible. Nouvelle tentative différée.": {
+    "en": "Anycubic connection temporarily unavailable. A new attempt is scheduled.",
+    "es": "Conexión con Anycubic no disponible temporalmente. Se ha pospuesto el siguiente intento.",
+    "de": "Anycubic-Verbindung vorübergehend nicht verfügbar. Der nächste Versuch wurde verschoben.",
+    "it": "Connessione ad Anycubic temporaneamente non disponibile. Il prossimo tentativo è stato rinviato."
   }
 }

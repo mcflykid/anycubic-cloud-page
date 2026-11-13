@@ -151,6 +151,10 @@ Adaptez le nom web et PASSWORD_FILE à votre configuration. Le statut doit conte
 Une recréation interrompt brièvement HTTP et invalide les sessions web. Reconnectez-vous après healthy. Des lectures peuvent recevoir 502 durant cette fenêtre ; corrélez les journaux à l’heure de démarrage et vérifiez l’absence de nouvelles erreurs après disponibilité, sans effacer les anciennes traces. Aucun ordre d’impression n’est nécessaire pour contrôler une installation.
 
 
+### Reconnecter le même compte Anycubic
+
+Si l’atelier signale un refus de renouvellement, vérifiez les identifiants du compte configuré. Arrêtez le service, déplacez le fichier privé `account-session.json` vers une sauvegarde hors du dossier monté, puis redémarrez avec les identifiants du même compte. L’atelier demande alors une nouvelle session à Anycubic. Le compte web de l’atelier et les autres données sont conservés.
+
 ### Changer de compte Anycubic
 
 Un dossier appdata reste associé à son compte enregistré. Pour changer de compte, sauvegardez ce dossier, choisissez un nouvel `APPDATA_DIR` et renseignez les identifiants de ce compte. La préparation refuse de remplacer le compte d’un dossier existant.

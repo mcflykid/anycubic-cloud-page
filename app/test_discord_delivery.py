@@ -40,6 +40,26 @@ class DiscordDeliveryTests(unittest.IsolatedAsyncioTestCase):
         """Annule la tâche simulée si un test s’arrête avant sa fin."""
         await self.delivery.close()
 
+    async def test_cloud_incidents_are_reported_once_even_without_cloud_history(self):
+        """Un refus est immédiat, une panne passagère reste silencieuse et la reprise suit l’alerte."""
+        for state in (
+            "unavailable",
+            "available",
+            "unavailable",
+            "unavailable",
+            "reconnect",
+            "reconnect",
+            "available",
+            "available",
+        ):
+            self.clock += 60
+            await self.delivery.observe_connection(state)
+        await self.delivery.join()
+        self.assertEqual(
+            [call.args[1].result for call in self.send.await_args_list],
+            ["cloud_unavailable", "cloud_reconnect", "cloud_recovered"],
+        )
+
     def test_cloud_evidence_is_strict_and_correlates_both_sources(self):
         """Un arrêt ou un code isolé ne devient pas un échec."""
         legacy = [
