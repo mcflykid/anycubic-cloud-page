@@ -92,3 +92,8 @@
 @container printer (max-width: 430px) {
   #tab-overview .printer-task-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* La chronologie suit les commandes d’impression pour garder le pied visible sur téléphone. */
+.printer-timeline-card:has(> #printer-timeline[hidden]) { display: none; }
+.printer-timeline-card { margin-block-start: var(--atelier-space-4); }
+.printer-timeline-card > #printer-timeline { padding: var(--atelier-space-4); }

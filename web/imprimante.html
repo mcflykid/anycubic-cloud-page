@@ -63,7 +63,6 @@
         <img id="printer-illustration" src="/imprimante-api/ui/icons/printer.svg" class="summary-device-image" alt="" width="380" height="380">
         <div class="printer-task-info"><div><h3 id="job-name" tabindex="0">L’imprimante se connecte.</h3><p id="job-state" class="muted"></p></div>
           <div class="atelier-progress-group" id="job-progress-wrap" hidden><label for="job-progress">Progression <strong id="job-progress-text"></strong></label><progress id="job-progress" value="0" max="100"></progress></div>
-          <details id="printer-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><ol></ol></details>
           <p id="printer-finish" class="muted" tabindex="0" hidden></p>
           <dl id="job-stats" class="atelier-measures"></dl>
         </div>
@@ -87,6 +86,7 @@
     <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
     <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien</button><button id="queue-open" type="button" aria-haspopup="dialog">File d’attente</button></div>
   </section>
+    <section class="atelier-card printer-timeline-card"><details id="printer-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><ol></ol></details></section>
 </section>
 <section id="tab-ace" class="tab-panel" hidden>
   <div class="ace-workspace">
