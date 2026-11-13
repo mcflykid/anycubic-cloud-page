@@ -15,6 +15,10 @@ test('les filtres de fichiers combinent matière et durée et isolent les donné
  await page.locator('#file-duration').selectOption('short');
  await expect(page.locator('#file-rows')).toContainText('PLA court.gcode');
  await expect(page.locator('#file-count')).toHaveText('1 fichier(s) sur 3');
+ await expect(page.locator('#file-filter-count')).toHaveText('(2)');
+ await page.locator('#file-filter-chips').getByRole('button',{name:'PLA ×'}).click();
+ await expect(page.locator('#file-filter-count')).toHaveText('(1)');
+ await expect(page.locator('#file-duration')).toHaveValue('short');
  await page.locator('#file-filters-clear').click();
  await page.locator('#file-material').selectOption('unknown');
  await expect(page.locator('#file-rows')).toContainText('Sans fiche.gcode');

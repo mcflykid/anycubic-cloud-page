@@ -92,6 +92,26 @@ export function createFiles(request, command, addToQueue) {
     if ([...select.options].map(option => option.value).join() !== options.map(option => option.value).join())
       select.replaceChildren(...options);
   }
+  /** Permet de retirer un filtre actif sans effacer les autres sélections. */
+  function renderFilterChips() {
+    const filters = ['file-material', 'file-colors', 'file-duration', 'file-added'];
+    const options = filters.flatMap(id => [...$(id).selectedOptions].filter(option => option.value));
+    const count = $('file-filter-count');
+    count.hidden = options.length === 0;
+    count.textContent = '(' + options.length + ')';
+    $('file-filter-chips').replaceChildren(...options.map(option => {
+      const button = node('button', option.textContent + ' ×', 'atelier-control');
+      button.type = 'button';
+      button.onclick = () => {
+        const select = option.closest('select');
+        if (select.multiple) option.selected = false;
+        else select.value = '';
+        select.dispatchEvent(new Event('change'));
+        $('file-advanced').querySelector('summary').focus();
+      };
+      return button;
+    }));
+  }
   /** Les actions gardent la source et le chemin de la liste reçue, même après un changement de vue. */
   function renderFiles(refreshQuota = true) {
     fileThumbnails.reset();
@@ -104,6 +124,7 @@ export function createFiles(request, command, addToQueue) {
         : fileRows
       : null;
     if (Array.isArray(list)) updateFileMaterials(list);
+    renderFilterChips();
     const rows = Array.isArray(list) ? visibleFiles(list) : [];
     set('file-count', Array.isArray(list)
       ? formatText('{0} fichier(s) sur {1}', rows.filter(file => !file.is_dir).length, list.filter(file => !file.is_dir).length) : '');

@@ -132,7 +132,7 @@
     <label class="atelier-field">Trier<select id="files-sort"><option value="">Ordre d’origine</option><option value="name">Nom</option><option value="size">Taille</option><option value="date">Date d’ajout</option><option value="duration">Durée estimée</option></select></label>
   </form>
   <details id="file-advanced">
-    <summary>Filtres avancés</summary>
+    <summary>Filtres avancés <span id="file-filter-count" hidden></span></summary>
     <div class="file-advanced-fields">
       <label class="atelier-field">Matière<select id="file-material" multiple size="3"></select></label>
       <label class="atelier-field">Nombre de couleurs<select id="file-colors"><option value="">Toutes</option><option value="one">Une couleur</option><option value="few">Deux à quatre couleurs</option><option value="many">Plus de quatre couleurs</option><option value="unknown">Inconnu</option></select></label>
@@ -140,6 +140,7 @@
       <label class="atelier-field">Date d’ajout<select id="file-added"><option value="">Toutes</option><option value="7">7 derniers jours</option><option value="30">30 derniers jours</option><option value="unknown">Inconnu</option></select></label>
       <button type="button" id="file-filters-clear">Effacer les filtres</button>
     </div>
+    <div id="file-filter-chips" class="file-filter-chips"></div>
     <p id="file-count" role="status"></p>
   </details>
   <section class="atelier-card files-card" aria-labelledby="files-title">
