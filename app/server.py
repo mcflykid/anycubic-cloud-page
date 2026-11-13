@@ -285,6 +285,9 @@ async def print_queue(req):
             details = (
                 {"seconds": seconds} if type(seconds) is int and 0 < seconds <= 30 * 86400 else {}
             )
+            details.update(
+                printer_files.cloud_filament_details(file, safeget(engine, "printer.machine_name"))
+            )
             entry = {"name": file.old_filename, "details": details}
         async with engine.lock:
             rows = await asyncio.to_thread(update_queue, path, action, handle, entry)
