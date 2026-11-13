@@ -98,7 +98,7 @@ export function createHistory(request, command, selectedBox) {
     }
     $('notifications-filter-dot').hidden = !noticeUnread;
     set('notifications-title', formatText('Messages ({0})', displayed));
-    $('history-read-all').disabled = !noticeUnread || noticeSource === 'slicer';
+    $('history-read-all').disabled = !noticeUnread;
   }
   /** Filtre les messages chargés ; les noms du cloud restent du texte et les aperçus sont différés. */
   function renderNotifications() {
@@ -167,9 +167,7 @@ export function createHistory(request, command, selectedBox) {
     else delete $('history-state').dataset.visualState;
     $('history-state').hidden = !state;
     $('notifications-more').hidden = !noticeMore;
-    const fromSlicer = noticeSource === 'slicer';
-    $('history-read-all').hidden = $('history-delete-all').hidden = fromSlicer;
-    $('history-delete-all').disabled = fromSlicer || !noticeRows.length;
+    $('history-delete-all').disabled = !noticeRows.length;
   }
   /** Chaque événement conserve sa miniature, son horodatage et ses actions individuelles. */
   function notificationRow(item) {
@@ -241,7 +239,6 @@ export function createHistory(request, command, selectedBox) {
     content.append(open);
     if (errorBlock) content.append(errorBlock);
     row.append(content);
-    if (noticeSource === 'slicer') return row;
     const remove = node('button', '×', 'notification-delete');
     remove.type = 'button';
     remove.setAttribute('aria-label', tr('Supprimer la notification : ') + item.name);
@@ -253,11 +250,11 @@ export function createHistory(request, command, selectedBox) {
   /** Le marquage est confirmé avant le détail ; aucune impression n’est déclenchée. */
   async function openNotice(item) {
     try {
-      if (item.unread && noticeSource !== 'slicer') {
+      if (item.unread) {
         await request('/history/read', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: item.key }),
+          body: JSON.stringify({ key: item.key, source: noticeSource }),
         });
         item.unread = false;
         updateNoticeCount(noticeUnread - 1);
@@ -350,14 +347,14 @@ export function createHistory(request, command, selectedBox) {
     if (latest?.source === 'slicer') syncNotifications(latest);
     historyOpen.focus({preventScroll: true});
   });
-  /** Marque une notification ou toutes comme lues ; allItems exige une confirmation puis rafraîchit le journal. */
+  /** Relit le journal après confirmation du marquage par le Cloud. */
   async function markHistoryRead(key, allItems, button) {
     button.disabled = true;
     try {
       const result = await request('/history/read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(allItems ? { all: true } : { key }),
+        body: JSON.stringify({ source: noticeSource, ...(allItems ? { all: true } : { key }) }),
       });
       message(result.message);
       historyPage = 1;
@@ -386,7 +383,7 @@ export function createHistory(request, command, selectedBox) {
       const result = await request('/history/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(allItems ? { all: true } : { key }),
+        body: JSON.stringify({ source: noticeSource, ...(allItems ? { all: true } : { key }) }),
       });
       message(result.message);
       historyPage = 1;

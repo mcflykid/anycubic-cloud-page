@@ -366,13 +366,22 @@ async def history_read(req):
     """Renvoie la confirmation de lecture ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
     data = await json_object(req)
+    source = data.get("source", "legacy")
+    if source not in ("legacy", "slicer"):
+        raise ValueError("Journal de notifications invalide")
     if data.get("all") is not True and not re.fullmatch(r"[a-f0-9]{20}", str(data.get("key", ""))):
         raise ValueError("Notification invalide")
     if not engine.api:
         raise ValueError("Connexion en cours")
     async with engine.lock:
         return web.json_response(
-            await engine.mark_history_read(data.get("key"), data.get("all") is True),
+            await (
+                engine.notifications.mutate_slicer(
+                    engine.api, data.get("key"), data.get("all") is True
+                )
+                if source == "slicer"
+                else engine.mark_history_read(data.get("key"), data.get("all") is True)
+            ),
             headers={"Cache-Control": "no-store"},
         )
 
@@ -381,6 +390,9 @@ async def history_delete(req):
     """Renvoie la confirmation d’effacement ; lève ValueError si la clé de notification est invalide."""
     engine = request_engine(req)
     data = await json_object(req)
+    source = data.get("source", "legacy")
+    if source not in ("legacy", "slicer"):
+        raise ValueError("Journal de notifications invalide")
     async with audit_command(req, engine, "history-delete", None, {}) as audit:
         if data.get("all") is not True and not re.fullmatch(
             r"[a-f0-9]{20}", str(data.get("key", ""))
@@ -393,7 +405,13 @@ async def history_delete(req):
                 if audit:
                     audit["outcome"] = "inconnue"
                     await save_command_event(req, audit)
-                result = await engine.delete_history(data.get("key"), data.get("all") is True)
+                result = await (
+                    engine.notifications.mutate_slicer(
+                        engine.api, data.get("key"), data.get("all") is True, delete=True
+                    )
+                    if source == "slicer"
+                    else engine.delete_history(data.get("key"), data.get("all") is True)
+                )
                 if audit:
                     audit["outcome"] = "acceptée"
                 return web.json_response(result, headers={"Cache-Control": "no-store"})

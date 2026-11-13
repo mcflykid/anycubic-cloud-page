@@ -24,6 +24,7 @@ from web_host import (
 
 T = time.time()
 NOTICES = web.AppKey("notices", list)
+SLICER_NOTICES = web.AppKey("slicer_notices", list)
 PRINT_TASKS = web.AppKey("print_tasks", list)
 NOTICE_FIXTURES = [
     {
@@ -198,9 +199,11 @@ async def api(request):
     """Renvoie des données fictives ; simule les messages en mémoire et refuse toute commande physique."""
     path = request.match_info["tail"]
     notices = request.app[NOTICES]
+    slicer_notices = request.app[SLICER_NOTICES]
     tasks = request.app[PRINT_TASKS]
     if path == "demo/reset" and request.method == "POST":
         notices[:] = [dict(x) for x in NOTICE_FIXTURES]
+        slicer_notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         tasks[:] = [dict(x) for x in TASKS]
         return web.json_response({"ok": True})
     if path == "preflight" and request.method == "POST":
@@ -216,12 +219,16 @@ async def api(request):
         )
     if path == "history/read" and request.method == "POST":
         data = await request.json()
+        if data.get("source") == "slicer":
+            notices = slicer_notices
         for item in notices:
             if data.get("all") or item["key"] == data.get("key"):
                 item["unread"] = False
         return web.json_response({"ok": True, "message": "Messages fictifs marqués comme lus"})
     if path == "history/delete" and request.method == "POST":
         data = await request.json()
+        if data.get("source") == "slicer":
+            notices = slicer_notices
         notices[:] = [x for x in notices if not data.get("all") and x["key"] != data.get("key")]
         return web.json_response({"ok": True, "message": "Messages fictifs supprimés"})
     if path == "camera-presence" and request.method == "POST":
@@ -332,10 +339,10 @@ async def api(request):
             ],
             "notifications": {
                 "source": "slicer",
-                "items": NOTICE_FIXTURES,
+                "items": slicer_notices,
                 "page": 1,
-                "total": len(NOTICE_FIXTURES),
-                "unread": sum(x["unread"] for x in NOTICE_FIXTURES),
+                "total": len(slicer_notices),
+                "unread": sum(x["unread"] for x in slicer_notices),
                 "has_more": False,
             },
             "events": [
@@ -430,7 +437,7 @@ async def api(request):
     elif path == "history":
         source = request.query.get("source", "legacy")
         # Les écritures du journal de démonstration ne modifient pas la cloche Cloud.
-        rows = NOTICE_FIXTURES if source == "slicer" else notices
+        rows = slicer_notices if source == "slicer" else notices
         d = {
             "source": source,
             "items": rows,
@@ -467,6 +474,7 @@ def create_demo(authenticated=False):
     """Renvoie une démonstration sans cloud ; authenticated active la connexion web réelle."""
     app = web.Application(middlewares=[access_control] if authenticated else [])
     app[NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
+    app[SLICER_NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
     app[PRINT_TASKS] = [dict(x) for x in TASKS]
     if authenticated:
         install_access(app)

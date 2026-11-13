@@ -179,6 +179,7 @@ class AccountNotifications:
         self.lock = asyncio.Lock()
         self.cache = {}
         self.keys = {}
+        self.slicer_keys = {}
         self.rows = {}
 
     async def page(self, api, page, source=None):
@@ -203,12 +204,17 @@ class AccountNotifications:
                 result = await self._legacy_page(api, page)
             result["updated_at"] = datetime.now(timezone.utc).isoformat()
             self.cache[cache_key] = (time.monotonic(), result)
-            for entries, limit in ((self.cache, 10), (self.keys, 1000), (self.rows, 1000)):
+            for entries, limit in (
+                (self.cache, 10),
+                (self.keys, 1000),
+                (self.slicer_keys, 1000),
+                (self.rows, 1000),
+            ):
                 while len(entries) > limit:
                     entries.pop(next(iter(entries)))
             return result
 
-    async def _slicer_page(self, api, page):
+    async def _slicer_messages(self, api, page):
         # Le mode normal du slicer lit tous les statuts sans modifier leur état.
         response = await api._fetch_api_resp(
             AnycubicAPIEndpoint(HTTP_METHODS.POST, "/farm/message/list"),
@@ -227,6 +233,10 @@ class AccountNotifications:
             or not isinstance(response.get("data"), list)
         ):
             raise ValueError("Le journal du slicer est temporairement indisponible")
+        return response
+
+    async def _slicer_page(self, api, page):
+        response = await self._slicer_messages(api, page)
         rows = []
         for item in response["data"][:20]:
             if not isinstance(item, dict) or type(item.get("id")) is not int or item["id"] <= 0:
@@ -267,8 +277,9 @@ class AccountNotifications:
                 if isinstance(image_id, str) and len(image_id) <= 256:
                     raw["slice_param"] = {"image_id": image_id}
             entry = history_entry(raw)
-            # Les deux API ont des identifiants indépendants et les actions historiques ne doivent jamais les résoudre.
+            # Les deux API ont des identifiants indépendants, même si les valeurs numériques coïncident.
             key = hashlib.sha256(f"slicer:{item['id']}".encode()).hexdigest()[:20]
+            self.slicer_keys[key] = item["id"]
             self.rows[key] = raw
             rows.append({**entry, "key": key})
 
@@ -358,6 +369,75 @@ class AccountNotifications:
             "unread": unread,
             "has_more": page * 20 < total if total is not None else len(rows) == 20,
         }
+
+    async def mutate_slicer(self, api, key, all_items, *, delete=False):
+        """Modifie les messages du slicer par ID connu et exige une réponse positive du Cloud."""
+        async with self.lock:
+            if all_items:
+                ids = await self._all_slicer_ids(api)
+            else:
+                message_id = self.slicer_keys.get(str(key))
+                if message_id is None:
+                    raise ValueError("Actualisez les messages avant de modifier cette notification")
+                ids = [message_id]
+            if ids:
+                endpoint = "/farm/message/bulkDelete" if delete else "/farm/message/read"
+                try:
+                    result = await api._fetch_api_resp(
+                        AnycubicAPIEndpoint(HTTP_METHODS.POST, endpoint),
+                        params={"message_ids": ids, "aggregate_mode": 0},
+                    )
+                finally:
+                    # Une réponse perdue laisse l’état indéterminé jusqu’à la prochaine lecture.
+                    self.cache.clear()
+                if not isinstance(result, dict) or result.get("code") != 1:
+                    raise ValueError("Anycubic n’a pas confirmé la mise à jour des notifications")
+                if delete:
+                    for reference, message_id in list(self.slicer_keys.items()):
+                        if message_id in ids:
+                            self.slicer_keys.pop(reference)
+                            self.rows.pop(reference, None)
+            return {
+                "ok": True,
+                "message": (
+                    ("Notifications effacées" if all_items else "Notification effacée")
+                    if delete
+                    else (
+                        "Notifications marquées comme lues"
+                        if all_items
+                        else "Notification marquée comme lue"
+                    )
+                ),
+            }
+
+    async def _all_slicer_ids(self, api):
+        ids = set()
+        expected = None
+        for page in range(1, 251):
+            result = await self._slicer_messages(api, page)
+            pagination = result.get("pageData")
+            total = pagination.get("total") if isinstance(pagination, dict) else None
+            if expected is None:
+                expected = total
+            rows = result["data"]
+            page_ids = {
+                row["id"]
+                for row in rows
+                if isinstance(row, dict) and type(row.get("id")) is int and row["id"] > 0
+            }
+            if (
+                type(total) is not int
+                or not 0 <= total <= 5000
+                or total != expected
+                or len(rows) != min(20, total - len(ids))
+                or len(rows) != len(page_ids)
+                or ids.intersection(page_ids)
+            ):
+                break
+            ids.update(page_ids)
+            if len(ids) == total:
+                return sorted(ids)
+        raise ValueError("Lecture de l’historique impossible ; aucun effacement envoyé")
 
     async def mark_read(self, api, key=None, all_items=False):
         """Marque une clé connue ou toutes les notifications ; lève ValueError sans confirmation cloud."""

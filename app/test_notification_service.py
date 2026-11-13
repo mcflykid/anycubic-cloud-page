@@ -79,6 +79,37 @@ class NotificationSourceTests(unittest.IsolatedAsyncioTestCase):
             await service.delete(api, row["key"])
         self.assertEqual(api._fetch_api_resp.await_count, 4)
 
+    async def test_slicer_mutations_use_only_validated_message_ids(self):
+        """Une clé du slicer permet une lecture ciblée et une collecte incohérente bloque la suppression."""
+        service = AccountNotifications()
+        page = {
+            "code": 1,
+            "pageData": {"total": 1},
+            "data": [{"id": 18, "task_name": "Cube fictif", "status": 0}],
+        }
+        api = SimpleNamespace(
+            _fetch_api_resp=AsyncMock(
+                side_effect=[
+                    page,
+                    {"code": 1},
+                    {"code": 1},
+                    {**page, "pageData": {"total": 2}},
+                    page,
+                    {"code": 1},
+                ]
+            )
+        )
+        result = await service.page(api, 1, "slicer")
+        await service.mutate_slicer(api, result["items"][0]["key"], False)
+        with self.assertRaisesRegex(ValueError, "aucun effacement"):
+            await service.mutate_slicer(api, None, True, delete=True)
+        await service.mutate_slicer(api, None, True, delete=True)
+        calls = api._fetch_api_resp.await_args_list
+        self.assertEqual(calls[2].args[0].endpoint, "/farm/message/read")
+        self.assertEqual(calls[5].args[0].endpoint, "/farm/message/bulkDelete")
+        self.assertEqual(calls[2].kwargs["params"], {"message_ids": [18], "aggregate_mode": 0})
+        self.assertEqual(calls[5].kwargs["params"], calls[2].kwargs["params"])
+
     async def test_legacy_list_survives_missing_or_malformed_count_data(self):
         """Le compteur absent ou illisible ne rend pas indisponible une liste de notifications valide."""
         for counts in (
