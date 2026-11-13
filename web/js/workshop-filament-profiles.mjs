@@ -104,6 +104,10 @@ function showProfile(spool, title, hex, name, profile, personal) {
   );
   const source = $('filament-profile-source');
   source.href = profile.url;
+  const communitySource = $('filament-profile-community-source');
+  communitySource.hidden = !profile.profileSource;
+  if (profile.profileSource) communitySource.href = profile.profileSource;
+  else communitySource.removeAttribute('href');
   const datasheet = $('filament-profile-datasheet');
   datasheet.hidden = !profile.datasheet;
   if (profile.datasheet) datasheet.href = profile.datasheet;

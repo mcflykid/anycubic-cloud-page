@@ -322,10 +322,41 @@ export function finishEstimate(id, estimate) {
     estimate.samples, estimate.factor.toLocaleString(locale), estimate.live_weight);
 }
 
-/** Affiche les phases constatées et les changements de bobine dans l’ordre des relevés. */
+const timelineIcons = {
+  downloading: 'M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4',
+  checking: 'M9 12l2 2 4-4M5 4h14v16H5z',
+  preheating: 'M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0zM12 10v7',
+  leveling: 'M3 17h18M4 13l16-3M7 7h10',
+  printing: 'M12 3l9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5',
+  paused: 'M9 5v14m6-14v14',
+  resumed: 'M8 5l11 7-11 7z',
+  finished: 'M4 12l5 5L20 6',
+  failed: 'M6 6h12v12H6z',
+  spool: 'M20 11a8 8 0 1 0-2 6m2-12v6h-6M12 10v4',
+  filament_low: 'M12 4l9 16H3zM12 9v4m0 3v.2',
+};
+
+/** Le bouton et le texte de l’événement portent déjà le libellé du pictogramme. */
+function timelineIcon(kind) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(ns, 'svg');
+  const path = document.createElementNS(ns, 'path');
+  icon.setAttribute('class', 'ui-icon');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '2');
+  icon.setAttribute('stroke-linecap', 'round');
+  icon.setAttribute('stroke-linejoin', 'round');
+  path.setAttribute('d', timelineIcons[kind]);
+  icon.append(path);
+  return icon;
+}
+
+/** Regroupe les relevés par journée locale sans perdre l’heure complète des repères clavier. */
 export function printTimeline(id, events = []) {
   const section = $(id);
-  section.hidden = !events.length;
   const labels = {
     downloading: 'Téléchargement en cours', checking: 'Vérification…',
     preheating: 'Préchauffage', leveling: 'Mise à niveau du plateau',
@@ -333,8 +364,9 @@ export function printTimeline(id, events = []) {
     finished: 'Impression terminée', failed: 'Impression arrêtée', spool: 'Changement de bobine',
     filament_low: 'Filament bientôt épuisé',
   };
-  const list = section.querySelector('ol');
-  const entries = events.filter(event => labels[event.kind]);
+  const days = section.querySelector('.timeline-days');
+  const entries = events.filter(event => Object.hasOwn(labels, event.kind));
+  section.hidden = !entries.length;
   const signature = JSON.stringify(entries);
   if (section.dataset.events === signature) return;
   section.dataset.events = signature;
@@ -344,21 +376,32 @@ export function printTimeline(id, events = []) {
   const full = new Intl.DateTimeFormat(locale, {dateStyle:'short', timeStyle:'short', timeZone});
   const markers = section.querySelector('.timeline-markers');
   markers?.replaceChildren();
-  list.replaceChildren(...entries.map((event, index) => {
+  days.replaceChildren();
+  let previousDay, list;
+  entries.forEach((event, index) => {
     const slots = event.kind === 'spool' ? event.slots.map(([box, slot]) =>
       formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
     const shortages = event.kind === 'filament_low' ? (event.shortages || []).map(slot => formatText('Emplacement {0}', slot)).join(', ') : '';
-    // L’heure suffit dans une même journée ; la date n’apparaît qu’au changement de jour.
-    const sameDay = index > 0 && day.format(entries[index - 1].time * 1000) === day.format(event.time * 1000);
-    const stamp = (sameDay ? clock : full).format(event.time * 1000);
-    const text = [stamp, tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · ');
-    const item = node('li', text);
+    const timestamp = event.time * 1000;
+    const currentDay = day.format(timestamp);
+    if (currentDay !== previousDay) {
+      list = node('ol');
+      days.append(node('p', currentDay, 'timeline-day'), list);
+      previousDay = currentDay;
+    }
+    const text = [tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · ');
+    const time = node('time', clock.format(timestamp));
+    time.dateTime = new Date(timestamp).toISOString();
+    const item = node('li');
+    item.append(timelineIcon(event.kind), time, node('span', text));
+    list.append(item);
     if (markers) {
       item.tabIndex = -1;
-      const marker = node('button', '•');
+      const marker = node('button');
+      marker.append(timelineIcon(event.kind));
       marker.type = 'button';
-      marker.title = text;
-      marker.setAttribute('aria-label', text);
+      marker.title = [full.format(timestamp), text].join(' · ');
+      marker.setAttribute('aria-label', marker.title);
       marker.style.setProperty('--timeline-position', (last > first ? 100 * (event.time - first) / (last - first) : 50) + '%');
       marker.onclick = () => item.focus();
       marker.onkeydown = event => {
@@ -370,8 +413,7 @@ export function printTimeline(id, events = []) {
       };
       markers.append(marker);
     }
-    return item;
-  }));
+  });
 }
 /** Renvoie l’élément HTML par identifiant ; les contrôles de cette page partagent ce point d’accès. */
 export const $ = (id) => document.getElementById(id);

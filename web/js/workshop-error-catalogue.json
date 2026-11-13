@@ -33,10 +33,21 @@
     "source": "https://wiki.anycubic.com/en/error-codes#code10115-the-device-cannot-parse-the-file",
     "steps": [
       "Vérifiez le fichier réellement sélectionné et sa provenance : Cloud, mémoire de l’imprimante ou clé USB. Un modèle brut doit être tranché avant d’être utilisé comme fichier d’impression.",
-      "Retranchez le modèle avec le profil de votre imprimante et enregistrez le résultat sur l’ordinateur avant de le transférer.",
+      "Retrouvez le projet ou le modèle source. Tranchez-le avec le profil de votre imprimante et transférez le nouveau G-code.",
       "Si le problème revient, notez le format, la source et la version du micrologiciel pour le diagnostic."
     ],
     "title": "L’imprimante ne peut pas lire ce fichier"
+  },
+  "10116": {
+    "description": "L’imprimante signale un problème dans le fichier tranché.",
+    "models": [
+      "Kobra S1"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/10116-code/s1",
+    "steps": [
+      "Retrouvez le projet ou le modèle source. Tranchez-le avec le profil de votre imprimante et transférez le nouveau G-code."
+    ],
+    "title": "Fichier de tranchage anormal"
   },
   "10414": {
     "description": "La Kobra S1 signale une erreur système. Le code seul ne désigne pas une pièce en panne.",
@@ -75,6 +86,17 @@
       "Vérifiez si l’imprimante est connectée au Cloud, puis consultez l’état de la session dans l’onglet Caméra."
     ],
     "title": "Le flux vidéo n’a pas démarré"
+  },
+  "11509": {
+    "description": "L’imprimante n’a pas reçu la réponse attendue du module ACE.",
+    "models": [
+      "Kobra S1 ACE 2 Pro"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/11509-code/s1-v2",
+    "steps": [
+      "Vérifiez l’alimentation du module et le câble de liaison en suivant le guide du constructeur."
+    ],
+    "title": "Délai de réponse de l’ACE dépassé"
   },
   "11511": {
     "description": "La tête d’impression n’a pas détecté l’arrivée attendue du filament pendant l’alimentation.",
@@ -123,6 +145,18 @@
       "Consultez le guide Kobra S1 si le filament reste bloqué ou si le code revient."
     ],
     "title": "Blocage du filament détecté"
+  },
+  "11529": {
+    "description": "L’ACE 2 Pro signale une anomalie de la sonde NTC et a interrompu le séchage.",
+    "models": [
+      "Kobra S1 ACE 2 Pro"
+    ],
+    "source": "https://wiki.anycubic.com/en/error-codes/11529-code/s1-v2",
+    "steps": [
+      "Vérifiez l’état affiché sur l’appareil et laissez le séchage arrêté.",
+      "Consultez la procédure officielle avant toute intervention sur la sonde."
+    ],
+    "title": "Anomalie de la sonde de température de l’ACE"
   },
   "11530": {
     "description": "L’ACE 2 Pro signale une anomalie du chauffage PTC et a interrompu le séchage.",

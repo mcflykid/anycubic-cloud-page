@@ -10,8 +10,10 @@ let assignment;
 
 /** Garde les numéros globaux utilisés par l’ordre d’impression. */
 function slotChoices(printer) {
-  return (printer?.boxes || []).flatMap(box => box.spools || [])
-    .filter(spool => Number.isInteger(spool.display_slot ?? spool.slot) && (spool.display_slot ?? spool.slot) <= 8);
+  return (printer?.boxes || []).flatMap(box => (box.spools || []).map(spool => ({
+    ...spool, engaged: box.loaded_slot === (spool.local_slot ?? spool.slot) - 1,
+  })))
+    .filter(spool => Number.isInteger(spool.display_slot ?? spool.slot) && (spool.display_slot ?? spool.slot) >= 1 && (spool.display_slot ?? spool.slot) <= 8);
 }
 
 /** Actualise les choix après une modification des bobines, en préservant le focus. */
@@ -20,25 +22,29 @@ function renderAssignments() {
   const spools = slotChoices(workshopState.snapshot?.printer);
   const visible = !!assignment && spools.length > 0;
   $('print-ace').hidden = !visible;
-  $('print-mapping').hidden = visible || !$('print-mapping').dataset.manual;
   $('print-mapping-summary').hidden = visible || !$('print-mapping-summary').textContent;
+  $('print-add-slot').hidden = !visible || !assignment.manual;
   if (!visible) return;
+  $('print-add-slot').disabled = assignment.materials.length >= 8;
   const signature = JSON.stringify(spools.map(spool => [
-    spool.display_slot ?? spool.slot, spool.material_type, spool.color, spool.spool_loaded,
-  ]));
+    spool.display_slot ?? spool.slot, spool.material_type, spool.color, spool.spool_loaded, spool.reserved_by_ace, spool.engaged,
+  ]).concat(assignment.materials.length));
   if (assignment.signature === signature) return;
   const changed = assignment.signature != null;
   assignment.signature = signature;
   const focused = rows.contains(document.activeElement) ? Number(document.activeElement.dataset.filament) : -1;
   rows.replaceChildren(...assignment.materials.map((material, index) => {
     const label = node('label', undefined, 'atelier-field print-ace-row');
-    const title = node('span', formatText('Filament {0} · {1}', index + 1, material || tr('Matière non renseignée')));
-    const color = assignment.colors[index];
-    if (color?.length === 3) {
-      const swatch = node('span', undefined, 'material-color');
-      swatch.style.backgroundColor = `rgb(${color.join(',')})`;
-      title.prepend(swatch);
-    }
+    const title = node('span', material ? formatText('Filament {0} · {1}', index + 1, material) : formatText('Filament {0}', index + 1));
+    const swatch = node('span', undefined, 'material-color');
+    title.prepend(swatch);
+    const updateColor = () => {
+      const color = assignment.colors[index] || spools.find(
+        spool => (spool.display_slot ?? spool.slot) === assignment.slots[index],
+      )?.color;
+      swatch.hidden = color?.length !== 3;
+      if (!swatch.hidden) swatch.style.backgroundColor = `rgb(${color.join(',')})`;
+    };
     const select = node('select');
     select.dataset.filament = index;
     select.append(new Option(tr('Choisir un emplacement'), ''));
@@ -50,8 +56,9 @@ function renderAssignments() {
       const color = spool.color?.slice(0, 3);
       const hex = color?.length === 3 && color.every(value => Number.isInteger(value) && value >= 0 && value <= 255)
         ? ' · #' + color.map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase() : '';
-      const option = new Option(formatText('Emplacement {0} · {1}', slot, name) + hex, slot);
-      option.disabled = spool.spool_loaded !== true;
+      const engaged = spool.engaged ? ' · ' + tr('Bobine engagée') : '';
+      const option = new Option(formatText('Emplacement {0} · {1}', slot, name) + hex + engaged, slot);
+      option.disabled = spool.spool_loaded !== true || !!spool.reserved_by_ace;
       select.append(option);
     }
     select.value = assignment.slots[index] || '';
@@ -59,13 +66,27 @@ function renderAssignments() {
       select.value = '';
       assignment.slots[index] = 0;
     }
+    updateColor();
     select.onchange = () => {
       assignment.slots[index] = Number(select.value);
+      updateColor();
       updatePrintConfirmation();
       void assignment.updateAdvice?.([...assignment.slots]);
     };
     label.append(title, select);
-    return label;
+    if (!assignment.manual || index === 0) return label;
+    const remove = node('button', tr('Retirer'), 'atelier-control');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', formatText('Retirer le filament {0}', index + 1));
+    remove.onclick = () => {
+      assignment.materials.pop();
+      assignment.slots.splice(index, 1);
+      updatePrintConfirmation();
+      rows.querySelector(`[data-filament="${index - 1}"]`)?.focus();
+    };
+    const row = node('div', undefined, 'print-ace-manual-row');
+    row.append(label, remove);
+    return row;
   }));
   if (focused >= 0) rows.querySelector(`[data-filament="${focused}"]`)?.focus();
   if (changed) void assignment.updateAdvice?.([...assignment.slots]);
@@ -126,21 +147,28 @@ export function updatePrintConfirmation(available = statusAvailable, observedRef
     : printer.firmware_updating === true || printer.ace_updates?.some(entry => entry.updating === true) ? 'Mise à jour en cours'
     : printer.is_available !== true || printer.job_in_progress ? 'Imprimante non disponible'
     : '';
-  const missing = assignment && (assignment.requiresAce || !$('print-ace').hidden) &&
-    ($('print-ace').hidden || assignment.materials.some((_, index) => !assignment.slots[index]));
+  const chosen = assignment?.slots.some(Boolean);
+  const needsComplete = assignment && (!assignment.manual || assignment.requiresAce || chosen || assignment.materials.length > 1);
+  const missing = (assignment?.requiresAce && $('print-ace').hidden) ||
+    (needsComplete && !$('print-ace').hidden && assignment.materials.some((_, index) => !assignment.slots[index]));
   $('print-yes').disabled = !!state || !!missing;
   set('print-target', tr(state || (missing ? 'Choisissez un emplacement pour chaque filament.' : 'Disponible')));
 }
 
 /** Rend les données connues de la source et demande une validation liée à l’imprimante affichée. */
-export function confirmPrint({target, name, details = {}, image, advice = '', question, readSlots, mappingText = '', filaments, checkAdvice, queue, initialSlots = []}) {
+export function confirmPrint({target, name, details = {}, image, advice = '', question, chooseSpools = false, requireSpools = false, mappingText = '', filaments, checkAdvice, queue, initialSlots = []}) {
   const dialog = $('print-dialog');
   if (dialog.open) return Promise.resolve(null);
   clearTimeout(trackingTimer);
   tracking = null;
+  const spools = slotChoices(workshopState.snapshot?.printer);
   assignment = filaments?.materials?.length
     ? {materials: filaments.materials, colors: filaments.colors || [], slots: [...(filaments.slots || [])],
-        requiresAce: slotChoices(workshopState.snapshot?.printer).length > 0} : null;
+        requiresAce: spools.length > 0}
+    : chooseSpools && (spools.length || workshopState.snapshot?.printer?.connected_ace_units > 0)
+      ? {manual: true, materials: Array(Math.max(1, initialSlots.length)).fill(null),
+          colors: [], slots: [...initialSlots], requiresAce: requireSpools}
+      : null;
   if (assignment && checkAdvice) {
     const current = assignment;
     let revision = 0;
@@ -172,14 +200,16 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   preview.removeAttribute('src');
   preview.onload = () => { preview.hidden = false; fallback.hidden = true; };
   if (image) preview.src = image;
-  $('print-mapping').hidden = !readSlots;
   $('print-mapping-summary').hidden = !mappingText;
   set('print-mapping-summary', mappingText);
-  const mapping = $('print-slots');
-  $('print-mapping').dataset.manual = readSlots ? 'yes' : '';
-  mapping.value = initialSlots.join(', ');
-  mapping.oninput = () => mapping.setCustomValidity('');
-  mapping.setCustomValidity('');
+  $('print-add-slot').onclick = () => {
+    if (!assignment?.manual || assignment.materials.length >= 8) return;
+    const index = assignment.materials.length;
+    assignment.materials.push(null);
+    assignment.slots[index] = 0;
+    updatePrintConfirmation();
+    $('print-ace-rows').querySelector(`[data-filament="${index}"]`)?.focus();
+  };
   $('print-advice').hidden = !advice;
   set('print-advice', advice);
   set('print-question', question);
@@ -201,12 +231,9 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
     const saveToQueue = async () => {
       if (!queue || enqueue.disabled || printTarget !== workshopState.selectedPrinter) return;
       try {
-        const values = assignment && !$('print-ace').hidden ? assignment.slots : readSlots?.(mapping.value);
+        const values = assignment && !$('print-ace').hidden ? assignment.slots : [];
         enqueue.disabled = true;
         if (await queue(values?.every(Boolean) ? values : []) && dialog.open && enqueue.onclick === saveToQueue) finish();
-      } catch (error) {
-        mapping.setCustomValidity(error.message);
-        mapping.reportValidity();
       } finally {
         enqueue.disabled = false;
       }
@@ -216,16 +243,11 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
     $('print-yes').onclick = () => {
       updatePrintConfirmation();
       if ($('print-yes').disabled || enqueue.disabled) return;
-      try {
-        const slots = assignment && !$('print-ace').hidden ? assignment.slots : readSlots?.(mapping.value);
-        enqueue.hidden = true;
-        dialog.dataset.phase = 'confirmed';
-        $('print-yes').disabled = true;
-        resolve({slots});
-      } catch (error) {
-        mapping.setCustomValidity(error.message);
-        mapping.reportValidity();
-      }
+      const slots = assignment && !$('print-ace').hidden ? assignment.slots.filter(Boolean) : undefined;
+      enqueue.hidden = true;
+      dialog.dataset.phase = 'confirmed';
+      $('print-yes').disabled = true;
+      resolve({slots});
     };
   });
 }
@@ -259,7 +281,7 @@ export function showPrintProgress(text, reference, cancel) {
   dialog.dataset.phase = 'pending';
   dialog.oncancel = event => event.preventDefault();
   $('print-no').hidden = $('print-yes').hidden = true;
-  $('print-mapping').hidden = true;
+  $('print-add-slot').hidden = true;
   $('print-ace').disabled = true;
   $('print-options').open = false;
   set('print-result', text);

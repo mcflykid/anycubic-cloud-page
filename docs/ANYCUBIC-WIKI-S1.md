@@ -45,3 +45,9 @@ Les opérations proposées pour la Kobra S1 suivent la page [Maintenance Recomme
 Les courroies ne figurent pas sur cette page du wiki : l’ancienne opération n’est plus proposée par défaut, mais elle reste en place sur une installation existante. L’ancienne opération « Graisser les axes et tiges » est renommée pour rappeler que l’axe X ne se graisse pas.
 
 Une opération calendaire démarre lorsqu’elle est marquée comme faite. Une opération en heures accepte le compteur de la dernière intervention ; une opération en kilogrammes suit le filament cumulé indiqué par le constructeur.
+
+## Références ACE 2 Pro
+
+- Le [sommaire Kobra S1 ACE 2 Pro](https://wiki.anycubic.com/en/fdm-3d-printer/s1-ace-2-pro) est accessible depuis l’aide ACE. Le [guide de compatibilité](https://wiki.anycubic.com/en/fdm-3d-printer/ace-2-pro/compatibility-guide-for-other-models) décrit le câblage de la série S1.
+- Le [guide d’entretien ACE 2 Pro](https://wiki.anycubic.com/en/fdm-3d-printer/ace-2-pro/maintence) conseille un contrôle des rouleaux chaque mois et une inspection mensuelle du PTFE avec des filaments abrasifs comme le PLA Glow. Ces repères concernent le module.
+- Les codes [11509](https://wiki.anycubic.com/en/error-codes/11509-code/s1-v2), [11529](https://wiki.anycubic.com/en/error-codes/11529-code/s1-v2) et [11530](https://wiki.anycubic.com/en/error-codes/11530-code/s1-v2) distinguent un délai de réponse, une anomalie de la sonde NTC et une anomalie de chauffage.

@@ -111,7 +111,7 @@ if (logoutForm) logoutForm.addEventListener('submit', (event) => {
   void camera.close().finally(() => HTMLFormElement.prototype.submit.call(logoutForm));
 });
 
-const { command } = createCommands(request, refresh);
+const { command, observeCommand } = createCommands(request, refresh);
 const overview = createOverview(request);
 const ace = createAce(command, refresh);
 const printQueue = bindPrintQueue(request, command);
@@ -174,6 +174,7 @@ async function refreshState() {
     const d = await request('/status' + trackingQuery);
     received = true;
     workshopState.snapshot = d;
+    observeCommand(d);
     updatePrintConfirmation(d.ok === true, new URLSearchParams(trackingQuery).get('print_tracking'));
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);

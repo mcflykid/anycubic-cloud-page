@@ -1,5 +1,17 @@
 # Changements
 
+## 1.18.2 — 2026-11-13
+
+- Retire le bandeau d’attente dès que la même tâche confirme la pause, la reprise ou l’arrêt, et traduit les phases de préparation (#388, #393).
+- Ajoute une icône par événement et regroupe les heures sous la date dans les chronologies (#389).
+- Affiche les intervalles d’entretien et ouvre le wiki de la Kobra S1 depuis la fenêtre Entretien (#390).
+- Agrandit le visuel du module ACE sur écran large sans modifier l’alignement des cartes (#391).
+- Enrichit le catalogue Anycubic avec des fiches vérifiées sur les PDF constructeur et des SKU publics (Refs #392).
+- Ajoute le bouton de retour de la Vue mur (#387).
+- Ajoute les fiches 10116, 11509 et 11529 et le lien vers le wiki Kobra S1 ACE 2 Pro (#395).
+- Remplace la saisie de numéros par des sélecteurs ACE dans la confirmation des fichiers stockés (Refs #394).
+- Lit les quantités d’un G-code monofilament pour l’envoi avec une affectation ACE (#398).
+
 ## 1.18.1 — 2026-11-13
 
 - Aligne Matériel et compteurs, Entretien, File d’attente, Détails de la tâche, fiches filament, Accès rapide, Réglages et pages Discord sur leurs maquettes (#373, #374, #375, #376, #377, #378, #379, #380, #381, #382).

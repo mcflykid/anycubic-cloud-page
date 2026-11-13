@@ -167,6 +167,7 @@
 }
 :root {
   --atelier-device-image: 128px;
+  --atelier-ace-module-image-max: 240px;
   --atelier-job-thumbnail: 56px;
 }
 :root {

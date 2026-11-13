@@ -18,6 +18,20 @@ export function slots(value) {
 /** Prépare les commandes utilisateur et la confirmation des actions sensibles. */
 export function createCommands(request, refresh) {
   const sensitiveActions = new Set(['firmware', 'ace-firmware', 'factory-reset']);
+  const confirmedStates = {pause:'paused', resume:'printing', cancel:'failed'};
+  let pendingCommand = null;
+
+  /** Une réponse cloud ne suffit pas : seule la transition de la tâche ciblée retire son bandeau. */
+  function observeCommand(snapshot) {
+    const printer = snapshot.printer;
+    if (!pendingCommand || snapshot.ok !== true || printer?.printer_online !== true ||
+        pendingCommand.target !== workshopState.selectedPrinter ||
+        pendingCommand.projectKey !== printer.command_project ||
+        pendingCommand.state !== printer.job_state) return;
+    const banner = $('message-text');
+    if (banner.firstChild === pendingCommand.text) message('');
+    pendingCommand = null;
+  }
   /** Demande un jeton serveur lié à la cible et à l’action, sans joindre le mot de passe à la commande. */
   async function authorize(action, target, password, signal) {
     const result = await request('/reauth', {
@@ -87,10 +101,11 @@ export function createCommands(request, refresh) {
       return null;
     }
     const target = workshopState.selectedPrinter,
-      projectKey = ['pause', 'resume', 'cancel'].includes(action)
+      confirmedState = Object.hasOwn(confirmedStates, action) ? confirmedStates[action] : null,
+      projectKey = confirmedState
         ? workshopState.snapshot?.printer?.command_project
         : null;
-    if (['pause', 'resume', 'cancel'].includes(action)) data = { ...data, project_key: projectKey };
+    if (confirmedState) data = { ...data, project_key: projectKey };
     if (!target) {
       notify(tr('Attendez la découverte des imprimantes avant une commande.'), true);
       return null;
@@ -118,7 +133,7 @@ export function createCommands(request, refresh) {
         grams:rows.map(row => row.grams), slots,
       }, target));
       const confirmation = await confirmPrint({
-        target, name:data.name, details:data.details, image, question, readSlots:slots, filaments, checkAdvice,
+        target, name:data.name, details:data.details, image, question, chooseSpools:true, requireSpools:action !== 'print-cloud', filaments, checkAdvice,
         initialSlots:data.slots,
         queue: action === 'print-cloud' && !data.fromQueue ? async selected => {
           try {
@@ -168,6 +183,9 @@ export function createCommands(request, refresh) {
         body: JSON.stringify({ action, ...data, request_id: requestId }),
       });
       notify(d.message);
+      if (confirmedState && projectKey) {
+        pendingCommand = {target, projectKey, state:confirmedState, text:$('message-text').firstChild};
+      }
       if (printing) followPrintStart(d);
       await refresh();
       return d;
@@ -185,7 +203,7 @@ export function createCommands(request, refresh) {
     }
   }
 
-  return { command };
+  return { command, observeCommand };
 }
 
 /** Présente les divergences de bobines avant confirmation ; les données manquantes restent explicites. */

@@ -17,9 +17,6 @@ const helpById = {
   'temperature-hours': tr(
     'Choisir la période affichée, parmi les relevés des dernières 24 heures.',
   ),
-  'print-slots': tr(
-    'Un numéro d’emplacement de l’ACE par couleur du G-code, dans l’ordre. Laissez vide pour utiliser la bobine externe.',
-  ),
 };
 for (const [id, help] of Object.entries(helpById)) if ($(id)) $(id).title = help;
 const commandHelp = {
@@ -141,7 +138,7 @@ const contextualTopics = {
   ace: [
     "Bobines et séchage ACE",
     "Vérifiez la matière et l’emplacement de chaque bobine. Les réglages de séchage dépendent du filament et du module ACE. Fiez-vous aux limites affichées pour le module reconnu et aux indications du fabricant du filament.",
-    "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/ace-pro-loading-steps-and-configuration-information",
+    "https://wiki.anycubic.com/en/fdm-3d-printer/s1-ace-2-pro",
   ],
   calibration: [
     "Calibration du débit",

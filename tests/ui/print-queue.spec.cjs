@@ -61,7 +61,9 @@ test('la confirmation mémorise les emplacements sans envoyer d’ordre', async 
   await login(page, 'files');
   await page.locator('[data-source=cloud]').click();
   await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
-  await page.locator('#print-slots').fill('1, 3');
+  await page.locator('#print-ace-rows select').first().selectOption('1');
+  await page.locator('#print-add-slot').click();
+  await page.locator('#print-ace-rows select').nth(1).selectOption('3');
   await page.locator('#print-queue-add').click();
   await expect(page.locator('#print-dialog')).toBeHidden();
   expect(added).toMatchObject({action:'add', slots:[1,3]});

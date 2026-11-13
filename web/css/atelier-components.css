@@ -268,13 +268,15 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 }
 .print-estimates div { display: flex; flex-wrap: wrap; gap: 0 var(--atelier-space-2); }
 .print-estimates dd { margin: 0; font-weight: var(--atelier-semibold); }
-#print-mapping { margin-block-start: var(--atelier-space-3); }
+
 #print-advice { white-space: pre-line; }
 #print-dialog .confirmation-body > p { margin-block: var(--atelier-space-3) 0; }
 #print-result { flex: 1; margin: 0; overflow-wrap: anywhere; }
 #print-ace { margin: var(--atelier-space-3) 0 0; border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
 #print-ace-rows { display: grid; gap: var(--atelier-space-2); }
 .print-ace-row select { max-width: 100%; }
+.print-ace-manual-row { display: flex; align-items: end; gap: var(--atelier-space-2); }
+#print-add-slot { margin-block-start: var(--atelier-space-2); }
 #print-options { margin-block-start: var(--atelier-space-3); }
 #print-options summary { cursor: pointer; }
 .print-option-list {

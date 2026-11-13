@@ -7,7 +7,9 @@ export const manufacturerProfiles = {
   },
   'PLA Basic': {
     url: 'https://store.anycubic.com/products/pla-filament',
-    density: 1.24,
+    datasheet: 'https://cdn.shopify.com/s/files/1/0698/1235/5357/files/ANYCUBIC_TDS_PLA_V3.0.pdf?v=1757585748',
+    density: 1.24, nozzle: [190, 230], bed: [55, 65], drying: [45, 50], hours: [6, 8],
+    speed: [50, 200], flow: 12,
   },
   'PLA+': {
     url: 'https://store.anycubic.com/products/pla-plus-filament',
@@ -62,11 +64,13 @@ export const manufacturerProfiles = {
   },
   'PLA Marble': {
     url: 'https://eu.anycubic.com/products/pla-marble',
+    datasheet: 'https://cdn.shopify.com/s/files/1/0245/5519/2380/files/ANYCUBIC_TDS_PLA_Marble_V3.0.pdf?v=1758283111',
     density: 1.37, nozzle: [200, 230], bed: [55, 65], drying: [55, 65], hours: [6, 8],
     speed: [40, 250], flow: 12, minNozzle: 0.4,
   },
   'PLA Glow': {
     url: 'https://store.anycubic.com/products/pla-glow',
+    profileSource: 'https://3dfilamentprofiles.com/filament/details/14400',
     datasheet: 'https://cdn.shopify.com/s/files/1/0245/5519/2380/files/ANYCUBIC_TDS_PLA_Glow_V3.0.pdf?v=1758527363',
     density: 1.26, nozzle: [200, 230], bed: [60, 70], drying: [60, 65], hours: [6, 8],
     speed: [50, 250], flow: 12, minNozzle: 0.4,
@@ -75,5 +79,29 @@ export const manufacturerProfiles = {
     url: 'https://eu.anycubic.com/products/petg',
     density: 1.23, nozzle: [230, 250], bed: [60, 70], drying: [55, 65], hours: [6, 8],
     speed: [50, 250], flow: 12, minNozzle: 0.2,
+  },
+  'PETG Translucent': {
+    url: 'https://store.anycubic.com/products/petg-filament-translucent',
+    datasheet: 'https://cdn.shopify.com/s/files/1/0698/1235/5357/files/ANYCUBIC_TDS_PETG_V3.0.pdf?v=1757584046',
+    density: 1.23, nozzle: [230, 250], bed: [60, 70], drying: [55, 65], hours: [6, 8],
+    speed: [50, 250], flow: 12,
+  },
+  ABS: {
+    url: 'https://store.anycubic.com/products/abs-filament',
+    datasheet: 'https://cdn.shopify.com/s/files/1/0685/7578/9245/files/ANYCUBIC_TDS_ABS_V3.0.pdf?v=1757562279',
+    density: 1.05, nozzle: [240, 280], bed: [80, 100], drying: [70, 80], hours: [8, 12],
+    speed: [50, 150], flow: 15,
+  },
+  ASA: {
+    url: 'https://store.anycubic.com/products/asa-filament',
+    datasheet: 'https://cdn.shopify.com/s/files/1/0245/5519/2380/files/ANYCUBIC_TDS_ASA_V3.0.pdf?v=1758535865',
+    density: 1.07, nozzle: [255, 275], bed: [80, 100], drying: [70, 80], hours: [8, 12],
+    speed: [50, 100], flow: 12,
+  },
+  'TPU 95A': {
+    url: 'https://store.anycubic.com/products/tpu-filament',
+    datasheet: 'https://cdn.shopify.com/s/files/1/0685/7578/9245/files/ANYCUBIC_TDS_TPU_V3.0.pdf?v=1757560611',
+    density: 1.23, nozzle: [195, 230], bed: [50, 60], drying: [70, 80], hours: [8, 12],
+    speed: [50, 150], flow: 3.2,
   },
 };

@@ -100,6 +100,13 @@
   }
   /* Le relais reste près des autres commandes quand la liste des bobines est plus haute. */
   .ace-module-body { grid-template-rows: 1fr auto; }
+  .ace-module-body .summary-device {
+    align-self: center;
+    align-items: center;
+  }
+  .ace-module-body .summary-device-image {
+    --atelier-device-image: min(17cqi, var(--atelier-ace-module-image-max));
+  }
 }
 @container ace (max-width: 420px) {
   .ace-spool-row { gap: var(--atelier-space-2); }

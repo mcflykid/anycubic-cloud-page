@@ -93,16 +93,13 @@
   #tab-overview .printer-task-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Une pastille par événement, alignée sur l’heure, comme dans les autres bandes de détail. */
+.timeline-days { display: grid; gap: var(--atelier-space-2); }
+.timeline-day { margin: 0; color: var(--atelier-muted); font: var(--atelier-caption); }
+.timeline-day:not(:first-child) { margin-block-start: var(--atelier-space-2); }
 .print-timeline ol { display: grid; gap: var(--atelier-space-2); margin: 0; padding: 0; list-style: none; }
 .print-timeline li { display: flex; align-items: center; gap: var(--atelier-space-2); }
-.print-timeline li::before {
-  content: "";
-  flex: 0 0 var(--atelier-dot);
-  block-size: var(--atelier-dot);
-  border-radius: 50%;
-  background: var(--atelier-accent);
-}
+.print-timeline li > .ui-icon { color: var(--atelier-accent); }
+.print-timeline time { min-inline-size: 5ch; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .timeline-markers { position: relative; margin: var(--atelier-space-4); block-size: var(--atelier-control); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
 .timeline-markers button { position: absolute; inset-inline-start: var(--timeline-position); transform: translateX(-50%); }

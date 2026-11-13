@@ -1073,6 +1073,24 @@
     "de": "Befehl von Anycubic akzeptiert; warte auf Bestätigung des Druckers",
     "it": "Comando accettato da Anycubic; in attesa di conferma della stampante"
   },
+  "3D Filament Profiles": {
+    "en": "3D Filament Profiles",
+    "es": "3D Filament Profiles",
+    "de": "3D Filament Profiles",
+    "it": "3D Filament Profiles"
+  },
+  "Intervalle : {0}": {
+    "en": "Interval: {0}",
+    "es": "Intervalo: {0}",
+    "de": "Intervall: {0}",
+    "it": "Intervallo: {0}"
+  },
+  "Wiki Anycubic Kobra S1": {
+    "en": "Anycubic Kobra S1 wiki",
+    "es": "Wiki de Anycubic Kobra S1",
+    "de": "Anycubic Kobra S1 Wiki",
+    "it": "Wiki di Anycubic Kobra S1"
+  },
   "Commande inconnue": {
     "en": "Unknown command",
     "es": "Comando desconocido",
@@ -4882,6 +4900,24 @@
     "es": "Actualización en curso. Espere a que termine antes de iniciar una impresión.",
     "de": "Firmware-Update läuft. Warten Sie, bis es abgeschlossen ist, bevor Sie einen Druck starten.",
     "it": "Aggiornamento firmware in corso. Attendi che sia completato prima di avviare una stampa."
+  },
+  "Filament {0}": {
+    "en": "Filament {0}",
+    "es": "Filamento {0}",
+    "de": "Filament {0}",
+    "it": "Filamento {0}"
+  },
+  "Ajouter un filament": {
+    "en": "Add a filament",
+    "es": "Añadir un filamento",
+    "de": "Filament hinzufügen",
+    "it": "Aggiungi un filamento"
+  },
+  "Retirer le filament {0}": {
+    "en": "Remove filament {0}",
+    "es": "Quitar el filamento {0}",
+    "de": "Filament {0} entfernen",
+    "it": "Rimuovi il filamento {0}"
   },
   "Retirer": {
     "en": "Unload",
@@ -9820,5 +9856,65 @@
     "es": "Un webhook y un canal distintos por tipo.",
     "de": "Ein eigener Webhook und Kanal pro Art.",
     "it": "Un webhook e un canale distinti per tipo."
+  },
+  "Retrouvez le projet ou le modèle source. Tranchez-le avec le profil de votre imprimante et transférez le nouveau G-code.": {
+    "en": "Find the original project or model. Slice it with your printer profile and transfer the new G-code.",
+    "es": "Busque el proyecto o modelo original. Lamínelo con el perfil de su impresora y transfiera el nuevo G-code.",
+    "de": "Suchen Sie das ursprüngliche Projekt oder Modell. Slicen Sie es mit Ihrem Druckerprofil und übertragen Sie den neuen G-Code.",
+    "it": "Recupera il progetto o modello originale. Affettalo con il profilo della stampante e trasferisci il nuovo G-code."
+  },
+  "Fichier de tranchage anormal": {
+    "en": "Invalid sliced file",
+    "es": "Archivo laminado no válido",
+    "de": "Ungültige Slicing-Datei",
+    "it": "File di slicing non valido"
+  },
+  "L’imprimante signale un problème dans le fichier tranché.": {
+    "en": "The printer reports a problem with the sliced file.",
+    "es": "La impresora informa de un problema con el archivo laminado.",
+    "de": "Der Drucker meldet ein Problem mit der geslicten Datei.",
+    "it": "La stampante segnala un problema nel file di slicing."
+  },
+  "Délai de réponse de l’ACE dépassé": {
+    "en": "ACE response timed out",
+    "es": "Tiempo de respuesta del ACE agotado",
+    "de": "Zeitüberschreitung bei der ACE-Antwort",
+    "it": "Tempo di risposta dell’ACE scaduto"
+  },
+  "L’imprimante n’a pas reçu la réponse attendue du module ACE.": {
+    "en": "The printer did not receive the expected response from the ACE module.",
+    "es": "La impresora no recibió la respuesta esperada del módulo ACE.",
+    "de": "Der Drucker hat die erwartete Antwort des ACE-Moduls nicht erhalten.",
+    "it": "La stampante non ha ricevuto la risposta prevista dal modulo ACE."
+  },
+  "Vérifiez l’alimentation du module et le câble de liaison en suivant le guide du constructeur.": {
+    "en": "Check the module power and signal cable using the manufacturer’s guide.",
+    "es": "Compruebe la alimentación del módulo y el cable de señal según la guía del fabricante.",
+    "de": "Prüfen Sie Stromversorgung und Signalkabel des Moduls anhand der Herstelleranleitung.",
+    "it": "Controlla l’alimentazione del modulo e il cavo di segnale seguendo la guida del produttore."
+  },
+  "Anomalie de la sonde de température de l’ACE": {
+    "en": "ACE temperature sensor fault",
+    "es": "Fallo del sensor de temperatura del ACE",
+    "de": "Fehler am Temperatursensor des ACE",
+    "it": "Guasto del sensore di temperatura dell’ACE"
+  },
+  "L’ACE 2 Pro signale une anomalie de la sonde NTC et a interrompu le séchage.": {
+    "en": "The ACE 2 Pro reports an NTC sensor fault and has stopped drying.",
+    "es": "El ACE 2 Pro informa de un fallo del sensor NTC y ha detenido el secado.",
+    "de": "Der ACE 2 Pro meldet einen Fehler am NTC-Sensor und hat die Trocknung gestoppt.",
+    "it": "L’ACE 2 Pro segnala un guasto del sensore NTC e ha interrotto l’asciugatura."
+  },
+  "Consultez la procédure officielle avant toute intervention sur la sonde.": {
+    "en": "Consult the official guide before working on the sensor.",
+    "es": "Consulte el procedimiento oficial antes de intervenir en el sensor.",
+    "de": "Lesen Sie vor Arbeiten am Sensor die offizielle Anleitung.",
+    "it": "Consulta la procedura ufficiale prima di intervenire sul sensore."
+  },
+  "Quitter la Vue mur": {
+    "en": "Exit wall view",
+    "es": "Salir de la vista mural",
+    "de": "Wandansicht verlassen",
+    "it": "Esci dalla vista a parete"
   }
 }

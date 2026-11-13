@@ -18,7 +18,7 @@ import {
   tr,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
-import { slots, filamentAdvice } from './workshop-commands.mjs';
+import { filamentAdvice } from './workshop-commands.mjs';
 import { closePrintConfirmation, confirmPrint } from './workshop-print-confirmation.mjs';
 import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mjs';
 import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from './workshop-error-catalogue.mjs';
@@ -803,7 +803,7 @@ export function createHistory(request, command, selectedBox) {
       const advice = slots => filamentAdvice(request, {key:task.key, slots}, target);
       const confirmation = await confirmPrint({
         target, name:task.name, details, image, filaments,
-        readSlots: selectedBox() && !filaments.materials.length ? slots : undefined,
+        chooseSpools: !!selectedBox(),
         question:tr('Vérifiez que le plateau est libre.'),
         checkAdvice:advice,
       });

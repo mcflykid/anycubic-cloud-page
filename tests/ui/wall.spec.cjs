@@ -16,6 +16,11 @@ test('la vue mur affiche les relevés et ne déclenche aucune commande', async (
  await page.setViewportSize({width:800,height:1280});
  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(800);
  expect([...new Set(writes)]).toEqual(['/imprimante-api/preview']);
+ const exit=page.getByRole('link',{name:'Quitter la Vue mur'});
+ await exit.focus();
+ await exit.press('Enter');
+ await expect(page).toHaveURL(/\/imprimante\.html$/);
+ await expect(page.locator('#tab-summary')).toBeVisible();
 });
 
 test('la vue mur revient à l’aperçu après l’arrêt du lecteur partagé', async ({page}) => {
@@ -36,4 +41,6 @@ test('la vue mur revient à l’aperçu après l’arrêt du lecteur partagé', 
  await publisher.close();
  await expect(page.locator('#wall-camera')).toBeHidden();
  await expect(page.locator('#wall-preview')).toBeVisible();
+ await page.getByRole('link',{name:'Quitter la Vue mur'}).click();
+ await expect(page.locator('#tab-summary')).toBeVisible();
 });

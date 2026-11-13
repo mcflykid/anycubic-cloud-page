@@ -5,6 +5,16 @@ body { margin: 0; background: var(--atelier-bg); color: var(--atelier-fg); font:
 .wall :is(h1, h2, p, dl) { margin: 0; overflow-wrap: anywhere; }
 .wall header { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--atelier-space-3); }
 .wall header time { margin-inline-start: auto; color: var(--atelier-muted); }
+#wall-exit {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--atelier-control);
+  padding-inline: var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  color: inherit;
+}
+#wall-exit:focus-visible { outline: var(--atelier-rule) solid var(--atelier-accent); }
 .wall-task { display: grid; gap: var(--atelier-space-4); align-items: center; }
 .wall-task img { width: 100%; max-height: 45dvh; object-fit: contain; }
 #wall-progress-text { font-size: var(--atelier-machine-responsive-size); font-weight: var(--atelier-semibold); }

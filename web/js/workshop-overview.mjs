@@ -259,6 +259,8 @@ export function createOverview(request) {
       p.job_name
         ? {
             printing: tr('Impression en cours'),
+            leveling: tr('Mise à niveau du plateau'),
+            preheating: tr('Préchauffage'),
             paused: tr('Impression en pause'),
             finished: tr('Impression terminée'),
             completed: tr('Impression terminée'),

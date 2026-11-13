@@ -222,5 +222,48 @@
     "AHPESP-101",
     "AHPEVO-101",
     "AHPEVY-101"
+  ],
+  "ABS": [
+    "AHABBK-101",
+    "AHABBW-101",
+    "AHABDS-101",
+    "AHABGE-101",
+    "AHABGY-101",
+    "AHABHB-101",
+    "AHABKH-101",
+    "AHABLA-101",
+    "AHABNB-101",
+    "AHABOG-101",
+    "HABCG-103",
+    "HABDB-103",
+    "HABRR-103",
+    "HABVO-103",
+    "HABVY-103"
+  ],
+  "ASA": [
+    "AHASBK-101",
+    "AHASGE-101",
+    "AHASIV-101",
+    "AHASRR-101",
+    "HASGY-101"
+  ],
+  "TPU 95A": [
+    "HTPBK-101",
+    "HTPCB-101",
+    "HTPCL-101",
+    "HTPCR-101",
+    "HTPGY-101",
+    "HTPMW-101"
+  ],
+  "PETG Translucent": [
+    "AHPECL-102",
+    "AHPETB-101",
+    "AHPETG-101",
+    "AHPETK-101",
+    "AHPETL-101",
+    "AHPETO-101",
+    "AHPETP-101",
+    "AHPETR-101",
+    "AHPETW-101"
   ]
 }

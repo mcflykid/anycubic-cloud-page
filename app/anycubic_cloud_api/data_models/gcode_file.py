@@ -88,9 +88,16 @@ class AnycubicGcodeFile(UserDict[str, Any]):
         if self._material_list is not None:
             return self._material_list
 
-        filament_used_g = self.data.get('filament_used_g')
-        filament_used_mm = self.data.get('filament_used_mm')
-        filament_used_cm3 = self.data.get('filament_used_cm3')
+        # Slicer Next écrit une valeur scalaire lorsque la plaque utilise un seul filament.
+        def quantities(key):
+            values = self.data.get(key)
+            if type(values) in (int, float):
+                return [values]
+            return values if isinstance(values, list) else []
+
+        filament_used_g = quantities('filament_used_g')
+        filament_used_mm = quantities('filament_used_mm')
+        filament_used_cm3 = quantities('filament_used_cm3')
         ams_data = self.data.get('paint_info')
 
         if not ams_data:

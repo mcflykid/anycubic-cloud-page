@@ -64,9 +64,14 @@ export function bindMaintenance(request) {
         progress.dataset.state = tone;
         progress.setAttribute('aria-label', tr(item.name));
         gauge.append(values, progress);
-      } else gauge.append(node('span', !item.enabled ? '' : item.unit === 'days'
-        ? tr('Marquez l’opération comme faite pour démarrer le calendrier.')
-        : tr('Indiquez le compteur de la dernière intervention.'), 'muted'));
+      } else if (item.enabled) {
+        gauge.append(
+          node('strong', formatText('Intervalle : {0}', amount(item.interval, item.unit))),
+          node('span', item.unit === 'days'
+            ? tr('Marquez l’opération comme faite pour démarrer le calendrier.')
+            : tr('Indiquez le compteur de la dernière intervention.'), 'muted'),
+        );
+      }
       const badge = node('span', tr(label), 'atelier-count');
       badge.dataset.state = tone;
       const finish = node('button', tr('Fait'), 'atelier-control');
