@@ -61,7 +61,7 @@ test('la palette filtre les sections et ne prend pas le raccourci dans un champ'
  await login(page);
  await page.keyboard.press('Control+k');
  const search=page.getByRole('searchbox',{name:'Rechercher une section'});
- await search.fill('caméra');
+ await search.fill('camera');
  await expect(page.locator('.quick-results button')).toHaveCount(1);
  await page.keyboard.press('Enter');
  await expect(page.locator('#tab-camera')).toBeVisible();
@@ -69,6 +69,21 @@ test('la palette filtre les sections et ne prend pas le raccourci dans un champ'
  await page.locator('#files-search').focus();
  await page.keyboard.press('Control+k');
  await expect(page.locator('.quick-palette')).not.toBeVisible();
+});
+
+test('la recherche rapide ouvre un réglage sans émettre de commande', async ({page}) => {
+ let commands = 0;
+ await page.route('**/imprimante-api/command', route => {
+  commands++;
+  return route.abort();
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Accès rapide'}).click();
+ const search = page.getByRole('searchbox',{name:'Rechercher une section'});
+ await search.fill('detection ia');
+ await page.keyboard.press('Enter');
+ await expect(page.locator('#ai-dialog')).toBeVisible();
+ expect(commands).toBe(0);
 });
 
 test('la sélection tactile ne lance aucune action et laisse défiler hors gouttière',async({browser})=>{

@@ -4715,21 +4715,9 @@
     "Hardware and counters",
     "Hardware y contadores"
   ],
-  "Mettre à jour": [
-    "Update",
-    "Actualizar"
-  ],
-  "Style": [
-    "Style",
-    "Estilo"
-  ],
   "Choisir un fichier": [
     "Choose a file",
     "Elegir un archivo"
-  ],
-  "Régler": [
-    "Configure",
-    "Configurar"
   ],
   "24 heures": [
     "24 hours",
@@ -4778,10 +4766,6 @@
   "Réinitialiser le zoom": [
     "Reset zoom",
     "Restablecer zoom"
-  ],
-  "Thème": [
-    "Theme",
-    "Tema"
   ],
   "Envoi": [
     "Upload",
@@ -5854,5 +5838,17 @@
   "Actualisez les messages avant de modifier cette notification": [
     "Refresh the messages before changing this notification",
     "Actualiza los mensajes antes de modificar esta notificación"
+  ],
+  "Fenêtres": [
+    "Dialogs",
+    "Ventanas"
+  ],
+  "Onglets": [
+    "Tabs",
+    "Pestañas"
+  ],
+  "{0} résultat(s)": [
+    "{0} result(s)",
+    "{0} resultado(s)"
   ]
 }
