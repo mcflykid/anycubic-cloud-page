@@ -27,6 +27,7 @@ from anycubic_cloud_api.exceptions.exceptions import (
 from anycubic_cloud_api.helpers.helpers import get_part_from_mqtt_topic
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint
 from cloud_budget import CloudRequestBudget
+from ace_alerts import AceAlerts
 from command_journal import ACTIONS, MQTT_CONFIRMATIONS, command_mqtt_context, mqtt_digest
 from filament_catalog import editable_materials, filament_profile_for_sku
 from idle_controls import idle_limits, print_limits
@@ -274,6 +275,8 @@ class Engine:
         self.selected_id = os.environ.get("PRINTER_ID") or None
         self.known_printers = []
         self.notification_delivery = None
+        self.ace_alerts = AceAlerts()
+        self.ace_alert_scope = None
         self.state_dir = pathlib.Path("/appdata/state")
         self.catalogue_source = False
         self.transport_only = False
@@ -420,6 +423,27 @@ class Engine:
         if stage and stage[0] >= self.camera_stage:
             self.camera_stage = stage[0]
             self.camera_diagnostic = {"stage": payload["state"], "message": stage[1]}
+
+    async def observe_ace_alerts(self, scope, delivery):
+        """Évalue les états déjà reçus sans interroger à nouveau le Cloud."""
+        if not scope or delivery.scope != scope or not delivery.config.ace_events:
+            return
+        targets = [self, *self.fleet_registry.entries.values()] if self.fleet_registry else [self]
+        for target in targets:
+            if target.ace_alert_scope not in (None, scope):
+                target.ace_alerts = AceAlerts()
+            target.ace_alert_scope = scope
+            printer = target.snapshot().get("printer") or {}
+            events = (
+                target.ace_alerts.sample(
+                    printer, (scope, printer_key(target.printer.id)), int(time.time())
+                )
+                if target.printer
+                else []
+            )
+            await delivery.observe(
+                [event for event in events if event.result in delivery.config.ace_events]
+            )
 
     def mqtt_changed(self):
         """Marque la fraîcheur des données lors d’une notification MQTT."""
@@ -662,6 +686,7 @@ class Engine:
                     await delivery.observe_cloud(
                         scope, source, rows, partial(self.notifications.terminal_legacy_rows, api)
                     )
+                    await self.observe_ace_alerts(scope, delivery)
                 except Exception as error:
                     log_event(
                         OPS_LOG,

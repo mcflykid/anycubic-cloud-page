@@ -5826,5 +5826,33 @@
   "Dernière actualisation : {0}": [
     "Last updated: {0}",
     "Última actualización: {0}"
+  ],
+  "Événements de l’ACE": [
+    "ACE events",
+    "Eventos del ACE"
+  ],
+  "Séchage ACE terminé": [
+    "ACE drying completed",
+    "Secado ACE terminado"
+  ],
+  "Séchage ACE interrompu": [
+    "ACE drying interrupted",
+    "Secado ACE interrumpido"
+  ],
+  "Chargement ou retrait non confirmé": [
+    "Loading or unloading unconfirmed",
+    "Carga o retirada sin confirmar"
+  ],
+  "Filament bientôt épuisé": [
+    "Filament running low",
+    "Filamento a punto de agotarse"
+  ],
+  "Anycubic n’a pas confirmé la mise à jour des notifications": [
+    "Anycubic did not confirm the notification update",
+    "Anycubic no confirmó la actualización de notificaciones"
+  ],
+  "Actualisez les messages avant de modifier cette notification": [
+    "Refresh the messages before changing this notification",
+    "Actualiza los mensajes antes de modificar esta notificación"
   ]
 }

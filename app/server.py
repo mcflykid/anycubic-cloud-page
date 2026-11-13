@@ -618,6 +618,14 @@ async def command(req):
                     audit["outcome"] = "envoyée"
                 else:
                     audit["outcome"] = "acceptée"
+            if name in {"dry-stop", "feed", "retract"}:
+                alerts = getattr(engine, "ace_alerts", None)
+                if alerts is not None:
+                    box = integer(
+                        d.get("box", 0), 0, max(0, engine.printer.connected_ace_units - 1)
+                    )
+                    slot = integer(d.get("slot", 1), 1, 4) - 1 if name == "feed" else None
+                    alerts.command(name, box, slot, int(time.time()))
             engine.event(str(name), "Acceptée")
             result = {"ok": True, "message": message}
             if name in ("print-cloud", "print-local", "print-usb", "task-reprint") and audit.get(

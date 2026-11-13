@@ -14,7 +14,7 @@ import aiohttp
 from aiohttp import web
 
 from notification_delivery import Delivery, read_config
-from notification_discord import DiscordConfig, message_payload, send_discord
+from notification_discord import ACE_TITLES, DiscordConfig, message_payload, send_discord
 from notification_reports import ReportSchedule, format_report
 from operational_logging import log_event
 from web_assets import build_web_assets
@@ -139,6 +139,14 @@ def discord_page(delivery, message="", status=200, *, report=False):
             "<span>Inclure le nom du fichier</span></label>"
         )
     )
+    ace_fields = ""
+    if not report:
+        fields = "".join(
+            f'<label class="check"><input type="checkbox" name="{event}"'
+            f"{' checked' if event in config.ace_events else ''}> <span>{titles[0]}</span></label>"
+            for event, titles in ACE_TITLES.items()
+        )
+        ace_fields = f"<fieldset><legend>Événements de l’ACE</legend>{fields}</fieldset>"
     other_path = PATH if report else REPORT_PATH
     other_title = (
         "Configurer les notifications Discord" if report else "Configurer les bilans Discord"
@@ -177,6 +185,7 @@ def discord_page(delivery, message="", status=200, *, report=False):
         <label class="check"><input type="checkbox" name="enabled"{checked}> <span>{activation}</span></label>
         {filename}
       </div>
+      {ace_fields}
       {line}
     </div>
     <footer class="discord-panel-footer">
@@ -207,7 +216,7 @@ async def read_discord_form(request):
     if len(raw) > 4096:
         raise web.HTTPRequestEntityTooLarge(max_size=4096, actual_size=len(raw))
     try:
-        values = parse_qs(raw.decode(), keep_blank_values=True, max_num_fields=8)
+        values = parse_qs(raw.decode(), keep_blank_values=True, max_num_fields=16)
         if any(len(value) != 1 for value in values.values()):
             raise ValueError
         return {key: value[0] for key, value in values.items()}
@@ -262,6 +271,9 @@ async def discord_settings(request):
                         "enabled": form.get("enabled") == "on" if operation == "save" else True,
                         "language": form.get("language", "fr"),
                         "include_filename": not report and form.get("include_filename") == "on",
+                        "ace_events": [
+                            event for event in ACE_TITLES if not report and form.get(event) == "on"
+                        ],
                     }
                 )
             )

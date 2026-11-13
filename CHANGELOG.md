@@ -1,5 +1,11 @@
 # Changements
 
+## 1.15.0 — 2026-11-13
+
+- Marque les messages Cloud comme lus depuis la cloche et permet leur suppression individuelle ou groupée après confirmation (#334).
+- Ajoute des alertes Discord ACE au choix pour le séchage, le chargement, le retrait et le risque de manquer de filament (#345).
+- Ajoute une vue mur en lecture seule pour suivre la tâche, les températures et l’ACE (#346).
+
 ## 1.14.0 — 2026-11-13
 
 - Partage la fenêtre de confirmation entre l’envoi, les fichiers et la réimpression. Elle affiche les estimations disponibles et les affectations ACE quand le fichier les renseigne (#330, #339).

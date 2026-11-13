@@ -35,6 +35,7 @@ class PrintEvent:
     printer: str
     filename: str
     code: str
+    slot: int | None = None
 
 
 def row_key(scope, row):

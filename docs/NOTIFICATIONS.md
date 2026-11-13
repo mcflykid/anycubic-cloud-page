@@ -15,3 +15,8 @@ Dans **Réglages → Notifications Discord → Bilans**, renseignez un deuxième
 Les bilans sont prévus à **08 h et 21 h** dans le fuseau de l’atelier (`TZ`, Europe/Paris par défaut). Chaque bilan couvre le créneau depuis l’heure précédente et inclut les fins exactement à l’heure du bilan. Un démarrage pendant les dix minutes qui suivent le créneau peut encore permettre l’envoi. Après ce délai, l’atelier attend le créneau suivant. Une réservation durable évite les doublons après un redémarrage ou une réponse Discord ambiguë.
 
 Le Cloud fournit les résultats, les durées disponibles, les codes d’arrêt et, lorsqu’elle est renseignée, la masse de filament. Les mesures partielles indiquent combien d’impressions disposent d’une valeur. Une lecture inaccessible ou tronquée est signalée dans le bilan. La collecte réutilise l’historique Cloud et reste limitée à quatre imprimantes, trois pages par imprimante et quinze secondes par créneau.
+
+
+## Événements de l’ACE
+
+Dans les réglages des alertes Discord, chaque événement ACE peut être activé séparément. Les événements partent après observation d’un changement d’état. Un arrêt de séchage demandé depuis l’atelier ne déclenche pas d’alerte d’interruption. Le délai de confirmation du chargement ou du retrait est de cinq minutes. L’atelier signale au plus une estimation de manque de filament par tâche et par emplacement.

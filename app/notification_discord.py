@@ -39,6 +39,27 @@ _LANGUAGES = {
     ),
 }
 
+ACE_TITLES = {
+    "ace_drying_done": ("Séchage ACE terminé", "ACE drying completed", "Secado ACE terminado"),
+    "ace_drying_interrupted": (
+        "Séchage ACE interrompu",
+        "ACE drying interrupted",
+        "Secado ACE interrumpido",
+    ),
+    "ace_feed_done": ("Filament chargé", "Filament loaded", "Filamento cargado"),
+    "ace_retract_done": ("Filament retiré", "Filament unloaded", "Filamento retirado"),
+    "ace_load_failed": (
+        "Chargement ou retrait non confirmé",
+        "Loading or unloading unconfirmed",
+        "Carga o retirada sin confirmar",
+    ),
+    "ace_filament_low": (
+        "Filament bientôt épuisé",
+        "Filament running low",
+        "Filamento a punto de agotarse",
+    ),
+}
+
 
 @dataclass(frozen=True)
 class DiscordConfig:
@@ -48,6 +69,7 @@ class DiscordConfig:
     enabled: bool = False
     language: str = "fr"
     include_filename: bool = False
+    ace_events: tuple[str, ...] = ()
 
     @classmethod
     def parse(cls, value):
@@ -57,19 +79,22 @@ class DiscordConfig:
         url = value.get("url", "")
         enabled, language = value.get("enabled"), value.get("language")
         include_filename = value.get("include_filename")
+        ace_events = value.get("ace_events", [])
         if (
             not isinstance(url, str)
             or type(enabled) is not bool
             or type(include_filename) is not bool
             or not isinstance(language, str)
             or language not in _LANGUAGES
+            or not isinstance(ace_events, list)
+            or any(not isinstance(event, str) or event not in ACE_TITLES for event in ace_events)
         ):
             raise ValueError("Configuration Discord invalide.")
         if url:
             url = discord_url(url)
         elif enabled:
             raise ValueError("Renseignez une adresse de webhook Discord.")
-        return cls(url, enabled, language, include_filename)
+        return cls(url, enabled, language, include_filename, tuple(sorted(set(ace_events))))
 
 
 @dataclass(frozen=True)
@@ -119,7 +144,16 @@ def format_message(event, config):
     else:
         at = datetime.fromtimestamp(event.timestamp, timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         name = clean_label(event.printer, 80) or printer
-        content = f"**{complete if event.result == 'completed' else failed}**\n{name} · {at}"
+        titles = ACE_TITLES.get(event.result)
+        title = (
+            titles[tuple(_LANGUAGES).index(config.language)]
+            if titles
+            else (complete if event.result == "completed" else failed)
+        )
+        content = f"**{title}**\n{name} · {at}"
+        if titles and event.slot is not None:
+            slot = {"fr": "Emplacement", "en": "Slot", "es": "Ranura"}[config.language]
+            content += f"\n{slot} {event.slot + 1}"
         if event.code:
             content += f"\n{code} {event.code}"
             if title := notification_error_title(event.code, config.language):
