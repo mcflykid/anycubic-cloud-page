@@ -310,3 +310,29 @@ test('la réinitialisation garde le refus du mot de passe dans la même fenêtre
  expect(commands[0].confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
  expect(commands[0]).not.toHaveProperty('password');
 });
+
+test('la détection IA garde les réglages visibles en cas d’échec et suit les modifications', async ({page}) => {
+ let fail = true;
+ await page.route('**/imprimante-api/ai-settings', route => fail
+  ? route.fulfill({status: 503, json: {message: 'Lecture fictive indisponible'}})
+  : route.fulfill({json: {settings: {status: 2, sensitivity_level: [1, 2, 0], notice_type: [0, 0, 0]}}}));
+ await page.setViewportSize({width: 390, height: 800});
+ await login(page, 'settings');
+ await page.locator('#ai-open').click();
+ const dialog = page.getByRole('dialog', {name: 'Détection IA'});
+ await expect(dialog.locator('#ai-state')).toHaveText('Lecture impossible');
+ await expect(dialog.getByRole('switch').first()).toBeDisabled();
+ fail = false;
+ await dialog.getByRole('button', {name: 'Réessayer la lecture'}).click();
+ await expect(dialog.locator('#ai-state')).toHaveText('Lecture à jour');
+ const toggle = dialog.getByRole('switch', {name: 'Détection de filament enchevêtré'});
+ const level = dialog.locator('[name=spaghetti_level]').first();
+ const save = dialog.getByRole('button', {name: 'Enregistrer', exact: true});
+ await expect(level).toBeDisabled();
+ await expect(save).toBeDisabled();
+ await toggle.check();
+ await expect(level).toBeEnabled();
+ await expect(save).toBeEnabled();
+ await toggle.uncheck();
+ await expect(save).toBeDisabled();
+});

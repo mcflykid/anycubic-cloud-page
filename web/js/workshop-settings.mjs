@@ -63,9 +63,7 @@ export function createSettings(request, command, camera) {
       ? tr('Réglages disponibles lorsque l’imprimante est libre.')
       : tr('Régler la détection du filament enchevêtré et des objets étrangers.');
     if ($('past-task-dialog').open && !$('past-task-extra').dataset.history) renderTaskDetails();
-    if ($('ai-dialog').open && aiLoaded) {
-      $('ai-form').querySelector('fieldset').disabled = !p.is_available || p.job_in_progress;
-    }
+    if ($('ai-dialog').open) updateAiControls();
   }
   /** Alimente la fenêtre commune avec les données du projet courant sans compléter les valeurs absentes. */
   function renderTaskDetails() {
@@ -103,73 +101,94 @@ export function createSettings(request, command, camera) {
     renderTaskDetails();
     $('past-task-dialog').showModal();
   };
-  let aiLoaded = false;
-  let aiLoading = false;
-  /** Masque les anciennes valeurs pendant la consultation IA pour éviter d’appliquer des réglages périmés. */
+  const aiDialog = $('ai-dialog'), aiForm = $('ai-form'), aiSave = $('ai-save');
+  let aiInitial = null, aiGeneration = 0, aiLoading = false, aiSaving = false;
+  /** Lit aussi les valeurs désactivées, car le serveur attend la configuration complète. */
+  function aiValues() {
+    const {spaghetti, foreign, spaghetti_level, foreign_level, pause} = aiForm.elements;
+    return {
+      spaghetti: spaghetti.checked,
+      foreign: foreign.checked,
+      spaghetti_level: Number(spaghetti_level.value),
+      foreign_level: Number(foreign_level.value),
+      pause: pause.value === 'true',
+    };
+  }
+  /** Maintient les contrôles visibles tout en bloquant l’envoi hors ligne ou sans changement. */
+  function updateAiControls() {
+    const printer = workshopState.snapshot?.printer;
+    const canEdit = !!aiInitial && printer?.printer_online && printer.is_available && !printer.job_in_progress && !aiSaving;
+    const {spaghetti, foreign} = aiForm.elements;
+    spaghetti.disabled = !canEdit;
+    foreign.disabled = !canEdit || !printer?.foreign_detection_supported;
+    $('ai-spaghetti-controls').disabled = !canEdit || !spaghetti.checked;
+    $('ai-foreign-controls').disabled = foreign.disabled || !foreign.checked;
+    $('ai-foreign-option').hidden = !printer?.foreign_detection_supported;
+    $('ai-camera-note').hidden = camera.hasVideo;
+    aiSave.disabled = !canEdit || JSON.stringify(aiValues()) === aiInitial;
+    $('ai-retry').disabled = aiLoading || !printer?.printer_online;
+    if (!printer?.printer_online) set('ai-state', tr('Hors ligne'));
+    else if (aiInitial) set('ai-state', tr(canEdit || aiSaving ? 'Lecture à jour' : 'Imprimante occupée'));
+    else if (!aiLoading) set('ai-state', tr('Lecture impossible'));
+  }
+  /** Ignore une réponse reçue après fermeture ou changement de cible. */
   async function loadAiSettings() {
-    if (aiLoading) return;
+    const generation = ++aiGeneration, target = workshopState.selectedPrinter;
     aiLoading = true;
-    aiLoaded = false;
-    const f = $('ai-form');
-    f.hidden = true;
-    f.querySelector('fieldset').disabled = true;
-    $('ai-retry').hidden = true;
+    aiInitial = null;
+    aiForm.reset();
+    $('ai-read-error').hidden = true;
     set('ai-state', tr('Lecture des réglages de l’imprimante…'));
+    updateAiControls();
     try {
-      const d = await request('/ai-settings'),
-        a = d.settings,
-        status = Number(a.status);
-      f.elements.spaghetti.checked = !!(status & 1);
-      f.elements.foreign.checked = !!(status & 2);
-      f.elements.spaghetti_level.value = String(a.sensitivity_level?.[1] ?? 1);
-      f.elements.foreign_level.value = String(a.sensitivity_level?.[0] ?? 1);
-      f.elements.pause.value = String(a.notice_type?.[1] === 1);
-      $('ai-foreign-option').hidden = !workshopState.snapshot?.printer?.foreign_detection_supported;
-      aiLoaded = true;
-      const printerBusy =
-        workshopState.snapshot?.printer?.job_in_progress ||
-        !workshopState.snapshot?.printer?.is_available;
-      f.hidden = false;
-      f.querySelector('fieldset').disabled = printerBusy;
-      set(
-        'ai-state',
-        printerBusy
-          ? tr('Imprimante occupée. Les modifications seront disponibles lorsqu’elle sera libre.')
-          : tr('Réglages actuels de l’imprimante'),
-      );
-    } catch (e) {
-      set(
-        'ai-state',
-        tr('Réglages indisponibles : ') +
-          e.message +
-          tr('. Réessayez lorsque l’imprimante est en ligne et libre.'),
-      );
-      $('ai-retry').hidden = false;
+      const {settings} = await request('/ai-settings', {printerKey: target});
+      if (generation !== aiGeneration || target !== workshopState.selectedPrinter || !aiDialog.open) return;
+      const status = Number(settings.status), f = aiForm.elements;
+      f.spaghetti.checked = !!(status & 1);
+      f.foreign.checked = !!(status & 2);
+      f.spaghetti_level.value = String(settings.sensitivity_level?.[1] ?? 1);
+      f.foreign_level.value = String(settings.sensitivity_level?.[0] ?? 1);
+      f.pause.value = String(settings.notice_type?.[1] === 1);
+      aiInitial = JSON.stringify(aiValues());
+    } catch (error) {
+      if (generation !== aiGeneration || !aiDialog.open) return;
+      set('ai-error-detail', error.message);
+      $('ai-read-error').hidden = false;
     } finally {
-      aiLoading = false;
+      if (generation === aiGeneration) {
+        aiLoading = false;
+        updateAiControls();
+      }
     }
   }
   $('ai-open').onclick = () => {
-    $('ai-dialog').showModal();
-    loadAiSettings();
+    aiDialog.showModal();
+    void loadAiSettings();
   };
+  aiDialog.addEventListener('close', () => { aiGeneration++; });
   $('ai-retry').onclick = loadAiSettings;
-  $('ai-form').onsubmit = async (e) => {
-    e.preventDefault();
-    if (!aiLoaded) return;
-    const f = e.target,
-      result = await command(
-        'ai-settings',
-        {
-          spaghetti: f.elements.spaghetti.checked,
-          foreign: f.elements.foreign.checked,
-          spaghetti_level: Number(f.elements.spaghetti_level.value),
-          foreign_level: Number(f.elements.foreign_level.value),
-          pause: f.elements.pause.value === 'true',
-        },
-        tr('Appliquer ces réglages de détection IA à l’imprimante sélectionnée ?'),
-      );
-    if (result) $('ai-dialog').close();
+  $('ai-camera-open').onclick = () => {
+    aiDialog.close();
+    const tab = document.querySelector('#atelier-tabs [data-tab=camera]');
+    tab.click();
+    const toggle = $('section-menu-toggle');
+    (toggle.getClientRects().length ? toggle : tab).focus();
+  };
+  aiForm.oninput = updateAiControls;
+  aiForm.onsubmit = async (event) => {
+    event.preventDefault();
+    if (aiSave.disabled) return;
+    const values = aiValues();
+    aiSaving = true;
+    updateAiControls();
+    try {
+      const result = await command('ai-settings', values,
+        tr('Appliquer ces réglages de détection IA à l’imprimante sélectionnée ?'));
+      if (result && aiDialog.open) aiDialog.close();
+    } finally {
+      aiSaving = false;
+      updateAiControls();
+    }
   };
   for (const b of document.querySelectorAll('[data-axis]'))
     b.onclick = async () => {

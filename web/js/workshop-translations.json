@@ -5470,5 +5470,33 @@
   "ACE {0}": [
     "ACE {0}",
     "ACE {0}"
+  ],
+  "Lecture à jour": [
+    "Settings up to date",
+    "Lectura actualizada"
+  ],
+  "Lecture impossible": [
+    "Unable to read settings",
+    "No se pudieron leer los ajustes"
+  ],
+  "Signale un enchevêtrement de filament pendant l’impression.": [
+    "Detects tangled filament while printing.",
+    "Detecta enredos de filamento durante la impresión."
+  ],
+  "Signale les objets étrangers détectés sur le plateau.": [
+    "Reports foreign objects detected on the build plate.",
+    "Avisa si se detectan objetos extraños en la plataforma."
+  ],
+  "La détection IA utilise la caméra.": [
+    "AI detection uses the camera.",
+    "La detección por IA utiliza la cámara."
+  ],
+  "Ouvrir l’onglet Caméra": [
+    "Open the Camera tab",
+    "Abrir la pestaña Cámara"
+  ],
+  "Les réglages sont envoyés à l’imprimante.": [
+    "Settings are sent to the printer.",
+    "Los ajustes se envían a la impresora."
   ]
 }

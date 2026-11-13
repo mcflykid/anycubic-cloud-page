@@ -403,7 +403,26 @@
   </div>
   <footer class="atelier-card-footer"><button type="button" id="dry-stop" class="danger" hidden>Arrêter le séchage</button><button type="submit" form="dry-form" id="dry-start" class="primary" disabled>Démarrer le séchage</button></footer>
 </dialog>
-<dialog id="ai-dialog" class="settings-dialog"><div class="dialog-top"><h2>Détection IA</h2><button type="button" class="dialog-close" aria-label="Fermer la détection IA">Fermer</button></div><p id="ai-state" class="muted" role="status"></p><button id="ai-retry" type="button" hidden>Réessayer la lecture</button><form id="ai-form" hidden><fieldset disabled><section class="ai-option"><label class="check"><input name="spaghetti" type="checkbox"> Détection de filament enchevêtré</label><label>Sensibilité<select name="spaghetti_level"><option value="0">Faible</option><option value="1">Normale</option><option value="2">Élevée</option></select></label><label>En cas de détection<select name="pause"><option value="false">Notifier seulement</option><option value="true">Mettre l’impression en pause</option></select></label></section><section class="ai-option" id="ai-foreign-option"><label class="check"><input name="foreign" type="checkbox"> Détection d’objets étrangers</label><label>Sensibilité<select name="foreign_level"><option value="0">Faible</option><option value="1">Normale</option><option value="2">Élevée</option></select></label></section><button type="submit" class="primary">Enregistrer</button></fieldset></form></dialog>
+<dialog id="ai-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="ai-title">
+  <header class="atelier-card-header"><h2 id="ai-title">Détection IA</h2><span id="ai-state" role="status"></span><button type="button" class="dialog-close" aria-label="Fermer la détection IA">Fermer</button></header>
+  <div class="atelier-card-body ai-detail-body">
+    <div class="ai-read-error" id="ai-read-error" hidden><p id="ai-error-detail"></p><button id="ai-retry" type="button">Réessayer la lecture</button></div>
+    <form id="ai-form">
+      <section class="ai-option">
+        <label class="ai-switch"><input name="spaghetti" type="checkbox" role="switch" disabled> Détection de filament enchevêtré</label>
+        <p>Signale un enchevêtrement de filament pendant l’impression.</p>
+        <fieldset id="ai-spaghetti-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="spaghetti_level" value="0"><span>Faible</span></label><label><input type="radio" name="spaghetti_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="spaghetti_level" value="2"><span>Élevée</span></label></div><div class="ai-segments" role="group" aria-label="En cas de détection"><span>En cas de détection</span><label><input type="radio" name="pause" value="false" checked><span>Notifier seulement</span></label><label><input type="radio" name="pause" value="true"><span>Mettre l’impression en pause</span></label></div></fieldset>
+      </section>
+      <section class="ai-option" id="ai-foreign-option">
+        <label class="ai-switch"><input name="foreign" type="checkbox" role="switch" disabled> Détection d’objets étrangers</label>
+        <p>Signale les objets étrangers détectés sur le plateau.</p>
+        <fieldset id="ai-foreign-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="foreign_level" value="0"><span>Faible</span></label><label><input type="radio" name="foreign_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="foreign_level" value="2"><span>Élevée</span></label></div></fieldset>
+      </section>
+    </form>
+    <p id="ai-camera-note">La détection IA utilise la caméra. <button id="ai-camera-open" type="button">Ouvrir l’onglet Caméra</button></p>
+  </div>
+  <footer class="atelier-card-footer"><span>Les réglages sont envoyés à l’imprimante.</span><button type="submit" form="ai-form" id="ai-save" class="primary" disabled>Enregistrer</button></footer>
+</dialog>
 <dialog id="settings-logs-dialog" aria-labelledby="settings-logs-title" class="settings-dialog journal-dialog">
   <header class="atelier-card-header"><h2 id="settings-logs-title">Journal des commandes</h2><button class="dialog-close" type="button">Fermer</button></header>
   <div class="journal-controls">

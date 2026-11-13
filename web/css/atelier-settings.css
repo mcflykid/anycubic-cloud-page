@@ -218,3 +218,32 @@ body:has(.workshop-frame) > dialog.journal-dialog {
   .journal-time { grid-row: 2; grid-column: 2; }
   .journal-details { grid-row: 2; grid-column: 1; }
 }
+
+body:has(.workshop-frame) > #ai-dialog { width: min(600px, calc(100% - 32px)); }
+.ai-detail-body, #ai-form { display: grid; gap: var(--atelier-space-3); }
+#ai-dialog .ai-option {
+  display: grid;
+  gap: var(--atelier-space-2);
+  margin: 0;
+  padding: var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+#ai-dialog .ai-option[hidden] { display: none; }
+.ai-option p, .ai-option fieldset, .ai-detail-body > p { margin: 0; }
+.ai-option fieldset { display: grid; gap: var(--atelier-space-2); border: 0; padding: 0; min-width: 0; }
+.ai-switch { display: flex; align-items: center; gap: var(--atelier-space-2); font-weight: var(--atelier-semibold); }
+.ai-switch input { width: 1.2em; height: 1.2em; accent-color: var(--atelier-accent); }
+.ai-segments { display: flex; align-items: center; flex-wrap: wrap; gap: var(--atelier-space-2); }
+.ai-segments label { position: relative; display: flex; align-items: center; margin: 0; }
+.ai-segments input { position: absolute; opacity: 0; }
+.ai-segments label span { display: flex; align-items: center; min-height: 36px; padding-inline: var(--atelier-space-2); border: 1px solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
+.ai-segments input:checked + span { color: var(--atelier-accent); border-color: var(--atelier-accent); }
+.ai-segments input:focus-visible + span { outline: 2px solid var(--atelier-accent); outline-offset: 2px; }
+.ai-segments input:disabled + span { opacity: .6; }
+.ai-read-error { padding: var(--atelier-space-3); color: var(--atelier-warning); background: color-mix(in srgb, var(--atelier-warning) 10%, var(--atelier-surface)); }
+.ai-read-error p { margin-block-start: 0; }
+@media (max-width: 560px) {
+  .ai-segments > span { flex-basis: 100%; }
+  .ai-segments label, .ai-segments label span { flex: 1; }
+}
