@@ -866,6 +866,7 @@ export function createHistory(request, command, selectedBox) {
         open.setAttribute('aria-label', tr('Voir le détail'));
         selectCell.append(select);
         copy.append(name, node('span', t.printer || tr('Imprimante')));
+        if (t.local_note?.text) copy.append(node('span', tr('Note locale')));
         if (t.local_note?.tags?.length) copy.append(node('span', t.local_note.tags.join(' · ')));
         identity.append(taskThumbnail(t), copy);
         file.append(identity);
@@ -987,6 +988,11 @@ export function createHistory(request, command, selectedBox) {
     notes.hidden = false;
     notes.elements.text.value = t.local_note?.text || '';
     notes.elements.tags.value = t.local_note?.tags?.join(', ') || '';
+    const updateNoteCount = () => set('task-note-count', formatText('{0} sur {1}', notes.elements.text.value.length, notes.elements.text.maxLength));
+    notes.elements.text.oninput = updateNoteCount;
+    updateNoteCount();
+    const tags = [...new Set(taskRows.flatMap(task => task.local_note?.tags || []))].sort();
+    $('task-note-suggestions').replaceChildren(...tags.map(tag => new Option(tag)));
     set('task-note-state', '');
     notes.onsubmit = async event => {
       event.preventDefault();
