@@ -360,6 +360,8 @@ export function createHistory(request, command, selectedBox) {
         allItems
           ? tr('Effacer définitivement les notifications d’impression du compte Anycubic ?')
           : tr('Effacer définitivement cette notification Anycubic ?'),
+        false,
+        tr(allItems ? 'Supprimer tous les messages' : 'Supprimer cette notification'),
       ))
     )
       return;

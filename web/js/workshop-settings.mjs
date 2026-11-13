@@ -18,7 +18,11 @@ import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mj
 export function createSettings(request, command, camera) {
   let deviceOptions = null,
     resetTicket = null,
-    resetDeadline = 0;
+    resetDeadline = 0,
+    resetTimer,
+    resetRequest,
+    resetAuthorization,
+    resetPrinter;
   const currentControls = createCurrentControls(command);
   $('rename-form').onsubmit = (e) => {
     e.preventDefault();
@@ -416,47 +420,132 @@ export function createSettings(request, command, camera) {
       tr('Modifier le délai de veille ?'),
     );
   };
-  $('reset-open').onclick = () => {
+  const resetDialog = $('reset-dialog'), resetForm = $('reset-form'),
+    resetSubmit = $('reset-submit'), resetGetCode = $('reset-get-code');
+  /** Efface le défi si la fenêtre ferme ou si l’utilisateur retire son accord. */
+  function clearResetChallenge() {
+    resetRequest?.abort();
+    resetRequest = null;
+    resetAuthorization?.abort();
+    resetAuthorization = null;
+    clearInterval(resetTimer);
     resetTicket = null;
+    resetPrinter = null;
+    resetForm.hidden = true;
+    resetForm.reset();
+    resetSubmit.disabled = true;
+    set('reset-code', '');
+    set('reset-countdown', '');
+    set('reset-password-state', '');
+  }
+  /** Recalcule le temps depuis l’échéance, même après suspension de l’onglet. */
+  function updateResetCountdown() {
+    const remaining = Math.max(0, Math.ceil((resetDeadline - Date.now()) / 1000));
+    set('reset-countdown', Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2, '0'));
+    resetSubmit.disabled = !resetTicket || !!resetAuthorization ||
+      !resetForm.elements.code.validity.valid || !resetForm.elements.password.validity.valid;
+    if (!remaining) {
+      resetTicket = null;
+      resetSubmit.disabled = true;
+      resetAuthorization?.abort();
+      clearInterval(resetTimer);
+      set('reset-state', tr('Code expiré. Demandez un nouveau code.'));
+    }
+  }
+  $('reset-open').onclick = () => {
+    clearResetChallenge();
     $('reset-understood').checked = false;
-    $('reset-get-code').disabled = true;
-    $('reset-form').hidden = true;
-    $('reset-form').reset();
-    $('reset-dialog').showModal();
+    resetGetCode.disabled = true;
+    resetDialog.showModal();
   };
-  $('reset-understood').onchange = (e) => ($('reset-get-code').disabled = !e.target.checked);
-  $('reset-get-code').onclick = async () => {
-    if (!$('reset-understood').checked) return;
+  resetDialog.addEventListener('close', clearResetChallenge);
+  $('reset-understood').onchange = (e) => {
+    if (!e.target.checked) clearResetChallenge();
+    resetGetCode.disabled = !e.target.checked;
+  };
+  resetGetCode.onclick = async () => {
+    if (!$('reset-understood').checked || resetGetCode.disabled) return;
+    clearResetChallenge();
+    const controller = new AbortController();
+    resetRequest = controller;
+    resetGetCode.disabled = true;
+    const printerKey = workshopState.selectedPrinter;
     try {
       const d = await request('/reset/challenge', {
         method: 'POST',
+        printerKey,
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90000)]),
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
+      if (resetRequest !== controller || !resetDialog.open || printerKey !== workshopState.selectedPrinter) return;
       resetTicket = d.ticket;
+      resetPrinter = printerKey;
       resetDeadline = Date.now() + d.expires_in * 1000;
       set('reset-code', d.code);
-      $('reset-form').hidden = false;
+      resetForm.hidden = false;
       set('reset-state', tr('Ce code est à usage unique'));
-      $('reset-form').elements.code.focus();
+      updateResetCountdown();
+      resetTimer = setInterval(updateResetCountdown, 250);
+      resetForm.elements.code.focus();
     } catch (e) {
+      if (resetRequest !== controller || !resetDialog.open) return;
       set('reset-help', e.message);
       message(e.message, true);
+    } finally {
+      if (resetRequest === controller) {
+        resetRequest = null;
+        resetGetCode.disabled = !$('reset-understood').checked;
+      }
     }
   };
-  $('reset-form').onsubmit = async (e) => {
+  resetForm.oninput = updateResetCountdown;
+  resetForm.onsubmit = async (e) => {
     e.preventDefault();
-    if (!resetTicket || Date.now() > resetDeadline) {
-      set('reset-state', tr('Code expiré. Demandez un nouveau code.'));
+    if (resetSubmit.disabled) return;
+    if (!resetTicket || Date.now() >= resetDeadline) {
+      updateResetCountdown();
       return;
     }
+    if (resetPrinter !== workshopState.selectedPrinter) {
+      clearResetChallenge();
+      message(tr('La cible a changé : commande annulée.'), true);
+      return;
+    }
+    const controller = new AbortController(), passwordField = resetForm.elements.password;
+    const password = passwordField.value;
+    passwordField.value = '';
+    resetAuthorization = controller;
+    resetSubmit.disabled = true;
+    resetGetCode.disabled = true;
+    set('reset-password-state', tr('Vérification…'));
     const ok = await command('factory-reset', {
       ticket: resetTicket,
-      code: e.target.elements.code.value,
+      code: resetForm.elements.code.value,
+    }, undefined, undefined, async (authorize) => {
+      try {
+        const token = await authorize(password, controller.signal);
+        if (controller.signal.aborted || !resetDialog.open || Date.now() >= resetDeadline) return null;
+        resetTicket = null;
+        set('reset-password-state', '');
+        return token;
+      } catch (error) {
+        if (!controller.signal.aborted && resetDialog.open) {
+          set('reset-password-state', error.message);
+          passwordField.focus();
+        }
+        return null;
+      }
     });
-    resetTicket = null;
-    if (ok) $('reset-dialog').close();
-    else set('reset-state', tr('Demandez un nouveau code avant de réessayer'));
+    if (resetAuthorization !== controller) return;
+    resetAuthorization = null;
+    resetGetCode.disabled = !$('reset-understood').checked;
+    if (ok) resetDialog.close();
+    else {
+      updateResetCountdown();
+      if (!resetTicket && Date.now() < resetDeadline)
+        set('reset-state', tr('Demandez un nouveau code avant de réessayer'));
+    }
   };
 
   function enter() {

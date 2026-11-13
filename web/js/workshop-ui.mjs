@@ -307,13 +307,19 @@ export function message(text, error = false) {
   $('message').hidden = !text;
   $('message').classList.toggle('error', error);
 }
-/** Renvoie une promesse booléenne ; une fermeture du dialogue annule l’action physique proposée. */
-export function confirmAction(text, showFileSlots = false) {
+/** Renvoie une promesse booléenne ; un libellé destructif donne la priorité à l’annulation. */
+export function confirmAction(text, showFileSlots = false, destructiveLabel = '') {
   return new Promise((resolve) => {
     const d = $('confirm-dialog');
+    const yes = $('confirm-yes'), no = $('confirm-no');
     set('confirm-text', text);
+    set('confirm-yes', destructiveLabel || tr('Confirmer'));
+    d.dataset.severity = destructiveLabel ? 'destructive' : 'ordinary';
+    yes.classList.toggle('primary', !destructiveLabel);
+    yes.classList.toggle('danger', !!destructiveLabel);
     $('file-mapping-form').hidden = !showFileSlots;
     d.showModal();
+    if (destructiveLabel) no.focus();
     let settled = false;
     const settle = (value) => {
       if (settled) return;
@@ -324,8 +330,8 @@ export function confirmAction(text, showFileSlots = false) {
       settle(value);
       d.close();
     };
-    $('confirm-no').onclick = () => finish(false);
-    $('confirm-yes').onclick = () => finish(true);
+    no.onclick = () => finish(false);
+    yes.onclick = () => finish(true);
     d.oncancel = () => settle(false);
     d.onclose = () => settle(false);
   });

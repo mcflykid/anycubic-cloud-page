@@ -40,20 +40,20 @@ test('une mise à jour demande le mot de passe web avant toute commande',async({
  const update=page.locator('[data-command=firmware]');
  const password=page.locator('#reauth-dialog');
  await update.click();
- await page.locator('#confirm-yes').click();
  await expect(password).toBeVisible();
+ await expect(password.locator('#reauth-question')).toContainText('fixture-version');
  await page.keyboard.press('Escape');
  await expect(password).toBeHidden();
+ await expect(update).toBeFocused();
  expect(commands).toHaveLength(0);
 
  await update.click();
- await page.locator('#confirm-yes').click();
  await password.getByLabel('Mot de passe web',{exact:true}).fill('fixture-incorrect');
- await password.getByRole('button',{name:'Confirmer',exact:true}).click();
+ await password.getByRole('button',{name:'Installer la mise à jour',exact:true}).click();
  await expect(password.getByRole('status')).toHaveText('Mot de passe web incorrect.');
  expect(commands).toHaveLength(0);
  await password.getByLabel('Mot de passe web',{exact:true}).fill('ui-fixture-password');
- await password.getByRole('button',{name:'Confirmer',exact:true}).click();
+ await password.getByRole('button',{name:'Installer la mise à jour',exact:true}).click();
  await expect.poll(()=>commands.length).toBe(1);
  expect(commands[0].action).toBe('firmware');
  expect(commands[0].confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -101,9 +101,8 @@ test('le choix mémorisé traduit l’atelier, ses confirmations et la connexion
   expect(await page.locator('.portal-nav').evaluate(nav=>nav.scrollWidth<=nav.clientWidth)).toBe(true);
   await openSection(page,'settings');
   await page.locator('[data-command=firmware]').click();
-  await expect(page.locator('#confirm-text')).toHaveText(language.confirm);
-  await page.locator('#confirm-yes').click();
   const password=page.locator('#reauth-dialog');
+  await expect(password.locator('#reauth-question')).toHaveText(language.confirm);
   await password.locator('input[type=password]').fill('fixture-incorrect');
   await password.locator('#reauth-submit').click();
   await expect(password.getByRole('status')).toHaveText(language.incorrect);
@@ -224,4 +223,88 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
   await expect(theme).toHaveValue('dark');
   await style.selectOption({label: 'Par défaut'});
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(17, 21, 26)');
+});
+
+test('une suppression nomme son effet et place le focus sur Annuler', async ({page}) => {
+ await login(page, 'files');
+ const remove = page.locator('#file-rows').getByRole('button', {name: 'Supprimer', exact: true}).first();
+ await remove.click();
+ const dialog = page.locator('#confirm-dialog');
+ await expect(dialog.getByRole('button', {name: 'Supprimer', exact: true})).toBeVisible();
+ await expect(dialog.getByRole('button', {name: 'Annuler', exact: true})).toBeFocused();
+ await page.keyboard.press('Escape');
+ await expect(dialog).toBeHidden();
+ await expect(remove).toBeFocused();
+});
+
+test('la réinitialisation affiche le temps restant et bloque un code expiré', async ({page}) => {
+ await page.setViewportSize({width: 390, height: 800});
+ await page.addInitScript(() => localStorage.setItem('cloud-page-theme', 'dark'));
+ await page.route('**/imprimante-api/extras/device', async route => {
+  const response = await route.fetch();
+  const json = await response.json();
+  await route.fulfill({response, json: {...json, factory_reset: true}});
+ });
+ await page.route('**/imprimante-api/reset/challenge', route =>
+  route.fulfill({json: {ticket: 'fixture-ticket', code: '012345', expires_in: 120}}));
+ const actions = [];
+ await page.route('**/imprimante-api/{reauth,command}', async route => {
+  actions.push(route.request().postDataJSON().action);
+  await route.fulfill({json: {}});
+ });
+ await page.clock.install();
+ await login(page, 'settings');
+ const trigger = page.locator('#reset-open');
+ await trigger.click();
+ const dialog = page.locator('#reset-dialog');
+ await dialog.locator('#reset-understood').check();
+ await dialog.locator('#reset-get-code').click();
+ await expect(dialog.locator('#reset-countdown')).toHaveText('2:00');
+ const submit = dialog.getByRole('button', {name: 'Confirmer la réinitialisation'});
+ await expect(submit).toBeDisabled();
+ await dialog.getByLabel('Code de confirmation').fill('012345');
+ await dialog.getByLabel('Mot de passe web').fill('ui-fixture-password');
+ await expect(submit).toBeEnabled();
+ await page.clock.fastForward(121000);
+ await expect(submit).toBeDisabled();
+ await expect(dialog.locator('#reset-state')).toHaveText('Code expiré. Demandez un nouveau code.');
+ await page.keyboard.press('Escape');
+ await expect(dialog).toBeHidden();
+ await expect(trigger).toBeFocused();
+ expect(actions).toEqual([]);
+});
+
+test('la réinitialisation garde le refus du mot de passe dans la même fenêtre', async ({page}) => {
+ await page.route('**/imprimante-api/extras/device', async route => {
+  const response = await route.fetch();
+  await route.fulfill({response, json: {...await response.json(), factory_reset: true}});
+ });
+ await page.route('**/imprimante-api/reset/challenge', route =>
+  route.fulfill({json: {ticket: 'fixture-ticket', code: '012345', expires_in: 120}}));
+ const commands = [];
+ await page.route('**/imprimante-api/command', route => {
+  commands.push(route.request().postDataJSON());
+  return route.fulfill({json: {ok: true, message: 'Commande fictive'}});
+ });
+ await login(page, 'settings');
+ await page.locator('#reset-open').click();
+ const dialog = page.locator('#reset-dialog');
+ await dialog.locator('#reset-understood').check();
+ await dialog.locator('#reset-get-code').click();
+ await dialog.getByLabel('Code de confirmation').fill('012345');
+ const password = dialog.getByLabel('Mot de passe web');
+ const submit = dialog.locator('#reset-submit');
+ await password.fill('fixture-incorrect');
+ await submit.click();
+ await expect(dialog.locator('#reset-password-state')).toHaveText('Mot de passe web incorrect.');
+ await expect(page.locator('#reauth-dialog')).toBeHidden();
+ await expect(password).toBeFocused();
+ expect(commands).toHaveLength(0);
+ await password.fill('ui-fixture-password');
+ await submit.click();
+ await expect(dialog).toBeHidden();
+ expect(commands).toHaveLength(1);
+ expect(commands[0]).toMatchObject({action: 'factory-reset', ticket: 'fixture-ticket', code: '012345'});
+ expect(commands[0].confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
+ expect(commands[0]).not.toHaveProperty('password');
 });

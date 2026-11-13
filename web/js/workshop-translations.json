@@ -399,6 +399,10 @@
     "Stop drying on the selected module?",
     "¿Detener el secado en el módulo seleccionado?"
   ],
+  "Arrêter l’impression": [
+    "Stop printing",
+    "Detener la impresión"
+  ],
   "Arrêter l’impression en cours ?": [
     "Stop the current print?",
     "¿Detener la impresión en curso?"
@@ -1583,6 +1587,10 @@
     "Site information",
     "Información del sitio"
   ],
+  "Installer la mise à jour": [
+    "Install update",
+    "Instalar la actualización"
+  ],
   "Installer la version ": [
     "Install version ",
     "Instalar la versión "
@@ -2647,9 +2655,17 @@
     "Supports",
     "Soportes"
   ],
+  "Retirer la sélection": [
+    "Remove selection",
+    "Retirar la selección"
+  ],
   "Supprimer": [
     "Delete",
     "Eliminar"
+  ],
+  "Supprimer {0} fichiers": [
+    "Delete {0} files",
+    "Eliminar {0} archivos"
   ],
   "Supprimer ce fichier après confirmation.": [
     "Delete this file after confirmation.",

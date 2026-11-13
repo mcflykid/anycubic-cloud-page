@@ -1,5 +1,5 @@
 import { openErrorSheet } from './workshop-error-catalogue.mjs';
-import { $, confirmAction, message, set, tr } from './workshop-ui.mjs';
+import { $, confirmAction, formatText, message, set, tr } from './workshop-ui.mjs';
 import { workshopState, setBusy } from './workshop-state.mjs';
 
 /** Renvoie les numéros de bobines dans l’ordre saisi ; lève Error pour un numéro hors de 1 à 8. */
@@ -17,8 +17,19 @@ export function slots(value) {
 /** Prépare les commandes utilisateur et la confirmation des actions sensibles. */
 export function createCommands(request, refresh) {
   const sensitiveActions = new Set(['firmware', 'ace-firmware', 'factory-reset']);
-  /** Vérifie le mot de passe séparément de la commande et abandonne la confirmation si le dialogue ferme. */
-  function confirmPassword(action, target) {
+  /** Demande un jeton serveur lié à la cible et à l’action, sans joindre le mot de passe à la commande. */
+  async function authorize(action, target, password, signal) {
+    const result = await request('/reauth', {
+      method: 'POST',
+      printerKey: target,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, password }),
+    });
+    return result.confirmation;
+  }
+  /** Présente l’avertissement avec le mot de passe et abandonne la confirmation si la fenêtre ferme. */
+  function confirmPassword(action, target, question) {
     const dialog = $('reauth-dialog'),
       form = $('reauth-form'),
       submit = $('reauth-submit'),
@@ -26,6 +37,9 @@ export function createCommands(request, refresh) {
     let confirmation = null;
     form.reset();
     submit.disabled = false;
+    $('reauth-question').hidden = !question;
+    set('reauth-question', question || '');
+    set('reauth-submit', tr('Installer la mise à jour'));
     set('reauth-state', '');
     return new Promise((resolve) => {
       dialog.addEventListener(
@@ -43,18 +57,12 @@ export function createCommands(request, refresh) {
         if (submit.disabled) return;
         submit.disabled = true;
         set('reauth-state', tr('Vérification…'));
-        const body = JSON.stringify({ action, password: form.elements.password.value });
+        const password = form.elements.password.value;
         form.reset();
         try {
-          const result = await request('/reauth', {
-            method: 'POST',
-            printerKey: target,
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          });
+          const token = await authorize(action, target, password, controller.signal);
           if (!dialog.open || controller.signal.aborted) return;
-          confirmation = result.confirmation;
+          confirmation = token;
           dialog.close();
         } catch (error) {
           if (!dialog.open || controller.signal.aborted) return;
@@ -66,8 +74,8 @@ export function createCommands(request, refresh) {
       dialog.showModal();
     });
   }
-  /** Renvoie le résultat ou null ; question demande confirmation et request_id empêche une répétition côté serveur. */
-  async function command(action, data = {}, question, feedback) {
+  /** Renvoie le résultat ou null ; confirmSensitive permet de valider le mot de passe dans le formulaire d’origine. */
+  async function command(action, data = {}, question, feedback, confirmSensitive) {
     const notify = (text, error, sheet) => {
       message(text, error);
       feedback?.(text, sheet);
@@ -86,7 +94,17 @@ export function createCommands(request, refresh) {
       return null;
     }
     const filePrint = ['print-cloud', 'print-local', 'print-usb'].includes(action);
-    if (question && !(await confirmAction(question, filePrint))) return null;
+    const sensitive = sensitiveActions.has(action);
+    const destructiveLabels = {
+      cancel: tr('Arrêter l’impression'),
+      'delete-cloud': tr('Supprimer'),
+      'delete-local': tr('Supprimer'),
+      'delete-usb': tr('Supprimer'),
+      'cloud-delete-many': formatText('Supprimer {0} fichiers', data.handles?.length),
+      'task-delete-many': tr('Retirer la sélection'),
+    };
+    if (question && !sensitive &&
+        !(await confirmAction(question, filePrint, destructiveLabels[action]))) return null;
     if (filePrint) data = { ...data, slots: slots($('file-slots').value) };
     if (action === 'idle-settings') data = { ...data, confirmed: !!question || data.confirmed === true };
     if (target !== workshopState.selectedPrinter) {
@@ -95,9 +113,15 @@ export function createCommands(request, refresh) {
     }
     setBusy(true);
     try {
-      if (sensitiveActions.has(action)) {
-        const confirmation = await confirmPassword(action, target);
+      if (sensitive) {
+        const confirmation = confirmSensitive
+          ? await confirmSensitive((password, signal) => authorize(action, target, password, signal))
+          : await confirmPassword(action, target, question);
         if (!confirmation) return null;
+        if (target !== workshopState.selectedPrinter) {
+          notify(tr('La cible a changé : commande annulée.'), true);
+          return null;
+        }
         data = { ...data, confirmation };
       }
       notify(tr('Demande en cours…'));
