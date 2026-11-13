@@ -84,7 +84,7 @@
   </div>
   <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
     <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
-    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien</button></div>
+    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien</button><button id="queue-open" type="button" aria-haspopup="dialog">File d’attente</button></div>
   </section>
 </section>
 <section id="tab-ace" class="tab-panel" hidden>
@@ -582,6 +582,11 @@
 </dialog>
 <dialog id="reauth-dialog" class="settings-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reauth-title" aria-describedby="reauth-question"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reauth-title">Confirmer avec le mot de passe web</h2></div><div class="confirmation-body"><p id="reauth-question" hidden></p><form id="reauth-form" method="dialog"><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reauth-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reauth-form" id="reauth-submit" class="danger">Installer la mise à jour</button></div></dialog>
 <dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2></div><div class="confirmation-body"><p id="confirm-text"></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
+<dialog id="queue-dialog" class="settings-dialog" aria-labelledby="queue-title">
+  <header class="dialog-top"><h2 id="queue-title">File d’attente</h2><button class="dialog-close" type="button">Fermer</button></header>
+  <p id="queue-state" role="status"></p><ol id="queue-list"></ol>
+  <button id="queue-next" type="button" disabled>Plateau libéré, préparer la suivante</button>
+</dialog>
 <dialog id="maintenance-dialog" class="settings-dialog" aria-labelledby="maintenance-title">
   <header class="dialog-top"><h2 id="maintenance-title">Entretien</h2><button class="dialog-close" type="button">Fermer</button></header>
   <p id="maintenance-hours"></p><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>

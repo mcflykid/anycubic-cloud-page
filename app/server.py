@@ -36,6 +36,7 @@ from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
 from task_notes import save_task_note
 from maintenance import maintenance_rows, update_maintenance
+from print_queue import read_queue, update_queue
 from print_observations import observe_timeline, read_timelines
 from notification_delivery import private_json
 from printer_values import integer, now as now, safeget
@@ -266,6 +267,35 @@ async def maintenance(req):
     else:
         rows = await asyncio.to_thread(maintenance_rows, path, hours)
     return web.json_response({"items": rows, "hours": hours}, headers={"Cache-Control": "no-store"})
+
+
+async def print_queue(req):
+    """Met à jour les références Cloud en file, sans appeler de commande de lancement."""
+    engine = request_engine(req)
+    path = engine.state_dir / "print-queue.json"
+    if req.method == "POST":
+        data = await json_object(req)
+        handle, action = data.get("handle"), data.get("action")
+        if not isinstance(handle, str):
+            raise ValueError("Fichier introuvable")
+        file = engine.cloudfiles.get(handle)
+        entry = {"name": file.old_filename} if file and safeget(file, "gcode_id", 0) else None
+        async with engine.lock:
+            rows = await asyncio.to_thread(update_queue, path, action, handle, entry)
+    else:
+        rows = await asyncio.to_thread(read_queue, path)
+    return web.json_response(
+        {
+            "items": [
+                {
+                    **row,
+                    "available": bool(safeget(engine.cloudfiles.get(row["handle"]), "gcode_id")),
+                }
+                for row in rows
+            ]
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 async def task_note(req):
@@ -972,6 +1002,8 @@ app.add_routes(
         web.post("/imprimante-api/print/cancel-transfer", cancel_print_transfer),
         web.get("/imprimante-api/maintenance", maintenance),
         web.post("/imprimante-api/maintenance", maintenance),
+        web.get("/imprimante-api/print-queue", print_queue),
+        web.post("/imprimante-api/print-queue", print_queue),
         web.post("/imprimante-api/task-note", task_note),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),

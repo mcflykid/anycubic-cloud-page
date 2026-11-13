@@ -6054,5 +6054,45 @@
   "Opération d’entretien indisponible.": [
     "Maintenance operation unavailable.",
     "Operación de mantenimiento no disponible."
+  ],
+  "File d’attente": [
+    "Print queue",
+    "Cola de impresión"
+  ],
+  "Ajouter à la file": [
+    "Add to queue",
+    "Añadir a la cola"
+  ],
+  "Plateau libéré, préparer la suivante": [
+    "Build plate clear, prepare next print",
+    "Plataforma libre, preparar la siguiente impresión"
+  ],
+  "La file d’attente est vide.": [
+    "The print queue is empty.",
+    "La cola de impresión está vacía."
+  ],
+  "Fichier ajouté à la file d’attente.": [
+    "File added to the print queue.",
+    "Archivo añadido a la cola de impresión."
+  ],
+  "Actualisez les fichiers Cloud pour vérifier cette entrée.": [
+    "Refresh Cloud files to check this entry.",
+    "Actualiza los archivos en la nube para comprobar esta entrada."
+  ],
+  "Vérifiez que le plateau est libre avant d’imprimer « {0} ».": [
+    "Check that the build plate is clear before printing “{0}”.",
+    "Comprueba que la plataforma esté libre antes de imprimir «{0}»."
+  ],
+  "Entrée de la file indisponible.": [
+    "Queue entry unavailable.",
+    "Entrada de la cola no disponible."
+  ],
+  "Monter": [
+    "Move up",
+    "Subir"
+  ],
+  "Descendre": [
+    "Move down",
+    "Bajar"
   ]
 }

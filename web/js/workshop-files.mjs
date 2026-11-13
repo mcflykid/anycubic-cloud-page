@@ -20,7 +20,7 @@ import { bindFileDialogs } from './workshop-file-dialogs.mjs';
 import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
 
 /** Gère la navigation dans les fichiers, les aperçus et l’envoi. */
-export function createFiles(request, command) {
+export function createFiles(request, command, addToQueue) {
   let source = 'local',
     cloudPage = 1,
     cloudFolder = '',
@@ -137,7 +137,7 @@ export function createFiles(request, command) {
         identity.append(caption);
         name.append(identity);
         const add = (label, fn, cls) => {
-          const textButton = label === 'Imprimer' || label === 'Ouvrir';
+          const textButton = ['Imprimer', 'Ouvrir', 'Ajouter à la file'].includes(label);
           const b = node('button', null, 'atelier-control');
           if (cls === 'danger') b.classList.add('atelier-control-danger');
           if (!textButton) b.classList.add('atelier-control-icon');
@@ -212,6 +212,7 @@ export function createFiles(request, command) {
             loadFiles();
           });
         else if (!context.folder) {
+          if (isCloud && printable) add('Ajouter à la file', () => addToQueue(f.handle));
           add('Imprimer', async () => {
             try {
               await command(

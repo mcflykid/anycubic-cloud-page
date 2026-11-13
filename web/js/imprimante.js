@@ -32,6 +32,7 @@ import { initializeInteractions } from './workshop-interactions.mjs';
 initializeInteractions();
 import { renderSummary } from './workshop-summary.mjs';
 import { bindMaintenance } from './workshop-maintenance.mjs';
+import { bindPrintQueue } from './workshop-print-queue.mjs';
 export { previewJob } from './workshop-overview.mjs';
 
 let printerCatalogueReady = false,
@@ -112,7 +113,7 @@ if (logoutForm) logoutForm.addEventListener('submit', (event) => {
 const { command } = createCommands(request, refresh);
 const overview = createOverview(request);
 const ace = createAce(command, refresh);
-const files = createFiles(request, command);
+const files = createFiles(request, command, bindPrintQueue(request, command));
 const history = createHistory(request, command, ace.selectedBox);
 const settings = createSettings(request, command, camera);
 const timelapses = createTimelapses(request);
