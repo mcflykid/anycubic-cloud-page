@@ -81,9 +81,13 @@ class TranslationTests(unittest.TestCase):
     def test_static_pages_have_english_and_spanish_labels(self):
         """Échoue si une page contient un texte manquant dans le catalogue."""
         catalogue = json.loads((ROOT / "js/workshop-translations.json").read_text())
-        for key, pair in catalogue.items():
-            self.assertEqual(len(pair), 2, key)
-            self.assertTrue(all(isinstance(value, str) and value.strip() for value in pair), key)
+        for key, translations in catalogue.items():
+            self.assertIsInstance(translations, dict, key)
+            self.assertTrue({"en", "es"} <= translations.keys(), key)
+            self.assertTrue(
+                all(isinstance(value, str) and value.strip() for value in translations.values()),
+                key,
+            )
         for page in sorted(ROOT.glob("*.html")):
             with self.subTest(page=page.name):
                 parser = VisibleLabels()

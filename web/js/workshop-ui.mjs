@@ -23,7 +23,7 @@ const serverFormats = [
 /** Préserve le texte français si une traduction est absente ou si le catalogue n’a pas chargé. */
 export function tr(text) {
   if (language === 'fr' || typeof text !== 'string' || !Object.hasOwn(catalogue, text)) return text;
-  return catalogue[text][language === 'en' ? 0 : 1];
+  return catalogue[text][language] || text;
 }
 
 /** Garde les codes et libellés techniques côté serveur, avec un retour localisé pour les erreurs non cataloguées. */
@@ -78,10 +78,9 @@ async function initializeLanguage() {
         Array.isArray(translations) ||
         typeof translations !== 'object' ||
         !Object.values(translations).every(
-          (pair) =>
-            Array.isArray(pair) &&
-            pair.length === 2 &&
-            pair.every((value) => typeof value === 'string'),
+          (entry) =>
+            entry && !Array.isArray(entry) && typeof entry === 'object' &&
+            ['en', 'es'].every(code => typeof entry[code] === 'string'),
         )
       ) {
         throw new Error('Catalogue invalide');

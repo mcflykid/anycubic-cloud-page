@@ -37,7 +37,7 @@ def notification_error_title(code, language="fr"):
     title = sheet["title"]
     if language not in ("en", "es"):
         return title
-    return _translations().get(title, (title, title))[0 if language == "en" else 1]
+    return _translations().get(title, {}).get(language, title)
 
 
 def notification_count(value):

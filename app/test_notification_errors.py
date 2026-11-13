@@ -72,8 +72,8 @@ class NotificationErrorTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsInstance(sheet["models"], list)
                 for text in (sheet["title"], sheet["description"], *sheet["steps"]):
                     self.assertTrue(text)
-                    self.assertEqual(len(translations[text]), 2)
-                    self.assertTrue(all(value.strip() for value in translations[text]))
+                    self.assertTrue({"en", "es"} <= translations[text].keys())
+                    self.assertTrue(all(value.strip() for value in translations[text].values()))
                 source = urlsplit(sheet["source"])
                 self.assertEqual(source.scheme, "https")
                 self.assertEqual(source.netloc, "wiki.anycubic.com")
