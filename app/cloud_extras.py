@@ -810,7 +810,13 @@ class CloudExtras:
         d = await self.api(
             "/v3/work/getProjectCommentInfo", {"project_id": r.get("taskid") or r["id"]}
         )
-        return {"available": isinstance(d, dict), "already_rated": bool(r.get("is_comment"))}
+        rated = bool(r.get("is_comment"))
+        star = d.get("star") if isinstance(d, dict) else None
+        return {
+            "available": isinstance(d, dict),
+            "already_rated": rated,
+            "stars": star if rated and type(star) is int and 1 <= star <= 5 else None,
+        }
 
     async def device(self):
         """Renvoie les réglages et capacités filtrés, avec un cache de soixante secondes."""

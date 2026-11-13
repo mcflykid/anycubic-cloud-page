@@ -63,6 +63,48 @@ test('le transfert garde la fenêtre ouverte jusqu’à la réponse Anycubic', a
   expect(uploads).toBe(1);
 });
 
+test('les affectations Cloud suivent les couleurs et les changements de l’ACE', async ({page}) => {
+  let slotAvailable = true, order;
+  await page.route('**/imprimante-api/files/cloud?*', async route => {
+    const response = await route.fetch(), json = await response.json();
+    json.files[0].details = {filaments:[
+      {material:'PLA', color:[235,235,235], grams:10},
+      {material:'PLA', color:[38,91,145], grams:8},
+    ]};
+    await route.fulfill({response,json});
+  });
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), json = await response.json();
+    json.printer.boxes[0].spools[1].spool_loaded = slotAvailable;
+    await route.fulfill({response,json});
+  });
+  await page.route('**/imprimante-api/command', route => {
+    order = route.request().postDataJSON();
+    return route.fulfill({json:{ok:true,message:'Ordre fictif accepté'}});
+  });
+  await login(page, 'files');
+  await page.locator('[data-source=cloud]').click();
+  await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+  const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
+  const first = dialog.getByRole('combobox',{name:'Filament 1 · PLA'});
+  const second = dialog.getByRole('combobox',{name:'Filament 2 · PLA'});
+  const submit = dialog.getByRole('button',{name:'Lancer l’impression'});
+  await first.selectOption('1');
+  await expect(submit).toBeDisabled();
+  await second.selectOption('2');
+  await expect(submit).toBeEnabled();
+  slotAvailable = false;
+  await expect(second).toHaveValue('', {timeout:8000});
+  await expect(second.getByRole('option',{name:/Emplacement 2 · Emplacement vide/})).toHaveAttribute('disabled', '');
+  await expect(submit).toBeDisabled();
+  await second.selectOption('3');
+  await dialog.locator('#print-options summary').click();
+  await submit.click();
+  await expect(dialog).toContainText('Ordre fictif accepté');
+  expect(order.slots).toEqual([1,3]);
+  expect(order).not.toHaveProperty('drying');
+});
+
 test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({page}) => {
   let state = {command_project:'ancien', job_state:'finished', job_in_progress:false, job_file_references:['fichier']}, started = false;
   await page.route('**/imprimante-api/status*', async route => {
@@ -84,8 +126,12 @@ test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({
   state = {...state, command_project:'autre', job_file_references:['autre'], job_state:'printing', job_in_progress:true};
   await page.waitForResponse(r => r.url().includes('/status?print_tracking=ordre'));
   await expect(dialog).not.toContainText('Démarrage confirmé par l’imprimante');
-  state = {...state, command_project:'nouveau', job_file_references:['fichier'], job_state:'preheating'};
+  state = {...state, command_project:'nouveau', job_file_references:['fichier'],
+    job_state:'downloading', job_download_progress:13};
+  await expect(dialog.getByRole('progressbar')).toHaveAttribute('value', '13');
+  state = {...state, job_state:'preheating'};
   await expect(dialog).toContainText('Préparation en cours sur l’imprimante');
+  await expect(dialog.getByRole('progressbar')).not.toHaveAttribute('value');
   state = {...state, job_state:'printing'};
   started = true;
   await expect(dialog).toContainText('Démarrage confirmé par l’imprimante');
@@ -199,6 +245,12 @@ for (const [language, title, theme] of [
     const dialog = page.getByRole('dialog', {name:title});
     await expect(dialog.locator('#print-name')).toHaveAttribute('title',name);
     await expect(dialog.locator('#print-no')).toBeFocused();
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await expect(dialog.getByRole('button',{name:title})).toBeInViewport();
+    await dialog.locator('#print-options summary').click();
+    const preparation = dialog.locator('#print-options input[type=checkbox]:disabled');
+    await expect(preparation).toHaveCount(5);
+    await expect(dialog.locator('#print-drying-mode option:disabled')).toHaveCount(2);
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(dialog.getByRole('button',{name:title})).toBeInViewport();
     await page.keyboard.press('Escape');

@@ -107,7 +107,18 @@ export function createCommands(request, refresh) {
       'task-delete-many': tr('Retirer la sélection'),
     };
     if (filePrint) {
-      const confirmation = await confirmPrint({target, name: data.name, details: data.details, image, question, readSlots: slots});
+      const rows = data.details?.filaments;
+      const filaments = rows?.length ? {
+        materials: rows.map(row => row.material),
+        colors: rows.map(row => row.color),
+      } : undefined;
+      const checkAdvice = filaments && (slots => filamentAdvice(request, {
+        materials:filaments.materials, colors:filaments.colors.every(Boolean) ? filaments.colors : [],
+        grams:rows.map(row => row.grams), slots,
+      }, target));
+      const confirmation = await confirmPrint({
+        target, name:data.name, details:data.details, image, question, readSlots:slots, filaments, checkAdvice,
+      });
       if (!confirmation) return null;
       data = { ...data, slots: confirmation.slots };
     } else if (question && !sensitive &&

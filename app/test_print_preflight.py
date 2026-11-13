@@ -10,6 +10,33 @@ from printer_commands import execute_command
 class LaunchTrackingTests(unittest.TestCase):
     """Le suivi ne doit jamais confondre une tâche précédente avec le lancement demandé."""
 
+    def test_running_shortfall_requires_identified_monofilament_and_qualified_spool(self):
+        """Le pourcentage global ne suffit pas à répartir la consommation d’une tâche multicolore."""
+        from print_preflight import running_filament_shortfall
+
+        spool = {
+            "local_slot": 2,
+            "display_slot": 2,
+            "spool_loaded": True,
+            "material_type": "PLA",
+            "remaining_percent": 5,
+            "remaining_percent_qualified": True,
+        }
+        job = {
+            "job_state": "printing",
+            "job_progress": 50,
+            "printer_online": True,
+            "boxes": [{"loaded_slot": 1, "spools": [spool]}],
+        }
+        material = {"material_type": "PLA", "filament_used": 200}
+        self.assertEqual(
+            running_filament_shortfall(job, [material]),
+            [{"slot": 2, "grams": 50, "needed": 100, "relay": []}],
+        )
+        self.assertEqual(running_filament_shortfall(job, [material, material]), [])
+        spool["remaining_percent_qualified"] = False
+        self.assertEqual(running_filament_shortfall(job, [material]), [])
+
     def test_tracking_uses_cloud_file_reference_and_previous_project(self):
         """Un accusé sans référence de fichier ne permet pas de corréler le démarrage."""
         from print_preflight import launch_tracking, print_file_references

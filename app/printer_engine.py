@@ -37,7 +37,12 @@ from printer_commands import execute_command, slot_indices
 from printer_registry import printer_key
 from printer_values import now, safeget, serial
 import printer_files
-from print_preflight import ensure_firmware_ready, print_file_references, validate_print_indices
+from print_preflight import (
+    ensure_firmware_ready,
+    print_file_references,
+    running_filament_shortfall,
+    validate_print_indices,
+)
 from session_api import CloudSessionAuthError, SessionRecovery
 
 FIELDS = json.loads(pathlib.Path(__file__).with_name("fields.json").read_text())
@@ -869,6 +874,9 @@ class Engine:
         }
         fields["foreign_detection_supported"] = bool(features.get("fod_support"))
         fields["boxes"] = boxes
+        fields["filament_shortfalls"] = running_filament_shortfall(
+            fields, safeget(p, "latest_project.slice_material_info_list")
+        )
         if boxes and boxes[0]["temperature"] is not None:
             fields["ace_current_temperature"] = boxes[0]["temperature"]
         fields["material_rack"] = safeget(p, "material_rack_spool_info_object", [])

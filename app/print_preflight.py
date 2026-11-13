@@ -157,6 +157,45 @@ def filament_shortfalls(snapshot, slots, grams):
     return warnings
 
 
+def running_filament_shortfall(snapshot, materials):
+    """Estime le besoin restant d’une tâche monofilament avec une seule bobine engagée identifiable."""
+    from filament_catalog import material_family
+
+    if (
+        snapshot.get("job_state") != "printing"
+        or snapshot.get("printer_online") is not True
+        or not isinstance(materials, list)
+        or len(materials) != 1
+        or not isinstance(materials[0], dict)
+    ):
+        return []
+    progress, total = snapshot.get("job_progress"), materials[0].get("filament_used")
+    if type(progress) not in (int, float) or not 0 <= progress < 100:
+        return []
+    if type(total) not in (int, float) or not 0 < total <= 100_000:
+        return []
+    model = snapshot.get("machine_name")
+    family = material_family(materials[0].get("material_type"), model)
+    if not family:
+        return []
+    active = [
+        spool
+        for box in snapshot.get("boxes") or []
+        for spool in box.get("spools") or []
+        if spool.get("spool_loaded") is True
+        and type(box.get("loaded_slot")) is int
+        and type(spool.get("local_slot")) is int
+        and spool["local_slot"] == box["loaded_slot"] + 1
+        and material_family(spool.get("material_type"), model) == family
+        and type(spool.get("display_slot")) is int
+    ]
+    if len(active) != 1:
+        return []
+    return filament_shortfalls(
+        snapshot, [active[0]["display_slot"]], [total * (1 - progress / 100)]
+    )
+
+
 def ensure_storage_ready(available, size):
     """Lève ValueError pour un quota insuffisant connu ; une valeur absente ne prouve aucun refus."""
     import math

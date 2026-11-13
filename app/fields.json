@@ -26,6 +26,7 @@
   "secondary_dry_status_remaining_time": "secondary_drying_status_remaining_time",
   "job_name": "latest_project_name",
   "job_progress": "latest_project_progress_percentage",
+  "job_download_progress": "latest_project_download_progress_percentage",
   "job_time_elapsed": "latest_project_print_time_elapsed_minutes",
   "job_time_remaining": "latest_project_print_time_remaining_minutes",
   "job_in_progress": "latest_project_print_in_progress",

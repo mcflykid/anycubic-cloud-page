@@ -5806,5 +5806,9 @@
   "Timelapse": [
     "Timelapse",
     "Vídeo acelerado"
+  ],
+  "Téléchargement par l’imprimante · {0}": [
+    "Printer downloading · {0}",
+    "Descarga en la impresora · {0}"
   ]
 }

@@ -189,6 +189,9 @@ async function capturePrintConfirmation(page) {
   const dialog = page.locator('#print-dialog');
   await dialog.waitFor();
   await photo(page, '34-confirmation-impression.png');
+  await dialog.locator('#print-options summary').click();
+  await photo(page, '40-impression-options-indisponibles.png');
+  await dialog.locator('#print-options summary').click();
   await page.setViewportSize(mobile);
   await photo(page, '35-confirmation-impression-mobile.png');
   await page.setViewportSize(desktop);
@@ -207,6 +210,39 @@ async function capturePrintConfirmation(page) {
   }
   await dialog.locator('#print-close').waitFor();
   await photo(page, '37-impression-reponse-cloud.png');
+  await page.keyboard.press('Escape');
+  await page.unroute('**/imprimante-api/upload');
+  let started = false;
+  await page.route('**/imprimante-api/status?print_tracking=demo-order', async route => {
+    const response = await route.fetch();
+    const json = await response.json();
+    Object.assign(json.printer, {command_project:'demo-current', job_state:'downloading',
+      job_download_progress:13, job_file_references:['demo-file']});
+    await route.fulfill({json:{...json, print_started:started}});
+  });
+  await page.route('**/imprimante-api/upload', route => route.fulfill({json:{
+    ok:true, message:'Envoi accepté par Anycubic', print_reference:'demo-order',
+    print_tracking:{previous_project:'demo-previous', files:['demo-file']},
+  }}));
+  await form.locator('button[type=submit]').click();
+  await dialog.locator('#print-yes').click();
+  await dialog.locator('#print-progress[value="13"]').waitFor();
+  await photo(page, '38-impression-telechargement-mesure.png');
+  started = true;
+  await dialog.locator('#print-result').getByText('Démarrage confirmé par l’imprimante.').waitFor();
+  await photo(page, '39-impression-demarrage-confirme.png');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => localStorage.setItem('cloud-page-theme', 'dark'));
+  await page.reload();
+  await openSection(page, 'upload');
+  await form.locator('input[type=file]').setInputFiles({
+    name:'Pièce de démonstration.gcode', mimeType:'text/plain',
+    buffer:Buffer.from('; filament_type = PLA\nG1 X1\n'),
+  });
+  await form.locator('[name=mode]').selectOption('save-print');
+  await form.locator('button[type=submit]').click();
+  await dialog.waitFor();
+  await photo(page, '41-confirmation-impression-sombre.png');
   await page.keyboard.press('Escape');
 }
 

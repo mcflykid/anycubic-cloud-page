@@ -6,7 +6,7 @@ from cloud_extras import CloudExtras
 from native_controls import ai_payload, axis_payload
 from notification_service import history_entry
 from printer_values import filepath, integer
-from printer_files import MQTTReplies
+from printer_files import MQTTReplies, cloud_files
 import asyncio, importlib.util, pathlib, time, unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -58,6 +58,50 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         routes = {route.resource.canonical for route in adapter.app.router.routes()}
         self.assertNotIn("/imprimante-api/axis-position", routes)
         self.assertNotIn("axis_query_supported", self.e.snapshot()["printer"])
+
+    async def test_cloud_files_keep_slice_order_and_omit_unusable_mapping(self):
+        """Les couleurs suivent l’ordre du fichier et les données illisibles gardent la saisie manuelle."""
+        self.e.api.get_user_cloud_files = AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    id=1,
+                    old_filename="multicolore.gcode",
+                    size_mb=1,
+                    gcode_id=2,
+                    _slice_param={
+                        "paint_infos": [
+                            {"material_type": "PLA", "color": "#A0b1C2", "filament_used": 10},
+                            {
+                                "material_type": "non référencé",
+                                "color": "inconnue",
+                                "filament_used": -1,
+                            },
+                            {"material_type": "PETG", "color": "#ffffff", "filament_used": 12},
+                        ]
+                    },
+                ),
+                SimpleNamespace(
+                    id=2,
+                    old_filename="sans-tranche.gcode",
+                    size_mb=1,
+                    gcode_id=3,
+                    _slice_param={"paint_infos": [{"color": "inconnue"}]},
+                ),
+            ]
+        )
+        self.e.api.get_user_cloud_store = AsyncMock(return_value=None)
+
+        result = await cloud_files(self.e, 1)
+
+        self.assertEqual(
+            result["files"][0]["details"]["filaments"],
+            [
+                {"material": "PLA", "color": [160, 177, 194], "grams": 10},
+                {"material": "", "color": None, "grams": None},
+                {"material": "PETG", "color": [255, 255, 255], "grams": 12},
+            ],
+        )
+        self.assertNotIn("filaments", result["files"][1]["details"])
 
     async def test_snapshot_uses_firmware_box_name_by_id(self):
         """La détection suit le boîtier dans un rapport de micrologiciel dont l’ordre diffère."""

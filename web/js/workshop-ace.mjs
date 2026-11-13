@@ -195,6 +195,9 @@ export function createAce(command, refresh) {
           copy.append(node('p', tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle')));
         if (Number.isInteger(box.loaded_slot) && box.loaded_slot >= 0 && box.loaded_slot === (spool.local_slot ?? spool.slot) - 1)
           copy.append(node('p', tr('Bobine engagée'), 'engaged-spool'));
+        const shortfall = p.filament_shortfalls?.find(item => item.slot === (spool.display_slot ?? spool.slot));
+        if (shortfall) copy.append(node('p', formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.',
+          shortfall.slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'heat-warning'));
         remaining.append(node('strong', fmt(spool.remaining_percent, ' %')));
         if (Number.isFinite(spool.remaining_percent)) {
           const progress = node('progress');

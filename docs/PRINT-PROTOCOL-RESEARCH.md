@@ -86,6 +86,15 @@ Le contrat de base `filetype`/`filename`/`filepath` du lancement mémoire et USB
 
 ## Affectations et suivi du lancement (#331, #332)
 
+| Source | Affectations en démonstration | Mesure et suivi |
+| --- | --- | --- |
+| Fichier G-code envoyé depuis le navigateur | Une ligne par filament lorsque les commentaires de tranche sont lisibles | Transfert indéterminé. L’annulation bloque l’envoi de l’ordre tant que le transfert est actif. |
+| Fichier Cloud | Une ligne par filament lorsque la liste Cloud fournit les données de tranche. Saisie de l’ordre des emplacements si elles manquent. | Pourcentage uniquement si la machine rapporte un téléchargement pour le G-code attendu. |
+| Mémoire imprimante ou USB | Saisie de l’ordre des emplacements avec les fichiers G-code pris en charge | Suivi par référence d’ordre. Les détails de tranche de ces sources restent à qualifier. |
+| Historique | Confirmation commune ouverte directement. Les matières et couleurs proviennent de la fiche de tranche. | Même suivi de l’ordre que pour les fichiers Cloud. |
+
+Les captures de démonstration couvrent la [confirmation](../screenshots/34-confirmation-impression.png), la [vue à 390 px](../screenshots/35-confirmation-impression-mobile.png), le [transfert indéterminé](../screenshots/36-impression-demande-en-cours.png), le [téléchargement mesuré](../screenshots/38-impression-telechargement-mesure.png) et le [rapport de démarrage corrélé](../screenshots/39-impression-demarrage-confirme.png).
+
 - Le serveur recontrôle la présence des bobines sélectionnées avant le transfert éventuel puis à la construction de l’ordre. Le parcours d’envoi et la relance depuis une fiche détaillée affichent une affectation par filament lorsque leurs données de tranche sont disponibles. Les fichiers stockés sans cette information conservent la saisie de l’ordre des emplacements.
 - Les écarts de matière et de couleur restent deux avertissements distincts. Le blocage d’un mélange de matières et les réglages de préparation ou de séchage liés au lancement demandent une qualification par modèle et par parcours.
 - Le transfert et l’appel d’envoi affichent une progression indéterminée. Le message de démarrage exige un rapport MQTT non retenu avec la signature et la référence de l’ordre attendu, pour la même imprimante. Un relevé de préparation est indicatif et n’est affiché que si un nouveau projet possède la référence attendue du G-code. Au bout de cinq minutes sans rapport corrélé, la fenêtre indique que le démarrage reste non confirmé.

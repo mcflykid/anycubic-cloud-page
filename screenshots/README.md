@@ -42,6 +42,10 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [35-confirmation-impression-mobile.png](35-confirmation-impression-mobile.png) | Même fenêtre à 390 px. |
 | [36-impression-demande-en-cours.png](36-impression-demande-en-cours.png) | Demande fictive en cours, sans pourcentage mesuré. |
 | [37-impression-reponse-cloud.png](37-impression-reponse-cloud.png) | Accusé de réception fictif dans la fenêtre de lancement. |
+| [38-impression-telechargement-mesure.png](38-impression-telechargement-mesure.png) | Téléchargement mesuré à 13 % par la doublure de l’imprimante. |
+| [39-impression-demarrage-confirme.png](39-impression-demarrage-confirme.png) | Démarrage confirmé par un rapport fictif corrélé à la demande. |
+| [40-impression-options-indisponibles.png](40-impression-options-indisponibles.png) | Réglages de préparation et de séchage présentés avec leur motif d’indisponibilité. |
+| [41-confirmation-impression-sombre.png](41-confirmation-impression-sombre.png) | Fenêtre de confirmation en thème sombre. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 

@@ -24,7 +24,7 @@ import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from '
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
-  let reprintTask;
+  let reprintPending = false;
   let pastTaskKey = null,
     tasksPage = 1,
     tasksGeneration = 0,
@@ -719,17 +719,49 @@ export function createHistory(request, command, selectedBox) {
     return task.can_reprint && ![0, 1].includes(task.status_code) &&
       task.printer_key === workshopState.selectedPrinter && printer?.printer_online && printer.is_available;
   }
-  /** Garde la référence de la fiche même si un rafraîchissement réordonne l’historique. */
-  function prepareReprint(task, details, image, filaments) {
-    if (!canReprint(task)) return;
-    reprintTask = {task, details, image, filaments};
-    set('reprint-task-name', task.name);
-    set('reprint-target', workshopState.snapshot?.printer?.name || task.printer);
-    const form = $('task-reprint-form');
-    form.reset();
-    form.elements.slots.required = !!selectedBox();
-    form.elements.slots.disabled = !selectedBox();
-    $('task-reprint-dialog').showModal();
+  /** Charge les données de la fiche puis ouvre directement la confirmation commune. */
+  async function prepareReprint(task, details, image, filaments) {
+    if (reprintPending || workshopState.busy || !canReprint(task)) return;
+    const target = workshopState.selectedPrinter, trigger = document.activeElement;
+    reprintPending = true;
+    try {
+      if (!details) {
+        const data = await request('/extras/task?key=' + encodeURIComponent(task.key), {printerKey:target});
+        details = {seconds:data.estimated_seconds, grams:data.material_grams};
+        filaments = reprintFilaments(data);
+      }
+      image ||= await taskPreview(task);
+      if (!trigger?.isConnected || target !== workshopState.selectedPrinter || !canReprint(task)) return;
+      const advice = slots => filamentAdvice(request, {key:task.key, slots}, target);
+      const confirmation = await confirmPrint({
+        target, name:task.name, details, image, filaments,
+        readSlots: selectedBox() && !filaments.materials.length ? slots : undefined,
+        question:tr('Vérifiez que le plateau est libre.'),
+        checkAdvice:advice,
+      });
+      if (!confirmation) return;
+      if (target !== workshopState.selectedPrinter || !canReprint(task)) {
+        closePrintConfirmation();
+        return;
+      }
+      const result = await command('task-reprint', {key:task.key, slots:confirmation.slots ?? []});
+      if (result) {
+        const detail = $('past-task-dialog');
+        if (detail.open && pastTaskKey === task.key) detail.close();
+      }
+    } catch (error) {
+      message(error.message, true);
+    } finally {
+      reprintPending = false;
+    }
+  }
+
+  /** Préserve l’ordre des couleurs annoncé par la fiche de tranche. */
+  function reprintFilaments(data) {
+    return {
+      materials: (data.materials || []).map(row => row.material),
+      colors: (data.materials || []).map(row => row.color?.match(/[0-9a-f]{2}/gi)?.map(value => parseInt(value, 16))),
+    };
   }
 
   /** Une ligne par impression, sans inventer une date ou une durée manquante. */
@@ -905,7 +937,7 @@ export function createHistory(request, command, selectedBox) {
     const selected = t.printer_key === workshopState.selectedPrinter;
     const rate = $('past-task-rate'), reprint = $('past-task-reprint');
     rate.hidden = !selected || t.status_code !== 2;
-    rate.disabled = t.evaluated === true;
+    rate.disabled = false;
     reprint.hidden = !selected || !t.can_reprint;
     reprint.disabled = !canReprint(t);
     set(
@@ -924,8 +956,7 @@ export function createHistory(request, command, selectedBox) {
     };
     let printDetails, printFilaments;
     reprint.onclick = () => {
-      dialog.close();
-      prepareReprint(t, printDetails, image.hidden ? undefined : image.currentSrc, printFilaments);
+      void prepareReprint(t, printDetails, image.hidden ? undefined : image.currentSrc, printFilaments);
     };
     dialog.showModal();
     const current = () => dialog.open && pastTaskKey === t.key;
@@ -940,10 +971,7 @@ export function createHistory(request, command, selectedBox) {
       const d = await request('/extras/task?key=' + encodeURIComponent(t.key));
       if (!current()) return;
       printDetails = {seconds: d.estimated_seconds, grams: d.material_grams};
-      printFilaments = {
-        materials: d.materials?.map(row => row.material),
-        colors: d.materials?.map(row => row.color?.match(/[0-9a-f]{2}/gi)?.map(value => parseInt(value, 16))),
-      };
+      printFilaments = reprintFilaments(d);
       $('past-task-state').querySelector('span').textContent = tr(t.status);
       $('past-task-state').dataset.state = t.status_code === 3 ? 'stopped' : 'active';
       const hasDiagnostic = !!(d.reason || d.reason_code || d.help_url);
@@ -1018,6 +1046,10 @@ export function createHistory(request, command, selectedBox) {
       const d = await request('/extras/rating?key=' + encodeURIComponent(t.key));
       if (!dialog.open || pastTaskKey !== t.key) return;
       form.querySelector('fieldset').disabled = !d.available || d.already_rated;
+      if (d.already_rated && Number.isInteger(d.stars) && d.stars >= 1 && d.stars <= 5) {
+        form.elements.stars.value = String(d.stars);
+        set('rating-value', formatText('{0} sur 5', d.stars));
+      }
       set(
         'rating-state',
         d.already_rated
@@ -1049,51 +1081,6 @@ export function createHistory(request, command, selectedBox) {
       loadTasks();
     }
   };
-  $('task-reprint-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget,
-      submit = form.querySelector('[type=submit]');
-    const selection = reprintTask, task = selection?.task, dialog = $('task-reprint-dialog');
-    if (submit.disabled || workshopState.busy || !task || !canReprint(task)) return;
-    let mapping;
-    try {
-      mapping = slots(form.elements.slots.value);
-    } catch (err) {
-      message(err.message, true);
-      return;
-    }
-    const wording = mapping.length
-      ? tr(
-          'Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent aux emplacements {2}.',
-        )
-      : tr(
-          'Réimprimer « {0} » sur {1} ? Vérifiez que le plateau est libre et que les bobines correspondent au fichier.',
-        );
-    submit.disabled = true;
-    const target = workshopState.selectedPrinter;
-    try {
-      const advice = await filamentAdvice(request, {key: task.key, slots: mapping}, target);
-      if (target !== workshopState.selectedPrinter || !dialog.open || selection !== reprintTask) return;
-      const confirmation = await confirmPrint({
-        target, name: task.name, advice, details: selection.details, image: selection.image,
-        question: formatText(wording, task.name, $('reprint-target').textContent, mapping.join(', ')),
-        filaments: selection.filaments ? {...selection.filaments, slots: mapping} : undefined,
-        checkAdvice: slots => filamentAdvice(request, {key: task.key, slots}, target),
-      });
-      if (!confirmation) return;
-      if (!dialog.open || target !== workshopState.selectedPrinter || selection !== reprintTask) {
-        closePrintConfirmation();
-        return;
-      }
-      const ok = await command('task-reprint', {key: task.key, slots: confirmation.slots ?? mapping});
-      if (ok) dialog.close();
-    } catch (error) {
-      message(error.message, true);
-    } finally {
-      submit.disabled = false;
-    }
-  };
-
   /** Réconcilie la première page du statut sans remplacer un journal choisi manuellement. */
   function syncNotifications(notifications) {
     if (legacySelected || historyPending || notifications.source !== 'slicer') return;

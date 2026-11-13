@@ -20,6 +20,7 @@ function renderAssignments() {
   const spools = slotChoices(workshopState.snapshot?.printer);
   const visible = !!assignment && spools.length > 0;
   $('print-ace').hidden = !visible;
+  $('print-mapping').hidden = visible || !$('print-mapping').dataset.manual;
   $('print-mapping-summary').hidden = visible || !$('print-mapping-summary').textContent;
   if (!visible) return;
   const signature = JSON.stringify(spools.map(spool => [
@@ -89,14 +90,29 @@ export function updatePrintConfirmation(available = statusAvailable, observedRef
       set('print-result', tr('Envoi de l’ordre d’impression à Anycubic…'));
   }
   if (dialog.dataset.phase === 'tracking') {
-    if (!available || printTarget !== selectedPrinter || printer?.printer_online !== true) return;
+    if (!available || printTarget !== selectedPrinter || printer?.printer_online !== true) {
+      $('print-progress').removeAttribute('value');
+      return;
+    }
     const file = tracking.file;
     const matches = file && printer.command_project && printer.command_project !== file.previous_project &&
       printer.job_file_references?.some(reference => file.files.includes(reference));
     if (tracking.reference && observedReference === tracking.reference && snapshot.print_started === true) {
       showPrintResult(tr('Démarrage confirmé par l’imprimante.'));
     } else if (matches && ['checking', 'downloading', 'preheating', 'leveling', 'slicing'].includes(printer.job_state)) {
-      set('print-result', tr('Préparation en cours sur l’imprimante.'));
+      const progress = $('print-progress');
+      const measured = printer.job_state === 'downloading' && Number.isFinite(printer.job_download_progress) &&
+        printer.job_download_progress > 0 && printer.job_download_progress <= 100;
+      if (measured) {
+        progress.max = 100;
+        progress.value = printer.job_download_progress;
+        set('print-result', formatText('Téléchargement par l’imprimante · {0}', fmt(progress.value, ' %')));
+      } else {
+        progress.removeAttribute('value');
+        set('print-result', tr('Préparation en cours sur l’imprimante.'));
+      }
+    } else {
+      $('print-progress').removeAttribute('value');
     }
     return;
   }
@@ -129,7 +145,8 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
     let revision = 0;
     current.updateAdvice = async slots => {
       const checked = ++revision;
-      const advice = await checkAdvice(slots.filter(Boolean)).catch(() => tr('Métadonnées de filament incomplètes : vérifiez les bobines et les emplacements.'));
+      // Les positions doivent rester alignées avec les matières tant que la sélection est incomplète.
+      const advice = await checkAdvice(slots.every(Boolean) ? slots : []).catch(() => tr('Métadonnées de filament incomplètes : vérifiez les bobines et les emplacements.'));
       if (assignment !== current || checked !== revision || !dialog.open || dialog.dataset.phase !== 'confirmation') return;
       $('print-advice').hidden = !advice;
       set('print-advice', advice);
@@ -158,6 +175,7 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   $('print-mapping-summary').hidden = !mappingText;
   set('print-mapping-summary', mappingText);
   const mapping = $('print-slots');
+  $('print-mapping').dataset.manual = readSlots ? 'yes' : '';
   mapping.value = '';
   mapping.oninput = () => mapping.setCustomValidity('');
   mapping.setCustomValidity('');
@@ -228,6 +246,7 @@ export function showPrintProgress(text, reference, cancel) {
   $('print-options').open = false;
   set('print-result', text);
   $('print-result').hidden = $('print-progress').hidden = false;
+  $('print-progress').removeAttribute('value');
   $('print-result').focus();
 }
 

@@ -277,7 +277,24 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 .print-ace-row select { max-width: 100%; }
 #print-options { margin-block-start: var(--atelier-space-3); }
 #print-options summary { cursor: pointer; }
-.print-option-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--atelier-filament-fact-min-width)), 1fr)); gap: var(--atelier-space-2); }
+.print-option-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--atelier-space-2);
+  margin-block-end: var(--atelier-space-3);
+}
+.print-option-list label {
+  display: flex;
+  gap: var(--atelier-space-2);
+  align-items: center;
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  padding: var(--atelier-space-1) var(--atelier-space-2);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .print-option-list { grid-template-columns: 1fr; }
+}
 .rating-task { display: flex; gap: var(--atelier-space-3); align-items: center; overflow-wrap: anywhere; }
 .rating-task img { width: var(--atelier-journal-time-width); aspect-ratio: 4 / 3; object-fit: contain; }
 .rating-task p { margin: 0; }

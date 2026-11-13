@@ -34,7 +34,7 @@ export function renderSummary(snapshot) {
     : !online ? 'Hors ligne' : boxes.some(box => box.drying?.is_drying) ? 'Séchage en cours' : 'Disponible'));
   $('summary-ace-status').classList.toggle('offline', !online || !boxes.length);
   $('summary-ace-status').dataset.state = boxes.some(box => box.drying?.is_drying) ? 'running' : '';
-  $('summary-ace-boxes').replaceChildren(...boxes.map(summaryAce));
+  $('summary-ace-boxes').replaceChildren(...boxes.map((box, index) => summaryAce(box, index, printer?.filament_shortfalls)));
 }
 
 /** Un libellé et sa valeur restent associés quand la grille se replie sur téléphone. */
@@ -45,7 +45,7 @@ function summaryValue(label, value) {
 }
 
 /** Affiche un bloc par ACE et garde les mesures absentes identifiables. */
-function summaryAce(box, index) {
+function summaryAce(box, index, shortfalls = []) {
   const group = node('section', null, 'summary-device summary-ace-device');
   const picture = node('img', null, 'summary-device-image');
   const filename = { 'ACE 2 Pro': 'ace2pro.png', 'ACE Pro': 'ace-pro.svg' }[box.model] || 'ace.svg';
@@ -90,6 +90,9 @@ function summaryAce(box, index) {
     const label = Number.isInteger(slot) && slot > 0 ? `${slot} · ${material}` : material;
     item.append(color, node('span', label),
       node('strong', fmt(spool.remaining_percent, ' %')));
+    const shortfall = shortfalls.find(entry => entry.slot === slot);
+    if (shortfall) information.append(node('p', formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.',
+      slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'heat-warning'));
     spools.append(item);
   }
   if (spools.childElementCount) information.append(spools);

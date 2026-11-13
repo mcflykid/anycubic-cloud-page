@@ -64,13 +64,14 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Voir le détail',exact:true}).first().click();
  await page.getByRole('button',{name:'Imprimer à nouveau',exact:true}).click();
- await page.locator('#task-reprint-form [name=slots]').fill('1, 3');
- await page.locator('#task-reprint-form button[type=submit]').click();
  const confirmation = page.getByRole('dialog', {name:'Lancer l’impression'});
  await expect(confirmation).toContainText('Kobra S1 · Démonstration');
- await expect(confirmation).toContainText('emplacements 1, 3');
+ const assignment = confirmation.locator('#print-ace select').first();
+ await expect(confirmation.locator('#print-yes')).toBeDisabled();
+ await assignment.selectOption('1');
+ await expect(confirmation.locator('#print-yes')).toBeEnabled();
  await confirmation.getByRole('button', {name:'Annuler'}).click();
- await expect(page.locator('#task-reprint-dialog')).toBeVisible();
+ await expect(page.locator('#past-task-reprint')).toBeFocused();
 });
 
 test('l’historique affiche les états et interdit la réimpression d’une tâche active',async({page})=>{
@@ -80,6 +81,18 @@ test('l’historique affiche les états et interdit la réimpression d’une tâ
  const active=page.locator('#tasks-list tr').filter({has:page.locator('.history-status-1')}).first();
  await expect(active.locator('.history-status-1')).toContainText('50 %');
  await expect(active.getByRole('button',{name:'Réimprimer'})).toBeDisabled();
+});
+
+test('une note déjà donnée reste consultable sans renvoi', async ({page}) => {
+ await page.route('**/imprimante-api/extras/rating?*', route =>
+   route.fulfill({json:{available:true, already_rated:true, stars:4}}));
+ await login(page,'history');
+ await page.getByRole('button',{name:'Voir le détail',exact:true}).first().click();
+ await page.getByRole('button',{name:'Évaluer',exact:true}).click();
+ const dialog = page.locator('#task-rating-dialog');
+ await expect(dialog.locator('#rating-value')).toHaveText('4 sur 5');
+ await expect(dialog.getByRole('radio',{name:'4 ★',exact:true})).toBeChecked();
+ await expect(dialog.locator('button[type=submit]')).toBeDisabled();
 });
 
 test('la Kobra S1 garde un visuel dédié et un ACE générique si la génération manque',async({page})=>{

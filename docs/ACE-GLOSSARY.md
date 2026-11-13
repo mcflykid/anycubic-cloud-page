@@ -28,3 +28,5 @@ Pour ajouter une référence personnelle depuis la fiche d’un emplacement, sui
 ## Quantité avant le lancement
 
 Le contrôle compare les grammes par filament fournis par la tranche aux pourcentages qualifiés des bobines affectées. En l’absence de masse nominale précise, il estime le restant sur la base d’une bobine de 1 kg. Une mesure inconnue ou non qualifiée ne déclenche aucune alerte. Lorsque le relais est activé, seules les bobines du même ACE dont la matière et la couleur correspondent, et qui ne sont pas déjà affectées, peuvent contribuer à l’estimation.
+
+En cours d’impression, l’estimation utilise la progression globale uniquement pour une tâche monofilament dont l’atelier identifie une seule bobine engagée de la bonne matière. Le calcul suppose une consommation proportionnelle à la progression. Il ne répartit pas la consommation d’une tâche multicolore sans données par filament.
