@@ -30,4 +30,18 @@ Les boutons **Aide** des fichiers, de la caméra, du module ACE et des événeme
 
 ## Rappels d’entretien
 
-Les opérations proposées pour la Kobra S1 reprennent les points d’entretien de la fiche constructeur. Les intervalles configurables de 50, 200, 300 et 500 heures sont des valeurs de départ de l’atelier. Saisissez le compteur de la dernière intervention pour commencer à suivre son échéance.
+Les opérations proposées pour la Kobra S1 suivent la page [Maintenance Recommendations](https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/maintenance-recommendations). Le wiki donne des durées calendaires et des bobines, pas des heures d’impression : chaque opération a donc son unité.
+
+| Opération | Échéance par défaut | Source |
+| --- | --- | --- |
+| Nettoyer et graisser la vis de l’axe Z | 90 jours | Wiki : environ trois mois, ou plus tôt en cas de bruit |
+| Nettoyer et graisser les tiges de l’axe Y | 30 jours | Wiki : contrôle mensuel |
+| Nettoyer les tiges de l’axe X à l’alcool, sans graisse | 30 jours | Wiki : bagues en graphène, ne jamais graisser l’axe X |
+| Dépoussiérer les ventilateurs de la tête et l’auxiliaire | 30 jours | Wiki : contrôle régulier ; fréquence choisie par l’atelier |
+| Contrôler l’usure du coupe-filament | 3 kg de filament | Wiki : après trois à cinq bobines |
+| Nettoyer la buse et contrôler la chaussette silicone | 50 h d’impression | Wiki : selon l’état constaté ; valeur de l’atelier |
+| Nettoyer la plaque en acier | 50 h d’impression | Wiki : nettoyage régulier ; valeur de l’atelier |
+
+Les courroies ne figurent pas sur cette page du wiki : l’ancienne opération n’est plus proposée par défaut, mais elle reste en place sur une installation existante. L’ancienne opération « Graisser les axes et tiges » est renommée pour rappeler que l’axe X ne se graisse pas.
+
+Une opération calendaire démarre lorsqu’elle est marquée comme faite. Une opération en heures accepte le compteur de la dernière intervention ; une opération en kilogrammes suit le filament cumulé indiqué par le constructeur.

@@ -35,7 +35,7 @@ from notification_reports import collect_history
 from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
 from task_notes import save_task_note
-from maintenance import maintenance_rows, update_maintenance
+from maintenance import filament_kg, maintenance_rows, update_maintenance
 from print_queue import read_queue, update_queue
 from print_observations import observe_timeline, read_timelines
 from notification_delivery import private_json
@@ -233,10 +233,13 @@ async def status(req):
         and printer
         and isinstance(getattr(engine, "state_dir", None), pathlib.Path)
     ):
-        hours = (printer.get("statistics") or {}).get("hours")
+        statistics = printer.get("statistics") or {}
         try:
             rows = await asyncio.to_thread(
-                maintenance_rows, engine.state_dir / "maintenance.json", hours
+                maintenance_rows,
+                engine.state_dir / "maintenance.json",
+                statistics.get("hours"),
+                material=statistics.get("material"),
             )
             printer["maintenance_due"] = sum(
                 row["enabled"] and row["elapsed"] is not None and row["elapsed"] >= row["interval"]
@@ -276,18 +279,30 @@ async def maintenance(req):
     engine = request_engine(req)
     if engine.printer is None:
         raise ValueError("Connexion en cours")
-    hours = (engine.snapshot().get("printer", {}).get("statistics") or {}).get("hours")
+    statistics = engine.snapshot().get("printer", {}).get("statistics") or {}
+    hours, material = statistics.get("hours"), statistics.get("material")
     path = engine.state_dir / "maintenance.json"
     defaults = "kobra s1" in str(safeget(engine, "printer.machine_name", "")).casefold()
     if req.method == "POST":
         data = await json_object(req)
         async with engine.lock:
             rows = await asyncio.to_thread(
-                update_maintenance, path, data, hours, int(time.time()), defaults=defaults
+                update_maintenance,
+                path,
+                data,
+                hours,
+                int(time.time()),
+                defaults=defaults,
+                material=material,
             )
     else:
-        rows = await asyncio.to_thread(maintenance_rows, path, hours, defaults=defaults)
-    return web.json_response({"items": rows, "hours": hours}, headers={"Cache-Control": "no-store"})
+        rows = await asyncio.to_thread(
+            maintenance_rows, path, hours, defaults=defaults, material=material
+        )
+    return web.json_response(
+        {"items": rows, "hours": hours, "kg": filament_kg(material)},
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 async def print_queue(req):

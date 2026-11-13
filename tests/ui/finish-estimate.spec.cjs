@@ -16,8 +16,13 @@ test('l’estimation corrigée est consultable et désactivable', async ({page})
   await openSection(page, 'overview');
   await expect(page.locator('#printer-finish')).toBeVisible();
   await page.locator('#task-details-open').click();
-  await page.locator('#correct-finish-settings summary').click();
+  const band = page.locator('#correct-finish-settings');
+  await expect(band).toBeVisible();
+  await expect(band).toContainText('Corrigée avec l’historique');
+  await expect(band).toContainText('8 impressions réussies');
   await page.locator('#correct-finish').uncheck();
+  // La bande reste visible pour permettre de réactiver la correction.
+  await expect(band).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('#printer-finish')).toBeHidden();
   await openSection(page, 'summary');

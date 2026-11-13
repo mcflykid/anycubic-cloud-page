@@ -23,22 +23,36 @@ export function bindPrintQueue(request, command) {
 
   /** Affiche les références de la cible et les entrées à vérifier après redémarrage. */
   function render() {
+    next.hidden = !rows.length;
     next.disabled = pending || !nextEntry() || queueTarget !== workshopState.selectedPrinter ||
       workshopState.snapshot?.printer?.is_available !== true;
+    $('queue-empty').hidden = pending || rows.length > 0 || Boolean($('queue-state').textContent);
+    $('queue-count').hidden = !rows.length;
+    set('queue-count', rows.length || '');
     const totals = rows.map(row => row.details?.seconds).filter(Number.isFinite);
     const grams = rows.flatMap(row => row.details?.filaments || []).map(row => row.grams).filter(Number.isFinite);
-    set('queue-totals', [
-      totals.length ? tr('Durée estimée') + ' · ' + mins(totals.reduce((sum, value) => sum + value, 0) / 60) : '',
-      grams.length ? tr('Filament estimé') + ' · ' + fmt(grams.reduce((sum, value) => sum + value, 0), ' g') : '',
-    ].filter(Boolean).join(' / '));
+    set('queue-totals', rows.length ? [
+      rows.length === 1 ? tr('1 impression') : formatText('{0} impressions', rows.length),
+      totals.length ? mins(totals.reduce((sum, value) => sum + value, 0) / 60) : '',
+      grams.length ? fmt(grams.reduce((sum, value) => sum + value, 0), ' g') : '',
+    ].filter(Boolean).join(' · ') : '');
     $('queue-list').replaceChildren(...rows.map((row, index) => {
       const item = node('li');
-      item.append(node('strong', row.name));
-      if (Number.isFinite(row.details?.seconds))
-        item.append(node('p', tr('Durée estimée') + ' · ' + mins(row.details.seconds / 60)));
-      const materials = row.details?.filaments?.map(filament => filament.material).filter(Boolean) || [];
-      if (materials.length) item.append(node('p', materials.join(' · ')));
-      if (row.slots?.length) item.append(node('p', row.slots.map(slot => formatText('Emplacement {0}', slot)).join(' · ')));
+      const position = node('span', String(index + 1), 'queue-position');
+      position.setAttribute('aria-hidden', 'true');
+      const identity = node('div', null, 'queue-identity');
+      const meta = [
+        Number.isFinite(row.details?.seconds) ? mins(row.details.seconds / 60) : '',
+        ...(row.details?.filaments || []).map(filament => [filament.material, Number.isFinite(filament.grams) ? fmt(filament.grams, ' g') : ''].filter(Boolean).join(' ')),
+        ...(row.slots || []).map(slot => formatText('Emplacement {0}', slot)),
+      ].filter(Boolean).join(' · ');
+      identity.append(node('strong', row.name), node('span', meta, 'muted'));
+      const warning = !row.available ? tr('Actualisez les fichiers Cloud pour vérifier cette entrée.')
+        : !matchesAce(row) ? tr('Une bobine sélectionnée est indisponible.') : '';
+      if (warning) {
+        identity.append(node('span', warning, 'queue-warning'));
+        item.dataset.state = 'warning';
+      }
       item.draggable = true;
       item.ondragstart = event => event.dataTransfer.setData('text/plain', row.handle);
       item.ondragover = event => event.preventDefault();
@@ -48,18 +62,20 @@ export function bindPrintQueue(request, command) {
         if (rows.some(entry => entry.handle === handle) && handle !== row.handle)
           void load({action:'move', handle, before:row.handle}, queueTarget);
       };
-      if (!row.available) item.append(node('p', tr('Actualisez les fichiers Cloud pour vérifier cette entrée.')));
-      else if (!matchesAce(row)) item.append(node('p', tr('Une bobine sélectionnée est indisponible.')));
-      for (const [action, label, disabled] of [
-        ['up', 'Monter', index === 0], ['down', 'Descendre', index === rows.length - 1],
-        ['remove', 'Retirer', false],
+      const actions = node('div', null, 'queue-actions');
+      for (const [action, label, symbol, disabled] of [
+        ['up', 'Monter', '↑', index === 0], ['down', 'Descendre', '↓', index === rows.length - 1],
+        ['remove', 'Retirer', '×', false],
       ]) {
-        const button = node('button', tr(label));
+        const button = node('button', symbol, 'atelier-control atelier-control-icon');
         button.type = 'button';
         button.disabled = disabled;
+        button.setAttribute('aria-label', formatText('{0} « {1} »', tr(label), row.name));
+        button.title = tr(label);
         button.onclick = () => void load({action, handle:row.handle}, queueTarget);
-        item.append(button);
+        actions.append(button);
       }
+      item.append(position, identity, actions);
       return item;
     }));
   }
@@ -77,7 +93,7 @@ export function bindPrintQueue(request, command) {
       if (target !== workshopState.selectedPrinter) return;
       queueTarget = target;
       rows = result.items;
-      set('queue-state', rows.length ? '' : tr('La file d’attente est vide.'));
+      set('queue-state', '');
       if (data?.action === 'add') message(tr('Fichier ajouté à la file d’attente.'));
     } catch (error) {
       if (dialog.open) set('queue-state', error.message);
@@ -91,6 +107,10 @@ export function bindPrintQueue(request, command) {
   $('queue-open').onclick = () => {
     $('queue-open').classList.remove('primary');
     rows = [];
+    set('queue-state', '');
+    // L’état vide n’apparaît qu’après la lecture, pour ne pas clignoter à l’ouverture.
+    $('queue-empty').hidden = true;
+    $('queue-list').replaceChildren();
     dialog.showModal();
     void load();
   };

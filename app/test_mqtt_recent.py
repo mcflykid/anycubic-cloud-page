@@ -343,3 +343,35 @@ class RecentReports(unittest.TestCase):
         self.p._machine_type = 20025
         self.p._update_mqtt_drying_status(box, Data(data), "autoUpdateDryStatus")
         self.assertEqual(box.drying_status.total_duration, 14400)
+
+
+class CloudProjectFans(unittest.TestCase):
+    """Les ventilateurs absents du flux MQTT restent lisibles depuis le projet Cloud."""
+
+    def test_auxiliary_and_circulation_fall_back_to_project_settings(self):
+        """Le relevé MQTT reste prioritaire ; le projet complète seulement les valeurs absentes."""
+        printer = AnycubicPrinter(
+            api_parent=Mock(),
+            machine_type=20025,
+            machine_name="Anycubic Kobra S1",
+            id=1,
+            device_status=1,
+            ignore_init_errors=True,
+        )
+        self.assertIsNone(printer.aux_fan_speed_pct)
+        printer._latest_project = AnycubicProject(
+            api_parent=Mock(),
+            id=1,
+            taskid=1,
+            gcode_id=2,
+            estimate=0,
+            progress=0,
+            status=1,
+            create_time=0,
+            gcode_name="fixture.gcode",
+            settings='{"fan_speed_pct": 100, "aux_fan_speed_pct": 60, "settings": {"box_fan_level": "40"}}',
+        )
+        self.assertEqual(printer.aux_fan_speed_pct, 60)
+        self.assertEqual(printer.box_fan_level, 40)
+        printer._aux_fan_speed_pct = 0
+        self.assertEqual(printer.aux_fan_speed_pct, 0)

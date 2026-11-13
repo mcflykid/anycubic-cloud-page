@@ -219,3 +219,9 @@
 #history-period-dialog .history-months { grid-template-columns: minmax(0, 1fr); }
 #history-period-dialog .history-days button { min-height: var(--atelier-control); }
 #history-custom-range[hidden] { display: none; }
+
+/* Fin prévue et chronologie suivent la grille des autres bandes plutôt que des volets repliés. */
+#correct-finish-settings .task-detail-metric:not([data-active]) dd { color: var(--atelier-muted); font-weight: var(--atelier-regular); }
+.task-detail-check { display: flex; align-items: center; justify-content: center; gap: var(--atelier-space-2); white-space: nowrap; }
+#task-finish-basis { margin: 0; font: var(--atelier-caption); }
+.task-detail-band[hidden] { display: none; }

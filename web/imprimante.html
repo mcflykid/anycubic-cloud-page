@@ -43,7 +43,7 @@
           </div>
           <div class="atelier-progress-group" id="summary-progress-wrap" hidden><label for="summary-progress">Progression <strong id="summary-progress-text"></strong></label><progress id="summary-progress" value="0" max="100"></progress></div>
           <p id="summary-finish" class="muted" tabindex="0" hidden></p>
-          <dl id="summary-printer-values" class="atelier-measures"></dl><p id="summary-maintenance-due" hidden>Entretien</p>
+          <dl id="summary-printer-values" class="atelier-measures"></dl><button type="button" id="summary-maintenance-due" class="atelier-count" data-state="due" hidden>Entretien</button>
         </div>
       </div>
       <footer class="atelier-card-footer"><button type="button" class="atelier-control" data-summary-open="overview">Ouvrir l’imprimante</button><a class="atelier-control" href="/imprimante-api/ui/mur">Vue mur</a></footer>
@@ -84,7 +84,7 @@
   </div>
   <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
     <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
-    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl><button id="maintenance-open" type="button" aria-haspopup="dialog">Entretien <span id="maintenance-count" hidden></span></button><button id="queue-open" type="button" aria-haspopup="dialog">File d’attente</button><details id="printer-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><div class="timeline-markers"></div><ol></ol></details></div>
+    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl></div><footer class="atelier-card-footer printer-material-actions"><button id="maintenance-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3Z"/></svg><span>Entretien</span><span id="maintenance-count" class="atelier-count" data-state="due" hidden></span></button><button id="queue-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>File d’attente</span><span id="queue-count" class="atelier-count" hidden></span></button><button id="printer-timeline-open" class="atelier-control" type="button" aria-haspopup="dialog" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Chronologie de l’impression</span></button><p class="muted">Registre local : aucune commande envoyée à l’imprimante.</p></footer>
   </section>
 </section>
 <section id="tab-ace" class="tab-panel" hidden>
@@ -132,7 +132,7 @@
     <label class="atelier-field">Trier<select id="files-sort"><option value="">Ordre d’origine</option><option value="name">Nom</option><option value="size">Taille</option><option value="date">Date d’ajout</option><option value="duration">Durée estimée</option></select></label>
   </form>
   <details id="file-advanced">
-    <summary>Filtres avancés <span id="file-filter-count" hidden></span></summary>
+    <summary class="atelier-disclosure">Filtres avancés <span id="file-filter-count" hidden></span></summary>
     <div class="file-advanced-fields">
       <label class="atelier-field">Matière<select id="file-material" multiple size="3"></select></label>
       <label class="atelier-field">Nombre de couleurs<select id="file-colors"><option value="">Toutes</option><option value="one">Une couleur</option><option value="few">Deux à quatre couleurs</option><option value="many">Plus de quatre couleurs</option><option value="unknown">Inconnu</option></select></label>
@@ -321,7 +321,7 @@
         </div></div>
         <p id="token-expiry" class="muted" role="status" hidden></p>
       </div>
-      <footer class="atelier-card-footer"><a class="atelier-control settings-control-link" id="diagnostic-download" href="/imprimante-api/diagnostic" download>Télécharger le diagnostic</a></footer>
+      <footer class="atelier-card-footer settings-row-footer"><div><strong>Diagnostic</strong><p>Informations techniques, sans identifiant ni secret.</p></div><a class="atelier-control settings-control-link" id="diagnostic-download" href="/imprimante-api/diagnostic" download aria-label="Télécharger le diagnostic">Télécharger</a></footer>
     </section>
     <section class="atelier-card" aria-labelledby="settings-printer-title">
       <header class="atelier-card-header"><h2 id="settings-printer-title">Imprimante</h2></header>
@@ -329,7 +329,7 @@
         <label class="atelier-field">Nom affiché dans le compte Anycubic<input name="name" maxlength="64" required></label>
         <button class="atelier-control atelier-control-primary" type="submit">Enregistrer le nom</button>
       </form></div>
-      <footer class="atelier-card-footer"><div><strong>Détection IA</strong><p>Surveillance des défauts par la caméra</p></div><button type="button" class="atelier-control" id="ai-open" aria-label="Détection IA">Régler</button></footer>
+      <footer class="atelier-card-footer settings-row-footer"><div><strong>Détection IA</strong><p>Surveillance des défauts par la caméra</p></div><button type="button" class="atelier-control" id="ai-open" aria-label="Détection IA">Régler</button></footer>
     </section>
   </div>
   <div class="atelier-settings-row">
@@ -353,26 +353,27 @@
     </section>
   </div>
   <div class="atelier-settings-row">
-    <section class="atelier-card" aria-labelledby="settings-appearance-title">
+    <section class="atelier-card settings-appearance" aria-labelledby="settings-appearance-title">
       <header class="atelier-card-header"><h2 id="settings-appearance-title">Apparence</h2></header>
       <div class="atelier-card-body">
         <div class="settings-appearance-fields"><label class="atelier-field">Thème<select id="interface-theme" aria-label="Thème de l’interface"><option value="system">Système</option><option value="light">Clair</option><option value="dark">Sombre</option></select></label><label class="atelier-field">Style<select id="interface-style" aria-label="Style de l’interface"><option value="standard">Par défaut</option><option value="aurora">Aurore</option><option value="lab">Laboratoire</option></select></label><label class="atelier-field">Contraste<select id="interface-contrast"><option value="system">Système</option><option value="standard">Standard</option><option value="high">Élevé</option></select></label></div>
-        <p id="theme-description" class="muted" aria-live="polite"></p>
       </div>
+      <footer class="atelier-card-footer"><p id="theme-description" aria-live="polite"></p></footer>
     </section>
-    <section class="atelier-card" aria-labelledby="settings-security-title">
+    <section class="atelier-card settings-security" aria-labelledby="settings-security-title">
       <header class="atelier-card-header"><h2 id="settings-security-title">Sécurité</h2></header>
-      <div class="atelier-card-body">
-        <div class="settings-factor"><div class="atelier-field"><strong>Connexion à deux facteurs</strong><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span></div><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
-        <p>Un code temporaire est demandé après le mot de passe.</p>
+      <div class="atelier-card-body settings-channels">
+        <div class="settings-channel"><span><strong>Connexion à deux facteurs</strong></span><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
       </div>
+      <footer class="atelier-card-footer"><p>Un code temporaire est demandé après le mot de passe.</p></footer>
     </section>
     <section class="atelier-card settings-discord" aria-labelledby="settings-discord-title" <!-- DISCORD_CARD_VISIBILITY -->>
       <header class="atelier-card-header"><h2 id="settings-discord-title">Notifications Discord</h2></header>
-      <div class="atelier-card-body settings-discord-actions">
-        <div class="settings-factor"><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Alertes</a><span class="atelier-status" data-state="<!-- DISCORD_BADGE_STATE -->"><!-- DISCORD_STATE --></span></div>
-        <div class="settings-factor"><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Bilans</a><span class="atelier-status" data-state="<!-- REPORTS_BADGE_STATE -->"><!-- REPORTS_STATE --></span></div>
+      <div class="atelier-card-body settings-channels">
+        <div class="settings-channel"><span><strong>Alertes</strong></span><span class="atelier-status" data-state="<!-- DISCORD_BADGE_STATE -->"><!-- DISCORD_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></div>
+        <div class="settings-channel"><span><strong>Bilans</strong></span><span class="atelier-status" data-state="<!-- REPORTS_BADGE_STATE -->"><!-- REPORTS_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Configurer</a></div>
       </div>
+      <footer class="atelier-card-footer"><p>Un webhook et un salon distincts par canal.</p></footer>
     </section>
   </div>
 <div class="section-title extras-settings-heading" hidden><div><h3>Réglages de la machine</h3><p id="device-options-state" class="muted">Lisez les options disponibles sur votre imprimante.</p></div><button id="device-options-load" type="button">Lire les options</button></div>
@@ -391,20 +392,22 @@
 </dialog>
 <dialog id="filament-profile-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="filament-profile-title">
   <header class="atelier-card-header"><h2 id="filament-profile-title">Fiche filament</h2><button type="button" class="dialog-close">Fermer</button></header>
-  <div class="atelier-card-body">
-    <h3 id="filament-slot-title"></h3><dl id="filament-profile-reading"></dl>
-    <h3 id="filament-profile-reference"></h3><dl id="filament-profile-facts"></dl>
+  <div class="atelier-card-body filament-profile-body">
+    <section class="filament-band"><h3 id="filament-slot-title" class="atelier-band-title"></h3><dl id="filament-profile-reading"></dl></section>
+    <section class="filament-band" id="filament-profile-print-band"><h3 class="atelier-band-title">Impression</h3><dl id="filament-profile-facts"></dl></section>
+    <section class="filament-band" id="filament-profile-drying-band"><h3 class="atelier-band-title">Séchage</h3><dl id="filament-profile-drying"></dl></section>
   </div>
-  <footer class="atelier-card-footer"><a id="filament-profile-datasheet" target="_blank" rel="noopener noreferrer" hidden>Fiche technique du fabricant (PDF)</a><a id="filament-profile-source" target="_blank" rel="noopener noreferrer">Fiche fabricant</a></footer>
+  <footer class="atelier-card-footer"><p id="filament-profile-reference" class="muted"></p><a id="filament-profile-datasheet" class="atelier-control" target="_blank" rel="noopener noreferrer" hidden>Fiche technique du fabricant (PDF)</a><a id="filament-profile-source" class="atelier-control" target="_blank" rel="noopener noreferrer">Fiche fabricant</a></footer>
 </dialog>
 <dialog id="filament-profile-create" class="settings-dialog ace-detail-dialog" aria-labelledby="filament-profile-create-title">
   <header class="atelier-card-header"><h2 id="filament-profile-create-title">Créer sa fiche filament</h2><button type="button" class="dialog-close">Fermer</button></header>
-  <div class="atelier-card-body">
-    <p id="filament-profile-create-slot"></p>
-    <p><a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/FICHES-FILAMENT.md" target="_blank" rel="noopener noreferrer">Tutoriel de création d’une fiche</a></p>
-    <label class="atelier-field">Importer une fiche JSON<input type="file" id="filament-profile-import" accept=".json,application/json"></label>
+  <div class="atelier-card-body filament-create-body">
+    <p class="filament-create-slot"><span id="filament-profile-create-swatch" class="filament-swatch" hidden></span><strong id="filament-profile-create-slot"></strong><span class="muted">Aucune fiche fabricant connue pour cette bobine.</span></p>
+    <label class="filament-drop" for="filament-profile-import"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 20h16"/></svg><strong>Déposer une fiche JSON ici</strong><span class="muted">ou</span><span class="atelier-control">Choisir un fichier</span><span class="muted filament-drop-hint">Format .json, 16 Ko au plus. La fiche reste dans ce navigateur.</span></label>
+    <input type="file" id="filament-profile-import" class="filament-drop-input" accept=".json,application/json" aria-label="Importer une fiche JSON">
     <p id="filament-profile-import-state" role="status"></p>
   </div>
+  <footer class="atelier-card-footer"><a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/FICHES-FILAMENT.md" target="_blank" rel="noopener noreferrer">Tutoriel : rédiger une fiche filament</a></footer>
 </dialog>
 <dialog id="spool-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="spool-title">
   <header class="atelier-card-header"><h2 id="spool-title">Configurer une bobine</h2><span id="spool-dialog-count"></span><button type="button" class="dialog-close" aria-label="Fermer les réglages de la bobine">Fermer</button></header>
@@ -508,12 +511,12 @@
 <dialog id="history-period-dialog" aria-labelledby="history-period-title"><div class="dialog-top"><h2 id="history-period-title">Période de l’historique</h2><button type="button" class="dialog-close">Fermer</button></div><div id="history-range-presets" role="group" aria-label="Période de l’historique"><button type="button" data-range="7">7 jours</button><button type="button" data-range="30">30 jours</button><button type="button" data-range="90">3 mois</button><button type="button" data-range="year">Cette année</button><button type="button" data-range="custom">Personnalisée</button></div><div id="history-custom-range" hidden><div class="history-period-inputs"><label>Du<input id="tasks-from" type="date"></label><label>Au<input id="tasks-to" type="date"></label></div><div class="history-calendar-toolbar"><button type="button" id="history-month-prev" aria-label="Mois précédent">‹</button><button type="button" id="history-month-next" aria-label="Mois suivant">›</button></div><div id="history-months" class="history-months"></div></div><p id="history-range-summary" role="status"></p><div class="actions history-period-actions"><button type="button" id="history-period-reset">Réinitialiser</button><button type="button" id="history-period-apply" class="primary">Appliquer</button></div></dialog>
 <dialog id="past-task-dialog" class="task-detail-dialog" aria-labelledby="task-dialog-title"><header class="dialog-top"><h2 id="task-dialog-title">Détails de la tâche</h2><span id="past-task-state" class="task-detail-status" role="status"><i aria-hidden="true"></i><span></span></span><button class="dialog-close" type="button" aria-label="Fermer les détails de la tâche">Fermer</button></header>
 <div class="task-detail-band task-detail-primary"><div class="task-detail-identity"><span class="task-detail-thumbnail"><img id="past-task-preview" alt="Aperçu de l’impression" hidden><span id="past-task-preview-state" class="task-detail-preview-fallback" role="status" aria-label="Aperçu indisponible">⬡</span></span><h3 id="past-task-name"></h3></div><dl id="task-detail-progress" class="task-detail-metrics"></dl></div>
+<section id="correct-finish-settings" class="task-detail-band" hidden><h3>Fin prévue</h3><dl id="task-finish-metrics" class="task-detail-metrics"></dl><label class="task-detail-check"><input id="correct-finish" type="checkbox" checked> Corriger la fin prévue avec l’historique</label><p id="task-finish-basis" class="muted"></p></section>
 <section class="task-detail-band"><h3>Informations du fichier</h3><dl id="past-task-data" class="task-detail-metrics"></dl></section>
 <section class="task-detail-band"><h3>Paramètres</h3><div id="past-task-parameters" class="task-detail-parameter-grid"></div></section>
-<details id="correct-finish-settings" hidden><summary>Fin prévue</summary><label><input id="correct-finish" type="checkbox" checked> Corriger la fin prévue avec l’historique</label></details>
-<details id="past-print-timeline" class="print-timeline" hidden><summary>Chronologie de l’impression</summary><ol></ol></details>
+<section id="past-print-timeline" class="task-detail-band print-timeline" hidden><h3>Chronologie de l’impression</h3><ol></ol></section>
 <form id="task-note-form" class="task-note-fields" hidden><h3>Notes</h3><label class="atelier-field">Note locale<textarea name="text" maxlength="2000" rows="3" aria-describedby="task-note-count"></textarea><span id="task-note-count" class="muted"></span></label><label class="atelier-field">Étiquettes séparées par des virgules<input name="tags" maxlength="500" autocomplete="off" list="task-note-suggestions"></label><datalist id="task-note-suggestions"></datalist><p id="task-note-state" role="status"></p><button type="submit">Enregistrer la note</button></form>
-<div id="past-task-extra" class="task-detail-extra" hidden><details id="past-task-materials" hidden><summary>Filaments estimés par matière</summary><ul id="past-task-material-list"></ul></details><section id="past-task-diagnostic" class="task-detail-diagnostic" hidden><h3>Diagnostic</h3><p id="past-task-reason"></p><button id="past-task-error" type="button" aria-haspopup="dialog" hidden>Voir la fiche d’erreur</button><a id="past-task-help" target="_blank" rel="noopener noreferrer" hidden>Aide Anycubic</a></section><div class="task-detail-actions"><button id="past-task-rate" hidden>Évaluer</button><button id="past-task-reprint" hidden>Imprimer à nouveau</button><p id="past-task-actions-state" class="muted"></p></div></div></dialog>
+<div id="past-task-extra" class="task-detail-extra" hidden><details id="past-task-materials" hidden><summary class="atelier-disclosure">Filaments estimés par matière</summary><ul id="past-task-material-list"></ul></details><section id="past-task-diagnostic" class="task-detail-diagnostic" hidden><h3>Diagnostic</h3><p id="past-task-reason"></p><button id="past-task-error" type="button" aria-haspopup="dialog" hidden>Voir la fiche d’erreur</button><a id="past-task-help" target="_blank" rel="noopener noreferrer" hidden>Aide Anycubic</a></section><div class="task-detail-actions"><button id="past-task-rate" hidden>Évaluer</button><button id="past-task-reprint" hidden>Imprimer à nouveau</button><p id="past-task-actions-state" class="muted"></p></div></div></dialog>
 <dialog id="task-rating-dialog" class="settings-dialog" aria-labelledby="rating-title"><div class="dialog-top"><h2 id="rating-title">Évaluer l’impression</h2><button class="dialog-close" type="button">Fermer</button></div><div class="rating-task"><img id="rating-preview" alt="" hidden><div><strong id="rating-task-name"></strong><p id="rating-task-summary" class="muted"></p></div></div><p id="rating-state" class="muted" role="status"></p><form id="rating-form"><fieldset disabled><legend>Votre note</legend><div class="rating-stars" role="radiogroup" aria-label="Note sur cinq étoiles"><label><input type="radio" name="stars" value="1" required><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">1 ★</span></label><label><input type="radio" name="stars" value="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">2 ★</span></label><label><input type="radio" name="stars" value="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">3 ★</span></label><label><input type="radio" name="stars" value="4"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">4 ★</span></label><label><input type="radio" name="stars" value="5"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">5 ★</span></label></div><p id="rating-value" role="status"></p><button type="submit" class="primary" disabled>Envoyer à Anycubic</button></fieldset></form></dialog>
 <dialog id="reset-dialog" class="settings-dialog reset-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reset-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reset-title">Réinitialisation usine</h2></div><div class="confirmation-body"><p>Les réglages de l’imprimante seront remis à zéro. L’imprimante pourra devoir être reconnectée au compte Anycubic.</p><label class="check"><input id="reset-understood" type="checkbox"> Je veux réinitialiser cette imprimante</label><button id="reset-get-code" type="button" disabled>Obtenir le code</button><form id="reset-form" hidden><p>Recopiez ce code avant deux minutes :</p><div class="reset-challenge"><output id="reset-code" class="reset-code"></output><time id="reset-countdown"></time></div><label>Code de confirmation<input name="code" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reset-password-state" class="muted" role="status"></p><p id="reset-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reset-form" id="reset-submit" class="danger" disabled>Confirmer la réinitialisation</button></div></dialog>
 <dialog id="controls-dialog" class="settings-dialog controls-dialog" aria-labelledby="controls-title">
@@ -584,20 +587,40 @@
 </dialog>
 <dialog id="reauth-dialog" class="settings-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reauth-title" aria-describedby="reauth-question"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reauth-title">Confirmer avec le mot de passe web</h2></div><div class="confirmation-body"><p id="reauth-question" hidden></p><form id="reauth-form" method="dialog"><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reauth-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reauth-form" id="reauth-submit" class="danger">Installer la mise à jour</button></div></dialog>
 <dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2></div><div class="confirmation-body"><p id="confirm-text"></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
-<dialog id="queue-dialog" class="settings-dialog" aria-labelledby="queue-title">
-  <header class="dialog-top"><h2 id="queue-title">File d’attente</h2><button class="dialog-close" type="button">Fermer</button></header>
-  <p id="queue-state" role="status"></p><p id="queue-totals"></p><ol id="queue-list"></ol>
-  <button id="queue-next" type="button" disabled>Plateau libéré, préparer la suivante</button>
+<dialog id="printer-timeline-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="printer-timeline-title">
+  <header class="atelier-card-header"><h2 id="printer-timeline-title">Chronologie de l’impression</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <section id="printer-timeline" class="atelier-card-body print-timeline" hidden><div class="timeline-markers"></div><ol></ol></section>
 </dialog>
-<dialog id="maintenance-dialog" class="settings-dialog" aria-labelledby="maintenance-title">
-  <header class="dialog-top"><h2 id="maintenance-title">Entretien</h2><button class="dialog-close" type="button">Fermer</button></header>
-  <p id="maintenance-hours"></p><label class="atelier-field">Compteur de la dernière intervention<input id="maintenance-last-hours" type="number" min="0" step="0.1"></label><label class="atelier-field">Note locale<input id="maintenance-note" maxlength="500"></label><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>
-  <form id="maintenance-form">
-    <label class="atelier-field">Opération<input name="name" required maxlength="100"></label>
-    <label class="atelier-field">Intervalle en heures<input name="interval" type="number" required min="1" max="10000"></label>
-    <label><input name="enabled" type="checkbox" checked> Activer le rappel</label>
-    <button type="submit">Enregistrer</button>
-  </form>
+<dialog id="queue-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="queue-title">
+  <header class="atelier-card-header"><h2 id="queue-title">File d’attente</h2><span id="queue-totals" class="muted"></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body queue-body">
+    <p id="queue-state" role="status"></p>
+    <div id="queue-empty" class="atelier-empty" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h5l1 3h6l1-3h5M5 5h14l2 8v6H3v-6Z"/></svg><strong>La file d’attente est vide</strong><p>Ajoutez des fichiers depuis l’onglet Fichiers. À la fin d’une impression, la suivante vous sera proposée une fois le plateau libéré.</p></div>
+    <ol id="queue-list" class="queue-list"></ol>
+  </div>
+  <footer class="atelier-card-footer"><p class="muted">Rien ne démarre seul : chaque lancement repasse par la confirmation.</p><button id="queue-add-files" class="atelier-control" type="button">Ajouter un fichier</button><button id="queue-next" class="atelier-control atelier-control-primary" type="button" hidden disabled>Plateau libéré, préparer la suivante</button></footer>
+</dialog>
+<dialog id="maintenance-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="maintenance-title">
+  <header class="atelier-card-header"><h2 id="maintenance-title">Entretien</h2><span id="maintenance-summary" class="atelier-status" hidden></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body maintenance-body">
+    <p class="maintenance-hours"><strong id="maintenance-hours"></strong><span class="muted">Calculé sur le temps d’impression cumulé. Aucune commande n’est envoyée à l’imprimante.</span></p>
+    <p id="maintenance-state" role="status"></p>
+    <ul id="maintenance-list" class="maintenance-list"></ul>
+    <form id="maintenance-done" class="maintenance-panel" aria-labelledby="maintenance-done-title" hidden>
+      <h3 id="maintenance-done-title">Opération faite</h3><p id="maintenance-done-text"></p>
+      <div class="maintenance-fields"><label class="atelier-field">Compteur de l’intervention<input id="maintenance-last-hours" type="number" min="0" step="0.1" required></label>
+      <label class="atelier-field">Note (facultative)<textarea id="maintenance-note" maxlength="500" rows="2"></textarea></label></div>
+      <div class="maintenance-panel-actions"><button type="button" class="atelier-control" data-maintenance-cancel>Annuler</button><button type="submit" class="atelier-control atelier-control-primary">Enregistrer l’intervention</button></div>
+    </form>
+    <form id="maintenance-form" class="maintenance-panel" aria-labelledby="maintenance-form-title" hidden>
+      <h3 id="maintenance-form-title">Nouvelle opération</h3>
+      <div class="maintenance-fields"><label class="atelier-field">Opération<input name="name" required maxlength="100"></label>
+      <div class="atelier-field"><label for="maintenance-interval">Intervalle</label><span class="maintenance-interval"><input id="maintenance-interval" name="interval" type="number" required min="1" max="10000"><select name="unit" aria-label="Unité de l’intervalle"><option value="hours">heures d’impression</option><option value="days">jours</option><option value="kg">kg de filament</option></select></span></div></div>
+      <label class="maintenance-check"><input name="enabled" type="checkbox" checked> Activer le rappel</label>
+      <div class="maintenance-panel-actions"><button type="button" class="atelier-control" data-maintenance-cancel>Annuler</button><button type="submit" class="atelier-control atelier-control-primary">Enregistrer</button></div>
+    </form>
+  </div>
+  <footer class="atelier-card-footer"><button id="maintenance-history-toggle" class="atelier-control" type="button" aria-pressed="false">Historique des interventions</button><button id="maintenance-add" class="atelier-control" type="button">Ajouter une opération</button></footer>
 </dialog>
 <dialog id="print-dialog" class="confirmation-dialog" aria-labelledby="print-title">
   <header class="confirmation-heading"><h2 id="print-title">Lancer l’impression</h2></header>

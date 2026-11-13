@@ -307,3 +307,98 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
   gap: var(--atelier-space-2);
   font-variant-numeric: tabular-nums;
 }
+
+/* Fenêtre en carte : l’en-tête et le pied restent visibles, seul le corps défile. */
+body:has(.workshop-frame) > dialog.atelier-panel-dialog {
+  --panel-width: var(--atelier-download-dialog-width);
+  box-sizing: border-box;
+  width: min(var(--panel-width), calc(100% - var(--atelier-space-6)));
+  max-width: none;
+  max-height: calc(100dvh - var(--atelier-space-6));
+  padding: 0;
+  overflow: hidden;
+}
+.atelier-panel-dialog[open] { display: flex; flex-direction: column; }
+.atelier-panel-dialog > :is(.atelier-card-header, .atelier-card-footer) {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: var(--atelier-modal-bar-height);
+  box-sizing: border-box;
+}
+.atelier-panel-dialog > .atelier-card-header h2 { flex: 1 1 auto; min-width: 0; }
+.atelier-panel-dialog > .atelier-card-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.atelier-panel-dialog > .atelier-card-footer > .muted { margin: 0; font: var(--atelier-caption); }
+.atelier-panel-dialog [hidden] { display: none; }
+
+/* Pastille de comptage dans un bouton, discrète quand rien n’est à faire. */
+.atelier-count {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--atelier-space-5);
+  padding-inline: var(--atelier-space-2);
+  border-radius: var(--atelier-pill-radius);
+  background: color-mix(in srgb, var(--atelier-muted) 14%, transparent);
+  color: var(--atelier-muted);
+  font: var(--atelier-caption);
+  font-weight: var(--atelier-semibold);
+  white-space: nowrap;
+}
+.atelier-count[data-state="due"] {
+  background: color-mix(in srgb, var(--atelier-warning) 16%, transparent);
+  color: var(--atelier-warning);
+}
+.atelier-count[data-state="ok"] {
+  background: color-mix(in srgb, var(--atelier-normal) 14%, transparent);
+  color: var(--atelier-normal);
+}
+.atelier-count[data-state="unknown"] { white-space: normal; }
+
+/* Titre de bande partagé par les fenêtres de détail. */
+.atelier-band-title {
+  margin: 0;
+  color: var(--atelier-muted);
+  font: var(--atelier-caption);
+  font-weight: var(--atelier-semibold);
+  text-transform: uppercase;
+}
+
+/* État vide : une icône, un titre et ce qu’il faut faire ensuite. */
+.atelier-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--atelier-space-2);
+  padding: var(--atelier-space-6) var(--atelier-space-5);
+  text-align: center;
+}
+.atelier-empty > .ui-icon {
+  box-sizing: content-box;
+  inline-size: var(--atelier-icon);
+  block-size: var(--atelier-icon);
+  padding: var(--atelier-space-3);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--atelier-muted) 10%, transparent);
+  color: var(--atelier-muted);
+}
+.atelier-empty strong { font: var(--atelier-card-title); font-weight: var(--atelier-semibold); }
+.atelier-empty p { max-inline-size: 48ch; margin: 0; color: var(--atelier-muted); }
+
+/* Un lien présenté en bouton garde l’apparence d’une commande, sans soulignement. */
+a.atelier-control { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+
+/* Volet repliable : un chevron qui tourne plutôt que le triangle natif du navigateur. */
+.atelier-disclosure { display: inline-flex; align-items: center; gap: var(--atelier-space-2); min-block-size: var(--atelier-control); list-style: none; font-weight: var(--atelier-semibold); cursor: pointer; }
+.atelier-disclosure::-webkit-details-marker { display: none; }
+.atelier-disclosure::before {
+  content: "";
+  inline-size: var(--atelier-space-2);
+  block-size: var(--atelier-space-2);
+  border-block-end: var(--atelier-active-rule) solid currentColor;
+  border-inline-end: var(--atelier-active-rule) solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform .15s ease;
+}
+details[open] > .atelier-disclosure::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .atelier-disclosure::before { transition: none; } }
+button.atelier-count { border: 0; cursor: pointer; }

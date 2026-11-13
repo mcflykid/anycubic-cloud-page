@@ -139,3 +139,20 @@ class ReportDeliveryTest(unittest.IsolatedAsyncioTestCase):
         with patch("server.engine", engine), patch("server.collect_history", reader):
             self.assertEqual(await discord_report_history(1, 2), ([], True))
         reader.assert_awaited_once_with(engine.extras, 1, 2)
+
+
+class NextReportTests(unittest.TestCase):
+    """Le prochain créneau affiché suit le fuseau de l’atelier."""
+
+    def test_next_slot_moves_to_evening_then_next_morning(self):
+        """Avant 21 h : le soir même ; après 21 h : 08 h le lendemain."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from notification_reports import next_report_time
+
+        zone = ZoneInfo("Europe/Paris")
+        noon = datetime(2026, 11, 13, 12, tzinfo=zone).timestamp()
+        late = datetime(2026, 11, 13, 22, tzinfo=zone).timestamp()
+        self.assertEqual(next_report_time(noon, zone).hour, 21)
+        upcoming = next_report_time(late, zone)
+        self.assertEqual((upcoming.day, upcoming.hour), (14, 8))

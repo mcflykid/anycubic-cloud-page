@@ -488,6 +488,8 @@ test('les réglages équilibrent les cartes sur ordinateur et les empilent sur m
 });
 
 test('les détails de la tâche partagent trois bandes et trois axes sans défilement', async ({browser}) => {
+  // La fin prévue et la chronologie sont des bandes facultatives : seules les trois bandes communes partagent les axes.
+  const core = '.task-detail-band:not(#correct-finish-settings):not(#past-print-timeline)';
   const baseURL = 'http://127.0.0.1:' + (process.env.UI_PORT || '8765');
   const page = await browser.newPage({baseURL, viewport:{width:1440,height:860}});
   const longFileName = '1108-1151-Support montre petit 1_plate(01)_PLA_0.2_3h21m55s '.repeat(4);
@@ -510,7 +512,7 @@ test('les détails de la tâche partagent trois bandes et trois axes sans défil
     await openSection(page, 'overview');
     await page.locator('#task-details-open').click();
     await expect(dialog).toBeVisible();
-    await expect(dialog.locator('.task-detail-band')).toHaveCount(3);
+    await expect(dialog.locator(core)).toHaveCount(3);
     await expect(dialog.locator('#past-task-data .task-detail-metric')).toHaveCount(3);
     await expect(dialog.locator('#past-task-parameters .task-detail-parameters-column')).toHaveCount(3);
     await expect(dialog.locator('#past-task-parameters .task-detail-metric')).toHaveCount(12);
@@ -520,7 +522,7 @@ test('les détails de la tâche partagent trois bandes et trois axes sans défil
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth && [...el.querySelectorAll('dt,dd')].every(item => getComputedStyle(item).whiteSpace === 'nowrap'))).toBe(true);
     if (locale === 'fr') {
       await expect(dialog.locator('#past-task-name')).toHaveCSS('text-overflow','ellipsis');
-      const axes = await dialog.locator('.task-detail-band').evaluateAll(bands => bands.map(band => [...band.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
+      const axes = await dialog.locator(core).evaluateAll(bands => bands.map(band => [...band.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
       const parameterAxes = await dialog.locator('.task-detail-parameters-column').evaluateAll(columns => columns.map(column => [...column.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
       for (let column = 0; column < 3; column++) {
         const expected = axes[0][column];
@@ -536,7 +538,7 @@ test('les détails de la tâche partagent trois bandes et trois axes sans défil
       await page.getByRole('button', {name:'Voir le détail',exact:true}).first().click();
       await expect(dialog).toBeVisible();
       await expect(dialog.locator('#task-dialog-title')).toHaveText('Détails de la tâche');
-      await expect(dialog.locator('.task-detail-band')).toHaveCount(3);
+      await expect(dialog.locator(core)).toHaveCount(3);
       await dialog.locator('.dialog-close').click();
       await openSection(page, 'overview');
     } else {

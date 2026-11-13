@@ -216,3 +216,66 @@ body:has(.workshop-frame) > dialog.ace-detail-dialog {
 #filament-profile-dialog dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--atelier-filament-fact-min-width), 1fr)); gap: var(--atelier-space-3); }
 #filament-profile-dialog dt { color: var(--atelier-muted); }
 #filament-profile-dialog dd { margin: 0; font-weight: var(--atelier-semibold); }
+
+/* Fiche filament : trois bandes lisibles (bobine, impression, séchage), comme les détails de tâche. */
+.filament-profile-body { display: flex; flex-direction: column; padding: 0; }
+.filament-band { display: flex; flex-direction: column; gap: var(--atelier-space-3); padding: var(--atelier-space-4); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+.filament-band:last-child { border-block-end: 0; }
+.filament-band[hidden] { display: none; }
+#filament-profile-dialog dl { margin: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--atelier-space-3) var(--atelier-space-4); }
+#filament-profile-dialog dt { font: var(--atelier-caption); }
+#filament-profile-dialog .atelier-card-footer { justify-content: flex-end; }
+#filament-profile-reference { flex: 1 1 auto; margin: 0; font: var(--atelier-caption); }
+.filament-colors { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--atelier-space-1) var(--atelier-space-2); }
+.filament-colors .muted { font: var(--atelier-caption); font-weight: var(--atelier-regular); }
+.filament-swatch {
+  display: inline-block;
+  inline-size: var(--atelier-space-4);
+  block-size: var(--atelier-space-4);
+  flex: 0 0 auto;
+  border: var(--atelier-rule) solid var(--atelier-swatch-border);
+  border-radius: var(--atelier-control-radius);
+  background: var(--swatch, transparent);
+}
+.filament-swatch[hidden] { display: none; }
+.filament-remaining { display: flex; flex-direction: column; gap: var(--atelier-space-1); }
+.filament-remaining progress {
+  inline-size: 100%;
+  block-size: var(--atelier-progress);
+  border: 0;
+  border-radius: var(--atelier-pill-radius);
+  appearance: none;
+  overflow: hidden;
+  background: var(--atelier-line);
+}
+.filament-remaining progress::-webkit-progress-bar { background: var(--atelier-line); }
+.filament-remaining progress::-webkit-progress-value { background: var(--atelier-accent); }
+.filament-remaining progress::-moz-progress-bar { background: var(--atelier-accent); }
+.filament-remaining progress[data-state="due"]::-webkit-progress-value { background: var(--atelier-warning); }
+.filament-remaining progress[data-state="due"]::-moz-progress-bar { background: var(--atelier-warning); }
+@media (max-width: 760px) { #filament-profile-dialog dl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Import d’une fiche : une zone de dépôt qui reste un bouton de sélection au clavier. */
+.filament-create-body { display: flex; flex-direction: column; gap: var(--atelier-space-4); }
+.filament-create-slot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--atelier-space-2) var(--atelier-space-3); margin: 0; }
+.filament-create-slot .muted { font: var(--atelier-caption); }
+.filament-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--atelier-space-2);
+  padding: var(--atelier-space-6) var(--atelier-space-4);
+  border: var(--atelier-active-rule) dashed var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  text-align: center;
+  cursor: pointer;
+}
+.filament-drop > .ui-icon { color: var(--atelier-accent); }
+.filament-drop[data-over], .filament-drop:hover { border-color: var(--atelier-accent); background: color-mix(in srgb, var(--atelier-accent) 6%, transparent); }
+.filament-drop:has(+ .filament-drop-input:focus-visible) { outline: var(--atelier-focus-width) solid var(--atelier-accent); outline-offset: var(--atelier-rule); }
+.filament-drop .atelier-control { display: inline-flex; align-items: center; }
+.filament-drop-hint { font: var(--atelier-caption); }
+.filament-drop-input { position: absolute; inline-size: var(--atelier-rule); block-size: var(--atelier-rule); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#filament-profile-import-state:empty { display: none; }
+#filament-profile-import-state { margin: 0; color: var(--atelier-error); }
+#filament-profile-create .atelier-card-footer { justify-content: flex-start; }

@@ -15,7 +15,8 @@ def historical_duration_factor(rows, printer_id):
     ratios = []
     for row in completed:
         try:
-            estimated = float(row["estimated_time_s"])
+            # La liste des tâches donne « estimate » ; seul le détail d’une tâche donne « estimated_time_s ».
+            estimated = float(row.get("estimated_time_s", row.get("estimate")))
             actual = float(row["print_time"]) * 60
         except (KeyError, ValueError, TypeError):
             continue

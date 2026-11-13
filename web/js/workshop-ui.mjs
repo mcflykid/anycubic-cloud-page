@@ -284,6 +284,30 @@ export const formatText = (label, ...values) =>
   tr(label).replace(/\{(\d+)\}/g, (_, index) => String(values[index] ?? ''));
 export const timeZone = document.documentElement.dataset.timeZone || 'Europe/Paris';
 
+/** Bande « Fin prévue » des détails : heure du fichier, heure corrigée et base de la correction. */
+export function taskFinish(estimate) {
+  const band = $('correct-finish-settings');
+  band.hidden = !estimate;
+  if (!estimate) return;
+  const time = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
+  const gap = Math.round((estimate.finish - estimate.original) / 60);
+  const corrected = $('correct-finish').checked;
+  const list = $('task-finish-metrics');
+  list.replaceChildren(...[
+    [tr('Selon le fichier'), time.format(estimate.original * 1000)],
+    [tr('Corrigée avec l’historique'), time.format(estimate.finish * 1000) +
+      (gap ? ` · ${gap > 0 ? '+' : '−'}${fmt(Math.abs(gap), ' min')}` : '')],
+  ].map(([label, value], index) => {
+    const row = node('div', null, 'task-detail-metric');
+    // La valeur retenue reste en gras ; l’autre est gardée pour comparaison.
+    if (index === Number(!corrected)) row.dataset.active = 'true';
+    row.append(node('dt', label), node('dd', value));
+    return row;
+  }), $('correct-finish').closest('label'));
+  set('task-finish-basis', formatText('{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %',
+    estimate.samples, estimate.factor.toLocaleString(locale), estimate.live_weight));
+}
+
 /** Présente les deux estimations et les données utilisées pour la correction. */
 export function finishEstimate(id, estimate) {
   const element = $(id);
@@ -315,13 +339,19 @@ export function printTimeline(id, events = []) {
   if (section.dataset.events === signature) return;
   section.dataset.events = signature;
   const first = entries[0]?.time, last = entries.at(-1)?.time;
+  const day = new Intl.DateTimeFormat(locale, {dateStyle:'short', timeZone});
+  const clock = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
+  const full = new Intl.DateTimeFormat(locale, {dateStyle:'short', timeStyle:'short', timeZone});
   const markers = section.querySelector('.timeline-markers');
   markers?.replaceChildren();
   list.replaceChildren(...entries.map((event, index) => {
     const slots = event.kind === 'spool' ? event.slots.map(([box, slot]) =>
       formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
     const shortages = event.kind === 'filament_low' ? (event.shortages || []).map(slot => formatText('Emplacement {0}', slot)).join(', ') : '';
-    const text = [date(event.time), tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · ');
+    // L’heure suffit dans une même journée ; la date n’apparaît qu’au changement de jour.
+    const sameDay = index > 0 && day.format(entries[index - 1].time * 1000) === day.format(event.time * 1000);
+    const stamp = (sameDay ? clock : full).format(event.time * 1000);
+    const text = [stamp, tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · ');
     const item = node('li', text);
     if (markers) {
       item.tabIndex = -1;

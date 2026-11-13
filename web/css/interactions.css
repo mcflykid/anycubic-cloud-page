@@ -8,12 +8,6 @@
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk .check { flex-basis:auto; }
 #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk button { flex:0 1 auto; }
 #tab-files:has(#cloud-tools.has-selection) { padding-bottom:130px; }
-.quick-palette { width:min(92vw,560px); padding:var(--atelier-space-5); border-radius:var(--atelier-card-radius); border:1px solid var(--line); background:var(--surface); color:var(--text); box-shadow:var(--atelier-dialog-shadow); }
-.quick-palette h2 { margin-top:0; }
-.quick-palette input { width:100%; min-height:46px; padding:var(--atelier-space-2) var(--atelier-space-3); }
-.quick-results { display:grid; gap:var(--atelier-space-1); margin:var(--atelier-space-4) 0; max-height:55dvh; overflow:auto; }
-.quick-results button { text-align:left; min-height:44px; padding:var(--atelier-space-2) var(--atelier-space-3); }
-.quick-results button:focus-visible { background:color-mix(in srgb,var(--accent) 12%,var(--surface)); outline:2px solid var(--accent); outline-offset:-2px; }
 .quick-palette[open] { animation:selection-rise .18s ease-out; }
 @keyframes selection-rise { from { opacity:0; translate:0 12px; } to { opacity:1; translate:0 0; } }
 @media(max-width:560px) { .quick-open { font-size:var(--atelier-label-size); } #cloud-tools.has-selection .cloud-selection-anchor > .cloud-bulk { gap:var(--atelier-space-2); padding:var(--atelier-space-2); justify-content:center; } }
@@ -369,3 +363,21 @@
 @media (prefers-reduced-motion: reduce) {
   .rating-stars label:has(input:checked) svg { animation: none; }
 }
+
+/* Accès rapide : carte comme les autres fenêtres, résultats groupés avec leur rubrique d’origine. */
+body:has(.workshop-frame) > dialog.quick-palette.atelier-panel-dialog { --panel-width: var(--atelier-ai-dialog-width); }
+.quick-body { display: flex; flex-direction: column; gap: var(--atelier-space-3); }
+.quick-field { position: relative; display: block; }
+.quick-field-icon { position: absolute; inset-block: 0; inset-inline-start: var(--atelier-space-3); display: flex; align-items: center; color: var(--atelier-muted); pointer-events: none; }
+.quick-field input { box-sizing: border-box; inline-size: 100%; min-block-size: var(--atelier-touch-control); padding-inline-start: calc(var(--atelier-space-3) * 2 + var(--atelier-icon)); }
+.quick-results { display: grid; gap: var(--atelier-space-1); max-block-size: 55dvh; overflow: auto; }
+.quick-results > strong { padding: var(--atelier-space-3) var(--atelier-space-3) var(--atelier-space-1); color: var(--atelier-muted); font: var(--atelier-caption); font-weight: var(--atelier-semibold); }
+.quick-results > strong:first-child { padding-block-start: 0; }
+.quick-option { display: flex; align-items: center; justify-content: space-between; gap: var(--atelier-space-3); min-block-size: var(--atelier-control); padding: var(--atelier-space-2) var(--atelier-space-3); border: 0; border-radius: var(--atelier-control-radius); background: none; color: inherit; text-align: start; }
+.quick-option > .muted { flex: 0 0 auto; font: var(--atelier-caption); }
+.quick-option:hover { background: color-mix(in srgb, var(--atelier-accent) 6%, transparent); }
+.quick-option:focus-visible, .quick-option[aria-selected="true"] { background: color-mix(in srgb, var(--atelier-accent) 12%, transparent); outline: var(--atelier-focus-width) solid var(--atelier-accent); outline-offset: calc(var(--atelier-focus-width) * -1); }
+.quick-results > p { margin: 0; padding: var(--atelier-space-4); color: var(--atelier-muted); text-align: center; }
+.quick-footer > p { margin: 0; font: var(--atelier-caption); }
+.quick-hints { display: flex; flex-wrap: wrap; gap: var(--atelier-space-3); color: var(--atelier-muted); }
+.quick-hints kbd { display: inline-block; min-inline-size: var(--atelier-space-4); margin-inline-end: var(--atelier-space-1); padding-inline: var(--atelier-space-1); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); background: var(--atelier-bg); font: var(--atelier-caption); font-weight: var(--atelier-semibold); text-align: center; }

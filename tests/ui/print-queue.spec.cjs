@@ -67,3 +67,15 @@ test('la confirmation mémorise les emplacements sans envoyer d’ordre', async 
   expect(added).toMatchObject({action:'add', slots:[1,3]});
   expect(orders).toBe(0);
 });
+
+test('une file vide explique comment la remplir et masque le plateau libéré', async ({page}) => {
+  await page.route('**/imprimante-api/print-queue', route => route.fulfill({json:{items:[]}}));
+  await login(page, 'overview');
+  await page.locator('#queue-open').click();
+  const dialog = page.getByRole('dialog', {name:'File d’attente'});
+  await expect(dialog.getByText('La file d’attente est vide')).toBeVisible();
+  await expect(dialog.locator('#queue-next')).toBeHidden();
+  await dialog.getByRole('button', {name:'Ajouter un fichier'}).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('#tab-files')).toBeVisible();
+});

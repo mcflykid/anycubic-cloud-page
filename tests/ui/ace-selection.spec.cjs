@@ -87,7 +87,7 @@ test('un emplacement ACE ouvre une fiche de filament sans commande', async ({pag
  const dialog = page.getByRole('dialog', {name: 'Fiche filament', exact: true});
  await expect(dialog).toBeVisible();
  await expect(dialog.locator('#filament-slot-title')).toContainText('Emplacement 1');
- await expect(dialog.locator('#filament-profile-reference')).toHaveText('PLA Glow');
+ await expect(dialog.locator('#filament-profile-reference')).toHaveText('Valeurs du fabricant pour PLA Glow');
  await expect(dialog.getByRole('link', {name: 'Fiche technique du fabricant (PDF)'}))
   .toHaveAttribute('href', 'https://cdn.shopify.com/s/files/1/0245/5519/2380/files/ANYCUBIC_TDS_PLA_Glow_V3.0.pdf?v=1758527363');
  await page.keyboard.press('Escape');
@@ -114,7 +114,7 @@ test('un emplacement inconnu propose uniquement la création et retrouve sa fich
  await page.locator('#spools .ace-spool-row').first().getByRole('button', {name:'Voir', exact:true}).click();
  await page.locator('#spool-dialog').getByRole('button', {name:'Créer sa fiche filament'}).click();
  await expect(create).toBeVisible();
- await expect(create.getByRole('link', {name: 'Tutoriel de création d’une fiche'})).toBeVisible();
+ await expect(create.getByRole('link', {name: 'Tutoriel : rédiger une fiche filament'})).toBeVisible();
  const input = create.getByLabel('Importer une fiche JSON');
  const fixture = {name: 'Mon PLA fictif', url: 'https://example.com/pla', density: 1.24, drying: [45, 50]};
  const importFile = data => input.setInputFiles({name: 'pla.json', mimeType: 'application/json',
@@ -125,12 +125,14 @@ test('un emplacement inconnu propose uniquement la création et retrouve sa fich
  await expect(profile).toBeVisible();
  await expect(profile.locator('#filament-profile-facts')).toContainText('1,24 g/cm³');
  await expect(profile.getByRole('link', {name: 'Fiche technique du fabricant (PDF)'})).toBeHidden();
- await expect(profile.locator('#filament-profile-facts')).not.toContainText('Température du plateau');
+ await expect(profile.locator('#filament-profile-facts')).not.toContainText('Plateau');
+ // La température de séchage rejoint sa durée dans la bande Séchage.
+ await expect(profile.locator('#filament-profile-drying')).toContainText('45–50 °C');
  await page.reload();
  await openSection(page, 'ace');
  await trigger.click();
  await expect(profile.getByRole('link', {name: 'Source de la fiche'})).toHaveAttribute('href', fixture.url);
- await expect(profile.locator('#filament-profile-facts')).toContainText('45–50 °C');
+ await expect(profile.locator('#filament-profile-drying')).toContainText('45–50 °C');
  color = [1, 2, 3];
  await page.reload();
  await openSection(page, 'ace');

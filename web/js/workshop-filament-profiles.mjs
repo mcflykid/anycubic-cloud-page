@@ -56,21 +56,51 @@ function spoolPalette(spool) {
 
 /** Garde les valeurs et leur libellé associés dans les listes descriptives. */
 function item(label, value) {
-  const pair = node('div');
-  pair.append(node('dt', tr(label)), node('dd', value));
+  const pair = node('div'), detail = node('dd');
+  // Une valeur peut être un élément (pastille, jauge, badge) : textContent l’aplatirait.
+  detail.append(value);
+  pair.append(node('dt', tr(label)), detail);
   return pair;
 }
 
-/** Affiche les caractéristiques de la référence et les données rapportées par l’ACE. */
+/** Pastilles de couleur suivies du code, pour lire la teinte sans déchiffrer l’hexadécimal. */
+function colorValue(hex) {
+  if (!hex.length) return '—';
+  const value = node('span', null, 'filament-colors');
+  for (const color of hex) {
+    const swatch = node('span', null, 'filament-swatch');
+    swatch.style.setProperty('--swatch', color);
+    value.append(swatch);
+  }
+  value.append(node('span', hex.join(' · '), 'muted'));
+  return value;
+}
+
+/** Restant en pourcentage avec sa jauge ; une jauge faible prend la couleur d’alerte. */
+function remainingValue(percent) {
+  if (!Number.isFinite(percent)) return '—';
+  const value = node('span', null, 'filament-remaining');
+  const progress = node('progress');
+  progress.max = 100;
+  progress.value = Math.max(0, Math.min(100, percent));
+  progress.dataset.state = percent <= 20 ? 'due' : 'ok';
+  progress.setAttribute('aria-hidden', 'true');
+  value.append(node('span', fmt(percent, ' %')), progress);
+  return value;
+}
+
+/** Affiche la bobine lue par l’ACE, puis les valeurs d’impression et de séchage de la fiche. */
 function showProfile(spool, title, hex, name, profile, personal) {
   set('filament-slot-title', title);
-  set('filament-profile-reference', name);
+  set('filament-profile-reference', formatText(personal ? 'Fiche personnelle « {0} »' : 'Valeurs du fabricant pour {0}', name));
+  const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
+    ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
+  rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
   $('filament-profile-reading').replaceChildren(
     item('Matériau', spool.material_type || '—'),
-    item('Couleur du filament', hex.join(' · ') || '—'),
-    item('Filament restant', fmt(spool.remaining_percent, ' %')),
-    item('Identification RFID', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
-      ? 'Configuration manuelle' : 'Inconnu')),
+    item('Couleur du filament', colorValue(hex)),
+    item('Filament restant', remainingValue(spool.remaining_percent)),
+    item('Identification', rfid),
   );
   const source = $('filament-profile-source');
   source.href = profile.url;
@@ -80,20 +110,26 @@ function showProfile(spool, title, hex, name, profile, personal) {
   else datasheet.removeAttribute('href');
   source.textContent = tr(personal ? 'Source de la fiche' : 'Fiche fabricant');
   const range = ([min, max], unit) => fmt(min) + '–' + fmt(max, unit);
-  const values = [
-    ['Densité', profile.density == null ? null : new Intl.NumberFormat(document.documentElement.lang,
-      {maximumFractionDigits: 3}).format(profile.density) + ' g/cm³'],
-    ['Température de la buse', profile.nozzle && range(profile.nozzle, ' °C')],
-    ['Température du plateau', profile.bed && range(profile.bed, ' °C')],
-    ['Température de séchage', profile.drying && range(profile.drying, ' °C')],
-    ['Durée (heures)', profile.hours && range(profile.hours, ' h')],
+  const fill = (id, values) => {
+    const shown = values.filter(([, value]) => value != null);
+    $(id).replaceChildren(...shown.map(([label, value]) => item(label, value)));
+    $(id).closest('section').hidden = !shown.length;
+  };
+  fill('filament-profile-facts', [
+    ['Buse', profile.nozzle && range(profile.nozzle, ' °C')],
+    ['Plateau', profile.bed && range(profile.bed, ' °C')],
     ['Vitesse d’impression', profile.speed && range(profile.speed, ' mm/s')],
     ['Débit volumique maximal', profile.flow == null ? null : fmt(profile.flow, ' mm³/s')],
     ['Diamètre minimal de buse', profile.minNozzle == null ? null : fmt(profile.minNozzle, ' mm')],
     ['Matériau de la buse', profile.nozzleMaterial ? tr(profile.nozzleMaterial) : null],
-  ];
-  $('filament-profile-facts').replaceChildren(...values.filter(([, value]) => value != null)
-    .map(([label, value]) => item(label, value)));
+    ['Densité', profile.density == null ? null : new Intl.NumberFormat(document.documentElement.lang,
+      {maximumFractionDigits: 3}).format(profile.density) + ' g/cm³'],
+  ]);
+  // Le wiki et les fiches donnent la durée de séchage en heures : elle rejoint sa température.
+  fill('filament-profile-drying', [
+    ['Température', profile.drying && range(profile.drying, ' °C')],
+    ['Durée', profile.hours && range(profile.hours, ' h')],
+  ]);
   $('filament-profile-dialog').showModal();
 }
 
@@ -127,6 +163,9 @@ export function openFilamentProfile(spool, target) {
 
   const create = $('filament-profile-create'), upload = $('filament-profile-import');
   set('filament-profile-create-slot', material ? title + ' · ' + material : title);
+  const swatch = $('filament-profile-create-swatch');
+  swatch.hidden = !hex.length;
+  if (hex.length) swatch.style.setProperty('--swatch', hex[0]);
   set('filament-profile-import-state', '');
   upload.value = '';
   upload.onchange = async () => {
@@ -152,6 +191,19 @@ export function openFilamentProfile(spool, target) {
     } finally {
       if (upload.files[0] === file) upload.value = '';
     }
+  };
+  const drop = create.querySelector('.filament-drop');
+  drop.ondragover = event => {
+    event.preventDefault();
+    drop.dataset.over = 'true';
+  };
+  drop.ondragleave = () => delete drop.dataset.over;
+  drop.ondrop = event => {
+    event.preventDefault();
+    delete drop.dataset.over;
+    if (!event.dataTransfer?.files.length) return;
+    upload.files = event.dataTransfer.files;
+    upload.onchange();
   };
   create.showModal();
 }

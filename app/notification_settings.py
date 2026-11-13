@@ -7,6 +7,7 @@ import html
 import logging
 import os
 from pathlib import Path
+import time
 from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
 
@@ -15,7 +16,7 @@ from aiohttp import web
 
 from notification_delivery import Delivery, read_config
 from notification_discord import ACE_TITLES, DiscordConfig, message_payload, send_discord
-from notification_reports import ReportSchedule, format_report
+from notification_reports import ReportSchedule, format_report, next_report_time
 from operational_logging import log_event
 from web_assets import build_web_assets
 from web_host import ROOT, confirm_web_password, display_timezone
@@ -106,6 +107,94 @@ def discord_enabled(app, *, reports=False):
     return delivery.config.enabled if delivery is not None else None
 
 
+# Libellé de case et description, distincts des titres de message Discord (#381).
+ALERT_GROUPS = (
+    (
+        "Atelier",
+        "Désactivés par défaut",
+        (
+            (
+                "maintenance_due",
+                "Entretien à faire",
+                "Une fois par opération qui atteint son échéance.",
+            ),
+            ("queue_next", "Plateau à libérer", "Fin d’impression avec une suivante dans la file."),
+        ),
+    ),
+    (
+        "ACE",
+        "",
+        (
+            ("ace_drying_done", "Séchage terminé", "Durée prévue écoulée."),
+            (
+                "ace_drying_interrupted",
+                "Séchage interrompu",
+                "Arrêt avant la fin, hors commande de l’atelier.",
+            ),
+            ("ace_feed_done", "Filament chargé", "Emplacement chargé après « Charger »."),
+            ("ace_retract_done", "Filament retiré", "Emplacement vidé après « Retirer »."),
+            (
+                "ace_load_failed",
+                "Chargement ou retrait non confirmé",
+                "Commande refusée, expirée ou erreur ACE.",
+            ),
+            (
+                "ace_filament_low",
+                "Filament bientôt épuisé",
+                "Alerte unique par tâche et emplacement.",
+            ),
+        ),
+    ),
+)
+
+
+def alert_groups(config):
+    """Rend les événements facultatifs par groupe ; les fins d’impression restent toujours envoyées."""
+    groups = [
+        '<section class="discord-events" aria-labelledby="discord-events-print">'
+        '<header><h3 id="discord-events-print">Impressions</h3>'
+        "<span>Toujours envoyées si les alertes sont actives</span></header>"
+        '<ul class="discord-event-list"><li><strong>Impression terminée</strong>'
+        "<span>Avec la photo de fin si la caméra est active.</span></li>"
+        "<li><strong>Impression échouée ou annulée</strong>"
+        "<span>Avec la cause communiquée par l’imprimante.</span></li></ul></section>"
+    ]
+    for index, (title, note, events) in enumerate(ALERT_GROUPS):
+        boxes = "".join(
+            f'<label class="discord-event"><input type="checkbox" name="{key}"'
+            f"{' checked' if key in config.ace_events else ''}>"
+            f"<span><strong>{label}</strong><span>{description}</span></span></label>"
+            for key, label, description in events
+            if key in ACE_TITLES
+        )
+        aside = f"<span>{note}</span>" if note else ""
+        groups.append(
+            f'<fieldset class="discord-events"><legend><span id="discord-events-{index}">{title}</span>{aside}</legend>'
+            f'<div class="discord-event-grid">{boxes}</div></fieldset>'
+        )
+    return "".join(groups)
+
+
+def report_schedule(delivery):
+    """Résume les créneaux, le fuseau et le dernier envoi des bilans."""
+    zone_name = display_timezone()
+    labels = {
+        "sent": "Dernier envoi confirmé par Discord.",
+        "failed": "Dernier envoi refusé par Discord.",
+        "uncertain": "Dernier envoi sans confirmation.",
+    }
+    upcoming = next_report_time(time.time(), ZoneInfo(zone_name))
+    last = labels.get(delivery.last_outcome, "Aucun envoi pour l’instant.")
+    return (
+        '<section class="discord-events discord-schedule" aria-labelledby="discord-schedule-title">'
+        '<header><h3 id="discord-schedule-title">Envois</h3></header>'
+        '<p class="discord-slots"><span class="atelier-count">08 h</span><span class="atelier-count">21 h</span>'
+        f"<span>Fuseau de l’atelier</span> <strong>{html.escape(zone_name)}</strong></p>"
+        f'<p class="discord-next"><span>{last}</span> <span>Prochain bilan</span> '
+        f'<time datetime="{upcoming.isoformat()}">{upcoming.strftime("%d/%m %H:%M")}</time></p></section>'
+    )
+
+
 def discord_page(delivery, message="", status=200, *, report=False):
     """Affiche les réglages sans inclure le webhook enregistré dans le HTML."""
     config = delivery.config
@@ -123,14 +212,14 @@ def discord_page(delivery, message="", status=200, *, report=False):
     last = labels.get(delivery.last_outcome, "")
     last_delivery = f" · {last}" if last else ""
     include_filename = " checked" if config.include_filename else ""
-    title = "Bilans Discord" if report else "Notifications Discord"
+    title = "Bilans Discord" if report else "Alertes Discord"
     introduction = (
-        "Recevez le bilan des impressions à 08 h et à 21 h dans le fuseau de l’atelier."
+        "Un résumé des impressions deux fois par jour, dans un salon distinct des alertes."
         if report
-        else "Un message après chaque impression terminée ou échouée."
+        else "Un message à chaque événement choisi : impressions, atelier et ACE."
     )
     action = REPORT_PATH if report else PATH
-    activation = "Activer les bilans Discord" if report else "Activer les notifications"
+    activation = "Activer les bilans Discord" if report else "Activer les alertes"
     filename = (
         ""
         if report
@@ -139,25 +228,23 @@ def discord_page(delivery, message="", status=200, *, report=False):
             "<span>Inclure le nom du fichier</span></label>"
         )
     )
-    ace_fields = ""
-    if not report:
-        fields = "".join(
-            f'<label class="check"><input type="checkbox" name="{event}"'
-            f"{' checked' if event in config.ace_events else ''}> <span>{titles[0]}</span></label>"
-            for event, titles in ACE_TITLES.items()
-        )
-        ace_fields = f"<fieldset><legend>Événements de l’ACE</legend>{fields}</fieldset>"
+    event_fields = "" if report else alert_groups(config)
+    schedule = report_schedule(delivery) if report else ""
+    # Les bilans affichent leur dernier envoi dans « Envois » : l’en-tête ne garde que l’état du webhook.
+    if report:
+        last_delivery = ""
     other_path = PATH if report else REPORT_PATH
     other_title = (
         "Configurer les notifications Discord" if report else "Configurer les bilans Discord"
     )
     hidden_placeholder = "•" * 60 if config.url else ""
-    channel_title = "Notifications Discord" if report else "Bilans Discord"
+    channel_title = "Alertes Discord" if report else "Bilans Discord"
     channel_description = (
-        "Un message après chaque impression terminée ou échouée."
+        "Un message à chaque événement choisi, sur un autre webhook."
         if report
-        else "Bilan des impressions à 08 h et 21 h dans le fuseau de l’atelier."
+        else "Résumé des impressions à 08 h et 21 h, sur un autre webhook."
     )
+    panel_title = "Webhook des bilans" if report else "Webhook des alertes"
     line = (
         f'<a class="discord-report-link" href="{other_path}" aria-label="{other_title}">'
         f"<span><strong>{channel_title}</strong><span>{channel_description}</span></span>"
@@ -169,7 +256,7 @@ def discord_page(delivery, message="", status=200, *, report=False):
 <main class="discord-content">
 <section class="discord-panel" aria-labelledby="discord-panel-title">
   <header class="discord-panel-header">
-    <h2 id="discord-panel-title">Webhook</h2>
+    <h2 id="discord-panel-title">{panel_title}</h2>
     <span class="discord-configured" data-configured="{"true" if config.url else "false"}" data-state="{feedback_state}" data-default="{configured}"><span aria-hidden="true"></span><span id="discord-feedback" role="status" aria-live="polite">{html.escape(header_text + (last_delivery if not message else ""))}</span></span>
   </header>
   <form id="discord-settings-form" method="post" action="{action}">
@@ -185,7 +272,9 @@ def discord_page(delivery, message="", status=200, *, report=False):
         <label class="check"><input type="checkbox" name="enabled"{checked}> <span>{activation}</span></label>
         {filename}
       </div>
-      {ace_fields}
+    </div>
+    {event_fields}{schedule}
+    <div class="discord-panel-link">
       {line}
     </div>
     <footer class="discord-panel-footer">

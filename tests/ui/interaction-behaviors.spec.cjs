@@ -137,3 +137,15 @@ test('la recherche occupe la barre des fichiers Cloud et les dossiers locaux gar
   await page.locator('[data-source=local]').click();
   await expect(page.locator('#file-path-label')).toBeVisible();
 });
+
+test('l’accès rapide propose les fenêtres de l’imprimante avec leur rubrique', async ({page}) => {
+  await login(page);
+  await page.locator('#quick-open').click();
+  const palette = page.getByRole('dialog', {name:'Accès rapide'});
+  await palette.getByRole('combobox').fill('entre');
+  const option = palette.getByRole('option', {name:/Entretien/});
+  await expect(option).toContainText('Imprimante');
+  await expect(palette.locator('.quick-footer')).toContainText('1 résultat');
+  await option.click();
+  await expect(page.getByRole('dialog', {name:'Entretien'})).toBeVisible();
+});

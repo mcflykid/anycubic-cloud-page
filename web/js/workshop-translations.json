@@ -9226,5 +9226,599 @@
     "es": "Conexión con Anycubic no disponible temporalmente. Se ha pospuesto el siguiente intento.",
     "de": "Anycubic-Verbindung vorübergehend nicht verfügbar. Der nächste Versuch wurde verschoben.",
     "it": "Connessione ad Anycubic temporaneamente non disponibile. Il prossimo tentativo è stato rinviato."
+  },
+  "Tutoriel : rédiger une fiche filament": {
+    "en": "Tutorial: writing a filament profile",
+    "es": "Tutorial: redactar una ficha de filamento",
+    "de": "Anleitung: ein Filamentprofil schreiben",
+    "it": "Tutorial: scrivere una scheda filamento"
+  },
+  "La file d’attente est vide": {
+    "en": "The queue is empty",
+    "es": "La cola está vacía",
+    "de": "Die Warteschlange ist leer",
+    "it": "La coda è vuota"
+  },
+  "Enregistrer l’intervention": {
+    "en": "Record the service",
+    "es": "Registrar la intervención",
+    "de": "Wartung speichern",
+    "it": "Registra l’intervento"
+  },
+  "Aucune fiche fabricant connue pour cette bobine.": {
+    "en": "No manufacturer profile is known for this spool.",
+    "es": "No se conoce ninguna ficha del fabricante para esta bobina.",
+    "de": "Für diese Spule ist kein Herstellerprofil bekannt.",
+    "it": "Nessuna scheda del produttore nota per questa bobina."
+  },
+  "Rien ne démarre seul : chaque lancement repasse par la confirmation.": {
+    "en": "Nothing starts on its own: every print goes through confirmation.",
+    "es": "Nada arranca solo: cada impresión pasa por la confirmación.",
+    "de": "Nichts startet von selbst: Jeder Druck wird erst bestätigt.",
+    "it": "Niente parte da solo: ogni stampa passa dalla conferma."
+  },
+  "Ajoutez des fichiers depuis l’onglet Fichiers. À la fin d’une impression, la suivante vous sera proposée une fois le plateau libéré.": {
+    "en": "Add files from the Files tab. When a print ends, the next one is offered once the build plate is clear.",
+    "es": "Añada archivos desde la pestaña Archivos. Al terminar una impresión, se propondrá la siguiente cuando la placa esté libre.",
+    "de": "Fügen Sie Dateien im Reiter Dateien hinzu. Nach einem Druck wird der nächste vorgeschlagen, sobald die Druckplatte frei ist.",
+    "it": "Aggiungi file dalla scheda File. Al termine di una stampa, la successiva verrà proposta una volta liberato il piano."
+  },
+  "kg de filament": {
+    "en": "kg of filament",
+    "es": "kg de filamento",
+    "de": "kg Filament",
+    "it": "kg di filamento"
+  },
+  "Déposer une fiche JSON ici": {
+    "en": "Drop a JSON profile here",
+    "es": "Suelte una ficha JSON aquí",
+    "de": "JSON-Profil hier ablegen",
+    "it": "Trascina qui una scheda JSON"
+  },
+  "Opération faite": {
+    "en": "Task done",
+    "es": "Operación realizada",
+    "de": "Wartung erledigt",
+    "it": "Operazione eseguita"
+  },
+  "Format .json, 16 Ko au plus. La fiche reste dans ce navigateur.": {
+    "en": ".json format, 16 KB at most. The profile stays in this browser.",
+    "es": "Formato .json, 16 KB como máximo. La ficha se queda en este navegador.",
+    "de": ".json-Format, höchstens 16 KB. Das Profil bleibt in diesem Browser.",
+    "it": "Formato .json, al massimo 16 KB. La scheda resta in questo browser."
+  },
+  "ou": {
+    "en": "or",
+    "es": "o",
+    "de": "oder",
+    "it": "oppure"
+  },
+  "Ajouter une opération": {
+    "en": "Add a task",
+    "es": "Añadir una operación",
+    "de": "Wartung hinzufügen",
+    "it": "Aggiungi un’operazione"
+  },
+  "Compteur de l’intervention": {
+    "en": "Counter at service time",
+    "es": "Contador de la intervención",
+    "de": "Zählerstand der Wartung",
+    "it": "Contatore dell’intervento"
+  },
+  "heures d’impression": {
+    "en": "printing hours",
+    "es": "horas de impresión",
+    "de": "Druckstunden",
+    "it": "ore di stampa"
+  },
+  "Note (facultative)": {
+    "en": "Note (optional)",
+    "es": "Nota (opcional)",
+    "de": "Notiz (optional)",
+    "it": "Nota (facoltativa)"
+  },
+  "Registre local : aucune commande envoyée à l’imprimante.": {
+    "en": "Local log: no command is sent to the printer.",
+    "es": "Registro local: no se envía ninguna orden a la impresora.",
+    "de": "Lokales Register: Es wird kein Befehl an den Drucker gesendet.",
+    "it": "Registro locale: nessun comando inviato alla stampante."
+  },
+  "Unité de l’intervalle": {
+    "en": "Interval unit",
+    "es": "Unidad del intervalo",
+    "de": "Einheit des Intervalls",
+    "it": "Unità dell’intervallo"
+  },
+  "Intervalle": {
+    "en": "Interval",
+    "es": "Intervalo",
+    "de": "Intervall",
+    "it": "Intervallo"
+  },
+  "Fin ou échec d’impression, événements de l’ACE et de l’atelier.": {
+    "en": "Print finished or failed, ACE and workshop events.",
+    "es": "Fin o fallo de impresión, eventos del ACE y del taller.",
+    "de": "Druckende oder -fehler, ACE- und Werkstattereignisse.",
+    "it": "Fine o errore di stampa, eventi dell’ACE e del laboratorio."
+  },
+  "Calculé sur le temps d’impression cumulé. Aucune commande n’est envoyée à l’imprimante.": {
+    "en": "Based on the cumulative printing time. No command is sent to the printer.",
+    "es": "Calculado sobre el tiempo de impresión acumulado. No se envía ninguna orden a la impresora.",
+    "de": "Berechnet aus der gesamten Druckzeit. Es wird kein Befehl an den Drucker gesendet.",
+    "it": "Calcolato sul tempo di stampa cumulato. Nessun comando viene inviato alla stampante."
+  },
+  "Résumé des impressions à 08 h et 21 h, dans le fuseau de l’atelier.": {
+    "en": "Print summary at 08:00 and 21:00, in the workshop time zone.",
+    "es": "Resumen de impresiones a las 08 h y 21 h, en la zona horaria del taller.",
+    "de": "Druckübersicht um 08 und 21 Uhr in der Zeitzone der Werkstatt.",
+    "it": "Riepilogo delle stampe alle 08 e alle 21, nel fuso orario del laboratorio."
+  },
+  "jours": {
+    "en": "days",
+    "es": "días",
+    "de": "Tage",
+    "it": "giorni"
+  },
+  "Ajouter un fichier": {
+    "en": "Add a file",
+    "es": "Añadir un archivo",
+    "de": "Datei hinzufügen",
+    "it": "Aggiungi un file"
+  },
+  "Dernière fois : {0}": {
+    "en": "Last time: {0}",
+    "es": "Última vez: {0}",
+    "de": "Zuletzt: {0}",
+    "it": "Ultima volta: {0}"
+  },
+  "Dernière fois : {0} à {1}": {
+    "en": "Last time: {0} at {1}",
+    "es": "Última vez: {0} a {1}",
+    "de": "Zuletzt: {0} bei {1}",
+    "it": "Ultima volta: {0} a {1}"
+  },
+  "Dernière fois : non renseignée": {
+    "en": "Last time: not recorded",
+    "es": "Última vez: sin registrar",
+    "de": "Zuletzt: nicht erfasst",
+    "it": "Ultima volta: non registrata"
+  },
+  "Indiquez le compteur de la dernière intervention.": {
+    "en": "Enter the counter of the last service.",
+    "es": "Indique el contador de la última intervención.",
+    "de": "Geben Sie den Zählerstand der letzten Wartung an.",
+    "it": "Indica il contatore dell’ultimo intervento."
+  },
+  "Marquez l’opération comme faite pour démarrer le calendrier.": {
+    "en": "Mark the task as done to start the schedule.",
+    "es": "Marque la operación como realizada para iniciar el calendario.",
+    "de": "Markieren Sie die Wartung als erledigt, um den Zeitplan zu starten.",
+    "it": "Segna l’operazione come eseguita per avviare il calendario."
+  },
+  "Marquer « {0} » comme fait": {
+    "en": "Mark “{0}” as done",
+    "es": "Marcar «{0}» como realizada",
+    "de": "„{0}“ als erledigt markieren",
+    "it": "Segna «{0}» come eseguita"
+  },
+  "Autres actions pour « {0} »": {
+    "en": "More actions for “{0}”",
+    "es": "Más acciones para «{0}»",
+    "de": "Weitere Aktionen für „{0}“",
+    "it": "Altre azioni per «{0}»"
+  },
+  "« {0} » sera noté comme fait aujourd’hui.": {
+    "en": "“{0}” will be recorded as done today.",
+    "es": "«{0}» se registrará como realizada hoy.",
+    "de": "„{0}“ wird heute als erledigt vermerkt.",
+    "it": "«{0}» verrà registrata come eseguita oggi."
+  },
+  "1 opération à faire": {
+    "en": "1 task due",
+    "es": "1 operación pendiente",
+    "de": "1 Wartung fällig",
+    "it": "1 operazione da fare"
+  },
+  "{0} opérations à faire": {
+    "en": "{0} tasks due",
+    "es": "{0} operaciones pendientes",
+    "de": "{0} Wartungen fällig",
+    "it": "{0} operazioni da fare"
+  },
+  "{0} à faire": {
+    "en": "{0} due",
+    "es": "{0} pendientes",
+    "de": "{0} fällig",
+    "it": "{0} da fare"
+  },
+  "1 impression": {
+    "en": "1 print",
+    "es": "1 impresión",
+    "de": "1 Druck",
+    "it": "1 stampa"
+  },
+  "{0} impressions": {
+    "en": "{0} prints",
+    "es": "{0} impresiones",
+    "de": "{0} Drucke",
+    "it": "{0} stampe"
+  },
+  "{0} « {1} »": {
+    "en": "{0} “{1}”",
+    "es": "{0} «{1}»",
+    "de": "{0} „{1}“",
+    "it": "{0} «{1}»"
+  },
+  "Selon le fichier": {
+    "en": "From the file",
+    "es": "Según el archivo",
+    "de": "Laut Datei",
+    "it": "Secondo il file"
+  },
+  "Corrigée avec l’historique": {
+    "en": "Corrected with history",
+    "es": "Corregida con el historial",
+    "de": "Mit Verlauf korrigiert",
+    "it": "Corretta con lo storico"
+  },
+  "Recherche récente": {
+    "en": "Recent search",
+    "es": "Búsqueda reciente",
+    "de": "Letzte Suche",
+    "it": "Ricerca recente"
+  },
+  "parcourir": {
+    "en": "browse",
+    "es": "recorrer",
+    "de": "blättern",
+    "it": "scorri"
+  },
+  "ouvrir": {
+    "en": "open",
+    "es": "abrir",
+    "de": "öffnen",
+    "it": "apri"
+  },
+  "fermer": {
+    "en": "close",
+    "es": "cerrar",
+    "de": "schließen",
+    "it": "chiudi"
+  },
+  "1 résultat": {
+    "en": "1 result",
+    "es": "1 resultado",
+    "de": "1 Ergebnis",
+    "it": "1 risultato"
+  },
+  "{0} résultats": {
+    "en": "{0} results",
+    "es": "{0} resultados",
+    "de": "{0} Ergebnisse",
+    "it": "{0} risultati"
+  },
+  "Identification": {
+    "en": "Identification",
+    "es": "Identificación",
+    "de": "Erkennung",
+    "it": "Identificazione"
+  },
+  "Fiche personnelle « {0} »": {
+    "en": "Personal profile “{0}”",
+    "es": "Ficha personal «{0}»",
+    "de": "Eigenes Profil „{0}“",
+    "it": "Scheda personale «{0}»"
+  },
+  "Valeurs du fabricant pour {0}": {
+    "en": "Manufacturer values for {0}",
+    "es": "Valores del fabricante para {0}",
+    "de": "Herstellerwerte für {0}",
+    "it": "Valori del produttore per {0}"
+  },
+  "Envois": {
+    "en": "Deliveries",
+    "es": "Envíos",
+    "de": "Versand",
+    "it": "Invii"
+  },
+  "Alertes Discord": {
+    "en": "Discord alerts",
+    "es": "Alertas de Discord",
+    "de": "Discord-Warnungen",
+    "it": "Avvisi Discord"
+  },
+  "Activer les alertes": {
+    "en": "Enable alerts",
+    "es": "Activar las alertas",
+    "de": "Warnungen aktivieren",
+    "it": "Attiva gli avvisi"
+  },
+  "Webhook des alertes": {
+    "en": "Alerts webhook",
+    "es": "Webhook de alertas",
+    "de": "Webhook für Warnungen",
+    "it": "Webhook degli avvisi"
+  },
+  "Webhook des bilans": {
+    "en": "Summaries webhook",
+    "es": "Webhook de resúmenes",
+    "de": "Webhook für Übersichten",
+    "it": "Webhook dei riepiloghi"
+  },
+  "Un message à chaque événement choisi : impressions, atelier et ACE.": {
+    "en": "A message for each chosen event: prints, workshop and ACE.",
+    "es": "Un mensaje por cada evento elegido: impresiones, taller y ACE.",
+    "de": "Eine Nachricht pro gewähltem Ereignis: Drucke, Werkstatt und ACE.",
+    "it": "Un messaggio per ogni evento scelto: stampe, laboratorio e ACE."
+  },
+  "Un résumé des impressions deux fois par jour, dans un salon distinct des alertes.": {
+    "en": "A print summary twice a day, in a channel separate from alerts.",
+    "es": "Un resumen de impresiones dos veces al día, en un canal distinto de las alertas.",
+    "de": "Zweimal täglich eine Druckübersicht, in einem anderen Kanal als die Warnungen.",
+    "it": "Un riepilogo delle stampe due volte al giorno, in un canale distinto dagli avvisi."
+  },
+  "Un message à chaque événement choisi, sur un autre webhook.": {
+    "en": "A message for each chosen event, on another webhook.",
+    "es": "Un mensaje por cada evento elegido, en otro webhook.",
+    "de": "Eine Nachricht pro gewähltem Ereignis, über einen anderen Webhook.",
+    "it": "Un messaggio per ogni evento scelto, su un altro webhook."
+  },
+  "Résumé des impressions à 08 h et 21 h, sur un autre webhook.": {
+    "en": "Print summary at 08:00 and 21:00, on another webhook.",
+    "es": "Resumen de impresiones a las 08 h y 21 h, en otro webhook.",
+    "de": "Druckübersicht um 08 und 21 Uhr, über einen anderen Webhook.",
+    "it": "Riepilogo delle stampe alle 08 e alle 21, su un altro webhook."
+  },
+  "Toujours envoyées si les alertes sont actives": {
+    "en": "Always sent when alerts are on",
+    "es": "Siempre enviadas si las alertas están activas",
+    "de": "Immer gesendet, wenn Warnungen aktiv sind",
+    "it": "Sempre inviati se gli avvisi sono attivi"
+  },
+  "Désactivés par défaut": {
+    "en": "Off by default",
+    "es": "Desactivados por defecto",
+    "de": "Standardmäßig aus",
+    "it": "Disattivati per impostazione predefinita"
+  },
+  "Avec la photo de fin si la caméra est active.": {
+    "en": "With the end photo when the camera is on.",
+    "es": "Con la foto final si la cámara está activa.",
+    "de": "Mit dem Abschlussfoto, wenn die Kamera aktiv ist.",
+    "it": "Con la foto finale se la fotocamera è attiva."
+  },
+  "Impression échouée ou annulée": {
+    "en": "Print failed or cancelled",
+    "es": "Impresión fallida o cancelada",
+    "de": "Druck fehlgeschlagen oder abgebrochen",
+    "it": "Stampa fallita o annullata"
+  },
+  "Avec la cause communiquée par l’imprimante.": {
+    "en": "With the cause reported by the printer.",
+    "es": "Con la causa indicada por la impresora.",
+    "de": "Mit der vom Drucker gemeldeten Ursache.",
+    "it": "Con la causa comunicata dalla stampante."
+  },
+  "Entretien à faire": {
+    "en": "Maintenance due",
+    "es": "Mantenimiento pendiente",
+    "de": "Wartung fällig",
+    "it": "Manutenzione da fare"
+  },
+  "Une fois par opération qui atteint son échéance.": {
+    "en": "Once per task that reaches its due point.",
+    "es": "Una vez por operación que alcanza su vencimiento.",
+    "de": "Einmal pro Wartung, die fällig wird.",
+    "it": "Una volta per operazione in scadenza."
+  },
+  "Plateau à libérer": {
+    "en": "Build plate to clear",
+    "es": "Placa por liberar",
+    "de": "Druckplatte freiräumen",
+    "it": "Piano da liberare"
+  },
+  "Fin d’impression avec une suivante dans la file.": {
+    "en": "Print finished with another one queued.",
+    "es": "Fin de impresión con otra en la cola.",
+    "de": "Druckende mit einem weiteren in der Warteschlange.",
+    "it": "Fine stampa con un’altra in coda."
+  },
+  "Séchage terminé": {
+    "en": "Drying finished",
+    "es": "Secado terminado",
+    "de": "Trocknung beendet",
+    "it": "Asciugatura terminata"
+  },
+  "Durée prévue écoulée.": {
+    "en": "Planned duration elapsed.",
+    "es": "Duración prevista transcurrida.",
+    "de": "Geplante Dauer abgelaufen.",
+    "it": "Durata prevista trascorsa."
+  },
+  "Séchage interrompu": {
+    "en": "Drying interrupted",
+    "es": "Secado interrumpido",
+    "de": "Trocknung unterbrochen",
+    "it": "Asciugatura interrotta"
+  },
+  "Arrêt avant la fin, hors commande de l’atelier.": {
+    "en": "Stopped early, not by a workshop command.",
+    "es": "Parada antes del final, sin orden del taller.",
+    "de": "Vorzeitig beendet, ohne Befehl der Werkstatt.",
+    "it": "Arresto prima della fine, senza comando del laboratorio."
+  },
+  "Emplacement chargé après « Charger ».": {
+    "en": "Slot loaded after “Load”.",
+    "es": "Ranura cargada tras «Cargar».",
+    "de": "Steckplatz nach „Laden“ geladen.",
+    "it": "Slot caricato dopo «Carica»."
+  },
+  "Emplacement vidé après « Retirer ».": {
+    "en": "Slot emptied after “Unload”.",
+    "es": "Ranura vaciada tras «Retirar».",
+    "de": "Steckplatz nach „Entladen“ geleert.",
+    "it": "Slot svuotato dopo «Rimuovi»."
+  },
+  "Commande refusée, expirée ou erreur ACE.": {
+    "en": "Command refused, expired or ACE error.",
+    "es": "Orden rechazada, caducada o error del ACE.",
+    "de": "Befehl abgelehnt, abgelaufen oder ACE-Fehler.",
+    "it": "Comando rifiutato, scaduto o errore ACE."
+  },
+  "Alerte unique par tâche et emplacement.": {
+    "en": "One alert per print and slot.",
+    "es": "Una alerta por impresión y ranura.",
+    "de": "Eine Warnung pro Druck und Steckplatz.",
+    "it": "Un avviso per stampa e slot."
+  },
+  "Aucun envoi pour l’instant.": {
+    "en": "Nothing sent yet.",
+    "es": "Ningún envío por ahora.",
+    "de": "Noch nichts gesendet.",
+    "it": "Nessun invio per ora."
+  },
+  "Dernier envoi confirmé par Discord.": {
+    "en": "Last delivery confirmed by Discord.",
+    "es": "Último envío confirmado por Discord.",
+    "de": "Letzter Versand von Discord bestätigt.",
+    "it": "Ultimo invio confermato da Discord."
+  },
+  "Dernier envoi refusé par Discord.": {
+    "en": "Last delivery refused by Discord.",
+    "es": "Último envío rechazado por Discord.",
+    "de": "Letzter Versand von Discord abgelehnt.",
+    "it": "Ultimo invio rifiutato da Discord."
+  },
+  "Nettoyer et graisser la vis de l’axe Z": {
+    "en": "Clean and grease the Z-axis lead screw",
+    "es": "Limpiar y engrasar el husillo del eje Z",
+    "de": "Z-Achsen-Spindel reinigen und fetten",
+    "it": "Pulire e ingrassare la vite dell’asse Z"
+  },
+  "Nettoyer et graisser les tiges de l’axe Y": {
+    "en": "Clean and grease the Y-axis rods",
+    "es": "Limpiar y engrasar las varillas del eje Y",
+    "de": "Y-Achsen-Stangen reinigen und fetten",
+    "it": "Pulire e ingrassare le barre dell’asse Y"
+  },
+  "Nettoyer les tiges de l’axe X à l’alcool, sans graisse": {
+    "en": "Clean the X-axis rods with alcohol, no grease",
+    "es": "Limpiar las varillas del eje X con alcohol, sin grasa",
+    "de": "X-Achsen-Stangen mit Alkohol reinigen, ohne Fett",
+    "it": "Pulire le barre dell’asse X con alcol, senza grasso"
+  },
+  "Dépoussiérer les ventilateurs de la tête et l’auxiliaire": {
+    "en": "Dust the toolhead and auxiliary fans",
+    "es": "Quitar el polvo de los ventiladores del cabezal y auxiliar",
+    "de": "Lüfter des Druckkopfs und Zusatzlüfter entstauben",
+    "it": "Spolverare le ventole della testina e l’ausiliaria"
+  },
+  "Contrôler l’usure du coupe-filament": {
+    "en": "Check the filament cutter for wear",
+    "es": "Comprobar el desgaste del cortador de filamento",
+    "de": "Filamentschneider auf Verschleiß prüfen",
+    "it": "Controllare l’usura del taglierino del filamento"
+  },
+  "Nettoyer la buse et contrôler la chaussette silicone": {
+    "en": "Clean the nozzle and check the silicone sock",
+    "es": "Limpiar la boquilla y revisar la funda de silicona",
+    "de": "Düse reinigen und Silikonsocke prüfen",
+    "it": "Pulire l’ugello e controllare la calza in silicone"
+  },
+  "Nettoyer la plaque en acier": {
+    "en": "Clean the steel plate",
+    "es": "Limpiar la placa de acero",
+    "de": "Stahlplatte reinigen",
+    "it": "Pulire la piastra in acciaio"
+  },
+  "Graisser la vis Z et les tiges Y, jamais l’axe X": {
+    "en": "Grease the Z screw and Y rods, never the X axis",
+    "es": "Engrasar el husillo Z y las varillas Y, nunca el eje X",
+    "de": "Z-Spindel und Y-Stangen fetten, niemals die X-Achse",
+    "it": "Ingrassare la vite Z e le barre Y, mai l’asse X"
+  },
+  " j": {
+    "en": " d",
+    "es": " d",
+    "de": " T",
+    "it": " g"
+  },
+  "Fuseau de l’atelier": {
+    "en": "Workshop time zone",
+    "es": "Zona horaria del taller",
+    "de": "Zeitzone der Werkstatt",
+    "it": "Fuso orario del laboratorio"
+  },
+  "Prochain bilan": {
+    "en": "Next summary",
+    "es": "Próximo resumen",
+    "de": "Nächste Übersicht",
+    "it": "Prossimo riepilogo"
+  },
+  "Filament chargé": {
+    "en": "Filament loaded",
+    "es": "Filamento cargado",
+    "de": "Filament geladen",
+    "it": "Filamento caricato"
+  },
+  "Filament retiré": {
+    "en": "Filament unloaded",
+    "es": "Filamento retirado",
+    "de": "Filament entladen",
+    "it": "Filamento rimosso"
+  },
+  "1 élément": {
+    "en": "1 item",
+    "es": "1 elemento",
+    "de": "1 Element",
+    "it": "1 elemento"
+  },
+  "{0} éléments": {
+    "en": "{0} items",
+    "es": "{0} elementos",
+    "de": "{0} Elemente",
+    "it": "{0} elementi"
+  },
+  "1 élément dans {1}": {
+    "en": "1 item in {1}",
+    "es": "1 elemento en {1}",
+    "de": "1 Element in {1}",
+    "it": "1 elemento in {1}"
+  },
+  "{0} éléments dans {1}": {
+    "en": "{0} items in {1}",
+    "es": "{0} elementos en {1}",
+    "de": "{0} Elemente in {1}",
+    "it": "{0} elementi in {1}"
+  },
+  "Entretien : {0} à faire": {
+    "en": "Maintenance: {0} due",
+    "es": "Mantenimiento: {0} pendientes",
+    "de": "Wartung: {0} fällig",
+    "it": "Manutenzione: {0} da fare"
+  },
+  "Nouvelle opération": {
+    "en": "New task",
+    "es": "Nueva operación",
+    "de": "Neue Wartung",
+    "it": "Nuova operazione"
+  },
+  "Modifier l’opération": {
+    "en": "Edit task",
+    "es": "Modificar la operación",
+    "de": "Wartung bearbeiten",
+    "it": "Modifica l’operazione"
+  },
+  "Informations techniques, sans identifiant ni secret.": {
+    "en": "Technical information, with no identifier or secret.",
+    "es": "Información técnica, sin identificador ni secreto.",
+    "de": "Technische Informationen ohne Kennung oder Geheimnis.",
+    "it": "Informazioni tecniche, senza identificativi né segreti."
+  },
+  "Un webhook et un salon distincts par canal.": {
+    "en": "One webhook and one channel per feed.",
+    "es": "Un webhook y un canal distintos por tipo.",
+    "de": "Ein eigener Webhook und Kanal pro Art.",
+    "it": "Un webhook e un canale distinti per tipo."
   }
 }

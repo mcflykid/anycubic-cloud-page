@@ -98,6 +98,17 @@ def report_window(now, zone):
     return None
 
 
+def next_report_time(now, zone):
+    """Renvoie le prochain créneau de 08 h ou 21 h, en heure locale de l’atelier."""
+    today = datetime.fromtimestamp(now, zone).date()
+    for day in (today, today + timedelta(days=1)):
+        for hour in (8, 21):
+            moment = datetime.combine(day, wall_time(hour), zone)
+            if moment.timestamp() > now:
+                return moment
+    raise AssertionError("Un créneau existe toujours dans les deux jours suivants.")
+
+
 async def collect_history(extras, start, end):
     """Réutilise la lecture paginée habituelle avec un budget borné et signale toute couverture partielle."""
     rows = {}

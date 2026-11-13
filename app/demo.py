@@ -1,12 +1,13 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 
-import argparse, base64, csv, io, math, os, re, time
+import argparse, base64, csv, io, json, math, os, re, tempfile, time
 from pathlib import Path
 from aiohttp import web
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 from notification_discord import DiscordResult
 from notification_settings import discord_enabled, install_discord
 from filament_catalog import editable_materials
+from maintenance import filament_kg, maintenance_rows, update_maintenance
 from print_preflight import evaluate_preflight, filament_shortfalls
 from temperature_history import ace_readings
 from web_host import (
@@ -27,6 +28,73 @@ NOTICES = web.AppKey("notices", list)
 SLICER_NOTICES = web.AppKey("slicer_notices", list)
 PRINT_TASKS = web.AppKey("print_tasks", list)
 TASK_NOTES = web.AppKey("task_notes", dict)
+MAINTENANCE = web.AppKey("maintenance", Path)
+QUEUE = web.AppKey("queue", list)
+# Une opération à faire, deux bientôt, les autres à jour et une sans relevé, comme la maquette d’Entretien.
+MAINTENANCE_FIXTURE = [
+    {
+        "id": key,
+        "name": name,
+        "interval": interval,
+        "unit": unit,
+        "enabled": True,
+        "last_hours": last_hours,
+        "last_kg": last_kg,
+        "last_time": None if age is None else T - age * 86400,
+        "history": []
+        if age is None
+        else [{"hours": last_hours, "time": T - age * 86400, "note": ""}],
+    }
+    for key, name, interval, unit, last_hours, last_kg, age in (
+        ("z-screw", "Nettoyer et graisser la vis de l’axe Z", 90, "days", 40, 0.8, 80),
+        ("y-rods", "Nettoyer et graisser les tiges de l’axe Y", 30, "days", 101, 2.0, 12),
+        (
+            "x-rods",
+            "Nettoyer les tiges de l’axe X à l’alcool, sans graisse",
+            30,
+            "days",
+            101,
+            2.0,
+            12,
+        ),
+        (
+            "fans",
+            "Dépoussiérer les ventilateurs de la tête et l’auxiliaire",
+            30,
+            "days",
+            None,
+            None,
+            None,
+        ),
+        ("cutter", "Contrôler l’usure du coupe-filament", 3, "kg", 40, 0.4, 60),
+        (
+            "nozzle",
+            "Nettoyer la buse et contrôler la chaussette silicone",
+            50,
+            "hours",
+            70,
+            1.5,
+            26,
+        ),
+        ("bed", "Nettoyer la plaque en acier", 50, "hours", 83, 1.7, 19),
+    )
+]
+QUEUE_FIXTURE = [
+    {
+        "handle": "1",
+        "name": "Boîte de rangement.gcode",
+        "available": True,
+        "slots": [],
+        "details": {"seconds": 11880, "filaments": [{"material": "PLA", "grams": 193.4}]},
+    },
+    {
+        "handle": "2",
+        "name": "Support de téléphone.gcode",
+        "available": True,
+        "slots": [],
+        "details": {"seconds": 7500, "filaments": [{"material": "PETG", "grams": 74.2}]},
+    },
+]
 NOTICE_FIXTURES = [
     {
         "key": format(i + 1, "020x"),
@@ -213,6 +281,8 @@ async def api(request):
         slicer_notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         tasks[:] = [dict(x) for x in TASKS]
         notes.clear()
+        request.app[MAINTENANCE].write_text(json.dumps(MAINTENANCE_FIXTURE), encoding="utf-8")
+        request.app[QUEUE][:] = [dict(x) for x in QUEUE_FIXTURE]
         return web.json_response({"ok": True})
     if path == "task-note" and request.method == "POST":
         data = await request.json()
@@ -221,6 +291,53 @@ async def api(request):
         note = {"text": data["text"], "tags": data["tags"]}
         notes[data["key"]] = note
         return web.json_response({"note": note})
+    if path == "maintenance":
+        file = request.app[MAINTENANCE]
+        hours, material = PRINTER["statistics"]["hours"], PRINTER["statistics"]["material"]
+        try:
+            if request.method == "POST":
+                data = await request.json()
+                rows = update_maintenance(file, data, hours, int(time.time()), material=material)
+            else:
+                rows = maintenance_rows(file, hours, material=material)
+        except ValueError as error:
+            return web.json_response({"message": str(error)}, status=400)
+        return web.json_response({"items": rows, "hours": hours, "kg": filament_kg(material)})
+    if path == "print-queue":
+        queue = request.app[QUEUE]
+        if request.method == "POST":
+            data = await request.json()
+            action, handle = data.get("action"), data.get("handle")
+            index = next((i for i, row in enumerate(queue) if row["handle"] == handle), None)
+            if action == "add":
+                file = next((f for f in FILES if f["handle"] == handle), None)
+                if file is None:
+                    return web.json_response({"message": "Fichier introuvable"}, status=400)
+                queue.append(
+                    {
+                        "handle": handle,
+                        "name": file["name"],
+                        "available": True,
+                        "slots": data.get("slots", []),
+                        "details": {},
+                    }
+                )
+            elif index is None:
+                return web.json_response({"message": "Fichier introuvable"}, status=400)
+            elif action == "remove":
+                queue.pop(index)
+            elif action in ("up", "down"):
+                other = index + (-1 if action == "up" else 1)
+                if 0 <= other < len(queue):
+                    queue[index], queue[other] = queue[other], queue[index]
+            elif action == "move":
+                row = queue.pop(index)
+                before = next(
+                    (i for i, r in enumerate(queue) if r["handle"] == data.get("before")),
+                    len(queue),
+                )
+                queue.insert(before, row)
+        return web.json_response({"items": queue})
     if path == "preflight" and request.method == "POST":
         data = await request.json()
         warnings = evaluate_preflight(PRINTER, data)
@@ -336,10 +453,21 @@ async def api(request):
             "history": points,
         }
     elif path == "status":
+        rows = maintenance_rows(
+            request.app[MAINTENANCE],
+            PRINTER["statistics"]["hours"],
+            material=PRINTER["statistics"]["material"],
+        )
         d = {
             "ok": True,
             "demo": True,
-            "printer": PRINTER,
+            "printer": {
+                **PRINTER,
+                "maintenance_due": sum(
+                    r["enabled"] and r["elapsed"] is not None and r["elapsed"] >= r["interval"]
+                    for r in rows
+                ),
+            },
             "updated_at": T,
             "mqtt_updated_at": T,
             "mqtt_connected": True,
@@ -502,6 +630,10 @@ def create_demo(authenticated=False):
     app[SLICER_NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
     app[TASK_NOTES] = {}
     app[PRINT_TASKS] = [dict(x) for x in TASKS]
+    # Le registre réel écrit un fichier : la démonstration lui donne un dossier jetable.
+    app[MAINTENANCE] = Path(tempfile.mkdtemp(prefix="cloud-page-demo-")) / "maintenance.json"
+    app[MAINTENANCE].write_text(json.dumps(MAINTENANCE_FIXTURE), encoding="utf-8")
+    app[QUEUE] = [dict(x) for x in QUEUE_FIXTURE]
     if authenticated:
         install_access(app)
 

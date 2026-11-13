@@ -30,7 +30,8 @@ export function renderTaskDetails(data) {
   ]);
   renderMetrics('past-task-data', [
     [tr('Dimensions'), dimensions(data.dimensions)],
-    [tr('Temps estimé'), data.estimatedTime ?? duration(data.estimatedSeconds)],
+    // Les secondes du fichier priment sur le libellé Cloud pour garder un seul format de durée.
+    [tr('Temps estimé'), duration(data.estimatedSeconds ?? compactSeconds(data.estimatedTime)) ?? data.estimatedTime],
     [tr('Filament estimé'), data.materialGrams == null ? null : fmt(data.materialGrams, ' g')],
   ]);
   const host = $('past-task-parameters');
@@ -71,14 +72,24 @@ function dimensions(value) {
     : null;
 }
 
-/** Garde le format compact de la maquette, par exemple 3h21m55s. */
+/** Lit le format compact du Cloud (« 3h21m55s ») ; null si le libellé a une autre forme. */
+function compactSeconds(text) {
+  const match = /^\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?\s*$/i.exec(text || '');
+  if (!match || !match.slice(1).some(Boolean)) return null;
+  return (Number(match[1] || 0) * 60 + Number(match[2] || 0)) * 60 + Number(match[3] || 0);
+}
+
+/** Durée lisible et homogène dans toute la fenêtre, par exemple « 41 min 58 s » ou « 3 h 21 min ». */
 function duration(seconds) {
-  if (seconds == null) return null;
+  if (seconds == null || !Number.isFinite(Number(seconds))) return null;
   const total = Math.max(0, Math.round(Number(seconds)));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const secs = total % 60;
-  return `${hours ? `${hours}h` : ''}${minutes || (!hours && !secs) ? `${minutes}m` : ''}${secs ? `${secs}s` : ''}`;
+  if (hours) return `${fmt(hours, ' h')}${minutes ? ' ' + fmt(minutes, ' min') : ''}`;
+  if (minutes) return `${fmt(minutes, ' min')}${secs ? ' ' + fmt(secs, ' s') : ''}`;
+  // Une tâche terminée affiche « 0 min », comme le reste de l’atelier.
+  return secs ? fmt(secs, ' s') : fmt(0, ' min');
 }
 
 /** Traduit les choix du G-code dans la locale active et conserve les unités de tranche. */

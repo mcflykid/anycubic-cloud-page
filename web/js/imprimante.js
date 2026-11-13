@@ -3,6 +3,7 @@ import {
   date,
   formatText,
   finishEstimate,
+  taskFinish,
   printTimeline,
   message,
   node,
@@ -114,6 +115,10 @@ const { command } = createCommands(request, refresh);
 const overview = createOverview(request);
 const ace = createAce(command, refresh);
 const printQueue = bindPrintQueue(request, command);
+$('queue-add-files').onclick = () => {
+  $('queue-dialog').close();
+  showTab('files');
+};
 const files = createFiles(request, command, printQueue.add);
 const history = createHistory(request, command, ace.selectedBox);
 const settings = createSettings(request, command, camera);
@@ -135,6 +140,10 @@ export function refresh() {
 
 let refreshPending = null;
 
+$('printer-timeline-open').onclick = () => $('printer-timeline-dialog').showModal();
+// Le Résumé ouvre la même fenêtre que l’onglet Imprimante pour ne pas dupliquer le registre.
+$('summary-maintenance-due').onclick = () => $('maintenance-open').click();
+
 const correctFinish = $('correct-finish');
 try { correctFinish.checked = localStorage.getItem('cloud-page-correct-finish') !== 'off'; } catch {}
 correctFinish.onchange = () => {
@@ -142,6 +151,7 @@ correctFinish.onchange = () => {
   const estimate = workshopState.snapshot?.printer?.corrected_finish;
   finishEstimate('summary-finish', estimate);
   finishEstimate('printer-finish', estimate);
+  taskFinish(estimate);
 };
 
 /** Un relevé répété conserve l’heure et respecte la fermeture manuelle du même incident. */
@@ -169,13 +179,16 @@ async function refreshState() {
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
     $('summary-maintenance-due').hidden = !p?.maintenance_due;
+    set('summary-maintenance-due', p?.maintenance_due ? formatText('Entretien : {0} à faire', p.maintenance_due) : '');
     $('maintenance-count').hidden = !p?.maintenance_due;
-    set('maintenance-count', p?.maintenance_due || '');
+    set('maintenance-count', p?.maintenance_due ? formatText('{0} à faire', p.maintenance_due) : '');
 
     void printQueue.observe(p, workshopState.selectedPrinter);
     finishEstimate('summary-finish', p?.corrected_finish);
     finishEstimate('printer-finish', p?.corrected_finish);
     printTimeline('printer-timeline', p?.print_timeline);
+    $('printer-timeline-open').hidden = $('printer-timeline').hidden;
+    if ($('printer-timeline').hidden && $('printer-timeline-dialog').open) $('printer-timeline-dialog').close();
     set(
       'connection',
       !d.ok ? tr('Cloud indisponible') : p?.printer_online ? tr('En ligne') : tr('Hors ligne'),

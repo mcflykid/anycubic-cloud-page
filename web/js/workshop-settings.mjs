@@ -7,6 +7,7 @@ import {
   node,
   printTimeline,
   set,
+  taskFinish,
   tr,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
@@ -87,7 +88,7 @@ export function createSettings(request, command, camera) {
     $('past-task-extra').hidden = true;
     $('task-note-form').hidden = true;
     printTimeline('past-print-timeline', p.print_timeline);
-    $('correct-finish-settings').hidden = false;
+    taskFinish(p.corrected_finish);
     renderTaskBands({
       progress: p.job_progress,
       currentLayer: p.job_current_layer,

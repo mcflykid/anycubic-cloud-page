@@ -11,7 +11,7 @@ test('Discord se configure, se teste et se retire sans réafficher le webhook',a
   await page.emulateMedia({colorScheme:'dark'});
   const password=page.getByLabel('Mot de passe web');
   const address=page.getByLabel('Adresse du webhook Discord');
-  const enabled=page.getByRole('checkbox',{name:'Activer les notifications'});
+  const enabled=page.getByRole('checkbox',{name:'Activer les alertes'});
   await expect(enabled).not.toBeChecked();
   await address.fill(fixture);
   await password.fill('ui-fixture-password');
@@ -30,7 +30,7 @@ test('Discord se configure, se teste et se retire sans réafficher le webhook',a
   await expect(page.locator('.discord-configured')).toHaveAttribute('data-configured','true');
   await expect(address).toBeEmpty();
   const checkbox=await enabled.boundingBox();
-  const label=await page.getByText('Activer les notifications',{exact:true}).boundingBox();
+  const label=await page.getByText('Activer les alertes',{exact:true}).boundingBox();
   expect(checkbox.width).toBeLessThan(26);
   expect(label.x-checkbox.x-checkbox.width).toBeLessThan(20);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
@@ -154,7 +154,7 @@ test('les bilans et les alertes ont des réglages et des webhooks distincts', as
   await card.getByRole('link',{name:'Configurer les bilans Discord'}).click();
   await expect(page.getByRole('heading',{name:'Bilans Discord'})).toBeVisible();
   await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
-  await expect(page.getByRole('checkbox',{name:'Activer les notifications'})).toBeChecked();
+  await expect(page.getByRole('checkbox',{name:'Activer les alertes'})).toBeChecked();
   await page.getByRole('link',{name:'Configurer les bilans Discord'}).click();
   await expect(page.getByRole('heading',{name:'Bilans Discord'})).toBeVisible();
   await expect(page.getByRole('checkbox',{name:'Activer les bilans Discord'})).toBeChecked();
@@ -168,7 +168,7 @@ test('les bilans et les alertes ont des réglages et des webhooks distincts', as
   await page.getByRole('button',{name:'Supprimer le webhook'}).click();
   await expect(page.getByRole('checkbox',{name:'Activer les bilans Discord'})).not.toBeChecked();
   await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
-  await expect(page.getByRole('checkbox',{name:'Activer les notifications'})).toBeChecked();
+  await expect(page.getByRole('checkbox',{name:'Activer les alertes'})).toBeChecked();
   await page.getByLabel('Mot de passe web').fill(password);
   await page.getByRole('button',{name:'Supprimer le webhook'}).click();
 });

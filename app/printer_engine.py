@@ -7,6 +7,7 @@ import contextlib
 from functools import partial
 import json
 import logging
+import math
 import os
 import pathlib
 import time
@@ -306,6 +307,7 @@ class Engine:
         self.pinned_id = None
         self.temperature_history = None
         self.duration_factor = None
+        self.duration_factor_checked = -math.inf
         self.estimate_project = None
         self.estimate_speed = None
         self.estimate_speed_changed = False
@@ -460,9 +462,12 @@ class Engine:
                 stamp = int(time.time())
                 machine_scope = (scope, printer_key(target.printer.id))
                 if "maintenance_due" in delivery.config.ace_events:
-                    hours = (printer.get("statistics") or {}).get("hours")
+                    statistics = printer.get("statistics") or {}
                     rows = await asyncio.to_thread(
-                        maintenance_rows, target.state_dir / "maintenance.json", hours
+                        maintenance_rows,
+                        target.state_dir / "maintenance.json",
+                        statistics.get("hours"),
+                        material=statistics.get("material"),
                     )
                     events.extend(
                         AceAlerts.event(
@@ -590,6 +595,18 @@ class Engine:
             (printer.id, count) if count is not None and self.printer is printer else None
         )
 
+    async def refresh_duration_factor(self):
+        """Relit l’historique toutes les trente minutes pour corriger la fin prévue sans ouvrir l’onglet."""
+        if self.extras is None or self.printer is None:
+            return
+        if time.monotonic() - self.duration_factor_checked < 1800:
+            return
+        self.duration_factor_checked = time.monotonic()
+        # La première page suffit : le ratio ne retient que les vingt dernières réussites.
+        with contextlib.suppress(AnycubicAPIError, TimeoutError, ValueError):
+            async with asyncio.timeout(10):
+                await self.extras.task_list(1)
+
     async def connect(self):
         """Connecte la cible du moteur ; le défaut facultatif se replie sur la première machine, jamais une cible secondaire explicite."""
         if self.fleet_registry and self is not self.fleet_registry.default:
@@ -675,6 +692,7 @@ class Engine:
                     else:
                         await self.refresh_printer_details()
                     await self.refresh_lifetime_count()
+                    await self.refresh_duration_factor()
                     if self._last_poll_error is not None:
                         log_event(
                             OPS_LOG,

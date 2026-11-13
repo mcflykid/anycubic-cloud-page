@@ -287,7 +287,7 @@ export function createFiles(request, command, addToQueue) {
         list == null
           ? tr('Liste non reçue. Actualisez ; les résultats arrivent par MQTT.')
           : rows.length
-            ? formatText('{0} élément(s).', rows.length)
+            ? (rows.length === 1 ? tr('1 élément') : formatText('{0} éléments', rows.length))
             : tr('Ce dossier est vide.'),
       );
     if (list === null) $('files-state').dataset.visualState = 'waiting';
@@ -357,7 +357,7 @@ export function createFiles(request, command, addToQueue) {
       } else fileRows = result.files;
       renderFiles();
       if (context.source !== 'cloud')
-        set('files-state', formatText('{0} élément(s) dans {1}.', visibleFiles(fileRows).length, result.path));
+        set('files-state', formatText(visibleFiles(fileRows).length === 1 ? '1 élément dans {1}' : '{0} éléments dans {1}', visibleFiles(fileRows).length, result.path));
     } catch (e) {
       if (generation === fileGeneration && currentFileContext(context)) {
         fileContext = null;

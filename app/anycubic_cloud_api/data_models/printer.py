@@ -2563,15 +2563,34 @@ class AnycubicPrinter:
 
         return None
 
+    def _project_fan_setting(self, key: str) -> int | None:
+        """Lit un ventilateur dans les réglages du projet Cloud ; None si la valeur est absente ou invalide."""
+        project = self.latest_project
+        if project is None:
+            return None
+        # Les réglages Cloud imbriquent parfois les valeurs sous une clé « settings ».
+        value = project._get_print_setting(key)
+        if value is None:
+            value = project._get_inner_print_setting(key)
+        try:
+            return int(value) if value is not None and not isinstance(value, bool) else None
+        except (TypeError, ValueError):
+            return None
+
     @property
     def aux_fan_speed_pct(self) -> int | None:
         """Vitesse du ventilateur auxiliaire en pourcentage."""
-        return self._aux_fan_speed_pct
+        # La S1 ne renvoie pas toujours ce ventilateur par MQTT ; le Slicer Next le lit dans le projet Cloud.
+        if self._aux_fan_speed_pct is not None:
+            return self._aux_fan_speed_pct
+        return self._project_fan_setting('aux_fan_speed_pct')
 
     @property
     def box_fan_level(self) -> int | None:
         """Niveau du ventilateur de l’enceinte, distinct d’un pourcentage."""
-        return self._box_fan_level
+        if self._box_fan_level is not None:
+            return self._box_fan_level
+        return self._project_fan_setting('box_fan_level')
 
     @property
     def latest_project_raw_print_status(self) -> int | None:

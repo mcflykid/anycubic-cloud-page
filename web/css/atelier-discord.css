@@ -347,3 +347,62 @@
     flex: 1 1 auto;
   }
 }
+
+/* Groupes d’événements : un titre, une note à droite et des cases décrites sur deux colonnes. */
+.discord-events {
+  display: grid;
+  gap: var(--atelier-space-3);
+  margin: 0;
+  padding: var(--atelier-space-4);
+  border: 0;
+  border-top: var(--atelier-rule) solid var(--atelier-line);
+}
+.discord-events > header, .discord-events > legend {
+  display: flex;
+  float: left;
+  inline-size: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--atelier-space-3);
+  padding: 0;
+  margin: 0;
+}
+.discord-events > header { float: none; }
+.discord-events > legend + .discord-event-grid { margin-block-start: 0; }
+.discord-events h3, .discord-events legend > span:first-child { margin: 0; font: var(--atelier-text); font-weight: var(--atelier-semibold); }
+.discord-events :is(header, legend) > span:last-child:not(:first-child) { color: var(--atelier-muted); font: var(--atelier-caption); }
+.discord-event-grid, .discord-event-list {
+  clear: both;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--atelier-space-3) var(--atelier-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.discord-event { display: grid; grid-template-columns: var(--atelier-space-4) minmax(0, 1fr); gap: var(--atelier-space-2); align-items: start; cursor: pointer; }
+.discord-event input[type="checkbox"] { appearance: auto; inline-size: var(--atelier-space-4); block-size: var(--atelier-space-4); min-height: 0; margin: var(--atelier-space-1) 0 0; padding: 0; accent-color: var(--atelier-accent); }
+.discord-event > span, .discord-event-list li { display: grid; min-width: 0; }
+.discord-event strong, .discord-event-list strong { font-weight: var(--atelier-regular); }
+.discord-event > span > span, .discord-event-list li > span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.discord-event-list li { padding-inline-start: calc(var(--atelier-space-4) + var(--atelier-space-2)); }
+.discord-schedule p { margin: 0; }
+.discord-slots { display: flex; flex-wrap: wrap; align-items: center; gap: var(--atelier-space-2); color: var(--atelier-muted); font: var(--atelier-caption); }
+.discord-slots .atelier-count { color: var(--atelier-accent); background: color-mix(in srgb, var(--atelier-accent) 12%, transparent); }
+.discord-next { color: var(--atelier-muted); font: var(--atelier-caption); }
+.discord-panel-link .discord-report-link { align-items: center; margin-inline: 0; padding: var(--atelier-space-3) var(--atelier-space-4); transform: none; }
+.discord-panel-link .discord-report-link > .atelier-control { display: inline-flex; align-items: center; }
+.discord-panel-link .discord-report-link > span:first-child > span { font: var(--atelier-caption); }
+@media (max-width: 640px) {
+  .discord-event-grid, .discord-event-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Le bandeau reprend le sélecteur de langue de l’atelier : chevron natif et texte centré verticalement. */
+.discord-settings-page .portal-nav select.atelier-control {
+  appearance: auto;
+  padding-block: 0;
+  padding-inline: var(--atelier-space-3) var(--atelier-space-2);
+  line-height: normal;
+}
+.discord-settings-page .portal-nav a.atelier-control-icon { justify-content: center; }
+.discord-settings-page .portal-nav a.atelier-control-icon > svg { display: block; }

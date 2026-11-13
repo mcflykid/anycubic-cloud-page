@@ -21,8 +21,11 @@ function nearWord(word, candidate) {
 /** Une palette de navigation reste sans commandes physiques ; les raccourcis ne remplacent pas les champs natifs. */
 export function initializeInteractions() {
   if (!document.getElementById('atelier-tabs')) return;
-  const dialog = node('dialog', null, 'quick-palette');
+  const dialog = node('dialog', null, 'quick-palette settings-dialog atelier-panel-dialog');
   const title = node('h2', tr('Accès rapide')); title.id = 'quick-title';
+  const header = node('header', null, 'atelier-card-header'), body = node('div', null, 'atelier-card-body quick-body');
+  const footer = node('footer', null, 'atelier-card-footer quick-footer');
+  const field = node('label', null, 'quick-field');
   dialog.setAttribute('aria-labelledby', title.id);
   const input = node('input'); input.type = 'search';
   input.setAttribute('aria-label', tr('Rechercher une section'));
@@ -36,8 +39,8 @@ export function initializeInteractions() {
   results.id = 'quick-results';
   results.setAttribute('role', 'listbox');
   results.setAttribute('aria-label', tr('Accès rapide'));
-  const close = node('button', tr('Fermer')); close.type = 'button';
-  const count = node('p', null, 'sr-only');
+  const close = node('button', tr('Fermer'), 'dialog-close atelier-control'); close.type = 'button';
+  const count = node('p', null, 'muted');
   count.setAttribute('role', 'status');
   let origin, moved;
   let recent = [];
@@ -47,7 +50,14 @@ export function initializeInteractions() {
   } catch {}
   const tabs = () => [...document.querySelectorAll('#atelier-tabs [data-tab]')].filter(button => !button.disabled);
   const openTab = tab => tabs().find(button => button.dataset.tab === tab)?.click();
+  // Le libellé de rubrique vient de la navigation : il suit la langue et les onglets disponibles.
+  const groupOf = tab => document.querySelector(`#atelier-tabs [data-tab="${tab}"]`)?.closest('[role=group]')?.getAttribute('aria-label') || '';
+  const tabName = tab => document.querySelector(`#atelier-tabs [data-tab="${tab}"]`)?.textContent.trim() || '';
   const windows = [
+    ['Entretien', 'overview', 'maintenance-open'],
+    ['File d’attente', 'overview', 'queue-open'],
+    ['Commandes courantes', 'overview', 'controls-open'],
+    ['Chronologie de l’impression', 'overview', 'printer-timeline-open'],
     ['Détection IA', 'settings', 'ai-open'],
     ['Journal des commandes', 'settings', 'settings-logs-open'],
     ['Régler le séchage', 'ace', 'go-drying'],
@@ -59,22 +69,22 @@ export function initializeInteractions() {
   const render = () => {
     const query = searchText(input.value.trim());
     const groups = [
-      ['Onglets', tabs().map(button => [button.textContent.trim(), () => {
+      ['Onglets', tabs().map(button => [button.textContent.trim(), groupOf(button.dataset.tab), () => {
         button.click();
         const heading = document.querySelector(`#tab-${button.dataset.tab} h2`);
         if (heading) { heading.tabIndex = -1; heading.focus(); }
       }])],
-      ['Fenêtres', windows.filter(([, , id]) => $(id) && !$(id).disabled).map(([title, tab, id]) => [tr(title), () => {
+      ['Fenêtres', windows.filter(([, , id]) => $(id) && !$(id).disabled && !$(id).hidden).map(([title, tab, id]) => [tr(title), tabName(tab), () => {
         openTab(tab);
         $(id).click();
       }])],
       ['Fichiers', [...document.querySelectorAll('#file-rows .file-row-caption strong')].map(name => [
-        name.textContent, () => { openTab('files'); $('files-search').value = name.textContent; $('files-search').dispatchEvent(new Event('input')); $('files-search').focus(); },
+        name.textContent, tabName('files'), () => { openTab('files'); $('files-search').value = name.textContent; $('files-search').dispatchEvent(new Event('input')); $('files-search').focus(); },
       ])],
       ['Historique', [...document.querySelectorAll(
         '#tasks-list:not(:empty) .history-card-name, #tasks-gallery .history-card-name',
       )].map(name => [
-        name.textContent, () => {
+        name.textContent, tabName('history'), () => {
           const detail = name.closest('tr, .history-gallery-card')?.querySelector('.history-detail, .task-thumbnail');
           openTab('history');
           detail?.click();
@@ -84,7 +94,8 @@ export function initializeInteractions() {
     let total = 0;
     results.replaceChildren();
     if (!query) for (const term of recent) {
-      const previous = node('button', term);
+      const previous = node('button', null, 'quick-option');
+      previous.append(node('span', term), node('span', tr('Recherche récente'), 'muted'));
       previous.type = 'button';
       previous.setAttribute('role', 'option');
       previous.setAttribute('aria-selected', 'false');
@@ -102,8 +113,9 @@ export function initializeInteractions() {
       const label = node('strong', tr(group));
       label.setAttribute('role', 'presentation');
       results.append(label);
-      for (const [name, action] of matching) {
-        const choice = node('button', name); choice.type = 'button';
+      for (const [name, where, action] of matching) {
+        const choice = node('button', null, 'quick-option'); choice.type = 'button';
+        choice.append(node('span', name), node('span', where, 'muted'));
         choice.setAttribute('role', 'option');
         choice.setAttribute('aria-selected', 'false');
         choice.onclick = () => {
@@ -119,7 +131,7 @@ export function initializeInteractions() {
         results.append(choice);
       }
     }
-    count.textContent = formatText('{0} résultat(s)', total);
+    count.textContent = total === 1 ? tr('1 résultat') : formatText('{0} résultats', total);
     if (!results.childElementCount) {
       const empty = node('p', tr('Aucune section trouvée.'));
       empty.setAttribute('role', 'presentation');
@@ -163,7 +175,19 @@ export function initializeInteractions() {
     if (event.target.closest('input,textarea,[contenteditable=true]') || document.querySelector('dialog[open]')) return;
     event.preventDefault(); show();
   });
-  dialog.append(title, input, count, results, close); document.body.append(dialog);
+  field.append(Object.assign(node('span', null, 'quick-field-icon'), {innerHTML:
+    '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>'}), input);
+  header.append(title, close);
+  body.append(field, results);
+  const hints = node('p', null, 'quick-hints');
+  for (const [keys, label] of [[['↑', '↓'], 'parcourir'], [['↵'], 'ouvrir'], [['Échap'], 'fermer']]) {
+    const hint = node('span');
+    hint.append(...keys.map(key => node('kbd', key)), ' ' + tr(label));
+    hints.append(hint);
+  }
+  count.setAttribute('aria-live', 'polite');
+  footer.append(hints, count);
+  dialog.append(header, body, footer); document.body.append(dialog);
   document.querySelectorAll('textarea').forEach(area => {
     /** Ajuste la hauteur au contenu sans dépasser la limite visuelle de 320 pixels. */
     const grow = () => { area.style.height = 'auto'; area.style.height = `${Math.min(320, area.scrollHeight + 2)}px`; };
