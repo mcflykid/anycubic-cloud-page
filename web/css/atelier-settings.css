@@ -77,6 +77,9 @@
   gap: var(--atelier-space-2) var(--atelier-space-5);
 }
 .settings-container-values > div { flex-wrap: wrap; }
+@media (min-width: 1000px) {
+  #tab-settings .settings-appearance-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .settings-container-links {
   display: flex;
   align-items: center;

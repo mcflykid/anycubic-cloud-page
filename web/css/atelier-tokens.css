@@ -193,3 +193,24 @@
   --atelier-warning: light-dark(#8a5300, #ffc274);
   --atelier-error: light-dark(#b42318, #ffada5);
 }
+
+/* La palette forcée du système garde la priorité sur les couleurs choisies dans l’atelier. */
+@media (forced-colors: none) {
+  :root[data-contrast="high"] {
+    --atelier-rule: 2px;
+    --atelier-focus-width: 3px;
+    --atelier-muted: light-dark(#353a40, #f1f3f5);
+    --atelier-line: light-dark(#555b62, #adb5bd);
+    --atelier-accent: light-dark(#004f42, #a5ffec);
+    --atelier-normal: light-dark(#145c3a, #a1f4bf);
+    --atelier-warning: light-dark(#663a00, #ffd59b);
+    --atelier-error: light-dark(#8c1812, #ffd0cb);
+  }
+  :root[data-contrast="high"] :is(a, button, select, input, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--atelier-focus-width) solid var(--atelier-accent);
+    outline-offset: var(--atelier-focus-width);
+  }
+  :root[data-contrast="high"] :is(progress, .badge, .unread-dot) {
+    outline: var(--atelier-active-rule) solid var(--atelier-line);
+  }
+}

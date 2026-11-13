@@ -6094,5 +6094,17 @@
   "Descendre": [
     "Move down",
     "Bajar"
+  ],
+  "Contraste": [
+    "Contrast",
+    "Contraste"
+  ],
+  "Standard": [
+    "Standard",
+    "Estándar"
+  ],
+  "Élevé": [
+    "High",
+    "Alto"
   ]
 }

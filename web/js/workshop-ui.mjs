@@ -166,6 +166,32 @@ function initializeTheme() {
 }
 initializeTheme();
 
+/** Applique le contraste au-dessus du style, y compris sur les pages sans sélecteur. */
+function initializeContrast() {
+  const key = 'cloud-page-contrast';
+  const root = document.documentElement;
+  const choice = document.getElementById('interface-contrast');
+  const media = matchMedia('(prefers-contrast: more)');
+  let mode = 'system';
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved === 'high' || saved === 'standard') mode = saved;
+  } catch {}
+  const apply = () => {
+    root.dataset.contrast = mode === 'high' || (mode === 'system' && media.matches) ? 'high' : 'standard';
+  };
+  media.addEventListener('change', apply);
+  apply();
+  if (!choice) return;
+  choice.value = mode;
+  choice.onchange = () => {
+    mode = choice.value;
+    apply();
+    try { localStorage.setItem(key, mode); } catch {}
+  };
+}
+initializeContrast();
+
 const styleCatalogue = [
   ['standard', 'Repères clairs et disposition directe pour le suivi quotidien.'],
   ['aurora', 'Surfaces lumineuses et accents violets.'],

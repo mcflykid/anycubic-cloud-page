@@ -1,6 +1,20 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
 const themes=['standard', 'aurora', 'lab'];
+
+test('le contraste élevé reste indépendant du style et du thème', async ({page}) => {
+  await login(page, 'settings');
+  await page.locator('#interface-theme').selectOption('dark');
+  await page.locator('#interface-style').selectOption('aurora');
+  await page.locator('#interface-contrast').selectOption('high');
+  const root = page.locator('html');
+  await expect(root).toHaveAttribute('data-contrast', 'high');
+  await expect(root).toHaveAttribute('data-style', 'aurora');
+  await expect(root).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('#tab-settings .atelier-card').first()).toHaveCSS('border-top-width', '2px');
+  await page.reload();
+  await expect(root).toHaveAttribute('data-contrast', 'high');
+});
 async function openSettings(page){
   const settings=page.locator('[data-tab=settings]');
   if(await settings.getAttribute('aria-current')==='page')return;
