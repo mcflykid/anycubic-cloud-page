@@ -767,6 +767,17 @@ export function createHistory(request, command, selectedBox) {
       const details = node('span', [task.start && date(task.start),
         Number.isFinite(task.elapsed_minutes) && mins(task.elapsed_minutes)].filter(Boolean).join(' · '));
       item.append(check, preview, title, state, details);
+      const colors = (task.colors || []).filter(color => /^#[0-9a-f]{6}$/i.test(color));
+      if (colors.length) {
+        const palette = node('span', null, 'history-gallery-colors');
+        for (const color of colors) {
+          const swatch = node('span', null, 'material-color');
+          swatch.style.backgroundColor = color;
+          swatch.title = color;
+          palette.append(swatch);
+        }
+        item.append(palette);
+      }
       return item;
     }));
   }

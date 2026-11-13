@@ -32,6 +32,7 @@
 }
 .history-gallery-card { display: grid; gap: var(--atelier-space-2); min-width: 0; padding: var(--atelier-space-2); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-card-radius); }
 .history-gallery-card .task-thumbnail { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+.history-gallery-colors { display: flex; flex-wrap: wrap; gap: var(--atelier-space-1); }
 .history-gallery-card .history-card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history-table :is(.history-table-start, .history-table-status, .history-table-duration) {
   white-space: nowrap;

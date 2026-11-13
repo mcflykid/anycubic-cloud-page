@@ -324,9 +324,23 @@ class CloudExtras:
                 2: "Impression terminée",
                 3: "Impression arrêtée",
             }.get(status, "État non renseigné")
+            params = r.get("slice_param")
+            paints = params.get("paint_infos") if isinstance(params, dict) else None
+            colors = []
+            if isinstance(paints, list):
+                colors = list(
+                    dict.fromkeys(
+                        row["color"]
+                        for row in paints[:16]
+                        if isinstance(row, dict)
+                        and isinstance(row.get("color"), str)
+                        and re.fullmatch(r"#[0-9a-fA-F]{6}", row["color"])
+                    )
+                )
             items.append(
                 {
                     "key": k,
+                    "colors": colors,
                     "local_note": notes.get(k),
                     "name": clean_text(
                         r.get("task_name") or r.get("gcode_name") or r.get("model") or "Impression",
