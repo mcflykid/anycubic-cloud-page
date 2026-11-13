@@ -17,12 +17,19 @@ export function bindMaintenance(request) {
       row.append(node('strong', item.name), node('p', [state,
         item.elapsed == null ? null : formatText('{0} sur {1}', fmt(item.elapsed, ' h'), fmt(item.interval, ' h')),
       ].filter(Boolean).join(' · ')));
+      if (item.enabled && Number.isFinite(item.elapsed)) {
+        const progress = node('progress');
+        progress.max = item.interval;
+        progress.value = Math.min(item.elapsed, item.interval);
+        progress.setAttribute('aria-label', item.name);
+        row.append(progress);
+      }
       const done = node('button', tr('Fait')), edit = node('button', tr('Modifier')), remove = node('button', tr('Supprimer'));
       done.type = edit.type = remove.type = 'button';
       done.disabled = hours == null;
       done.onclick = async () => {
         if (await confirmAction(formatText('Enregistrer l’intervention pour « {0} » ?', item.name)))
-          await load({action:'done', id:item.id});
+          if (await load({action:'done', id:item.id, note:$('maintenance-note').value})) $('maintenance-note').value = '';
       };
       edit.onclick = () => {
         edited = item.id;
@@ -68,6 +75,7 @@ export function bindMaintenance(request) {
   $('maintenance-open').onclick = () => {
     edited = undefined;
     form.reset();
+    $('maintenance-note').value = '';
     dialog.showModal();
     void load();
   };

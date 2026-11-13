@@ -590,7 +590,7 @@
 </dialog>
 <dialog id="maintenance-dialog" class="settings-dialog" aria-labelledby="maintenance-title">
   <header class="dialog-top"><h2 id="maintenance-title">Entretien</h2><button class="dialog-close" type="button">Fermer</button></header>
-  <p id="maintenance-hours"></p><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>
+  <p id="maintenance-hours"></p><label class="atelier-field">Note locale<input id="maintenance-note" maxlength="500"></label><p id="maintenance-state" role="status"></p><ul id="maintenance-list"></ul>
   <form id="maintenance-form">
     <label class="atelier-field">Opération<input name="name" required maxlength="100"></label>
     <label class="atelier-field">Intervalle en heures<input name="interval" type="number" required min="1" max="10000"></label>
