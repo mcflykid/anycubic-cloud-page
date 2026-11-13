@@ -45,6 +45,7 @@ function renderAssignments() {
     for (const spool of spools) {
       const slot = spool.display_slot ?? spool.slot;
       const name = spool.spool_loaded === false ? tr('Emplacement vide')
+        : spool.spool_loaded !== true ? tr('État inconnu')
         : spool.material_type || tr('Matière non renseignée');
       const color = spool.color?.slice(0, 3);
       const hex = color?.length === 3 && color.every(value => Number.isInteger(value) && value >= 0 && value <= 255)

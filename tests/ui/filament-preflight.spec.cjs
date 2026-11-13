@@ -187,6 +187,22 @@ test('un manque estimé par le serveur reste un avertissement', async ({page}) =
   await expect(dialog.getByRole('button',{name:'Lancer l’impression'})).toBeEnabled();
 });
 
+test('le Résumé et l’ACE signalent la même bobine pendant l’impression', async ({page}) => {
+  let shortfall = true;
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch(), json = await response.json();
+    json.printer.filament_shortfalls = shortfall ? [{slot:3, grams:120, needed:193, relay:[]}] : [];
+    await route.fulfill({response,json});
+  });
+  const warning = 'Emplacement 3 : environ 120 g restants pour 193 g estimés.';
+  await login(page, 'summary');
+  await expect(page.locator('#summary-ace-boxes .filament-shortfall')).toHaveText(warning);
+  await openSection(page, 'ace');
+  await expect(page.locator('#spools .filament-shortfall')).toHaveText(warning);
+  shortfall = false;
+  await expect(page.locator('#spools .filament-shortfall')).toHaveCount(0, {timeout:8000});
+});
+
 for (const scenario of ['refus avec code', 'réponse perdue']) {
   test(`la fenêtre conserve le résultat après ${scenario}`, async ({page}) => {
     let orders = 0;
