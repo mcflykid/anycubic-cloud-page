@@ -584,6 +584,12 @@ async def command(req):
                     raise
                 if isinstance(error, AnycubicOrderRefused):
                     uncertain["reason_code"] = error.code
+                    if name in {"feed", "retract"} and getattr(engine, "ace_alerts", None):
+                        box = integer(
+                            d.get("box", 0), 0, max(0, engine.printer.connected_ace_units - 1)
+                        )
+                        slot = integer(d.get("slot", 1), 1, 4) - 1 if name == "feed" else None
+                        engine.ace_alerts.refusal(box, slot, int(time.time()), str(error.code))
                 log_event(
                     OPS_LOG,
                     logging.WARNING,
