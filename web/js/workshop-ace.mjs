@@ -64,17 +64,24 @@ function spoolIllustration(color, index, rfid) {
       <ellipse cx="26" cy="39" rx="13" ry="36" fill="#bfc6c3" stroke="#b0b9b5" stroke-width=".6"/>
       <ellipse cx="24" cy="39" rx="11.7" ry="35.3" fill="url(#spool-rim-${index})" stroke="#fbfcfc" stroke-width=".9"/>
       <path d="M24 12c2.4 0 4.4 4.2 5 9l-3 5-4-2-1-9zm-4 40 4-1 4 5-1 7-4 4-3-6z" fill="#aab4ae" opacity=".68"/>
-      ${rfid === true ? '<g class="spool-rfid-mark" role="img" aria-label="Identification RFID" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="21.5" cy="18" r="1.35" fill="currentColor" stroke="none"/><path d="M24 15.2a4 4 0 0 1 0 5.6M26.7 12.8a7.5 7.5 0 0 1 0 10.4"/></g>' : ''}
+      ${rfid === true ? '<g class="spool-rfid-mark" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="21.5" cy="18" r="1.35" fill="currentColor" stroke="none"/><path d="M24 15.2a4 4 0 0 1 0 5.6M26.7 12.8a7.5 7.5 0 0 1 0 10.4"/></g>' : ''}
       <ellipse cx="23.3" cy="39" rx="6.3" ry="12.2" fill="#c2cac5"/>
       <ellipse cx="23.5" cy="39" rx="4" ry="8.5" fill="#69746d"/>
       <path d="M17 16c-3.3 11.6-3.4 31.9-.4 44" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.25"/>
     </g>`;
+  if (rfid === true) {
+    svg.removeAttribute('aria-hidden');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', tr('Identification RFID'));
+  }
   return svg;
 }
 
 /** Affiche l’ACE et relie les formulaires aux commandes de la machine. */
 export function createAce(command, refresh) {
   let presetsReady = false, dryingPending = false, selectedBoxId = null, selectedPrinter = null;
+  let spoolInitial;
+  const spoolForm = $('spool-form'), spoolSave = $('spool-save');
   const selectorLabel = node('label', tr('Module ACE'));
   const selector = node('select');
   selector.id = 'ace-selector';
@@ -149,6 +156,8 @@ export function createAce(command, refresh) {
     const spools = box.spools || [];
     const loaded = spools.filter(spool => spool.spool_loaded === true).length;
     set('ace-loaded-count', formatText(loaded === 1 ? '{0} bobine chargée' : '{0} bobines chargées', loaded));
+    set('spool-dialog-count', $('ace-loaded-count').textContent);
+    if ($('spool-dialog').open) updateSpoolActions();
     set('ace-relay-state', tr(box.auto_feed ? 'Activé' : 'Désactivé'));
     definition('ace-stats', [
       ['Température', fmt(box.temperature, ' °C')],
@@ -252,7 +261,7 @@ export function createAce(command, refresh) {
       }),
     );
   }
-  $('go-spool').onclick = () => openSpool($('spool-form').elements.slot.value);
+  $('go-spool').onclick = () => openSpool((selectedBox()?.loaded_slot ?? -1) + 1 || 1);
   /** Rend l’état signalé par le module, sans anticiper la réponse à une commande. */
   function updateDryToggle(box, online) {
     const toggle = $('dry-toggle'), drying = box?.drying?.is_drying;
@@ -320,23 +329,45 @@ export function createAce(command, refresh) {
   $('spool-color').oninput = () => {
     const value = $('spool-color').value;
     set('spool-color-value', value.toUpperCase());
-    $('spool-catalog-color').hidden = true;
     const color = [1, 3, 5].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
     $('spool-dialog-preview').replaceChildren(spoolIllustration(color, 'dialog', false));
   };
-  $('spool-form').onsubmit = (e) => {
+  /** Autorise l’enregistrement quand les valeurs manuelles diffèrent de la fiche ouverte. */
+  function updateSpoolSave() {
+    const {material, color} = spoolForm.elements;
+    const rgb = [1, 3, 5].map(offset => Number.parseInt(color.value.slice(offset, offset + 2), 16));
+    const variant = filamentVariant({material_type: material.value, color: rgb});
+    $('spool-catalog-color').hidden = !variant;
+    set('spool-catalog-color', variant ? tr(variant.name) : '');
+    spoolSave.disabled = material.disabled || !material.value ||
+      (material.value === spoolInitial?.material && color.value === spoolInitial?.color);
+  }
+  /** Interdit les actions de filament pendant une impression ou une perte de connexion. */
+  function updateSpoolActions() {
+    const printer = workshopState.snapshot?.printer;
+    const reason = !printer?.printer_online ? 'Hors ligne'
+      : printer.job_in_progress ? 'Indisponible pendant une impression' : '';
+    for (const id of ['feed', 'retract', 'feed-finish']) $(id).disabled = !!reason;
+    set('spool-action-state', tr(reason));
+    $('spool-action-state').hidden = !reason;
+  }
+  spoolForm.addEventListener('input', event => {
+    if (event.target.name !== 'slot') updateSpoolSave();
+  });
+  spoolForm.onsubmit = async (e) => {
     e.preventDefault();
-    if (e.target.elements.material.disabled) return;
+    if (spoolSave.disabled) return;
     const d = Object.fromEntries(new FormData(e.target));
     if (!d.material) {
       message(tr('Choisissez un matériau compatible avant d’enregistrer cette bobine.'), true);
       return;
     }
-    command(
+    const result = await command(
       'slot',
       { ...d, ...boxData() },
       tr('Enregistrer ce matériau et cette couleur dans l’ACE ?'),
     );
+    if (result && spoolForm.elements.slot.value === d.slot) fillSpool(d.slot);
   };
   for (const [id, action, extra, question] of [
     ['feed', 'feed', {}, tr('Charger le filament sélectionné ?')],
@@ -376,11 +407,10 @@ export function createAce(command, refresh) {
       await refresh();
     }
   };
-  /** Préremplit la bobine sélectionnée ; les valeurs RFID restent consultables sans modification manuelle. */
+  /** Préremplit la fiche du numéro local, y compris un emplacement absent de la télémétrie. */
   function fillSpool(slot) {
-    const form = $('spool-form'),
-      data = selectedBox()?.spools?.find((s) => Number(s.local_slot || s.slot) === Number(slot));
-    if (!data) return;
+    const form = spoolForm,
+      data = selectedBox()?.spools?.find((s) => Number(s.local_slot || s.slot) === Number(slot)) || {};
     form.elements.slot.value = String(slot);
     const material = form.elements.material;
     const editable = workshopState.snapshot?.printer?.editable_materials;
@@ -405,29 +435,54 @@ export function createAce(command, refresh) {
         )
         .join('');
     set('spool-color-value', form.elements.color.value.toUpperCase());
-    /* Seul le marquage RFID confirmé verrouille les champs; les états manuels et inconnus restent distincts. */ const automatic = data.rfid === true;
+    const automatic = data.rfid === true;
     form.elements.material.disabled = automatic;
     form.elements.color.disabled = automatic;
-    form.querySelector('[type=submit]').hidden = automatic;
+    $('spool-material-edit').hidden = $('spool-color-edit').hidden = automatic;
+    $('spool-material-read').hidden = $('spool-color-read').hidden = !automatic;
+    set('spool-material-value', data.material_type || '—');
+    set('spool-color-read-value', form.elements.color.value.toUpperCase());
+    set('spool-remaining', fmt(data.remaining_percent, ' %'));
+    $('spool-remaining-progress').hidden = !Number.isFinite(data.remaining_percent);
+    $('spool-remaining-progress').value = data.remaining_percent ?? 0;
+    set('spool-action-title', formatText('Filament de l’emplacement {0}', slot));
+    set('spool-selected-state', selectedBox()?.loaded_slot === Number(slot) - 1 ? tr('Bobine engagée') : '');
     // La fiche indique la couleur de base, même si la liste représente plusieurs composantes.
     $('spool-dialog-preview').replaceChildren(spoolIllustration(data.color?.slice(0, 3), 'dialog', automatic));
-    const variant = filamentVariant(data);
-    $('spool-catalog-color').hidden = !variant;
-    set('spool-catalog-color', variant ? tr(variant.name) : '');
     set('spool-rfid-note', tr(automatic
-      ? 'Bobine identifiée par RFID. Les matériaux ne peuvent pas être modifiés.'
+      ? 'RFID reconnu. Matériau et couleur sont lus sur la bobine.'
       : data.rfid === false
         ? 'Réglage manuel de la bobine. Matériau et couleur modifiables.'
         : 'Statut RFID inconnu. Les champs restent modifiables.'));
     $('spool-rfid-note').hidden = false;
+    $('spool-rfid-note').dataset.state = automatic ? 'normal' : data.rfid === false ? 'manual' : 'unknown';
+    spoolInitial = { material: material.value, color: form.elements.color.value };
+    updateSpoolSave();
+    updateSpoolActions();
   }
   /** Ouvre les données du numéro local de bobine et place le focus sur sa sélection. */
   function openSpool(slot) {
+    const box = selectedBox();
+    $('spool-slot-options').replaceChildren(...[1, 2, 3, 4].map(number => {
+      const data = box?.spools?.find(spool => Number(spool.local_slot ?? spool.slot) === number);
+      const label = node('label', null, 'spool-slot-option');
+      const input = node('input');
+      input.type = 'radio';
+      input.name = 'slot';
+      input.value = String(number);
+      const dot = node('span', null, 'spool-slot-dot');
+      dot.setAttribute('aria-hidden', 'true');
+      dot.style.backgroundColor = spoolColors(data?.color)[0] || 'transparent';
+      const title = data?.spool_loaded === false || !data ? tr('Vide') : data.material_type || tr('Non renseigné');
+      const origin = data?.rfid === true ? 'RFID' : data?.rfid === false ? tr('Manuel') : tr('Inconnu');
+      label.append(input, dot, node('strong', number + ' · ' + title), node('small', origin));
+      return label;
+    }));
     fillSpool(slot);
     if (!$('spool-dialog').open) $('spool-dialog').showModal();
-    $('spool-form').elements.slot.focus({ preventScroll: true });
+    spoolForm.querySelector('[name=slot]:checked')?.focus({ preventScroll: true });
   }
-  $('spool-form').elements.slot.onchange = (e) => fillSpool(e.target.value);
+  $('spool-slot-options').onchange = (e) => fillSpool(e.target.value);
 
   return { selectedBox, boxData, renderAce };
 }

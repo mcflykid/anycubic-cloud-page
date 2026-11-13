@@ -3799,6 +3799,26 @@
     "Unavailable",
     "No disponible"
   ],
+  "Vide": [
+    "Empty",
+    "Vacío"
+  ],
+  "Manuel": [
+    "Manual",
+    "Manual"
+  ],
+  "Lecture seule": [
+    "Read only",
+    "Solo lectura"
+  ],
+  "Filament de l’emplacement {0}": [
+    "Filament in slot {0}",
+    "Filamento de la ranura {0}"
+  ],
+  "RFID reconnu. Matériau et couleur sont lus sur la bobine.": [
+    "RFID recognized. Material and color are read from the spool.",
+    "RFID reconocido. El material y el color se leen de la bobina."
+  ],
   "Inconnu": [
     "Unknown",
     "Desconocido"

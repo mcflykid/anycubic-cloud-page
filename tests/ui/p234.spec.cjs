@@ -415,25 +415,28 @@ test('la bobine affiche tous les triplets RGB fournis', async ({page}) => {
   await expect(spool).toContainText('RFID reconnu');
   await spool.getByRole('button', {name:'Voir',exact:true}).click();
   const dialog = page.locator('#spool-dialog');
-  await expect(dialog.locator('#spool-color-value')).toHaveText('#F3F1E6');
-  await expect(dialog.getByLabel('Matériau', {exact:true})).toBeDisabled();
-  await expect(dialog.getByLabel('Couleur du filament')).toBeDisabled();
-  await expect(dialog.getByText('Bobine identifiée par RFID. Les matériaux ne peuvent pas être modifiés.')).toBeVisible();
+  await expect(dialog.locator('#spool-color-read-value')).toHaveText('#F3F1E6');
+  await expect(dialog.locator('#spool-material-value')).toBeVisible();
+  await expect(dialog.getByRole('button', {name: 'Enregistrer la bobine'})).toBeDisabled();
+  await expect(dialog.getByText('RFID reconnu. Matériau et couleur sont lus sur la bobine.')).toBeVisible();
   for (const theme of ['light','dark']) {
     await page.locator('html').evaluate((element,value)=>element.setAttribute('data-theme',value),theme);
     await expect(dialog.locator('.spool-rfid-mark')).toBeVisible();
     await page.screenshot({path:`test-results/rfid-spool-${theme}.png`,fullPage:false});
   }
   await expect(dialog.getByRole('button', {name:'Charger',exact:true})).toBeVisible();
-  await dialog.locator('select[name="slot"]').selectOption('2');
+  await expect(dialog.getByRole('radio')).toHaveCount(4);
+  await expect(dialog.getByRole('radio').first()).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(dialog.getByRole('radio').nth(1)).toBeChecked();
   await expect(dialog.locator('#spool-color-value')).toHaveText('#ECECE7');
   await expect(dialog.locator('#spool-rfid-note')).toHaveText('Réglage manuel de la bobine. Matériau et couleur modifiables.');
   await expect(dialog.locator('#spool-colors-dialog')).toHaveCount(0);
   await expect(dialog.locator('#spool-catalog-color')).toHaveText('Blanc à lueur bleue');
-  await dialog.locator('select[name="slot"]').selectOption('3');
+  await dialog.getByRole('radio').nth(2).check();
   await expect(dialog.locator('#spool-catalog-color')).toHaveText('Blanc marbre');
   await expect(dialog.locator('#spool-rfid-note')).toHaveText('Statut RFID inconnu. Les champs restent modifiables.');
-  await dialog.locator('select[name="slot"]').selectOption('4');
+  await dialog.getByRole('radio').nth(3).check();
   await expect(dialog.locator('#spool-catalog-color')).toBeHidden();
 });
 

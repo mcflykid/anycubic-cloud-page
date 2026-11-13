@@ -221,7 +221,6 @@ dialog h2{overflow-wrap:anywhere}.file-preview-dialog .dialog-top{align-items:fl
 
 #spool-dialog-preview,#spool-catalog-color{text-align:center}
 .material-field label{margin-bottom:var(--atelier-space-2)}
-#spool-dialog-preview .spool-illustration{display:block;width:72px;height:78px;margin:0 auto var(--atelier-space-2)}
 .badge.inactive{background:color-mix(in srgb, var(--atelier-error) 12%, var(--atelier-surface));color:var(--atelier-error)}
 .drying-status{margin-bottom:var(--atelier-space-4)}
 .ace-auto-feed{display:flex;align-items:center;gap:var(--atelier-space-2)}
@@ -467,8 +466,6 @@ dialog{background:var(--surface);color:var(--text)}
 #atelier-tabs>button .ui-icon{flex:0 0 19px;width:19px;height:19px}
 #spool-dialog-preview .spool-rfid-mark{color:var(--atelier-fg)}
 #spools .spool-rfid-mark{color:var(--atelier-fg)}
-#spool-rfid-note{display:block;margin:var(--atelier-space-2) 0 var(--atelier-space-3);padding:var(--atelier-space-3) var(--atelier-space-3);border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface));color:var(--text);line-height:1.45}
-#spool-rfid-note[hidden]{display:none}
 @media(max-width:760px){
   .atelier-navigation{display:block;position:relative;margin:var(--atelier-space-2) 0 var(--atelier-space-3);z-index:15}
   #section-menu-toggle{display:inline-flex;align-items:center;justify-content:center;gap:var(--atelier-space-2);min-width:132px;min-height:46px;padding:var(--atelier-space-2) var(--atelier-space-4);border:1px solid var(--line);border-radius:var(--panel-radius);background:var(--surface);color:var(--text);font-weight:650;box-shadow:none}
