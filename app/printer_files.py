@@ -278,6 +278,41 @@ def file_added_at(value):
     return stamp if 946684800 <= stamp <= time.time() + 86400 else None
 
 
+def cloud_filament_details(f, model):
+    """Conserve l’ordre des couleurs du G-code pour les fichiers et la file d’attente."""
+    from filament_catalog import recognized_material
+
+    details = {}
+    params = safeget(f, "_slice_param")
+    paints = params.get("paint_infos") if isinstance(params, dict) else None
+    if (
+        isinstance(paints, list)
+        and 1 <= len(paints) <= 16
+        and all(isinstance(row, dict) for row in paints)
+    ):
+        details["colors"] = len(paints)
+        filaments = []
+        for paint in paints:
+            family = recognized_material(paint.get("material_type"), model)
+            color = paint.get("color")
+            rgb = (
+                [int(color[index : index + 2], 16) for index in (1, 3, 5)]
+                if isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)
+                else None
+            )
+            grams = number(paint.get("filament_used"))
+            filaments.append(
+                {
+                    "material": family or "",
+                    "color": rgb,
+                    "grams": grams if grams is not None and 0 <= grams <= 100_000 else None,
+                }
+            )
+        if any(row["material"] or row["color"] for row in filaments):
+            details["filaments"] = filaments
+    return details
+
+
 async def cloud_files(target, page, folder=None):
     """Renvoie une page de fichiers et le quota, avec références opaques pour les actions ultérieures."""
     folder_result = {}
@@ -310,35 +345,7 @@ async def cloud_files(target, page, folder=None):
         material = recognized_material(material, safeget(target, "printer.machine_name"))
         if material is not None:
             details["material"] = material
-        params = safeget(f, "_slice_param")
-        paints = params.get("paint_infos") if isinstance(params, dict) else None
-        if (
-            isinstance(paints, list)
-            and 1 <= len(paints) <= 16
-            and all(isinstance(row, dict) for row in paints)
-        ):
-            details["colors"] = len(paints)
-            filaments = []
-            for paint in paints:
-                family = recognized_material(
-                    paint.get("material_type"), safeget(target, "printer.machine_name")
-                )
-                color = paint.get("color")
-                rgb = (
-                    [int(color[index : index + 2], 16) for index in (1, 3, 5)]
-                    if isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)
-                    else None
-                )
-                grams = number(paint.get("filament_used"))
-                filaments.append(
-                    {
-                        "material": family or "",
-                        "color": rgb,
-                        "grams": grams if grams is not None and 0 <= grams <= 100_000 else None,
-                    }
-                )
-            if any(row["material"] or row["color"] for row in filaments):
-                details["filaments"] = filaments
+        details.update(cloud_filament_details(f, safeget(target, "printer.machine_name")))
         rows.append(
             {
                 "handle": handle,
