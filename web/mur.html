@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr" data-theme="dark" data-contrast="high">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Vue mur · Anycubic Cloud Page</title>
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-tokens.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-wall.css">
+</head>
+<body>
+<main class="wall">
+  <header><h1 id="wall-printer">Imprimante</h1><p id="wall-state" role="status">Connexion en cours</p><time id="wall-updated"></time></header>
+  <section class="wall-task">
+    <div><h2 id="wall-job">Aucune impression en cours.</h2><p id="wall-progress-text"></p><progress id="wall-progress" max="100" aria-label="Progression" hidden></progress><p id="wall-timing"></p></div>
+    <img id="wall-preview" alt="" hidden>
+  </section>
+  <dl id="wall-temperature"></dl>
+  <section id="wall-ace" aria-label="Bobines"></section>
+</main>
+<script type="module" src="/imprimante-api/ui/js/workshop-wall.mjs"></script>
+</body>
+</html>

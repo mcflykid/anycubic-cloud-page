@@ -12,6 +12,7 @@ from temperature_history import ace_readings
 from web_host import (
     install_ui_resources,
     render_page,
+    wall,
     home_url,
     display_timezone,
     access_control,
@@ -478,6 +479,7 @@ def create_demo(authenticated=False):
         install_discord(app, private, fake_sender=demo_discord)
     app.router.add_get("/", demo_index)
     app.router.add_get("/imprimante.html", demo_index)
+    app.router.add_get("/mur", wall)
     install_ui_resources(app)
     app.router.add_route("*", "/imprimante-api/{tail:.*}", api)
     return app

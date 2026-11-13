@@ -1,0 +1,18 @@
+/* La grille suit l’orientation de l’écran et garde les températures près du projet. */
+:root { color-scheme: dark; }
+body { margin: 0; background: var(--atelier-bg); color: var(--atelier-fg); font: var(--atelier-reading-font); font-variant-numeric: tabular-nums; }
+.wall { display: grid; gap: var(--atelier-space-5); padding: var(--atelier-space-5); }
+.wall :is(h1, h2, p, dl) { margin: 0; overflow-wrap: anywhere; }
+.wall header { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--atelier-space-3); }
+.wall header time { margin-inline-start: auto; color: var(--atelier-muted); }
+.wall-task { display: grid; gap: var(--atelier-space-4); align-items: center; }
+.wall-task img { width: 100%; max-height: 45dvh; object-fit: contain; }
+#wall-progress-text { font-size: var(--atelier-machine-responsive-size); font-weight: var(--atelier-semibold); }
+#wall-progress { width: 100%; accent-color: var(--atelier-accent); }
+#wall-temperature, #wall-ace { display: flex; gap: var(--atelier-space-4); flex-wrap: wrap; }
+#wall-temperature div, #wall-ace article { padding: var(--atelier-space-4); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-card-radius); }
+#wall-temperature dd { margin: 0; font-size: var(--atelier-title-size); }
+#wall-ace ul { list-style: none; padding: 0; }
+#wall-ace li { display: flex; gap: var(--atelier-space-2); align-items: center; }
+.wall-swatch { width: var(--atelier-icon); height: var(--atelier-icon); border-radius: var(--atelier-pill-radius); border: var(--atelier-rule) solid var(--atelier-line); }
+@media (orientation: landscape) { .wall-task { grid-template-columns: 1fr 1fr; } }

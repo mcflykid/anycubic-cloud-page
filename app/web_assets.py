@@ -12,6 +12,7 @@ ERROR_CATALOGUE = "workshop-error-catalogue.json"
 ERROR_CATALOGUE_MARKER = "__ERROR_CATALOGUE_INTEGRITY__"
 REQUIRED = {
     "imprimante.html",
+    "mur.html",
     "login.html",
     "security.html",
     "discord.html",

@@ -5810,5 +5810,21 @@
   "Téléchargement par l’imprimante · {0}": [
     "Printer downloading · {0}",
     "Descarga en la impresora · {0}"
+  ],
+  "Vue mur": [
+    "Wall view",
+    "Vista mural"
+  ],
+  "Vue mur · Anycubic Cloud Page": [
+    "Wall view · Anycubic Cloud Page",
+    "Vista mural · Anycubic Cloud Page"
+  ],
+  "Couche {0}": [
+    "Layer {0}",
+    "Capa {0}"
+  ],
+  "Dernière actualisation : {0}": [
+    "Last updated: {0}",
+    "Última actualización: {0}"
   ]
 }

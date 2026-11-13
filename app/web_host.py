@@ -926,6 +926,11 @@ async def index(request):
     )
 
 
+async def wall(request):
+    """Sert la vue de suivi avec les mêmes règles d’authentification que l’atelier."""
+    return web.Response(text=build_web_assets(ROOT)[0]["mur.html"], content_type="text/html")
+
+
 async def about(request):
     """Sert uniquement les notices statiques déclarées par l’application."""
     return web.Response(
@@ -969,4 +974,5 @@ def install_static(app):
     app[TIME_ZONE_KEY] = display_timezone()
     app.router.add_get("/", index)
     app.router.add_get("/imprimante.html", index)
+    app.router.add_get("/mur", wall)
     install_ui_resources(app)
