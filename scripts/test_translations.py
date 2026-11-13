@@ -3,7 +3,9 @@
 from html.parser import HTMLParser
 import json
 from pathlib import Path
+import re
 import unittest
+import ast
 
 ROOT = Path(__file__).resolve().parents[1] / "web"
 ATTRIBUTES = {"title", "aria-label", "placeholder", "data-confirm", "alt"}
@@ -87,3 +89,23 @@ class TranslationTests(unittest.TestCase):
                 parser = VisibleLabels()
                 parser.feed(page.read_text())
                 self.assertEqual(parser.labels - catalogue.keys() - INVARIANT, set())
+
+    def test_command_journal_labels_cover_server_actions(self):
+        """Compare les libellés du journal à la liste serveur et au catalogue de traduction."""
+        source = ROOT.parent / "app/command_journal.py"
+        actions = next(
+            statement.value.args[0]
+            for statement in ast.parse(source.read_text()).body
+            if isinstance(statement, ast.Assign)
+            and any(
+                isinstance(target, ast.Name) and target.id == "ACTIONS"
+                for target in statement.targets
+            )
+        )
+        journal = (ROOT / "js/workshop-journal.mjs").read_text()
+        labels = dict(
+            re.findall(r"^  '?([a-z-]+)'?: '([^']+)',$", journal.split("});", 1)[0], re.M)
+        )
+        self.assertEqual(labels.keys(), set(ast.literal_eval(actions)))
+        catalogue = json.loads((ROOT / "js/workshop-translations.json").read_text())
+        self.assertEqual(set(labels.values()) - catalogue.keys(), set())

@@ -5254,5 +5254,221 @@
   "Impossible de joindre l’atelier. Réessayez.": [
     "The workshop is unreachable. Try again.",
     "No se puede contactar con el taller. Inténtalo de nuevo."
+  ],
+  "Pause de l’impression": [
+    "Pause printing",
+    "Pausa de la impresión"
+  ],
+  "Reprise de l’impression": [
+    "Resume printing",
+    "Reanudación de la impresión"
+  ],
+  "Arrêt de l’impression": [
+    "Stop printing",
+    "Detención de la impresión"
+  ],
+  "Démarrage du séchage": [
+    "Start drying",
+    "Inicio del secado"
+  ],
+  "Arrêt du séchage": [
+    "Stop drying",
+    "Fin del secado"
+  ],
+  "Chargement du filament": [
+    "Load filament",
+    "Carga de filamento"
+  ],
+  "Retrait du filament": [
+    "Unload filament",
+    "Retirada de filamento"
+  ],
+  "Configuration de la bobine": [
+    "Spool configuration",
+    "Configuración de la bobina"
+  ],
+  "Réglages en impression": [
+    "Printing settings",
+    "Ajustes de impresión"
+  ],
+  "Déplacement des axes": [
+    "Axis movement",
+    "Movimiento de ejes"
+  ],
+  "Libération des moteurs": [
+    "Release motors",
+    "Liberación de motores"
+  ],
+  "Suppression locale": [
+    "Local deletion",
+    "Eliminación local"
+  ],
+  "Suppression USB": [
+    "USB deletion",
+    "Eliminación USB"
+  ],
+  "Suppression Cloud": [
+    "Cloud deletion",
+    "Eliminación en la nube"
+  ],
+  "Suppression groupée Cloud": [
+    "Bulk cloud deletion",
+    "Eliminación múltiple en la nube"
+  ],
+  "Retrait de fiches historiques": [
+    "Remove history entries",
+    "Retirada de registros del historial"
+  ],
+  "Réimpression": [
+    "Reprint",
+    "Reimpresión"
+  ],
+  "Renommage Cloud": [
+    "Cloud rename",
+    "Cambio de nombre en la nube"
+  ],
+  "Déplacement Cloud": [
+    "Cloud move",
+    "Movimiento en la nube"
+  ],
+  "Évaluation de l’impression": [
+    "Print rating",
+    "Valoración de la impresión"
+  ],
+  "Impression depuis la mémoire": [
+    "Print from memory",
+    "Impresión desde la memoria"
+  ],
+  "Impression depuis la clé USB": [
+    "Print from USB",
+    "Impresión desde USB"
+  ],
+  "Impression depuis le cloud": [
+    "Print from the cloud",
+    "Impresión desde la nube"
+  ],
+  "Renommage de l’imprimante": [
+    "Rename printer",
+    "Cambio de nombre de la impresora"
+  ],
+  "Mise à jour de l’imprimante": [
+    "Printer update",
+    "Actualización de la impresora"
+  ],
+  "Mise à jour de l’ACE": [
+    "ACE update",
+    "Actualización del ACE"
+  ],
+  "Calibration": [
+    "Calibration",
+    "Calibración"
+  ],
+  "Configuration du matériel": [
+    "Hardware configuration",
+    "Configuración del equipo"
+  ],
+  "Options d’assistance": [
+    "Assistance options",
+    "Opciones de asistencia"
+  ],
+  "Veille de l’écran": [
+    "Screen sleep",
+    "Suspensión de la pantalla"
+  ],
+  "Envoi Cloud": [
+    "Cloud upload",
+    "Envío a la nube"
+  ],
+  "Envoi Cloud et impression": [
+    "Cloud upload and print",
+    "Envío a la nube e impresión"
+  ],
+  "Impression temporaire": [
+    "Temporary print",
+    "Impresión temporal"
+  ],
+  "Suppression de notifications": [
+    "Delete notifications",
+    "Eliminación de notificaciones"
+  ],
+  "Refusée": [
+    "Refused",
+    "Rechazada"
+  ],
+  "Expirée": [
+    "Expired",
+    "Caducada"
+  ],
+  "Inconnue": [
+    "Unknown",
+    "Desconocida"
+  ],
+  "Envoyée": [
+    "Sent",
+    "Enviada"
+  ],
+  "Acceptée": [
+    "Accepted",
+    "Aceptada"
+  ],
+  "Confirmée": [
+    "Confirmed",
+    "Confirmada"
+  ],
+  "Aujourd’hui": [
+    "Today",
+    "Hoy"
+  ],
+  "Heure": [
+    "Time",
+    "Hora"
+  ],
+  "Hier": [
+    "Yesterday",
+    "Ayer"
+  ],
+  "Résultat": [
+    "Result",
+    "Resultado"
+  ],
+  "Tous les résultats": [
+    "All results",
+    "Todos los resultados"
+  ],
+  "Détails et imprimante": [
+    "Details and printer",
+    "Detalles e impresora"
+  ],
+  "Entrées du journal": [
+    "Journal entries",
+    "Entradas del registro"
+  ],
+  "Afficher les entrées précédentes": [
+    "Show earlier entries",
+    "Mostrar entradas anteriores"
+  ],
+  "{0} entrées récentes · {1} affichées": [
+    "{0} recent entries · {1} shown",
+    "{0} entradas recientes · {1} visibles"
+  ],
+  "Le journal consigne les commandes de l’atelier. L’export exclut les adresses et les références de session.": [
+    "The journal records workshop commands. The export omits addresses and session references.",
+    "El registro recoge los comandos del taller. La exportación omite las direcciones y las referencias de sesión."
+  ],
+  "Guide de dépannage": [
+    "Troubleshooting guide",
+    "Guía de resolución de problemas"
+  ],
+  "Résultat du journal inconnu.": [
+    "Unknown journal result.",
+    "Resultado del registro desconocido."
+  ],
+  "Position du journal invalide.": [
+    "Invalid journal position.",
+    "Posición del registro no válida."
+  ],
+  "ACE {0}": [
+    "ACE {0}",
+    "ACE {0}"
   ]
 }

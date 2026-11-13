@@ -68,10 +68,12 @@ test('le journal en lecture seule applique les filtres à l’export',async({pag
  await login(page);
  await page.getByRole('button',{name:'Réglages',exact:true}).click();
  await page.locator('#settings-logs-open').click();
- await page.getByText('Journal des commandes',{exact:true}).click();
- await expect(page.locator('#journal-entries')).toContainText('light · confirmée');
+ await expect(page.getByRole('dialog',{name:'Journal des commandes'})).toBeVisible();
+ await expect(page.locator('#journal-entries')).toContainText('Éclairage');
+ await expect(page.locator('#journal-entries')).toContainText('Confirmée');
  await page.locator('#journal-filters select[name=printer]').selectOption('fixture');
- await expect(page.getByRole('link',{name:'Exporter le journal expurgé'})).toHaveAttribute('href','/imprimante-api/journal?printer=fixture&action=&export=1');
+ await page.locator('#journal-filters select[name=outcome]').selectOption('confirmée');
+ await expect(page.getByRole('link',{name:'Exporter le journal expurgé'})).toHaveAttribute('href','/imprimante-api/journal?printer=fixture&action=&outcome=confirm%C3%A9e&export=1');
 });
 
 test('le choix mémorisé traduit l’atelier, ses confirmations et la connexion',async({page})=>{

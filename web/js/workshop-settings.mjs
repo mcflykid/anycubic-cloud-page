@@ -1,6 +1,5 @@
 import {
   $,
-  date,
   fmt,
   formatText,
   message,
@@ -10,7 +9,7 @@ import {
   tr,
 } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
-import { api } from './workshop-api.mjs';
+import { bindCommandJournal } from './workshop-journal.mjs';
 import { createCurrentControls } from './workshop-current-controls.mjs';
 import { renderTaskDetails as renderTaskBands } from './workshop-task-details.mjs';
 
@@ -194,66 +193,7 @@ export function createSettings(request, command, camera) {
     };
   $('axis-release').onclick = () =>
     command('axis-off', {}, tr('Libérer les moteurs de l’imprimante pour un déplacement manuel ?'));
-  let journalLoad = 0;
-  /** Affiche la dernière lecture demandée et garde l’export cohérent avec les filtres. */
-  async function loadCommandJournal() {
-    const generation = ++journalLoad,
-      form = $('journal-filters'),
-      filters = new URLSearchParams(new FormData(form));
-    const exportLink = $('journal-export');
-    exportLink.hidden = true;
-    set('journal-state', tr('Chargement du journal…'));
-    try {
-      const { items, printers, actions } = await request('/journal?' + filters);
-      if (generation !== journalLoad) return;
-      const { printer, action } = form.elements;
-      printer.replaceChildren(
-        new Option(tr('Toutes les imprimantes'), ''),
-        ...Object.entries(printers).map(([key, name]) => new Option(name || key, key)),
-      );
-      action.replaceChildren(
-        new Option(tr('Toutes les actions'), ''),
-        ...actions.map((value) => new Option(value, value)),
-      );
-      printer.value = filters.get('printer');
-      action.value = filters.get('action');
-      $('journal-entries').replaceChildren(
-        ...items.map((row) => {
-          const item = node('li');
-          const details = Object.entries(row.parameters || {})
-            .map(([key, value]) => key + ' ' + value)
-            .join(' · ');
-          item.append(
-            node('strong', row.action + ' · ' + tr(row.outcome)),
-            node('p', [date(row.time), row.printer_name, details].filter(Boolean).join(' · ')),
-          );
-          return item;
-        }),
-      );
-      set(
-        'journal-state',
-        items.length
-          ? items.length + tr(' entrée(s) récente(s)')
-          : tr('Aucune commande pour ces filtres.'),
-      );
-      filters.set('export', '1');
-      exportLink.href = api + '/journal?' + filters;
-      exportLink.hidden = !items.length;
-    } catch (error) {
-      if (generation !== journalLoad) return;
-      $('journal-entries').replaceChildren();
-      set('journal-state', error.message);
-    }
-  }
-  $('settings-logs-open').onclick = () => $('settings-logs-dialog').showModal();
-  $('journal-panel').ontoggle = () => {
-    if ($('journal-panel').open) void loadCommandJournal();
-  };
-  $('journal-filters').onsubmit = (event) => {
-    event.preventDefault();
-    void loadCommandJournal();
-  };
-  $('journal-filters').onchange = () => void loadCommandJournal();
+  bindCommandJournal(request);
   const assistLabels = {
     0: tr('Contrôle de la courroie'),
     1: tr('Détection de perte de pas'),

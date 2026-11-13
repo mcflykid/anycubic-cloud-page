@@ -9,6 +9,7 @@ from aiohttp import web
 from command_journal import (
     ACTIONS,
     CLOUD_ONLY_ACTIONS,
+    OUTCOMES,
     CommandJournal,
     JournalMQTT,
     command_mqtt_context,
@@ -124,19 +125,29 @@ async def audit_command(request, engine, action, request_id, parameters):
 
 async def command_journal(request):
     """Liste les entrées privées filtrées ou télécharge une copie sans adresse ni empreinte de session."""
+    outcome = request.query.get("outcome")
+    if outcome and outcome not in OUTCOMES:
+        return web.json_response({"message": "Résultat du journal inconnu."}, status=400)
+    offset = request.query.get("offset", "0")
+    if len(offset) > 8 or not offset.isascii() or not offset.isdecimal():
+        return web.json_response({"message": "Position du journal invalide."}, status=400)
+    offset = int(offset)
     try:
         rows = await asyncio.to_thread(request.app[COMMAND_JOURNAL_KEY].rows)
     except OSError:
         return web.json_response(
             {"message": "Le journal des commandes est indisponible."}, status=503
         )
-    printers = {row["printer"]: row.get("printer_name") for row in rows if row.get("printer")}
-    actions = sorted({row["action"] for row in rows})
     printer = request.query.get("printer")
     action = request.query.get("action")
+    outcome_rows = [row for row in rows if not outcome or row["outcome"] == outcome]
+    printers = {
+        row["printer"]: row.get("printer_name") for row in outcome_rows if row.get("printer")
+    }
+    actions = sorted({row["action"] for row in outcome_rows})
     rows = [
         row
-        for row in reversed(rows)
+        for row in reversed(outcome_rows)
         if (not printer or row.get("printer") == printer)
         and (not action or row["action"] == action)
     ]
@@ -149,4 +160,11 @@ async def command_journal(request):
         return web.json_response(
             public, headers={"Content-Disposition": 'attachment; filename="journal-commandes.json"'}
         )
-    return web.json_response({"items": rows[:100], "printers": printers, "actions": actions})
+    return web.json_response(
+        {
+            "items": rows[offset : offset + 100],
+            "total": len(rows),
+            "printers": printers,
+            "actions": actions,
+        }
+    )

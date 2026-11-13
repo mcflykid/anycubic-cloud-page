@@ -155,3 +155,66 @@
   #tab-settings .settings-factor, #tab-settings .settings-container-links,
   #tab-settings #theme-description { margin-block: var(--atelier-space-2) 0; }
 }
+
+/* Le journal conserve ses filtres et son export à portée pendant le défilement. */
+body:has(.workshop-frame) > dialog.journal-dialog {
+  box-sizing: border-box;
+  width: min(880px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+}
+.journal-dialog[open] { display: flex; flex-direction: column; }
+.journal-dialog .atelier-card-footer { flex-wrap: wrap; }
+.journal-controls { padding: var(--atelier-space-3) var(--atelier-space-4); }
+.journal-controls p, #journal-state { margin: 0; color: var(--atelier-muted); }
+#journal-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: var(--atelier-space-2);
+  margin-block-start: var(--atelier-space-3);
+}
+#journal-filters label { margin: 0; }
+.journal-table-region { min-height: 0; overflow: auto; }
+.journal-table-region table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.journal-table-region :is(th, td) {
+  text-align: start;
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+  overflow-wrap: anywhere;
+}
+.journal-table-region thead { position: sticky; top: 0; background: var(--atelier-bg); }
+.journal-table-region thead th:nth-child(1) { width: 72px; }
+.journal-table-region thead th:nth-child(2) { width: 216px; }
+.journal-table-region thead th:nth-child(4) { width: 96px; }
+.journal-day th { color: var(--atelier-muted); font: var(--atelier-label); font-weight: var(--atelier-semibold); }
+.journal-mark { margin-inline-end: var(--atelier-space-2); color: var(--atelier-accent); }
+.journal-parameters { display: flex; flex-wrap: wrap; gap: var(--atelier-space-1) var(--atelier-space-2); color: var(--atelier-muted); }
+.journal-filename { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.journal-filename:focus { white-space: normal; overflow-wrap: anywhere; }
+.journal-badge {
+  --result-color: var(--atelier-muted);
+  display: inline-block;
+  padding: .15em .6em;
+  border-radius: var(--atelier-pill-radius);
+  background: color-mix(in srgb, var(--result-color) 12%, var(--atelier-surface));
+  color: var(--result-color);
+}
+.journal-badge[data-outcome="confirmée"] { --result-color: var(--atelier-normal); }
+.journal-badge[data-outcome="acceptée"] { --result-color: var(--atelier-accent); }
+.journal-badge[data-outcome="envoyée"] { --result-color: light-dark(#2059a5, #99c0ff); }
+.journal-badge[data-outcome="refusée"] { --result-color: var(--atelier-error); }
+.journal-badge[data-outcome="expirée"] { --result-color: var(--atelier-warning); }
+@media (max-width: 620px) {
+  #journal-filters { grid-template-columns: minmax(0, 1fr); }
+  .journal-controls { overflow-y: auto; flex-shrink: 0; max-height: 45dvh; }
+  .journal-table-region thead { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+  .journal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: var(--atelier-space-2); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+  .journal-row td { border: 0; padding: var(--atelier-space-1); }
+  .journal-action { grid-row: 1; grid-column: 1; }
+  .journal-result { grid-row: 1; grid-column: 2; }
+  .journal-time { grid-row: 2; grid-column: 2; }
+  .journal-details { grid-row: 2; grid-column: 1; }
+}
