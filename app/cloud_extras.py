@@ -10,6 +10,7 @@ from command_journal import dispatch_command
 from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from printer_values import integer
 from request_validation import json_object
+from task_notes import read_task_notes
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
     AnycubicProjectOrderRequest,
@@ -300,6 +301,13 @@ class CloudExtras:
             else {}
         )
         items = []
+        registry = getattr(self.e, "fleet_registry", None)
+        notes_path = getattr(registry.default if registry else self.e, "state_dir", None)
+        notes = (
+            await asyncio.to_thread(read_task_notes, notes_path / "task-notes.json")
+            if notes_path
+            else {}
+        )
         for r in rows:
             taskid = r.get("task_id") or r.get("taskid") or r.get("id")
             r = {**lookup.get((str(r.get("printer_id")), str(taskid)), {}), **r, "taskid": taskid}
@@ -316,6 +324,7 @@ class CloudExtras:
             items.append(
                 {
                     "key": k,
+                    "local_note": notes.get(k),
                     "name": clean_text(
                         r.get("task_name") or r.get("gcode_name") or r.get("model") or "Impression",
                         300,

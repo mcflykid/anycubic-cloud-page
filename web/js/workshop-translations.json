@@ -5922,5 +5922,37 @@
   "Galerie": [
     "Gallery",
     "Galería"
+  ],
+  "Étiquette": [
+    "Tag",
+    "Etiqueta"
+  ],
+  "Notes": [
+    "Notes",
+    "Notas"
+  ],
+  "Note locale": [
+    "Local note",
+    "Nota local"
+  ],
+  "Étiquettes séparées par des virgules": [
+    "Comma-separated tags",
+    "Etiquetas separadas por comas"
+  ],
+  "Enregistrer la note": [
+    "Save note",
+    "Guardar nota"
+  ],
+  "Note locale enregistrée.": [
+    "Local note saved.",
+    "Nota local guardada."
+  ],
+  "Note ou étiquettes invalides.": [
+    "Invalid note or tags.",
+    "Nota o etiquetas no válidas."
+  ],
+  "Le registre des notes est illisible.": [
+    "The note store could not be read.",
+    "No se pudo leer el registro de notas."
   ]
 }

@@ -34,6 +34,7 @@ from monitoring import Monitoring
 from notification_reports import collect_history
 from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
+from task_notes import save_task_note
 from printer_values import integer, now as now, safeget
 import printer_files
 from web_host import (
@@ -246,6 +247,20 @@ async def cancel_print_transfer(req):
         and tracker.cancel_print_transfer((req.get("printer_key"), reference))
     )
     return web.json_response({"cancelled": cancelled}, headers={"Cache-Control": "no-store"})
+
+
+async def task_note(req):
+    """Enregistre uniquement la note locale d’une fiche déjà connue de l’atelier."""
+    selected = request_engine(req)
+    data = await json_object(req)
+    key = data.get("key")
+    owner = selected.fleet_registry.default if selected.fleet_registry else selected
+    async with owner.lock:
+        selected.extras.task(key, allow_other=True)
+        note = await asyncio.to_thread(
+            save_task_note, owner.state_dir / "task-notes.json", key, data
+        )
+    return web.json_response({"note": note}, headers={"Cache-Control": "no-store"})
 
 
 async def printers(req):
@@ -912,6 +927,7 @@ app.add_routes(
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
         web.post("/imprimante-api/print/cancel-transfer", cancel_print_transfer),
+        web.post("/imprimante-api/task-note", task_note),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),

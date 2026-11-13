@@ -184,6 +184,8 @@
 .task-detail-band{display:flex;flex-direction:column;gap:var(--atelier-space-2);padding:var(--atelier-space-3) var(--atelier-space-4);border-bottom:var(--atelier-rule) solid var(--atelier-line)}
 .task-detail-band:last-of-type{border-bottom:0}
 .task-detail-band>h3{margin:0;color:var(--atelier-muted);font:var(--atelier-caption);font-weight:var(--atelier-regular)}
+.task-note-fields:not([hidden]) { display: grid; gap: var(--atelier-space-2); padding: var(--atelier-space-3) var(--atelier-space-4); border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+.task-note-fields :is(h3, p) { margin: 0; }
 .task-detail-primary{gap:var(--atelier-space-3)}
 .task-detail-identity{display:flex;align-items:center;gap:var(--atelier-space-4);min-width:0;min-height:var(--atelier-axis-size)}
 .task-detail-thumbnail{display:grid;place-items:center;flex:0 0 var(--atelier-axis-size);width:var(--atelier-axis-size);height:var(--atelier-axis-size);overflow:hidden;border-radius:var(--atelier-control-radius);background:var(--atelier-bg);color:var(--atelier-muted)}

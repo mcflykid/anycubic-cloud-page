@@ -689,7 +689,7 @@ export function createHistory(request, command, selectedBox) {
   /** Les filtres combinés portent sur les pages déjà chargées ; une page suivante ne remplace pas la sélection. */
   function visibleTasks() {
     const query = $('tasks-search').value.trim().toLocaleLowerCase(locale),
-      device = $('tasks-printer').value;
+      device = $('tasks-printer').value, tag = $('tasks-tag').value;
     return taskRows.filter((t) => {
       const day = taskDay(t.start);
       return (
@@ -697,9 +697,20 @@ export function createHistory(request, command, selectedBox) {
         (device === 'all' || t.printer_key === device) &&
         (!from || day >= from) &&
         (!to || day <= to) &&
-        t.name.toLocaleLowerCase(locale).includes(query)
+        (!tag || t.local_note?.tags?.includes(tag)) &&
+        [t.name, t.local_note?.text].some(value => value?.toLocaleLowerCase(locale).includes(query))
       );
     });
+  }
+  $('tasks-tag').onchange = () => renderTasks();
+
+  /** Rafraîchit les étiquettes sans retirer un filtre choisi sur une page déjà chargée. */
+  function updateTaskTags() {
+    const field = $('tasks-tag'), selected = field.value;
+    const tags = [...new Set(taskRows.flatMap(task => task.local_note?.tags || []))].sort();
+    if (selected && !tags.includes(selected)) tags.push(selected);
+    field.replaceChildren(new Option(tr('Toutes'), ''), ...tags.map(tag => new Option(tag, tag)));
+    field.value = selected;
   }
   /** La case globale ne sélectionne que les cartes visibles, jamais des fiches non chargées. */
   function taskSelectionState() {
@@ -812,6 +823,7 @@ export function createHistory(request, command, selectedBox) {
   /** Une ligne par impression, sans inventer une date ou une durée manquante. */
   function renderTasks() {
     taskPreviewObserver.disconnect();
+    updateTaskTags();
     const rows = visibleTasks();
     $('history-list-view').setAttribute('aria-pressed', String(!gallery));
     $('history-gallery-view').setAttribute('aria-pressed', String(gallery));
@@ -851,6 +863,7 @@ export function createHistory(request, command, selectedBox) {
         open.setAttribute('aria-label', tr('Voir le détail'));
         selectCell.append(select);
         copy.append(name, node('span', t.printer || tr('Imprimante')));
+        if (t.local_note?.tags?.length) copy.append(node('span', t.local_note.tags.join(' · ')));
         identity.append(taskThumbnail(t), copy);
         file.append(identity);
         status.append(state);
@@ -965,6 +978,32 @@ export function createHistory(request, command, selectedBox) {
   async function openPastTask(t) {
     const dialog = $('past-task-dialog'), extra = $('past-task-extra');
     pastTaskKey = t.key;
+    const notes = $('task-note-form');
+    notes.hidden = false;
+    notes.elements.text.value = t.local_note?.text || '';
+    notes.elements.tags.value = t.local_note?.tags?.join(', ') || '';
+    set('task-note-state', '');
+    notes.onsubmit = async event => {
+      event.preventDefault();
+      const button = notes.querySelector('button[type=submit]');
+      if (button.disabled || !dialog.open || pastTaskKey !== t.key) return;
+      button.disabled = true;
+      try {
+        const {note} = await request('/task-note', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({key: t.key, text: notes.elements.text.value,
+            tags: notes.elements.tags.value.split(',').map(tag => tag.trim()).filter(Boolean)}),
+        });
+        for (const task of taskRows) if (task.key === t.key) task.local_note = note;
+        t.local_note = note;
+        renderTasks();
+        if (dialog.open && pastTaskKey === t.key) set('task-note-state', tr('Note locale enregistrée.'));
+      } catch (error) {
+        if (dialog.open && pastTaskKey === t.key) set('task-note-state', error.message);
+      } finally {
+        button.disabled = false;
+      }
+    };
     extra.dataset.history = 'true';
     extra.hidden = true;
     set('past-task-name', t.name);

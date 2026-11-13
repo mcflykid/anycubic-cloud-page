@@ -26,6 +26,7 @@ T = time.time()
 NOTICES = web.AppKey("notices", list)
 SLICER_NOTICES = web.AppKey("slicer_notices", list)
 PRINT_TASKS = web.AppKey("print_tasks", list)
+TASK_NOTES = web.AppKey("task_notes", dict)
 NOTICE_FIXTURES = [
     {
         "key": format(i + 1, "020x"),
@@ -201,11 +202,20 @@ async def api(request):
     notices = request.app[NOTICES]
     slicer_notices = request.app[SLICER_NOTICES]
     tasks = request.app[PRINT_TASKS]
+    notes = request.app[TASK_NOTES]
     if path == "demo/reset" and request.method == "POST":
         notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         slicer_notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         tasks[:] = [dict(x) for x in TASKS]
+        notes.clear()
         return web.json_response({"ok": True})
+    if path == "task-note" and request.method == "POST":
+        data = await request.json()
+        if not any(task["key"] == data.get("key") for task in tasks):
+            return web.json_response({"ok": False, "message": "Tâche inconnue"}, status=400)
+        note = {"text": data["text"], "tags": data["tags"]}
+        notes[data["key"]] = note
+        return web.json_response({"note": note})
     if path == "preflight" and request.method == "POST":
         data = await request.json()
         warnings = evaluate_preflight(PRINTER, data)
@@ -419,7 +429,14 @@ async def api(request):
     elif path == "extras/tasks":
         page = max(1, int(request.query.get("page", 1)))
         offset = (page - 1) * 3
-        d = {"items": tasks[offset : offset + 3], "page": page, "has_more": offset + 3 < len(tasks)}
+        d = {
+            "items": [
+                {**task, "local_note": notes.get(task["key"])}
+                for task in tasks[offset : offset + 3]
+            ],
+            "page": page,
+            "has_more": offset + 3 < len(tasks),
+        }
     elif path == "extras/task":
         d = {
             "name": TASKS[0]["name"],
@@ -475,6 +492,7 @@ def create_demo(authenticated=False):
     app = web.Application(middlewares=[access_control] if authenticated else [])
     app[NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
     app[SLICER_NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
+    app[TASK_NOTES] = {}
     app[PRINT_TASKS] = [dict(x) for x in TASKS]
     if authenticated:
         install_access(app)
