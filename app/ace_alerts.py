@@ -16,6 +16,7 @@ class AceAlerts:
         self.stops = {}
         self.low = set()
         self.project = None
+        self.refusals = []
 
     def command(self, action, box, slot, stamp):
         """Enregistre une commande acceptée pendant sa fenêtre de confirmation."""
@@ -24,11 +25,20 @@ class AceAlerts:
         elif action in {"feed", "retract"}:
             self.pending[box] = (action, slot, stamp)
 
+    def refusal(self, box, slot, stamp, code):
+        """Retient les refus confirmés du journal sans assimiler un silence à un refus."""
+        self.refusals.append((box, slot, stamp, code))
+        self.refusals = self.refusals[-32:]
+
     def sample(self, printer, scope, stamp):
         """Renvoie les nouvelles transitions fiables pour les seuls ACE joignables."""
         if printer.get("printer_online") is not True:
             return []
-        events = []
+        events = [
+            self.event(printer, scope, box, stamp, stamp, "ace_load_failed", slot, code)
+            for box, slot, stamp, code in self.refusals
+        ]
+        self.refusals.clear()
         project = printer.get("command_project") if printer.get("job_state") == "printing" else None
         if project != self.project:
             self.low.clear()
@@ -55,8 +65,8 @@ class AceAlerts:
                 self.drying.pop(box_id)
                 end, started = previous
                 if self.stops.pop(box_id, 0) >= stamp:
-                    continue
-                if stamp >= end:
+                    pass
+                elif stamp >= end:
                     events.append(
                         self.event(printer, scope, box_id, stamp, started, "ace_drying_done")
                     )
