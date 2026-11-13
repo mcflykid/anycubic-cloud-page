@@ -5758,5 +5758,21 @@
   "{0} sur 5": [
     "{0} out of 5",
     "{0} de 5"
+  ],
+  "Annuler le lancement": [
+    "Cancel print launch",
+    "Cancelar el lanzamiento"
+  ],
+  "Lancement annulé. Le transfert se termine.": [
+    "Print launch cancelled. The transfer is finishing.",
+    "Lanzamiento cancelado. La transferencia está terminando."
+  ],
+  "Lancement annulé avant l’envoi de l’ordre.": [
+    "Print launch cancelled before the order was sent.",
+    "Lanzamiento cancelado antes de enviar la orden."
+  ],
+  "L’annulation n’a pas été confirmée.": [
+    "Cancellation was not confirmed.",
+    "La cancelación no se ha confirmado."
   ]
 }

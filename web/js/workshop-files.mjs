@@ -484,7 +484,11 @@ export function createFiles(request, command) {
     setBusy(true);
     setUploadPending(true);
     set('upload-state', tr('Envoi en cours. Ne fermez pas cette page.'));
-    if (printing) showPrintProgress(tr('Transfert du fichier en cours…'), uploadAttempt.id);
+    if (printing) showPrintProgress(tr('Transfert du fichier en cours…'), uploadAttempt.id, reference =>
+      request('/print/cancel-transfer', {
+        method: 'POST', printerKey: target, headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reference}),
+      }));
     try {
       const result = await request('/upload', {
         method: 'POST',

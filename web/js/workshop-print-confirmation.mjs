@@ -82,9 +82,11 @@ export function updatePrintConfirmation(available = statusAvailable, observedRef
   if (!dialog.open) return;
   const {selectedPrinter, snapshot, busy} = workshopState;
   const printer = snapshot?.printer;
-  if (dialog.dataset.phase === 'pending' && available && printTarget === selectedPrinter &&
-      tracking?.reference && tracking.reference === observedReference && snapshot.print_sending === true) {
-    set('print-result', tr('Envoi de l’ordre d’impression à Anycubic…'));
+  if (dialog.dataset.phase === 'pending' && tracking?.reference) {
+    const current = available && printTarget === selectedPrinter && tracking.reference === observedReference;
+    $('print-cancel-transfer').hidden = !current || snapshot.print_cancellable !== true || !tracking.cancel || tracking.cancelled;
+    if (current && snapshot.print_sending === true && !tracking.cancelled)
+      set('print-result', tr('Envoi de l’ordre d’impression à Anycubic…'));
   }
   if (dialog.dataset.phase === 'tracking') {
     if (!available || printTarget !== selectedPrinter || printer?.printer_online !== true) return;
@@ -162,7 +164,7 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   set('print-question', question);
   dialog.dataset.phase = 'confirmation';
   $('print-no').hidden = $('print-yes').hidden = false;
-  for (const id of ['print-result', 'print-close', 'print-error-help', 'print-progress']) $(id).hidden = true;
+  for (const id of ['print-result', 'print-close', 'print-error-help', 'print-progress', 'print-cancel-transfer']) $(id).hidden = true;
   dialog.showModal();
   updatePrintConfirmation();
   return new Promise(resolve => {
@@ -191,10 +193,31 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
 }
 
 /** Garde le pied visible pendant l’appel et laisse la fermeture distincte de l’arrêt d’impression. */
-export function showPrintProgress(text, reference) {
+export function showPrintProgress(text, reference, cancel) {
   const dialog = $('print-dialog');
   if (!dialog.open || dialog.dataset.phase !== 'confirmed') return;
-  tracking = {reference};
+  const transfer = tracking = {reference, cancel, cancelled:false};
+  const button = $('print-cancel-transfer');
+  button.disabled = false;
+  button.onclick = async () => {
+    button.disabled = true;
+    try {
+      const result = await cancel(reference);
+      if (tracking !== transfer) return;
+      if (result.cancelled) {
+        transfer.cancelled = true;
+        set('print-result', tr('Lancement annulé. Le transfert se termine.'));
+      } else {
+        set('print-result', tr('L’annulation n’a pas été confirmée.'));
+      }
+      button.hidden = true;
+      $('print-result').focus();
+    } catch {
+      if (tracking === transfer) set('print-result', tr('L’annulation n’a pas été confirmée.'));
+    } finally {
+      button.disabled = false;
+    }
+  };
   dialog.dataset.phase = 'pending';
   dialog.oncancel = event => event.preventDefault();
   $('print-no').hidden = $('print-yes').hidden = true;
@@ -232,6 +255,7 @@ export function showPrintResult(text, sheet) {
   dialog.dataset.phase = 'result';
   dialog.oncancel = null;
   $('print-progress').hidden = true;
+  $('print-cancel-transfer').hidden = true;
   set('print-result', text);
   const close = $('print-close'), help = $('print-error-help');
   close.hidden = false;

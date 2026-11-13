@@ -12,8 +12,8 @@ import time
 from aiofiles import open as aio_open
 from aiohttp import web
 
-from command_journal import filtered_parameters, request_key
-from command_journal_web import recorded_command, save_command_event
+from command_journal import PrintLaunchCancelled, filtered_parameters, request_key
+from command_journal_web import COMMAND_MQTT_KEY, recorded_command, save_command_event
 from operational_logging import log_event, safe_exception_frames
 from print_preflight import ensure_firmware_ready, ensure_storage_ready, launch_tracking
 from printer_values import safeget
@@ -140,6 +140,9 @@ async def upload_operation(req, engine, audit, *, storage_upload_operation, comm
                     action=mode,
                     file_format=file_format,
                 )
+                tracker = req.app.get(COMMAND_MQTT_KEY) if mode != "upload" and audit else None
+                if tracker:
+                    tracker.begin_print_transfer(audit)
                 try:
                     if mode == "upload":
                         await engine.api.upload_file_to_cloud(
@@ -167,6 +170,15 @@ async def upload_operation(req, engine, audit, *, storage_upload_operation, comm
                                 duration_ms=(time.monotonic() - transfer_started) * 1000,
                             )
                             return web.json_response(engine.commands[rid], status=409)
+                except PrintLaunchCancelled:
+                    audit["outcome"] = "refusée"
+                    cancelled = {
+                        "ok": True,
+                        "cancelled": True,
+                        "message": "Lancement annulé avant l’envoi de l’ordre.",
+                    }
+                    engine.commands[rid] = cancelled
+                    return web.json_response(cancelled)
                 except Exception as error:
                     # Après le transfert ou la demande d’impression, une erreur locale ne prouve aucun refus.
                     log_event(
@@ -182,6 +194,9 @@ async def upload_operation(req, engine, audit, *, storage_upload_operation, comm
                         duration_ms=round((time.monotonic() - transfer_started) * 1000, 1),
                     )
                     return web.json_response(engine.commands[rid], status=409)
+                finally:
+                    if tracker:
+                        tracker.end_print_transfer(audit)
                 if getattr(engine, "extras", None):
                     engine.extras.invalidate_task_pages()
                 log_event(

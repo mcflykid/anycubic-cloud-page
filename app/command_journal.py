@@ -295,6 +295,10 @@ async def dispatch_command(operation):
     return await operation
 
 
+class PrintLaunchCancelled(ValueError):
+    """Empêche la transmission d’un ordre annulé pendant le transfert."""
+
+
 class JournalMQTT:
     """Rapproche les rapports terminaux sur la boucle applicative, même si le rapport arrive avant HTTP."""
 
@@ -305,6 +309,7 @@ class JournalMQTT:
         self.pending = {}
         self.print_starts = OrderedDict()
         self.print_sends = OrderedDict()
+        self.print_transfers = {}
         self.early = OrderedDict()
         self.writes = set()
         try:
@@ -354,10 +359,28 @@ class JournalMQTT:
     def mark_print_send(self, entry, sent_at):
         """Signale le passage du transfert à l’appel d’envoi de l’ordre Anycubic."""
         key = (entry["printer"], entry.get("request_id"))
+        if self.print_transfers.get(key) is True:
+            raise PrintLaunchCancelled("Lancement annulé avant l’envoi de l’ordre.")
         self.print_sends[key] = sent_at
         self.print_sends.move_to_end(key)
         while len(self.print_sends) > 128:
             self.print_sends.popitem(last=False)
+
+    def begin_print_transfer(self, entry):
+        """Rend annulable le lancement associé au transfert courant."""
+        key = (entry["printer"], entry["request_id"])
+        self.print_transfers[key] = False
+
+    def end_print_transfer(self, entry):
+        """Retire la possibilité d’annuler un transfert terminé."""
+        self.print_transfers.pop((entry["printer"], entry["request_id"]), None)
+
+    def cancel_print_transfer(self, key):
+        """Annule un ordre à venir, en laissant le transfert terminer proprement."""
+        if key not in self.print_transfers or key in self.print_sends:
+            return False
+        self.print_transfers[key] = True
+        return True
 
     async def flush(self):
         """Attend les confirmations déjà reçues avant de fermer le suivi."""

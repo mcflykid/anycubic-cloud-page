@@ -91,6 +91,41 @@ test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({
   await expect(dialog).toContainText('Démarrage confirmé par l’imprimante');
 });
 
+test('le transfert peut annuler le lancement avant l’envoi de l’ordre', async ({page}) => {
+  let finish, reference, cancelled = false;
+  const transfer = new Promise(resolve => { finish = resolve; });
+  await page.route('**/imprimante-api/status*', async route => {
+    const response = await route.fetch(), json = await response.json();
+    json.print_cancellable = !!reference && !cancelled &&
+      new URL(route.request().url()).searchParams.get('print_tracking') === reference;
+    await route.fulfill({response,json});
+  });
+  await page.route('**/imprimante-api/upload', async route => {
+    reference = route.request().postData().match(/name="request_id"\r\n\r\n([^\r]+)/)?.[1];
+    await transfer;
+    await route.fulfill({json:{ok:true,cancelled,message:'Lancement annulé avant l’envoi de l’ordre.'}});
+  });
+  await page.route('**/imprimante-api/print/cancel-transfer', route => {
+    cancelled = route.request().postDataJSON().reference === reference;
+    return route.fulfill({json:{cancelled}});
+  });
+  await login(page, 'upload');
+  const form = page.locator('#upload-form');
+  await form.locator('input[type=file]').setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('G1 X1\n')});
+  await form.locator('[name=mode]').selectOption('temp-print');
+  await form.locator('button[type=submit]').click();
+  const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
+  await dialog.getByRole('button',{name:'Lancer l’impression'}).click();
+  try {
+    await dialog.getByRole('button',{name:'Annuler le lancement'}).click();
+    await expect(dialog).toContainText('Lancement annulé. Le transfert se termine.');
+  } finally {
+    finish();
+  }
+  await expect(dialog).toContainText('Lancement annulé avant l’envoi de l’ordre.');
+  expect(cancelled).toBe(true);
+});
+
 test('un manque estimé par le serveur reste un avertissement', async ({page}) => {
   await page.route('**/imprimante-api/preflight', route => route.fulfill({json:{
     warnings:[], shortfalls:[{slot:3, grams:120, needed:193, relay:[]}],

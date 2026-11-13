@@ -101,6 +101,28 @@ class CommandJournalTests(unittest.TestCase):
 
 
 class JournalMQTTTests(unittest.IsolatedAsyncioTestCase):
+    async def test_upload_cancel_wins_only_before_print_order(self):
+        """Une annulation n’est possible que pour le transfert actif avant envoi."""
+        import asyncio
+        import time
+        from command_journal import JournalMQTT, PrintLaunchCancelled
+
+        with tempfile.TemporaryDirectory() as directory:
+            journal = CommandJournal(Path(directory) / "journal.jsonl")
+            tracker = JournalMQTT(journal, asyncio.get_running_loop())
+            entry = make_entry("save-print", "fixture-launch", "printer", None, None, None, {})
+            key = ("printer", entry["request_id"])
+            self.assertFalse(tracker.cancel_print_transfer(key))
+            tracker.begin_print_transfer(entry)
+            self.assertTrue(tracker.cancel_print_transfer(key))
+            with self.assertRaises(PrintLaunchCancelled):
+                tracker.mark_print_send(entry, time.time())
+            tracker.end_print_transfer(entry)
+            tracker.begin_print_transfer(entry)
+            tracker.mark_print_send(entry, time.time())
+            self.assertFalse(tracker.cancel_print_transfer(key))
+            tracker.end_print_transfer(entry)
+
     """Rejoue les retours du protocole sans transport cloud ni imprimante."""
 
     async def test_concurrent_writes_keep_recent_rows_of_oversized_journal(self):

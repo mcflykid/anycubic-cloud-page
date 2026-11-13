@@ -229,7 +229,23 @@ async def status(req):
             sent = tracker.print_sends.get(reference)
             snapshot["print_sending"] = sent is not None and time.time() - sent <= 300
             snapshot["print_started"] = received is not None and time.time() - received <= 300
+            snapshot["print_cancellable"] = (
+                tracker.print_transfers.get(reference) is False and sent is None
+            )
     return web.json_response(snapshot, headers={"Cache-Control": "no-store"})
+
+
+async def cancel_print_transfer(req):
+    """Annule une demande encore en transfert sans émettre de commande physique."""
+    data = await json_object(req)
+    reference = data.get("reference")
+    tracker = req.app.get(COMMAND_MQTT_KEY)
+    cancelled = bool(
+        tracker
+        and isinstance(reference, str)
+        and tracker.cancel_print_transfer((req.get("printer_key"), reference))
+    )
+    return web.json_response({"cancelled": cancelled}, headers={"Cache-Control": "no-store"})
 
 
 async def printers(req):
@@ -869,6 +885,7 @@ app.add_routes(
         web.get("/imprimante-api/health", health),
         web.get("/imprimante-api/diagnostic", diagnostic),
         web.get("/imprimante-api/status", status),
+        web.post("/imprimante-api/print/cancel-transfer", cancel_print_transfer),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),
