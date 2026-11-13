@@ -5,6 +5,7 @@ import { workshopState } from './workshop-state.mjs';
 export function bindPrintQueue(request, command) {
   const dialog = $('queue-dialog'), next = $('queue-next');
   let rows = [], pending = false, queueTarget;
+  const observed = new Map();
   const nextEntry = () => rows.find(row => row.available === true);
 
   /** Affiche les références de la cible et les entrées à vérifier après redémarrage. */
@@ -56,6 +57,7 @@ export function bindPrintQueue(request, command) {
   }
 
   $('queue-open').onclick = () => {
+    $('queue-open').classList.remove('primary');
     rows = [];
     dialog.showModal();
     void load();
@@ -69,5 +71,25 @@ export function bindPrintQueue(request, command) {
       formatText('Vérifiez que le plateau est libre avant d’imprimer « {0} ».', row.name));
     if (result) await load({action:'remove', handle:row.handle}, target);
   };
-  return handle => load({action:'add', handle});
+  return {
+    add: handle => load({action:'add', handle}),
+    async observe(printer, target) {
+      if (!target || !printer?.command_project || printer.printer_online !== true) return;
+      const previous = observed.get(target);
+      const current = {project:printer.command_project, active:printer.job_in_progress === true};
+      observed.set(target, current);
+      if (!previous?.active || previous.project !== current.project || printer.job_complete !== true) return;
+      try {
+        const result = await request('/print-queue', {printerKey:target});
+        if (target !== workshopState.selectedPrinter) return;
+        const row = result.items.find(item => item.available === true);
+        if (row) {
+          $('queue-open').classList.add('primary');
+          message(formatText('Vérifiez que le plateau est libre avant d’imprimer « {0} ».', row.name));
+        }
+      } catch {
+        // La file reste accessible si la lecture de fin échoue.
+      }
+    },
+  };
 }

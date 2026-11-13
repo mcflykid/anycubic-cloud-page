@@ -113,7 +113,8 @@ if (logoutForm) logoutForm.addEventListener('submit', (event) => {
 const { command } = createCommands(request, refresh);
 const overview = createOverview(request);
 const ace = createAce(command, refresh);
-const files = createFiles(request, command, bindPrintQueue(request, command));
+const printQueue = bindPrintQueue(request, command);
+const files = createFiles(request, command, printQueue.add);
 const history = createHistory(request, command, ace.selectedBox);
 const settings = createSettings(request, command, camera);
 const timelapses = createTimelapses(request);
@@ -159,6 +160,7 @@ async function refreshState() {
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
+    void printQueue.observe(p, workshopState.selectedPrinter);
     finishEstimate('summary-finish', p?.corrected_finish);
     finishEstimate('printer-finish', p?.corrected_finish);
     printTimeline('printer-timeline', p?.print_timeline);

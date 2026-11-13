@@ -28,3 +28,25 @@ test('la file prépare la confirmation sans émettre d’ordre', async ({page}) 
   expect(orders).toBe(0);
   expect(items).toHaveLength(2);
 });
+
+test('une impression terminée propose la suivante sans lancer de commande', async ({page}) => {
+  let complete = false, orders = 0;
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch();
+    const json = await response.json();
+    Object.assign(json.printer, {
+      command_project:'fixture', job_complete:complete, job_in_progress:!complete,
+    });
+    await route.fulfill({response, json});
+  });
+  await page.route('**/imprimante-api/print-queue', route => route.fulfill({json:{
+    items:[{handle:'demo-file', name:'Boîte de rangement.gcode', available:true}],
+  }}));
+  await page.route('**/imprimante-api/command', route => { orders++; return route.abort(); });
+  await login(page, 'overview');
+  complete = true;
+  await expect(page.locator('#message-text')).toContainText(
+    'Vérifiez que le plateau est libre avant d’imprimer « Boîte de rangement.gcode ».'
+  );
+  expect(orders).toBe(0);
+});
