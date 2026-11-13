@@ -5534,5 +5534,45 @@
   "Aucun fichier à télécharger.": [
     "No files to download.",
     "No hay archivos para descargar."
+  ],
+  "3 mois": [
+    "3 months",
+    "3 meses"
+  ],
+  "Cette année": [
+    "This year",
+    "Este año"
+  ],
+  "Personnalisée": [
+    "Custom",
+    "Personalizado"
+  ],
+  "Choisissez une plage valide, sans date future.": [
+    "Choose a valid range with no future dates.",
+    "Elige un intervalo válido sin fechas futuras."
+  ],
+  "{0} tâches chargées · {1} au {2}": [
+    "{0} loaded jobs · {1} to {2}",
+    "{0} tareas cargadas · del {1} al {2}"
+  ],
+  "Type": [
+    "Type",
+    "Tipo"
+  ],
+  "Tous les types": [
+    "All types",
+    "Todos los tipos"
+  ],
+  "Réussite": [
+    "Success",
+    "Éxito"
+  ],
+  "Interruption": [
+    "Interruption",
+    "Interrupción"
+  ],
+  "Information": [
+    "Information",
+    "Información"
   ]
 }

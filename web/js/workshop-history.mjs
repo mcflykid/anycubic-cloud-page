@@ -102,44 +102,53 @@ export function createHistory(request, command, selectedBox) {
   function renderNotifications() {
     notificationPreviewObserver.disconnect();
     const query = $('notification-search').value.trim().toLocaleLowerCase(locale);
-    const rows = noticeRows.filter(
-      (x) =>
-        (noticeFilter === 'all' || (noticeFilter === 'unread') === !!x.unread) &&
-        x.name.toLocaleLowerCase(locale).includes(query),
+    const type = $('historical-notifications-kind'), printer = $('historical-notifications-printer');
+    if (legacySelected) {
+      const current = printer.value;
+      const names = [...new Set(noticeRows.map(item => item.printer).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right, locale));
+      if (current && !names.includes(current)) names.push(current);
+      printer.replaceChildren(new Option(tr('Toutes les imprimantes'), ''),
+        ...names.map(name => new Option(name, name)));
+      printer.value = current;
+    }
+    const rows = noticeRows.filter(item =>
+      (noticeFilter === 'all' || (noticeFilter === 'unread') === !!item.unread) &&
+      item.name.toLocaleLowerCase(locale).includes(query) &&
+      (!legacySelected || ((!type.value || item.kind === type.value) &&
+        (!printer.value || item.printer === printer.value))),
     );
-    const groups = new Map(),
-      list = $('history-list');
-    const expanded = new Set(
-      [...list.querySelectorAll('details[open]')].map((item) => item.dataset.group),
-    );
+    const groups = new Map(), list = $('history-list');
+    const expanded = new Set([...list.querySelectorAll('details[open]')].map(item => item.dataset.group));
     list.replaceChildren();
     for (const item of rows) {
       const key = item.group || item.key;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(item);
     }
+    const today = taskDay(Date.now() / 1000);
+    const yesterday = new Date(today + 'T12:00:00Z');
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    let lastDay;
     for (const [key, items] of groups) {
+      const day = items[0].time && taskDay(items[0].time);
+      if (legacySelected && day && day !== lastDay) {
+        const label = day === today ? tr('Aujourd’hui') : day === yesterday.toISOString().slice(0, 10)
+          ? tr('Hier') : new Intl.DateTimeFormat(locale, {dateStyle: 'long', timeZone: 'UTC'})
+            .format(new Date(day));
+        list.append(node('li', label, 'journal-day historical-notifications-day'));
+        lastDay = day;
+      }
       if (items.length === 1) {
         list.append(notificationRow(items[0]));
         continue;
       }
-      const wrapper = node('li'),
-        details = node('details', null, 'notification-group'),
-        events = node('ul');
+      const wrapper = node('li'), details = node('details', null, 'notification-group'), events = node('ul');
       details.dataset.group = key;
       details.open = expanded.has(key);
-      details.append(
-        node(
-          'summary',
-          formatText(
-            '{0} · {1} · {2} événements',
-            items[0].name,
-            serverText(items[0].reason || items[0].result, 'Notification d’impression'),
-            fmt(items.length),
-          ),
-        ),
-        events,
-      );
+      details.append(node('summary', formatText('{0} · {1} · {2} événements',
+        items[0].name, serverText(items[0].reason || items[0].result, 'Notification d’impression'),
+        fmt(items.length))), events);
       events.append(...items.map(notificationRow));
       wrapper.append(details);
       list.append(wrapper);
@@ -179,7 +188,10 @@ export function createHistory(request, command, selectedBox) {
     /* Une erreur codée est expliquée par sa fiche et son aide contextuelle : éviter de répéter la même phrase. */
     const meta = node('span', null, 'muted notification-meta');
     if (item.printer) meta.append(node('span', item.printer));
-    const timestamp = node('time', date(item.time));
+    const timestamp = node('time', legacySelected && item.time
+      ? new Date(typeof item.time === 'number' ? item.time * 1000 : item.time)
+        .toLocaleTimeString(locale, {timeZone, hour: '2-digit', minute: '2-digit'})
+      : date(item.time));
     const timestampValue =
       typeof item.time === 'number' && item.time > 1e9 && item.time < 1e11
         ? item.time * 1000
@@ -294,6 +306,7 @@ export function createHistory(request, command, selectedBox) {
   $('notification-search').oninput = renderNotifications;
   $('notifications-more').onclick = () => void loadHistory(true, historyPage + 1);
   const noticeDialog = $('historical-notifications-dialog');
+  $('historical-notifications-kind').onchange = $('historical-notifications-printer').onchange = renderNotifications;
   const historyOpen = $('historical-notifications-open');
   const noticeContent = $('notifications-panel');
   const bellContainer = noticeContent.parentElement;
@@ -309,6 +322,8 @@ export function createHistory(request, command, selectedBox) {
     noticeSignature = '';
     historyPage = 1;
     noticeFilter = 'all';
+    $('historical-notifications-kind').value = $('historical-notifications-printer').value = '';
+    set('notifications-more', tr(legacy ? 'Afficher les entrées précédentes' : 'Charger les messages suivants'));
     $('notification-search').value = '';
     for (const button of document.querySelectorAll('[data-notice-filter]')) {
       button.setAttribute('aria-pressed', String(button.dataset.noticeFilter === 'all'));
@@ -541,7 +556,8 @@ export function createHistory(request, command, selectedBox) {
   let from = initialStart,
     to = initialEnd,
     calendarMonth,
-    chooseEnd = false;
+    chooseEnd = false,
+    activeRange = '90', draftRange = activeRange;
   const rangeDialog = $('history-period-dialog'),
     rangeButton = $('history-period-open'),
     dateFrom = $('tasks-from'),
@@ -567,7 +583,7 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Les jours sont des boutons natifs et les champs date offrent un accès direct à toute date. */
   function renderCalendar(focusDay) {
-    const months = [calendarMonth, monthAt(calendarMonth, 1)];
+    const months = [calendarMonth];
     calendar.replaceChildren(...months.map((month) => {
       const section = node('section', null, 'history-month'),
         grid = node('div', null, 'history-days');
@@ -581,6 +597,7 @@ export function createHistory(request, command, selectedBox) {
         const day = calendarDate(date),
           button = extraButton(String(date.getUTCDate()), () => pickDay(day));
         button.dataset.day = day;
+        button.disabled = day > initialEnd;
         button.setAttribute('aria-label', dateLabel.format(date));
         button.setAttribute('aria-pressed', String(day === dateFrom.value || day === dateTo.value));
         button.classList.toggle('in-range', day >= dateFrom.value && day <= dateTo.value);
@@ -588,7 +605,16 @@ export function createHistory(request, command, selectedBox) {
       }
       return section;
     }));
-    $('history-period-apply').disabled = !dateFrom.value || !dateTo.value || dateFrom.value > dateTo.value;
+    const start = dateFrom.value, end = dateTo.value;
+    const invalid = !start || !end || start > end || end > initialEnd;
+    $('history-period-apply').disabled = invalid;
+    $('history-month-next').disabled = calendarDate(calendarMonth) >= initialEnd.slice(0, 7) + '-01';
+    const count = taskRows.filter(task => {
+      const day = taskDay(task.start);
+      return day >= start && day <= end;
+    }).length;
+    set('history-range-summary', invalid ? tr('Choisissez une plage valide, sans date future.')
+      : formatText('{0} tâches chargées · {1} au {2}', count, dateLabel.format(new Date(start)), dateLabel.format(new Date(end))));
     if (focusDay) calendar.querySelector(`[data-day="${focusDay}"]`)?.focus();
   }
   calendar.onkeydown = (event) => {
@@ -599,6 +625,7 @@ export function createHistory(request, command, selectedBox) {
     const date = new Date(day);
     date.setUTCDate(date.getUTCDate() + offset);
     const nextDay = calendarDate(date);
+    if (nextDay > initialEnd) return;
     const nextButton = calendar.querySelector(`[data-day="${nextDay}"]`);
     if (nextButton?.getClientRects().length) {
       nextButton.focus();
@@ -616,12 +643,28 @@ export function createHistory(request, command, selectedBox) {
     dateFrom.value = start;
     dateTo.value = end;
     chooseEnd = false;
-    calendarMonth = monthAt(new Date(end), matchMedia('(max-width: 640px)').matches ? 0 : -1);
+    calendarMonth = monthAt(new Date(end));
     renderCalendar();
   }
+  /** Applique les bornes calendaires d’un raccourci au brouillon de période. */
+  function chooseRange(value) {
+    draftRange = value;
+    $('history-custom-range').hidden = value !== 'custom';
+    for (const button of $('history-range-presets').querySelectorAll('[data-range]'))
+      button.setAttribute('aria-pressed', String(button.dataset.range === value));
+    if (value === 'custom') return renderCalendar();
+    const start = new Date(initialEnd);
+    if (value === 'year') start.setUTCMonth(0, 1);
+    else start.setUTCDate(start.getUTCDate() - Number(value) + 1);
+    showRange(calendarDate(start), initialEnd);
+  }
   setRangeButton();
+  dateFrom.max = dateTo.max = initialEnd;
+  for (const button of $('history-range-presets').querySelectorAll('[data-range]'))
+    button.onclick = () => chooseRange(button.dataset.range);
   rangeButton.onclick = () => {
     showRange(from, to);
+    chooseRange(activeRange);
     rangeDialog.showModal();
   };
   $('history-month-prev').onclick = () => {
@@ -633,8 +676,10 @@ export function createHistory(request, command, selectedBox) {
     renderCalendar();
   };
   dateFrom.oninput = dateTo.oninput = () => renderCalendar();
-  $('history-period-reset').onclick = () => showRange(initialStart, initialEnd);
+  $('history-period-reset').onclick = () => chooseRange('90');
   $('history-period-apply').onclick = () => {
+    if ($('history-period-apply').disabled) return;
+    activeRange = draftRange;
     from = dateFrom.value;
     to = dateTo.value;
     setRangeButton();

@@ -151,3 +151,15 @@ test('le pictogramme sans aperçu reste au centre de la miniature de la cloche',
   await expect(image).toBeVisible();
   await expect(image).toHaveCSS('object-fit', 'contain');
 });
+
+test('le journal historique filtre la liste par type et imprimante', async ({page}) => {
+ await openWorkshop(page);
+ await openHistoryJournal(page);
+ const dialog = page.getByRole('dialog', {name: 'Journal historique'});
+ await expect(dialog.locator('.historical-notifications-day').first()).toBeVisible();
+ const printer = dialog.locator('#historical-notifications-printer');
+ await expect(printer.locator('option')).not.toHaveCount(1);
+ await printer.selectOption({index: 1});
+ await dialog.locator('#historical-notifications-kind').selectOption('interrupted');
+ await expect(dialog.locator('.notification-row:not(:has(.notification-result.interrupted))')).toHaveCount(0);
+});

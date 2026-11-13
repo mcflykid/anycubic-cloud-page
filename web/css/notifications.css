@@ -343,3 +343,12 @@
   box-shadow: none;
   padding-inline: 0;
 }
+
+#historical-notifications-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--atelier-space-3); }
+#historical-notifications-filters label { margin: 0; }
+#historical-notifications-dialog #notifications-panel:not([hidden]) { min-height: 0; padding-inline: var(--atelier-space-4); }
+.historical-notifications-day { padding: var(--atelier-space-2); font: var(--atelier-label); font-weight: var(--atelier-semibold); color: var(--atelier-muted); }
+#historical-notifications-dialog .notification-result { border-radius: var(--atelier-pill-radius); padding-inline: .5em; background: color-mix(in srgb, currentColor 10%, transparent); }
+@media (max-width: 560px) {
+  #historical-notifications-filters { grid-template-columns: minmax(0, 1fr); }
+}
