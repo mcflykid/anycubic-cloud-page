@@ -39,6 +39,48 @@ class LaunchTrackingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "bobine sélectionnée"):
                 validate_print_indices(printer, selected)
 
+    def test_filament_shortfall_counts_only_qualified_relay_spools(self):
+        """Une estimation incertaine ne doit ni déclencher une alerte ni compter dans le relais."""
+        from print_preflight import filament_shortfalls
+
+        base = {"spool_loaded": True, "material_type": "PLA", "color": [0, 0, 0]}
+        spools = [
+            {
+                **base,
+                "display_slot": 1,
+                "remaining_percent": 10,
+                "remaining_percent_qualified": True,
+            },
+            {
+                **base,
+                "display_slot": 2,
+                "remaining_percent": 15,
+                "remaining_percent_qualified": False,
+            },
+            {
+                **base,
+                "display_slot": 3,
+                "remaining_percent": 10,
+                "remaining_percent_qualified": True,
+            },
+        ]
+        snapshot = {"boxes": [{"spools": spools, "auto_feed": 1}]}
+        self.assertEqual(
+            filament_shortfalls(snapshot, [1, 1], [125, 125]),
+            [
+                {"slot": 1, "grams": 200, "needed": 250, "relay": [3]},
+            ],
+        )
+        self.assertEqual(
+            filament_shortfalls(snapshot, [1, 3], [125, 125]),
+            [
+                {"slot": 1, "grams": 100, "needed": 125, "relay": []},
+                {"slot": 3, "grams": 100, "needed": 125, "relay": []},
+            ],
+        )
+        self.assertEqual(filament_shortfalls(snapshot, [2], [250]), [])
+        self.assertEqual(filament_shortfalls(snapshot, [1], [200]), [])
+
 
 class FirmwarePreflightTests(unittest.IsolatedAsyncioTestCase):
     """Une proposition de mise à jour ne vaut pas mise à jour en cours."""

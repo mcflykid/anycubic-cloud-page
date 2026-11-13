@@ -91,6 +91,21 @@ test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({
   await expect(dialog).toContainText('Démarrage confirmé par l’imprimante');
 });
 
+test('un manque estimé par le serveur reste un avertissement', async ({page}) => {
+  await page.route('**/imprimante-api/preflight', route => route.fulfill({json:{
+    warnings:[], shortfalls:[{slot:3, grams:120, needed:193, relay:[]}],
+  }}));
+  await login(page, 'upload');
+  const form = page.locator('#upload-form');
+  await form.locator('input[type=file]').setInputFiles({name:'fixture.gcode',mimeType:'text/plain',buffer:Buffer.from('; filament_type = PLA\n; filament used [g] = 193\nG1 X1\n')});
+  await form.locator('[name=mode]').selectOption('temp-print');
+  await form.locator('[name=slots]').fill('3');
+  await form.locator('button[type=submit]').click();
+  const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
+  await expect(dialog).toContainText('Emplacement 3 : environ 120 g restants pour 193 g estimés.');
+  await expect(dialog.getByRole('button',{name:'Lancer l’impression'})).toBeEnabled();
+});
+
 for (const scenario of ['refus avec code', 'réponse perdue']) {
   test(`la fenêtre conserve le résultat après ${scenario}`, async ({page}) => {
     let orders = 0;

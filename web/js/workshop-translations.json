@@ -5746,5 +5746,17 @@
   "Envoi de l’ordre d’impression à Anycubic…": [
     "Sending print command to Anycubic…",
     "Enviando la orden de impresión a Anycubic…"
+  ],
+  "Emplacement {0} : environ {1} g restants pour {2} g estimés.": [
+    "Slot {0}: about {1} g left for an estimated {2} g.",
+    "Ranura {0}: quedan unos {1} g para un consumo estimado de {2} g."
+  ],
+  "Relais compté : {0}.": [
+    "Backup slots included: {0}.",
+    "Ranuras de relevo incluidas: {0}."
+  ],
+  "{0} sur 5": [
+    "{0} out of 5",
+    "{0} de 5"
   ]
 }

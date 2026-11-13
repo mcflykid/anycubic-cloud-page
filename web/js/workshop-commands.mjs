@@ -173,7 +173,12 @@ export async function filamentAdvice(request, data, printerKey = workshopState.s
     'color-mismatch': 'La couleur du fichier diffère de celle des bobines sélectionnées.',
     'mixed-temperatures': 'La sélection mélange des filaments de groupes de température différents.',
   };
-  return (result.warnings || []).filter(code => Object.hasOwn(labels, code)).map(code => tr(labels[code])).join('\n');
+  const warnings = (result.warnings || []).filter(code => Object.hasOwn(labels, code)).map(code => tr(labels[code]));
+  for (const {slot, grams, needed, relay} of result.shortfalls || []) {
+    warnings.push(formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.', slot, grams, needed) +
+      (relay.length ? ' ' + formatText('Relais compté : {0}.', relay.join(', ')) : ''));
+  }
+  return warnings.join('\n');
 }
 
 /** Lit les commentaires de tranche aux deux extrémités du G-code, sans lire le fichier complet. */
@@ -187,21 +192,26 @@ export async function filamentMetadata(file) {
   // Les commentaires générés par le trancheur donnent la durée et les quantités dans des unités explicites.
   const duration = field('estimated printing time \\(normal mode\\)')[0]
     ?.match(/^(?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s)?$/);
-  const quantities = values => {
+  const numbers = values => {
     const parts = values.flatMap(value => value.split(',').map(part => part.trim()));
     if (!parts.length || !parts.every(value => /^\d+(?:\.\d+)?$/.test(value))) return undefined;
-    return parts.reduce((total, value) => total + Number(value), 0);
+    return parts.map(Number);
   };
+  const quantities = values => numbers(values)?.reduce((total, value) => total + value, 0);
+  const perFilament = numbers(field('filament used \\[g\\]'));
+  const materials = field('filament_type').map(value => value.length <= 48 ? value : '');
+  const totalGrams = quantities(field('total filament used \\[g\\]')) ?? perFilament?.reduce((total, value) => total + value, 0);
   const millimetres = quantities(field('filament used \\[mm\\]'));
   return {
-    materials: field('filament_type').filter(value => value.length <= 48),
+    materials,
+    grams: perFilament ?? (materials.length === 1 && totalGrams != null ? [totalGrams] : undefined),
     colors: rawColors.every(value => /^#[0-9a-f]{6}$/i.test(value))
       ? rawColors.map(value => [1, 3, 5].map(offset => parseInt(value.slice(offset, offset + 2), 16))) : [],
     details: {
       seconds: duration?.slice(1).some(Boolean)
         ? duration.slice(1).reduce((total, value, index) => total + (Number(value) || 0) * [86400, 3600, 60, 1][index], 0)
         : undefined,
-      grams: quantities(field('total filament used \\[g\\]')) ?? quantities(field('filament used \\[g\\]')),
+      grams: totalGrams,
       metres: millimetres == null ? undefined : millimetres / 1000,
     },
   };

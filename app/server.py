@@ -21,7 +21,12 @@ from file_preview import find_project_preview_url
 from file_uploads import purge_abandoned_uploads, upload_operation
 from cloud_extras import download_preview, trusted_url
 from temperature_history import TemperatureHistory, ace_readings
-from print_preflight import ensure_firmware_ready, evaluate_preflight, launch_tracking_for_gcode
+from print_preflight import (
+    ensure_firmware_ready,
+    evaluate_preflight,
+    filament_shortfalls,
+    launch_tracking_for_gcode,
+)
 from printer_registry import PrinterRegistry, select_printer, printer_key
 from printer_engine import CloudPageAPI as CloudPageAPI, Engine, engine
 from fleet_health import FleetHealth
@@ -625,6 +630,7 @@ async def print_preflight(req):
         details = await engine.extras.detail(data["key"])
         materials = details.get("materials") or []
         data["materials"] = [row.get("material") or "" for row in materials]
+        data["grams"] = [row.get("grams") for row in materials]
         data["colors"] = (
             [
                 [int(row["color"][offset : offset + 2], 16) for offset in (1, 3, 5)]
@@ -634,8 +640,13 @@ async def print_preflight(req):
             if materials and all(row.get("color") for row in materials)
             else []
         )
+    snapshot = engine.snapshot().get("printer") or {}
+    warnings = evaluate_preflight(snapshot, data)
     return web.json_response(
-        {"warnings": evaluate_preflight(engine.snapshot().get("printer") or {}, data)}
+        {
+            "warnings": warnings,
+            "shortfalls": filament_shortfalls(snapshot, data.get("slots", []), data.get("grams")),
+        }
     )
 
 

@@ -1,6 +1,7 @@
 """Gardes et références de suivi pour le lancement d’une impression."""
 
 import hashlib
+import math
 from printer_values import safeget
 
 
@@ -91,6 +92,69 @@ def evaluate_preflight(snapshot, data):
         colors,
         model=snapshot.get("machine_name"),
     )
+
+
+def filament_shortfalls(snapshot, slots, grams):
+    """Estime les manques par bobine à partir des seules mesures qualifiées et d’une masse nominale connue."""
+    if (
+        not isinstance(grams, list)
+        or not slots
+        or len(grams) != len(slots)
+        or any(type(value) not in (int, float) or not 0 <= value <= 100_000 for value in grams)
+    ):
+        return []
+    needs = {}
+    for slot, needed in zip(slots, grams, strict=True):
+        needs[slot] = needs.get(slot, 0) + needed
+
+    def remaining(spool):
+        """Renvoie la quantité qualifiée, avec la valeur nominale par défaut du parcours."""
+        percent = spool.get("remaining_percent")
+        nominal = spool.get("nominal_grams", 1000)
+        if (
+            spool.get("spool_loaded") is True
+            and spool.get("remaining_percent_qualified") is True
+            and type(percent) in (int, float)
+            and 0 <= percent <= 100
+            and type(nominal) in (int, float)
+            and 0 < nominal <= 5000
+        ):
+            return percent * nominal / 100
+        return None
+
+    warnings = []
+    for box in snapshot.get("boxes") or []:
+        spools = {spool.get("display_slot"): spool for spool in box.get("spools") or []}
+        used_relays = set()
+        for slot, spool in spools.items():
+            measured = remaining(spool)
+            if slot not in needs or measured is None or measured >= needs[slot]:
+                continue
+            material, color = spool.get("material_type"), spool.get("color")
+            relays = []
+            if box.get("auto_feed") == 1 and material and color:
+                for other, candidate in spools.items():
+                    if other in needs or other in used_relays:
+                        continue
+                    if (
+                        candidate.get("material_type") == material
+                        and candidate.get("color") == color
+                    ):
+                        quantity = remaining(candidate)
+                        if quantity is not None:
+                            relays.append(other)
+                            used_relays.add(other)
+                            measured += quantity
+            if measured < needs[slot]:
+                warnings.append(
+                    {
+                        "slot": slot,
+                        "grams": math.floor(measured),
+                        "needed": round(needs[slot], 1),
+                        "relay": relays,
+                    }
+                )
+    return warnings
 
 
 def ensure_storage_ready(available, size):

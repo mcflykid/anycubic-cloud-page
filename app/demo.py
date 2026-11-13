@@ -7,7 +7,7 @@ from native_controls import TIMELAPSE_GALLERY_ENABLED
 from notification_discord import DiscordResult
 from notification_settings import discord_enabled, install_discord
 from filament_catalog import editable_materials
-from print_preflight import evaluate_preflight
+from print_preflight import evaluate_preflight, filament_shortfalls
 from temperature_history import ace_readings
 from web_host import (
     install_ui_resources,
@@ -203,7 +203,16 @@ async def api(request):
         tasks[:] = [dict(x) for x in TASKS]
         return web.json_response({"ok": True})
     if path == "preflight" and request.method == "POST":
-        return web.json_response({"warnings": evaluate_preflight(PRINTER, await request.json())})
+        data = await request.json()
+        warnings = evaluate_preflight(PRINTER, data)
+        return web.json_response(
+            {
+                "warnings": warnings,
+                "shortfalls": filament_shortfalls(
+                    PRINTER, data.get("slots", []), data.get("grams")
+                ),
+            }
+        )
     if path == "history/read" and request.method == "POST":
         data = await request.json()
         for item in notices:
