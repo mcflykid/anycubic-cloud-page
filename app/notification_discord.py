@@ -158,6 +158,8 @@ def format_message(event, config):
             content += f"\n{code} {event.code}"
             if title := notification_error_title(event.code, config.language):
                 content += f" · {clean_label(title, 100)}"
+                if event.result == "ace_load_failed":
+                    content += "\nhttps://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/NOTIFICATIONS.md"
         if config.include_filename and (filename := clean_label(event.filename, 140)):
             content += f"\n{filename}"
     return message_payload(content)
