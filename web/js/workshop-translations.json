@@ -5498,5 +5498,41 @@
   "Les réglages sont envoyés à l’imprimante.": [
     "Settings are sent to the printer.",
     "Los ajustes se envían a la impresora."
+  ],
+  "Nom de fichier invalide": [
+    "Invalid file name",
+    "Nombre de archivo no válido"
+  ],
+  "Le nom est inchangé.": [
+    "The name is unchanged.",
+    "El nombre no ha cambiado."
+  ],
+  "Ce nom existe déjà dans le dossier.": [
+    "This name already exists in the folder.",
+    "Ya existe ese nombre en la carpeta."
+  ],
+  "Le renommage a échoué.": [
+    "The file could not be renamed.",
+    "No se pudo cambiar el nombre."
+  ],
+  "Valable encore {0} min {1} s": [
+    "Valid for {0} min {1} s",
+    "Válido durante {0} min {1} s"
+  ],
+  "Préparation des téléchargements…": [
+    "Preparing downloads…",
+    "Preparando las descargas…"
+  ],
+  "Les liens de téléchargement sont incomplets.": [
+    "Some download links are missing.",
+    "Faltan enlaces de descarga."
+  ],
+  "Obtenir le lien": [
+    "Get link",
+    "Obtener enlace"
+  ],
+  "Aucun fichier à télécharger.": [
+    "No files to download.",
+    "No hay archivos para descargar."
   ]
 }

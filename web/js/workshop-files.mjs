@@ -14,6 +14,7 @@ import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
 import { createFileThumbnails } from './workshop-file-previews.mjs';
 import { createUploadMotion } from './workshop-upload-motion.mjs';
+import { bindFileDialogs } from './workshop-file-dialogs.mjs';
 
 import { createSelectionCounter, initializePaintSelection } from './workshop-selection.mjs';
 
@@ -25,8 +26,7 @@ export function createFiles(request, command) {
     cloudRows = [],
     filePending = false,
     fileRows = null,
-    cloudHasMore = false,
-    renameHandle = null;
+    cloudHasMore = false;
   const cloudSelected = new Set();
   const cloudCount = createSelectionCounter($('cloud-selection-digits'));
   cloudCount.pon(0);
@@ -580,49 +580,15 @@ export function createFiles(request, command) {
       for (const id of ['cloud-quota', 'upload-cloud-quota']) set(id, e.message);
     }
   }
-  /** Demande des tickets de téléchargement serveur afin de garder les URL cloud privées côté navigateur. */
-  async function downloadCloud(handles) {
-    try {
-      const result = await request('/cloud/downloads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handles }),
-      });
-      $('cloud-download-links').replaceChildren(
-        ...result.downloads.map((f) => {
-          const li = node('li'),
-            a = node('a', f.name);
-          a.href = f.url;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          li.append(a);
-          return li;
-        }),
-      );
-      $('cloud-download-dialog').showModal();
-    } catch (e) {
-      message(e.message, true);
-    }
-  }
-  /** Prépare le renommage de la référence opaque du fichier, sans envoyer de requête avant validation. */
-  function renameCloud(f) {
-    renameHandle = f.handle;
-    $('cloud-rename-form').elements.name.value = f.name;
-    $('cloud-rename-dialog').showModal();
-    $('cloud-rename-form').elements.name.focus();
-  }
-  $('cloud-rename-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const result = await command('cloud-rename', {
-      handle: renameHandle,
-      name: e.target.elements.name.value,
-    });
-    if (result) {
-      $('cloud-rename-dialog').close();
+  const {downloadCloud, renameCloud} = bindFileDialogs({
+    request, command,
+    getRows: () => cloudRows,
+    getTarget: () => workshopState.selectedPrinter,
+    onRename: async () => {
       cloudSelected.clear();
       await loadFiles();
-    }
-  };
+    },
+  });
   $('cloud-select-page').onchange = (e) => {
     if (!currentFileContext(fileContext)) return;
     for (const f of visibleFiles(cloudRows))

@@ -440,8 +440,18 @@
   </table></div>
   <footer class="atelier-card-footer"><p id="journal-state" role="status"></p><button id="journal-more" type="button" hidden>Afficher les entrées précédentes</button><a id="journal-export" hidden>Exporter le journal expurgé</a></footer>
 </dialog>
-<dialog id="cloud-rename-dialog" class="settings-dialog"><div class="dialog-top"><h2>Renommer le fichier</h2><button class="dialog-close" type="button">Fermer</button></div><form id="cloud-rename-form"><label>Nouveau nom<input name="name" required maxlength="200" autocomplete="off"></label><button type="submit" class="primary">Enregistrer</button></form></dialog>
-<dialog id="cloud-download-dialog" class="settings-dialog"><div class="dialog-top"><h2>Téléchargements</h2><button class="dialog-close" type="button">Fermer</button></div><p class="muted">Choisissez un fichier. Les liens restent valables cinq minutes.</p><ul id="cloud-download-links" class="download-list"></ul></dialog>
+<dialog id="cloud-rename-dialog" class="settings-dialog ace-detail-dialog file-detail-dialog" aria-labelledby="cloud-rename-title">
+  <header class="atelier-card-header"><h2 id="cloud-rename-title">Renommer le fichier</h2></header>
+  <form id="cloud-rename-form" class="atelier-card-body"><p><strong id="cloud-rename-current"></strong> <span>·</span> <span>Cloud Anycubic</span></p>
+    <label for="cloud-rename-name">Nouveau nom</label><div class="file-name-field"><input id="cloud-rename-name" name="name" required maxlength="200" autocomplete="off" aria-describedby="cloud-rename-state"><span id="cloud-rename-extension"></span></div>
+    <p id="cloud-rename-state" role="status"></p>
+  </form>
+  <footer class="atelier-card-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="cloud-rename-form" id="cloud-rename-save" class="primary" disabled>Enregistrer</button></footer>
+</dialog>
+<dialog id="cloud-download-dialog" class="settings-dialog ace-detail-dialog file-detail-dialog" aria-labelledby="cloud-download-title">
+  <header class="atelier-card-header"><h2 id="cloud-download-title">Téléchargements</h2><button class="dialog-close" type="button">Fermer</button></header>
+  <div class="atelier-card-body"><p id="cloud-download-state" role="status"></p><ul id="cloud-download-links" class="download-list"></ul></div>
+</dialog>
 <dialog id="notification-error-dialog" class="task-dialog" aria-labelledby="notification-error-dialog-title" aria-describedby="notification-error-explanation">
 <div class="dialog-top"><h2 id="notification-error-dialog-title"></h2><button class="dialog-close" type="button" autofocus>Fermer</button></div>
 <p id="notification-error-subject" class="muted"></p>
