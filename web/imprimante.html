@@ -127,8 +127,19 @@
       <button type="submit" class="atelier-control atelier-control-icon" aria-label="Actualiser la liste" title="Actualiser la liste"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m-4-2a7 7 0 0 1 12-3l3 5M4 12l3 5a7 7 0 0 0 12-3"/></svg></button>
     </div>
     <label class="atelier-field">Rechercher sur cette page<input id="files-search" type="search"></label>
-    <label class="atelier-field">Trier<select id="files-sort"><option value="">Ordre d’origine</option><option value="name">Nom</option><option value="size">Taille</option></select></label>
+    <label class="atelier-field">Trier<select id="files-sort"><option value="">Ordre d’origine</option><option value="name">Nom</option><option value="size">Taille</option><option value="date">Date d’ajout</option><option value="duration">Durée estimée</option></select></label>
   </form>
+  <details id="file-advanced">
+    <summary>Filtres avancés</summary>
+    <div class="file-advanced-fields">
+      <label class="atelier-field">Matière<select id="file-material" multiple size="3"></select></label>
+      <label class="atelier-field">Nombre de couleurs<select id="file-colors"><option value="">Toutes</option><option value="one">Une couleur</option><option value="few">Deux à quatre couleurs</option><option value="many">Plus de quatre couleurs</option><option value="unknown">Inconnu</option></select></label>
+      <label class="atelier-field">Durée estimée<select id="file-duration"><option value="">Toutes</option><option value="short">Moins d’une heure</option><option value="medium">Une à quatre heures</option><option value="long">Plus de quatre heures</option><option value="unknown">Inconnu</option></select></label>
+      <label class="atelier-field">Date d’ajout<select id="file-added"><option value="">Toutes</option><option value="7">7 derniers jours</option><option value="30">30 derniers jours</option><option value="unknown">Inconnu</option></select></label>
+      <button type="button" id="file-filters-clear">Effacer les filtres</button>
+    </div>
+    <p id="file-count" role="status"></p>
+  </details>
   <section class="atelier-card files-card" aria-labelledby="files-title">
     <header class="atelier-card-header">
       <h2 id="files-title">Mémoire imprimante</h2><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="files" aria-haspopup="dialog" aria-label="Aide">?</button><p id="files-state" class="atelier-status" role="status">Sélectionnez une source puis actualisez la liste.</p><div id="cloud-tools" hidden><div class="cloud-selection-anchor"><div class="actions cloud-bulk"><span id="cloud-selected-count" class="sr-only">0 sélection</span><span class="count-badge selection-count" aria-hidden="true"><span id="cloud-selection-prefix"></span><span id="cloud-selection-digits"></span><span id="cloud-selection-suffix"></span></span><span id="cloud-selected-size" class="muted"></span><label id="cloud-destination-label" class="atelier-field" hidden>Dossier de destination<select id="cloud-destination"></select></label><button id="cloud-move-selected" type="button" hidden disabled>Déplacer la sélection</button><button id="cloud-download-selected" type="button" disabled title="Préparer le téléchargement des fichiers sélectionnés.">Télécharger</button><button id="cloud-delete-selected" type="button" class="danger" disabled title="Supprimer les fichiers sélectionnés du Cloud après confirmation.">Supprimer</button><button id="cloud-clear-selection" type="button" disabled>Décocher</button></div></div></div>

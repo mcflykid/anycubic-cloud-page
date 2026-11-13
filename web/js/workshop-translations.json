@@ -5850,5 +5850,65 @@
   "{0} résultat(s)": [
     "{0} result(s)",
     "{0} resultado(s)"
+  ],
+  "Filtres avancés": [
+    "Advanced filters",
+    "Filtros avanzados"
+  ],
+  "Matière": [
+    "Material",
+    "Material"
+  ],
+  "Nombre de couleurs": [
+    "Number of colors",
+    "Número de colores"
+  ],
+  "Toutes": [
+    "All",
+    "Todas"
+  ],
+  "Une couleur": [
+    "One color",
+    "Un color"
+  ],
+  "Deux à quatre couleurs": [
+    "Two to four colors",
+    "De dos a cuatro colores"
+  ],
+  "Plus de quatre couleurs": [
+    "More than four colors",
+    "Más de cuatro colores"
+  ],
+  "Moins d’une heure": [
+    "Less than one hour",
+    "Menos de una hora"
+  ],
+  "Une à quatre heures": [
+    "One to four hours",
+    "De una a cuatro horas"
+  ],
+  "Plus de quatre heures": [
+    "More than four hours",
+    "Más de cuatro horas"
+  ],
+  "Date d’ajout": [
+    "Date added",
+    "Fecha de incorporación"
+  ],
+  "7 derniers jours": [
+    "Last 7 days",
+    "Últimos 7 días"
+  ],
+  "30 derniers jours": [
+    "Last 30 days",
+    "Últimos 30 días"
+  ],
+  "Effacer les filtres": [
+    "Clear filters",
+    "Borrar filtros"
+  ],
+  "{0} fichier(s) sur {1}": [
+    "{0} file(s) out of {1}",
+    "{0} archivo(s) de {1}"
   ]
 }

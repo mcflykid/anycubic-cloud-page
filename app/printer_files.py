@@ -262,7 +262,20 @@ async def read_files(target, source, path):
     setter(records, file_path=canonical)
     invalidate_folder_previews(target, source, canonical)
     rows = p.local_file_list_object if source == "local" else p.udisk_file_list_object
-    return {"files": rows, "path": canonical}
+    return {
+        "files": [{**row, "added_at": file_added_at(row.get("timestamp"))} for row in (rows or [])],
+        "path": canonical,
+    }
+
+
+def file_added_at(value):
+    """Normalise une date Unix plausible exprimée en secondes ou millisecondes."""
+    stamp = number(value)
+    if stamp is None:
+        return None
+    if stamp >= 100_000_000_000:
+        stamp /= 1000
+    return stamp if 946684800 <= stamp <= time.time() + 86400 else None
 
 
 async def cloud_files(target, page, folder=None):
@@ -331,6 +344,7 @@ async def cloud_files(target, page, folder=None):
                 "handle": handle,
                 "name": f.old_filename,
                 "size_mb": f.size_mb,
+                "added_at": file_added_at(safeget(f, "_time")),
                 "printable": f.gcode_id is not None and f.gcode_id > 0,
                 **({"details": details} if details else {}),
             }

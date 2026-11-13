@@ -455,6 +455,7 @@ class AnycubicFile:
             'size_mb': self.size_mb,
             'is_dir': self.is_dir,
             'path': self.path,
+            'timestamp': self.timestamp,
         }
 
     def __repr__(self) -> str:

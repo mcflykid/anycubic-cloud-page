@@ -24,6 +24,9 @@
 #tab-files .files-card [hidden],
 #tab-files #cloud-tools [hidden] { display: none; }
 .files-location { display: grid; gap: var(--atelier-space-1); }
+#file-advanced { margin-block-end: var(--atelier-space-4); }
+#file-advanced summary { cursor: pointer; }
+.file-advanced-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--atelier-filament-fact-min-width)), 1fr)); gap: var(--atelier-space-3); align-items: end; margin-block-start: var(--atelier-space-3); }
 #files-location-label { color: var(--atelier-muted); font: var(--atelier-label); }
 .files-sources { display: flex; }
 .files-sources > button { border-radius: 0; }

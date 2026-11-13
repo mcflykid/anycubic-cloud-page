@@ -58,10 +58,39 @@ export function createFiles(request, command) {
   function visibleFiles(list) {
     const query = $('files-search').value.trim().toLocaleLowerCase();
     const sort = $('files-sort').value;
-    const rows = list.filter((file) => file.name.toLocaleLowerCase().includes(query));
+    const materials = [...$('file-material').selectedOptions].map(option => option.value);
+    const colors = $('file-colors').value, duration = $('file-duration').value, added = $('file-added').value;
+    const rows = list.filter(file => {
+      if (!file.name.toLocaleLowerCase().includes(query)) return false;
+      if (file.is_dir) return true;
+      const details = file.details || {};
+      const colorGroup = !Number.isFinite(details.colors) || details.colors < 1 ? 'unknown'
+        : details.colors === 1 ? 'one' : details.colors <= 4 ? 'few' : 'many';
+      const durationGroup = !Number.isFinite(details.seconds) ? 'unknown'
+        : details.seconds < 3600 ? 'short' : details.seconds <= 14400 ? 'medium' : 'long';
+      const stamp = file.added_at;
+      return (!materials.length || materials.includes(details.material || 'unknown')) &&
+        (!colors || colors === colorGroup) && (!duration || duration === durationGroup) &&
+        (!added || (added === 'unknown' ? !Number.isFinite(stamp)
+          : Number.isFinite(stamp) && stamp >= Date.now() / 1000 - Number(added) * 86400));
+    });
     if (sort === 'name') rows.sort((a, b) => a.name.localeCompare(b.name));
     if (sort === 'size') rows.sort((a, b) => (b.size_mb ?? -1) - (a.size_mb ?? -1));
+    if (sort === 'date') rows.sort((a, b) => (b.added_at ?? -1) - (a.added_at ?? -1));
+    if (sort === 'duration') rows.sort((a, b) => (a.details?.seconds ?? Infinity) - (b.details?.seconds ?? Infinity));
     return rows;
+  }
+  /** Garde les matières déjà filtrées lors du passage à une autre page. */
+  function updateFileMaterials(list) {
+    const select = $('file-material');
+    const selected = new Set([...select.selectedOptions].map(option => option.value));
+    const materials = [...new Set([
+      ...selected, ...list.map(file => file.details?.material).filter(Boolean),
+    ])].filter(value => value !== 'unknown').sort();
+    const options = materials.map(value => new Option(value, value, false, selected.has(value)));
+    options.push(new Option(tr('Inconnu'), 'unknown', false, selected.has('unknown')));
+    if ([...select.options].map(option => option.value).join() !== options.map(option => option.value).join())
+      select.replaceChildren(...options);
   }
   /** Les actions gardent la source et le chemin de la liste reçue, même après un changement de vue. */
   function renderFiles(refreshQuota = true) {
@@ -74,7 +103,10 @@ export function createFiles(request, command) {
         ? cloudRows
         : fileRows
       : null;
+    if (Array.isArray(list)) updateFileMaterials(list);
     const rows = Array.isArray(list) ? visibleFiles(list) : [];
+    set('file-count', Array.isArray(list)
+      ? formatText('{0} fichier(s) sur {1}', rows.filter(file => !file.is_dir).length, list.filter(file => !file.is_dir).length) : '');
     const folderView = source === 'cloud' && !!cloudFolder;
     const isCloud = source === 'cloud';
     const parent = $('cloud-folder-parent');
@@ -350,6 +382,14 @@ export function createFiles(request, command) {
     renderFiles(false);
   };
   $('files-sort').onchange = () => renderFiles(false);
+  for (const id of ['file-material', 'file-colors', 'file-duration', 'file-added'])
+    $(id).onchange = () => { cloudSelected.clear(); renderFiles(false); };
+  $('file-filters-clear').onclick = () => {
+    for (const option of $('file-material').options) option.selected = false;
+    for (const id of ['file-colors', 'file-duration', 'file-added']) $(id).value = '';
+    cloudSelected.clear();
+    renderFiles(false);
+  };
   $('parent-folder').onclick = () => {
     const parts = $('file-path').value.split('/').filter(Boolean);
     parts.pop();

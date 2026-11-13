@@ -1,5 +1,25 @@
 const {test,expect}=require('@playwright/test');
 const {login}=require('./helpers.cjs');
+
+test('les filtres de fichiers combinent matière et durée et isolent les données inconnues', async ({page}) => {
+ await page.route('**/imprimante-api/files/cloud?**', route => route.fulfill({json:{files:[
+  {handle:'a',name:'PLA court.gcode',details:{material:'PLA',seconds:1800}},
+  {handle:'b',name:'PETG long.gcode',details:{material:'PETG',seconds:18000}},
+  {handle:'c',name:'Sans fiche.gcode'},
+ ],has_more:false}}));
+ await login(page,'files');
+ await page.locator('[data-source=cloud]').click();
+ await expect(page.locator('#file-rows tr')).toHaveCount(3);
+ await page.locator('#file-advanced summary').click();
+ await page.locator('#file-material').selectOption('PLA');
+ await page.locator('#file-duration').selectOption('short');
+ await expect(page.locator('#file-rows')).toContainText('PLA court.gcode');
+ await expect(page.locator('#file-count')).toHaveText('1 fichier(s) sur 3');
+ await page.locator('#file-filters-clear').click();
+ await page.locator('#file-material').selectOption('unknown');
+ await expect(page.locator('#file-rows')).toContainText('Sans fiche.gcode');
+ await expect(page.locator('#file-rows tr')).toHaveCount(1);
+});
 /** Une liste lente ne doit jamais être appliquée à la source choisie entre-temps. */
 test('les fichiers tardifs ne changent pas de source et la dernière lecture repart',async({page})=>{
  let release,entered;const waiting=new Promise(r=>entered=r),gate=new Promise(r=>release=r);const commands=[];
