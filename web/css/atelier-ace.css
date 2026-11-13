@@ -105,23 +105,6 @@
   .ace-spool-row { gap: var(--atelier-space-2); }
 }
 
-/* Les commandes du formulaire de séchage gardent une marge sur les écrans étroits. */
-#dry-dialog #dry-form {
-  padding: var(--atelier-space-3);
-}
-#dry-dialog #dry-form > #auto-feed-save {
-  margin-inline: 0;
-}
-
-#dry-dialog .drying-status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--atelier-space-2) var(--atelier-space-3);
-}
-#dry-dialog .drying-status p { flex-basis: 100%; margin: 0; }
-#dry-dialog .drying-status #dry-toggle { padding-inline: 0; }
-
 /* Le corps défile seul pour conserver l’accès aux actions sur un écran court. */
 body:has(.workshop-frame) > dialog.ace-detail-dialog {
   box-sizing: border-box;
@@ -188,4 +171,32 @@ body:has(.workshop-frame) > dialog.ace-detail-dialog {
 @media (max-width: 560px) {
   #spool-slot-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .spool-detail, .spool-action-buttons { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Les préréglages et les mesures restent lisibles pendant la saisie manuelle. */
+.dry-detail-body { display: grid; gap: var(--atelier-space-4); }
+.dry-summary {
+  display: grid;
+  gap: var(--atelier-space-2);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  padding: var(--atelier-space-3);
+  font-variant-numeric: tabular-nums;
+}
+.dry-summary :is(p, dl, dd), .dry-presets-section h3 { margin: 0; }
+#dry-progress { width: 100%; height: 6px; accent-color: var(--atelier-accent); }
+#dry-measurements, #dry-presets { display: grid; gap: var(--atelier-space-2); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#dry-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#dry-presets .spool-slot-option { grid-template-columns: minmax(0, 1fr); }
+#dry-presets .spool-slot-option small { grid-column: 1; }
+.dry-presets-section > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--atelier-space-2); margin-block-end: var(--atelier-space-2); }
+#dry-dialog #preset-fields fieldset { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--atelier-space-2); }
+#dry-dialog #preset-fields input { width: 100%; min-width: 0; }
+#dry-dialog .inline-fields { margin: 0; }
+#dry-dialog .inline-fields small { color: var(--atelier-muted); }
+@media (max-width: 560px) {
+  #dry-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #dry-dialog .inline-fields { grid-template-columns: minmax(0, 1fr); }
+  #dry-dialog .atelier-card-footer > button { width: 100%; }
+  #dry-start { order: -1; }
 }

@@ -188,13 +188,14 @@ test('les états associent un point à un libellé et l’aide du relais expliqu
  await page.setViewportSize({width:1280,height:900});
  await expect(page.locator('#ace-model')).toHaveText('ACE 2 Pro');
  await page.locator('#go-drying').click();
- await expect(page.locator('#drying-state')).toHaveText('Séchage actif');
+ await expect(page.locator('#drying-state')).toHaveText('Séchage en cours');
  await expect(page.locator('#drying-state')).not.toHaveClass(/inactive/);
- await page.getByRole('button',{name:'Aide sur le relais automatique des bobines'}).click();
- await expect(page.getByRole('tooltip')).toContainText('même matière et couleur');
  drying=false;
  await expect(page.locator('#drying-state')).toHaveText('Séchage inactif');
  await expect(page.locator('#drying-state')).toHaveClass(/inactive/);
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Aide sur le relais automatique des bobines'}).click();
+ await expect(page.getByRole('tooltip')).toContainText('même matière et couleur');
 });
 
 test('un proxy qui conserve ses anciens chemins sert toute l’interface',async({page,baseURL})=>{
@@ -574,7 +575,7 @@ test('les dossiers Cloud limitent le déplacement à la sélection de la page', 
  await expect(page.getByRole('checkbox',{name:'Sélectionner Exemple.gcode',exact:true})).not.toBeChecked();
 });
 
-test('le raccourci de séchage demande confirmation et utilise le réglage confirmé', async ({page}) => {
+test('un préréglage de séchage remplit les champs avant toute confirmation', async ({page}) => {
  const commands = [];
  let active = false;
  await page.route('**/imprimante-api/status', async (route) => {
@@ -592,19 +593,28 @@ test('le raccourci de séchage demande confirmation et utilise le réglage confi
  await login(page);
  await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
  await page.locator('#go-drying').click();
- const toggle = page.getByRole('switch',{name:'Séchage'});
- await expect(toggle).toBeEnabled();
- await expect(toggle).toHaveAttribute('aria-checked','false');
- await toggle.click();
- await expect(page.locator('#confirm-text')).toContainText('45 °C pendant 4 h');
+ const dialog = page.locator('#dry-dialog');
+ const start = dialog.locator('#dry-start');
+ const temperature = dialog.locator('[name=temperature]');
+ await dialog.locator('#dry-presets input').first().check();
+ expect(commands).toHaveLength(0);
+ await expect(page.locator('#confirm-dialog')).toBeHidden();
+ const selected = Number(await temperature.inputValue());
+ await temperature.fill(String(selected === 45 ? 46 : 45));
+ await expect(dialog.locator('#dry-presets :checked')).toHaveCount(0);
+ await temperature.fill('45');
+ await dialog.locator('[name=hours]').fill('4');
+ await start.click();
+ await expect(page.locator('#confirm-text')).toContainText('ces paramètres');
  await page.locator('#confirm-no').click();
  expect(commands).toHaveLength(0);
- await toggle.click();
+ await start.click();
  await page.locator('#confirm-yes').click();
- await expect(toggle).toHaveAttribute('aria-checked','true');
- expect(commands[0]).toMatchObject({action:'dry-start',temperature:45,hours:4,box:0});
- await toggle.click();
+ const stop = dialog.locator('#dry-stop');
+ await expect(stop).toBeVisible();
+ expect(commands[0]).toMatchObject({action:'dry-start',temperature:'45',hours:'4',box:0});
+ await stop.click();
  await page.locator('#confirm-yes').click();
- await expect(toggle).toHaveAttribute('aria-checked','false');
+ await expect(stop).toBeHidden();
  expect(commands[1]).toMatchObject({action:'dry-stop',box:0});
 });

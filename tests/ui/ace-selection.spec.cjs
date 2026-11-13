@@ -58,11 +58,11 @@ test('les bobines et les commandes ACE restent alignées en mode sombre', async 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await drying.click();
-  const toggle = await page.locator('#dry-toggle').boundingBox();
-  const status = await page.locator('#drying-state').boundingBox();
-  expect(status.x).toBeGreaterThanOrEqual(toggle.x + toggle.width);
-  expect(Math.abs(toggle.y + toggle.height / 2 - (status.y + status.height / 2))).toBeLessThanOrEqual(1);
+  await expect(page.locator('#drying-state')).toHaveText('Séchage en cours');
+  await expect(page.locator('#dry-progress')).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(drying).toBeFocused();
+  await expect(relayButton).toHaveText(/Activer|Désactiver/);
   await openSection(page, 'camera');
   const help = page.locator('[data-context-help="camera"]');
   const header = await help.locator('..').boundingBox();

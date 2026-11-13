@@ -41,9 +41,9 @@ test('Laboratoire mobile ouvre les groupes et reste sans débordement',async({pa
  await page.locator('#section-menu-toggle').click();
  await page.locator('#atelier-tabs [data-tab=ace]').click();
  await page.locator('#go-drying').click();
- const form=page.locator('#dry-form');
+ const form=page.locator('#dry-dialog');
  await expect(form).toBeVisible();
- const [outer,button]=await Promise.all([form.boundingBox(),form.locator('#auto-feed-save').boundingBox()]);
+ const [outer,button]=await Promise.all([form.boundingBox(),form.locator('#dry-start').boundingBox()]);
  expect(button.x-outer.x).toBeGreaterThan(8);
  expect(outer.x+outer.width-button.x-button.width).toBeGreaterThan(8);
 
