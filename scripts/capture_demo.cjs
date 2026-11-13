@@ -140,6 +140,41 @@ async function captureDiscordAlertSettings(page) {
   await photo(page, '23-discord-alertes.png');
 }
 
+/** Capture les fenêtres de la v1.13.0 sans déclencher les actions affichées. */
+async function captureWorkshopDialogs(page) {
+  const capture = async (trigger, dialog, filename) => {
+    await page.locator(trigger).click();
+    await page.locator(dialog).waitFor();
+    await photo(page, filename);
+    await page.keyboard.press('Escape');
+    await page.locator(dialog).waitFor({state:'hidden'});
+  };
+  await openSection(page, 'ace');
+  await capture('#spools .ace-spool-row:first-child > button', '#spool-dialog', '28-configurer-bobine.png');
+  await capture('#go-drying', '#drying-state', '26-sechage-ace.png');
+  await openSection(page, 'settings');
+  await capture('#ai-open', '#ai-form', '09-detection-ia.png');
+  await capture('#settings-logs-open', '#settings-logs-dialog', '29-journal-commandes.png');
+  await openSection(page, 'history');
+  await capture('#history-period-open', '#history-period-dialog', '30-periode-historique.png');
+  await page.locator('#historical-notifications-open').click();
+  await page.locator('#history-list .notification-row').first().waitFor();
+  await photo(page, '15-journal.png');
+  await page.keyboard.press('Escape');
+  await openSection(page, 'files');
+  await page.locator('[data-source=cloud]').click();
+  await capture('#file-rows tr:first-child [aria-label="Renommer"]', '#cloud-rename-dialog', '31-renommer-cloud.png');
+  await page.route('**/imprimante-api/cloud/downloads', route => route.fulfill({json:{
+    downloads:[{url:'/imprimante-api/download/fictif', expires_in:300}],
+  }}));
+  await page.locator('#file-rows tr:first-child [aria-label="Télécharger"]').click();
+  await page.locator('#cloud-download-dialog a.atelier-control:visible').first().waitFor();
+  await photo(page, '32-telecharger-cloud.png');
+  await page.keyboard.press('Escape');
+  await page.unroute('**/imprimante-api/cloud/downloads');
+  await capture('#file-rows tr:first-child [aria-label="Supprimer"]', '#confirm-dialog', '33-confirmation.png');
+}
+
 async function main() {
   const port = process.env.UI_PORT || '8765';
   const base = 'http://127.0.0.1:' + port;
@@ -158,6 +193,11 @@ async function main() {
     if (!ready) throw new Error('Démonstration locale indisponible');
     browser = await chromium.launch();
     const page = await browser.newPage({viewport:desktop, reducedMotion:'reduce', locale:'fr-FR'});
+    if (process.argv.includes('--dialogs')) {
+      await signIn(page, base);
+      await captureWorkshopDialogs(page);
+      return;
+    }
     await page.goto(base + '/login');
     await photo(page, '00-connexion.jpg');
     await signIn(page, base);

@@ -32,10 +32,18 @@ Captures de la démonstration authentifiée, produites avec `scripts/capture_dem
 | [25-commandes-au-repos.png](25-commandes-au-repos.png) | Commandes courantes, schéma de la S1 et mesures de chaque organe, en mode sombre. |
 | [26-sechage-ace.png](26-sechage-ace.png) | Interrupteur, état et réglages du séchage ACE, en mode sombre. |
 | [27-details-tache.png](27-details-tache.png) | Fenêtre commune à la tâche courante et à l’historique. |
+| [28-configurer-bobine.png](28-configurer-bobine.png) | Emplacements, aperçu et réglages d’une bobine ACE. |
+| [29-journal-commandes.png](29-journal-commandes.png) | Filtres du journal des commandes et export. |
+| [30-periode-historique.png](30-periode-historique.png) | Raccourcis de période et dates de l’historique. |
+| [31-renommer-cloud.png](31-renommer-cloud.png) | Renommage Cloud avec extension conservée. |
+| [32-telecharger-cloud.png](32-telecharger-cloud.png) | Fenêtre de téléchargement Cloud. |
+| [33-confirmation.png](33-confirmation.png) | Confirmation de suppression d’un fichier Cloud. |
 
 Pour les refaire : installer les dépendances de développement et Chromium Playwright, puis lancer `node scripts/capture_demo.cjs` depuis la racine. Le script démarre uniquement `app/demo.py --auth`, crée un fichier temporaire de mot de passe fictif et ferme ce serveur après capture. `UI_PYTHON` permet de choisir l’interpréteur Python du projet. Aucun moteur Docker n’est nécessaire.
 
 La capture de session présente deux noms d’imprimantes fictifs pour illustrer le sélecteur. Le navigateur des captures utilise le français. Les captures de bureau mesurent 1 920 × 1 080 px. La vue mobile mesure 390 × 844 px. Ne jamais utiliser un compte réel pour produire les images publiques.
+
+`node scripts/capture_demo.cjs --dialogs` actualise les captures des fenêtres de la version 1.13.0.
 
 ## Comparaison historique avec la version 1.8.0
 

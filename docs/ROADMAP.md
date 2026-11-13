@@ -9,9 +9,9 @@ Mise à jour le 13 novembre 2026. Voir les [versions publiées](https://github.c
 - Le catalogue conserve Par défaut, Aurore et Laboratoire. Voir le [guide des styles](THEMES.md).
 - Les essais sur la Kobra S1 Combo suivent le cadre [#214](https://github.com/mcflykid/anycubic-cloud-page/issues/214), avec vérification de l’état et remise en état après chaque essai. Toute impression complète, mise à jour de firmware ou réinitialisation est exclue.
 
-## Version 1.12.3
+## Version 1.13.0
 
-Les [changements](../CHANGELOG.md) corrigent les alignements des onglets Envoyer et Fichiers. Le [suivi des versions](https://github.com/mcflykid/anycubic-cloud-page/issues/347) détaille les lots suivants. Les [essais de clôture](CLOSURE.md) documentent les validations et les preuves à réunir si une investigation reprend.
+Les [changements](../CHANGELOG.md) détaillent les nouvelles fenêtres de l’atelier. Le [guide des fiches filament](FICHES-FILAMENT.md) explique comment consulter le catalogue et ajouter ses propres fiches. Le [suivi des versions](https://github.com/mcflykid/anycubic-cloud-page/issues/347) détaille les lots suivants. Les [essais de clôture](CLOSURE.md) documentent les validations et les preuves à réunir si une investigation reprend.
 
 | Sujet | Référence |
 | --- | --- |

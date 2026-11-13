@@ -1,5 +1,14 @@
 # Changements
 
+## 1.13.0 — 2026-11-13
+
+- Harmonise les confirmations ordinaires, destructives et protégées par le mot de passe web (#341).
+- Aligne la configuration des bobines et du séchage sur les maquettes de l’ACE. Le relais de bobines est accessible depuis la carte de l’ACE (#335, #336).
+- Ouvre les fiches filament depuis les emplacements ACE. Le catalogue du projet associe les SKU RFID vérifiés aux fiches Anycubic correspondantes. Pour un SKU inconnu, il propose de créer une fiche personnelle. Le guide décrit leur création et leur import.
+- Ajoute des filtres au journal des commandes et aligne la fenêtre de détection IA (#337, #338).
+- Présente le renommage Cloud avec extension conservée et la durée de validité des liens de téléchargement (#340).
+- Ajoute des raccourcis de période pour l’historique et des filtres pour le journal des notifications (#342).
+
 ## 1.12.3 — 2026-11-13
 
 - Centre les cartes **Fichier** et **Envoi** dans l’onglet **Envoyer**, en conservant leur empilement sur mobile (#328).
