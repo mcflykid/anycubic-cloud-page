@@ -92,7 +92,7 @@ function summaryAce(box, index, shortfalls = []) {
       node('strong', fmt(spool.remaining_percent, ' %')));
     const shortfall = shortfalls.find(entry => entry.slot === slot);
     if (shortfall) information.append(node('p', formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.',
-      slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'heat-warning'));
+      slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'filament-shortfall'));
     spools.append(item);
   }
   if (spools.childElementCount) information.append(spools);

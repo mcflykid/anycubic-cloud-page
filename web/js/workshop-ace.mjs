@@ -197,7 +197,7 @@ export function createAce(command, refresh) {
           copy.append(node('p', tr('Bobine engagée'), 'engaged-spool'));
         const shortfall = p.filament_shortfalls?.find(item => item.slot === (spool.display_slot ?? spool.slot));
         if (shortfall) copy.append(node('p', formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.',
-          shortfall.slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'heat-warning'));
+          shortfall.slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'filament-shortfall'));
         remaining.append(node('strong', fmt(spool.remaining_percent, ' %')));
         if (Number.isFinite(spool.remaining_percent)) {
           const progress = node('progress');

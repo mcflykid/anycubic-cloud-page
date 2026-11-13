@@ -295,6 +295,7 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 @media (max-width: 480px) {
   .print-option-list { grid-template-columns: 1fr; }
 }
+.filament-shortfall { margin: 0; padding: var(--atelier-space-2); color: var(--atelier-warning); border-inline-start: var(--atelier-active-rule) solid currentColor; }
 .rating-task { display: flex; gap: var(--atelier-space-3); align-items: center; overflow-wrap: anywhere; }
 .rating-task img { width: var(--atelier-journal-time-width); aspect-ratio: 4 / 3; object-fit: contain; }
 .rating-task p { margin: 0; }
