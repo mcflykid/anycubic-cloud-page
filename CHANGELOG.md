@@ -1,5 +1,12 @@
 # Changements
 
+## 1.14.0 — 2026-11-13
+
+- Partage la fenêtre de confirmation entre l’envoi, les fichiers et la réimpression. Elle affiche les estimations disponibles et les affectations ACE quand le fichier les renseigne (#330, #339).
+- Distingue le transfert, l’acceptation du Cloud et le démarrage observé. Le transfert peut être annulé avant l’envoi de l’ordre. Le téléchargement affiche un pourcentage quand l’imprimante en rapporte un pour la tâche suivie (#332).
+- Signale un risque de manque de filament avant le lancement et pendant les impressions monofilament dont la bobine engagée est identifiable (#343).
+- Présente les options de préparation et de séchage avec leur état indisponible en attendant les essais sur Kobra S1 (#331, #333).
+
 ## 1.13.0 — 2026-11-13
 
 - Harmonise les confirmations ordinaires, destructives et protégées par le mot de passe web (#341).
