@@ -32,6 +32,11 @@ export function initializeInteractions() {
   const count = node('p', null, 'sr-only');
   count.setAttribute('role', 'status');
   let origin, moved;
+  let recent = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem('cloud-page-recent-searches') || '[]');
+    if (Array.isArray(saved)) recent = saved.filter(value => typeof value === 'string').slice(0, 5);
+  } catch {}
   const tabs = () => [...document.querySelectorAll('#atelier-tabs [data-tab]')].filter(button => !button.disabled);
   const openTab = tab => tabs().find(button => button.dataset.tab === tab)?.click();
   const windows = [
@@ -58,12 +63,24 @@ export function initializeInteractions() {
       ['Fichiers', [...document.querySelectorAll('#file-rows .file-row-caption strong')].map(name => [
         name.textContent, () => { openTab('files'); $('files-search').value = name.textContent; $('files-search').dispatchEvent(new Event('input')); $('files-search').focus(); },
       ])],
-      ['Historique', [...document.querySelectorAll('#tasks-list .history-card-name')].map(name => [
-        name.textContent, () => { const detail = name.closest('tr')?.querySelector('.history-detail'); openTab('history'); detail?.click(); },
+      ['Historique', [...document.querySelectorAll(
+        '#tasks-list:not(:empty) .history-card-name, #tasks-gallery .history-card-name',
+      )].map(name => [
+        name.textContent, () => {
+          const detail = name.closest('tr, .history-gallery-card')?.querySelector('.history-detail');
+          openTab('history');
+          detail?.click();
+        },
       ])],
     ];
     let total = 0;
     results.replaceChildren();
+    if (!query) for (const term of recent) {
+      const previous = node('button', term);
+      previous.type = 'button';
+      previous.onclick = () => { input.value = term; render(); input.focus(); };
+      results.append(previous);
+    }
     for (const [group, entries] of groups) {
       const matching = entries.filter(([name]) => {
         const candidate = searchText(name);
@@ -75,7 +92,16 @@ export function initializeInteractions() {
       results.append(node('strong', tr(group)));
       for (const [name, action] of matching) {
         const choice = node('button', name); choice.type = 'button';
-        choice.onclick = () => { moved = true; dialog.close(); action(); };
+        choice.onclick = () => {
+          const term = input.value.trim().slice(0, 100);
+          if (term) {
+            recent = [term, ...recent.filter(value => value !== term)].slice(0, 5);
+            try { localStorage.setItem('cloud-page-recent-searches', JSON.stringify(recent)); } catch {}
+          }
+          moved = true;
+          dialog.close();
+          action();
+        };
         results.append(choice);
       }
     }

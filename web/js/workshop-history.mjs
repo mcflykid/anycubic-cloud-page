@@ -766,7 +766,9 @@ export function createHistory(request, command, selectedBox) {
       const state = node('span', tr(task.status), 'atelier-status history-status-' + task.status_code);
       const details = node('span', [task.start && date(task.start),
         Number.isFinite(task.elapsed_minutes) && mins(task.elapsed_minutes)].filter(Boolean).join(' · '));
-      item.append(check, preview, title, state, details);
+      const open = extraButton(tr('Détail'), () => openPastTask(task), 'atelier-control history-detail');
+      open.setAttribute('aria-label', tr('Voir le détail'));
+      item.append(check, preview, title, state, details, open);
       return item;
     }));
   }
