@@ -18,7 +18,7 @@ test('le second ACE garde ses bobines et sa cible, puis se replie s’il dispara
   await expect(page.locator('#spool-dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.locator('#ace-selector').selectOption('1');
-  await expect(page.locator('#spools .ace-spool-copy strong').first()).toContainText('PETG');
+  await expect(page.locator('#spools .ace-spool-copy .ace-profile-open').first()).toContainText('PETG');
   await expect(page.locator('#spools .ace-spool-row')).toHaveCount(4);
 
   await page.locator('#go-drying').click();
@@ -30,7 +30,7 @@ test('le second ACE garde ses bobines et sa cible, puis se replie s’il dispara
   await page.reload();
   await page.getByRole('button',{name:'ACE et filaments',exact:true}).click();
   await expect(page.locator('#ace-selector')).toBeHidden();
-  await expect(page.locator('#spools .ace-spool-copy strong').first()).toContainText('PLA');
+  await expect(page.locator('#spools .ace-spool-copy .ace-profile-open').first()).toContainText('PLA');
 });
 
 test('les bobines et les commandes ACE restent alignées en mode sombre', async ({page}) => {
@@ -68,4 +68,22 @@ test('les bobines et les commandes ACE restent alignées en mode sombre', async 
   const header = await help.locator('..').boundingBox();
   const button = await help.boundingBox();
   expect(Math.abs(button.x + button.width / 2 - (header.x + header.width / 2))).toBeLessThanOrEqual(1);
+});
+
+test('un emplacement ACE ouvre une fiche de filament sans commande', async ({page}) => {
+ const commands = [];
+ page.on('request', request => {
+  if (request.url().endsWith('/imprimante-api/command')) commands.push(request);
+ });
+ await login(page, 'ace');
+ const row = page.locator('#spools .ace-spool-row').first();
+ const trigger = row.getByRole('button', {name: /Emplacement 1/});
+ await trigger.click();
+ const dialog = page.getByRole('dialog', {name: 'Fiche filament'});
+ await expect(dialog).toBeVisible();
+ await expect(dialog.locator('#filament-slot-title')).toContainText('Emplacement 1');
+ await expect(dialog.getByRole('link', {name: 'Catalogue Anycubic'})).toHaveAttribute('href', 'https://3dfilamentprofiles.com/filaments/anycubic');
+ await page.keyboard.press('Escape');
+ await expect(trigger).toBeFocused();
+ expect(commands).toHaveLength(0);
 });

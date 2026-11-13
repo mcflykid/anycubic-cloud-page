@@ -24,8 +24,8 @@ for(const [code,see,unload] of [['fr','Voir','Retirer'],['en','View','Unload'],[
     await page.evaluate(code=>localStorage.setItem('cloud-page-language',code),code);
     await page.reload();
     await page.locator('[data-tab=ace]').click();
-    await expect(page.locator('#spools button').first()).toHaveText(see);
-    await page.locator('#spools button').first().click();
+    await expect(page.locator('#spools .ace-spool-row > button').first()).toHaveText(see);
+    await page.locator('#spools .ace-spool-row > button').first().click();
     await expect(page.locator('#retract')).toHaveText(unload);
     await expect(page.locator('#spool-form [name=material]')).toBeDisabled();
   });

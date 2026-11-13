@@ -1,4 +1,5 @@
 import { $, fmt, formatText, locale, message, mins, node, set, timeZone, tr } from './workshop-ui.mjs';
+import { openFilamentProfile } from './workshop-filament-profiles.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { definition, statusBadge } from './workshop-overview.mjs';
 
@@ -182,7 +183,11 @@ export function createAce(command, refresh) {
           : node('span', '—', 'ace-spool-empty');
         illustration.setAttribute('aria-hidden', 'true');
         const title = formatText('Emplacement {0}', spool.display_slot ?? spool.slot);
-        copy.append(node('strong', title + ' · ' + (spool.material_type || tr('Non renseigné'))));
+        const profile = node('button', title + ' · ' + (spool.material_type || tr('Non renseigné')), 'ace-profile-open');
+        profile.type = 'button';
+        profile.setAttribute('aria-haspopup', 'dialog');
+        profile.onclick = () => openFilamentProfile(spool, spool.display_slot ?? spool.slot);
+        copy.append(profile);
         if (typeof spool.rfid === 'boolean')
           copy.append(node('p', tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle')));
         if (Number.isInteger(box.loaded_slot) && box.loaded_slot >= 0 && box.loaded_slot === (spool.local_slot ?? spool.slot) - 1)

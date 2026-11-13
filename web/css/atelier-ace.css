@@ -200,3 +200,19 @@ body:has(.workshop-frame) > dialog.ace-detail-dialog {
   #dry-dialog .atelier-card-footer > button { width: 100%; }
   #dry-start { order: -1; }
 }
+
+.ace-spool-row .ace-profile-open {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--atelier-fg);
+  text-align: start;
+  font: inherit;
+  font-weight: var(--atelier-semibold);
+  overflow-wrap: anywhere;
+}
+.ace-profile-open:is(:hover, :focus-visible) { text-decoration: underline; }
+#filament-profile-dialog dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--atelier-filament-fact-min-width), 1fr)); gap: var(--atelier-space-3); }
+#filament-profile-dialog dt { color: var(--atelier-muted); }
+#filament-profile-dialog dd { margin: 0; font-weight: var(--atelier-semibold); }
