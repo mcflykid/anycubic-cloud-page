@@ -24,6 +24,8 @@ import { errorSheet, isDeviceErrorCode, openErrorSheet, safeErrorSource } from '
 
 /** Relie l’historique des impressions et les notifications aux données du compte. */
 export function createHistory(request, command, selectedBox) {
+  let gallery = false;
+  try { gallery = localStorage.getItem('cloud-page-history-view') === 'gallery'; } catch {}
   let reprintPending = false;
   let pastTaskKey = null,
     tasksPage = 1,
@@ -710,6 +712,52 @@ export function createHistory(request, command, selectedBox) {
     $('tasks-select-page').indeterminate =
       rows.some((t) => taskSelected.has(t.key)) && !$('tasks-select-page').checked;
   }
+
+  /** Conserve les filtres, la pagination et les clés de sélection lors du changement de présentation. */
+  function chooseHistoryView(value) {
+    gallery = value;
+    try { localStorage.setItem('cloud-page-history-view', value ? 'gallery' : 'list'); } catch {}
+    renderTasks();
+  }
+  $('history-list-view').onclick = () => chooseHistoryView(false);
+  $('history-gallery-view').onclick = () => chooseHistoryView(true);
+  $('tasks-gallery').onkeydown = event => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    const list = event.currentTarget;
+    const buttons = [...list.querySelectorAll('.task-thumbnail')];
+    const index = buttons.indexOf(document.activeElement);
+    if (index < 0) return;
+    const columns = getComputedStyle(list).gridTemplateColumns.split(' ').length;
+    const offset = {ArrowLeft:-1, ArrowRight:1, ArrowUp:-columns, ArrowDown:columns}[event.key];
+    if (buttons[index + offset]) {
+      event.preventDefault();
+      buttons[index + offset].focus();
+    }
+  };
+
+  /** Réutilise les aperçus différés et les actions de détail de la liste. */
+  function renderTaskGallery(rows) {
+    const list = $('tasks-gallery');
+    list.replaceChildren(...rows.map(task => {
+      const item = node('li', undefined, 'history-gallery-card');
+      const preview = taskThumbnail(task);
+      const check = node('input');
+      check.type = 'checkbox';
+      check.checked = taskSelected.has(task.key);
+      check.setAttribute('aria-label', tr('Sélectionner ') + task.name);
+      check.onchange = () => {
+        check.checked ? taskSelected.add(task.key) : taskSelected.delete(task.key);
+        taskSelectionState();
+      };
+      const title = node('strong', task.name, 'history-card-name');
+      title.title = task.name;
+      const state = node('span', tr(task.status), 'atelier-status history-status-' + task.status_code);
+      const details = node('span', [task.start && date(task.start),
+        Number.isFinite(task.elapsed_minutes) && mins(task.elapsed_minutes)].filter(Boolean).join(' · '));
+      item.append(check, preview, title, state, details);
+      return item;
+    }));
+  }
   /** Indique une disponibilité réelle et conserve la confirmation existante de la réimpression. */
   function canReprint(task) {
     const printer = workshopState.snapshot?.printer;
@@ -765,8 +813,13 @@ export function createHistory(request, command, selectedBox) {
   function renderTasks() {
     taskPreviewObserver.disconnect();
     const rows = visibleTasks();
+    $('history-list-view').setAttribute('aria-pressed', String(!gallery));
+    $('history-gallery-view').setAttribute('aria-pressed', String(gallery));
+    $('tasks-gallery').hidden = !gallery;
+    $('tasks-list').closest('table').hidden = gallery;
+    renderTaskGallery(gallery ? rows : []);
     $('tasks-list').replaceChildren(
-      ...rows.map((t) => {
+      ...(gallery ? [] : rows).map((t) => {
         const row = node('tr'),
           selectCell = node('td', null, 'files-selection-cell'),
           select = node('input'),

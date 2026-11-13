@@ -5910,5 +5910,17 @@
   "{0} fichier(s) sur {1}": [
     "{0} file(s) out of {1}",
     "{0} archivo(s) de {1}"
+  ],
+  "Vue de l’historique": [
+    "History view",
+    "Vista del historial"
+  ],
+  "Liste": [
+    "List",
+    "Lista"
+  ],
+  "Galerie": [
+    "Gallery",
+    "Galería"
   ]
 }

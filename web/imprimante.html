@@ -238,6 +238,7 @@
     <div class="atelier-field"><span id="history-period-label">Période</span><button class="atelier-control" id="history-period-open" type="button" aria-labelledby="history-period-label history-period-open" aria-haspopup="dialog">Choisir une période</button></div>
     <label class="atelier-field">Nom du fichier<input id="tasks-search" type="search" placeholder="Rechercher une impression"></label>
     <button class="atelier-control" id="historical-notifications-open" type="button">Journal des notifications</button>
+    <div class="files-sources" role="group" aria-label="Vue de l’historique"><button type="button" class="atelier-control" id="history-list-view" aria-pressed="true">Liste</button><button type="button" class="atelier-control" id="history-gallery-view" aria-pressed="false">Galerie</button></div>
   </div>
   <section id="tasks-section" class="atelier-card" aria-labelledby="tasks-title">
     <header class="atelier-card-header"><h2 id="tasks-title">Impressions</h2><p class="atelier-status" id="tasks-page"></p></header>
@@ -247,6 +248,7 @@
         <tbody id="tasks-list"></tbody>
       </table>
       <p id="tasks-state" class="muted" role="status"></p>
+      <ul id="tasks-gallery" hidden></ul>
       <div id="tasks-loading" class="list-loading list-loading-tasks history-table-loading" hidden aria-hidden="true"><span class="task-history-item"><span class="history-card-select"><i class="skeleton-piece skeleton-check"></i></span><i class="task-thumbnail skeleton-piece"></i><span class="history-card-body"><i class="skeleton-piece skeleton-badge"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-detail"></i></span></span><span class="task-history-item"><span class="history-card-select"><i class="skeleton-piece skeleton-check"></i></span><i class="task-thumbnail skeleton-piece"></i><span class="history-card-body"><i class="skeleton-piece skeleton-badge"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-detail"></i></span></span><span class="task-history-item"><span class="history-card-select"><i class="skeleton-piece skeleton-check"></i></span><i class="task-thumbnail skeleton-piece"></i><span class="history-card-body"><i class="skeleton-piece skeleton-badge"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-detail"></i></span></span></div>
     </div>
     <footer class="atelier-card-footer history-table-footer">
