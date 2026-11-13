@@ -996,15 +996,28 @@ export function createHistory(request, command, selectedBox) {
   }
   /** Vérifie l’éligibilité cloud avant d’autoriser l’envoi d’une note sur la tâche sélectionnée. */
   async function openRating(t) {
+    const dialog = $('task-rating-dialog'), form = $('rating-form'), preview = $('rating-preview');
+    const submit = form.querySelector('button[type=submit]');
     pastTaskKey = t.key;
     set('rating-task-name', t.name);
+    set('rating-task-summary', [t.end ? date(t.end) : '', t.status ? tr(t.status) : ''].filter(Boolean).join(' · '));
     set('rating-state', tr('Vérification auprès d’Anycubic…'));
-    $('rating-form').reset();
-    $('rating-form').querySelector('fieldset').disabled = true;
-    $('task-rating-dialog').showModal();
+    set('rating-value', '');
+    form.reset();
+    submit.disabled = true;
+    preview.hidden = true;
+    preview.removeAttribute('src');
+    form.querySelector('fieldset').disabled = true;
+    dialog.showModal();
+    void taskPreview(t).then(src => {
+      if (!dialog.open || pastTaskKey !== t.key || !src) return;
+      preview.onload = () => { preview.hidden = false; };
+      preview.src = src;
+    });
     try {
       const d = await request('/extras/rating?key=' + encodeURIComponent(t.key));
-      $('rating-form').querySelector('fieldset').disabled = !d.available || d.already_rated;
+      if (!dialog.open || pastTaskKey !== t.key) return;
+      form.querySelector('fieldset').disabled = !d.available || d.already_rated;
       set(
         'rating-state',
         d.already_rated
@@ -1014,14 +1027,21 @@ export function createHistory(request, command, selectedBox) {
             : tr('Anycubic ne propose pas d’évaluation pour cette impression'),
       );
     } catch (e) {
-      set('rating-state', e.message);
+      if (dialog.open && pastTaskKey === t.key) set('rating-state', e.message);
     }
   }
+  $('rating-form').onchange = (event) => {
+    const form = event.currentTarget, stars = Number(new FormData(form).get('stars'));
+    form.querySelector('button[type=submit]').disabled = !stars;
+    set('rating-value', stars ? formatText('{0} sur 5', stars) : '');
+  };
   $('rating-form').onsubmit = async (e) => {
     e.preventDefault();
+    const stars = Number(new FormData(e.target).get('stars'));
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) return;
     const ok = await command(
       'task-rate',
-      { key: pastTaskKey, stars: Number(new FormData(e.target).get('stars')) },
+      { key: pastTaskKey, stars },
       tr('Envoyer cette note à Anycubic ?'),
     );
     if (ok) {

@@ -48,9 +48,12 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(page.locator('#past-task-materials')).toContainText('Filaments estimés par matière');
  await page.getByRole('button',{name:'Évaluer',exact:true}).click();
  await expect(page.locator('#rating-form fieldset')).toBeEnabled();
+ await expect(page.locator('#rating-form button[type=submit]')).toBeDisabled();
  const three=page.getByRole('radio',{name:'3 ★',exact:true});
  await expect(three).toBeEnabled();
  await three.check();
+ await expect(page.locator('#rating-form button[type=submit]')).toBeEnabled();
+ await expect(page.locator('#rating-value')).toHaveText('3 sur 5');
  await expect(three).toBeChecked();
  await three.focus();
  await expect(three).toBeFocused();
