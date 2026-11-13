@@ -64,13 +64,12 @@ class AceAlerts:
             elif dry.get("is_drying") is False and previous:
                 self.drying.pop(box_id)
                 end, started = previous
-                if self.stops.pop(box_id, 0) >= stamp:
-                    pass
-                elif stamp >= end:
+                stopped = self.stops.pop(box_id, 0) >= stamp
+                if not stopped and stamp >= end:
                     events.append(
                         self.event(printer, scope, box_id, stamp, started, "ace_drying_done")
                     )
-                else:
+                elif not stopped:
                     events.append(
                         self.event(printer, scope, box_id, stamp, started, "ace_drying_interrupted")
                     )
