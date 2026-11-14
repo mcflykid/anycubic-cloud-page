@@ -93,22 +93,47 @@ function remainingValue(percent) {
   return value;
 }
 
+const KEY_FACTS = new Set(['Buse', 'Plateau', 'Vitesse d’impression', 'Débit volumique maximal']);
+
+/** En-tête produit : la fenêtre dit d’abord de quel filament il s’agit, puis d’où vient la bobine. */
+function showIdentity(spool, hex, product, sku) {
+  const body = $('filament-profile-dialog').querySelector('.filament-profile-body');
+  let identity = $('filament-profile-identity');
+  if (!identity) {
+    identity = node('section', null, 'filament-identity');
+    identity.id = 'filament-profile-identity';
+    body.prepend(identity);
+  }
+  const swatch = node('span', null, 'filament-identity-swatch');
+  if (hex[0]) swatch.style.setProperty('--swatch', hex[0]);
+  else swatch.dataset.unknown = 'true';
+  const text = node('div', null, 'filament-identity-text');
+  text.append(node('strong', product));
+  if (sku) text.append(node('span', sku, 'muted'));
+  identity.replaceChildren(swatch, text);
+  if (spool) {
+    const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
+      ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
+    rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
+    identity.append(rfid);
+  }
+}
+
 /** Affiche la bobine lue par l’ACE, puis les valeurs d’impression et de séchage de la fiche. */
 function showProfile(spool, title, hex, name, profile, personal, variant = null) {
   set('filament-slot-title', title);
   set('filament-profile-reference', formatText(personal ? 'Fiche personnelle « {0} »' : 'Valeurs du fabricant pour {0}', name));
   $('filament-slot-title').closest('section').hidden = !spool;
   if (spool) {
-    const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
-      ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
-    rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
+    const remaining = item('Filament restant', remainingValue(spool.remaining_percent));
+    remaining.dataset.wide = 'true';
     $('filament-profile-reading').replaceChildren(
       item('Matériau', spool.material_type || '—'),
       item('Couleur du filament', colorValue(hex)),
-      item('Filament restant', remainingValue(spool.remaining_percent)),
-      item('Identification', rfid),
+      remaining,
     );
   }
+  showIdentity(spool, variant?.hex ? [variant.hex] : hex, variant && !name.endsWith(variant.color) ? name + ' · ' + variant.color : name, variant?.sku);
   const source = $('filament-profile-source');
   source.href = variant?.productId ? profile.url + '?variant=' + variant.productId : profile.url;
   const communitySource = $('filament-profile-community-source');
@@ -125,7 +150,13 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
   const range = ([min, max], unit) => fmt(min) + '–' + fmt(max, unit);
   const fill = (id, values) => {
     const shown = values.filter(([, value]) => value != null);
-    $(id).replaceChildren(...shown.map(([label, value]) => item(label, value)));
+    // Les quatre réglages qu’on recopie dans le slicer passent devant, en tuiles.
+    const ranked = [...shown.filter(([label]) => KEY_FACTS.has(label)), ...shown.filter(([label]) => !KEY_FACTS.has(label))];
+    $(id).replaceChildren(...ranked.map(([label, value]) => {
+      const pair = item(label, value);
+      if (KEY_FACTS.has(label)) pair.dataset.key = 'true';
+      return pair;
+    }));
     $(id).closest('section').hidden = !shown.length;
   };
   fill('filament-profile-facts', [
