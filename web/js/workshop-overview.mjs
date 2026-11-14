@@ -398,18 +398,19 @@ export function createOverview(request) {
           ? `${fmt(current)} → ${fmt(target)}`
           : formatText('Version {0}', fmt(current)),
       );
-      set(
-        `firmware-${id}-status`,
-        updating === true
-          ? tr('Mise à jour en cours')
-          : available === true
-          ? tr('Mise à jour disponible')
-          : available === false
-            ? tr('À jour')
-            : tr('À vérifier'),
-      );
-      $(`firmware-${id}-status`).dataset.state =
-        updating === true ? 'running' : available === true ? 'warning' : available === false ? 'normal' : 'unknown';
+      const status = $(`firmware-${id}-status`);
+      const state = updating === true ? 'running'
+        : available === true ? 'available'
+        : available === false ? 'normal' : 'unknown';
+      const label = tr({
+        running: 'Mise à jour en cours', available: 'Mise à jour disponible',
+        normal: 'À jour', unknown: 'À vérifier',
+      }[state]);
+      status.dataset.state = state;
+      status.title = label;
+      const statusLabel = status.querySelector('.firmware-status-label');
+      statusLabel.textContent = label;
+      statusLabel.classList.toggle('sr-only', state === 'normal' || state === 'available');
     }
     printerButton.dataset.confirm = formatText(
       tr(

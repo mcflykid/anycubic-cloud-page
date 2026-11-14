@@ -151,7 +151,9 @@
   gap: var(--atelier-space-3);
 }
 .settings-status-dot { gap: 0; }
-#settings-totp-state[data-state="disabled"]::before { background: var(--atelier-error); }
+#settings-totp-state[data-state="disabled"]::before,
+.settings-firmware-row .atelier-status[data-state="available"]::before { background: var(--atelier-error); }
+.settings-firmware-row .atelier-status:is([data-state="normal"], [data-state="available"]) { gap: 0; }
 @container settings-channels (max-width: 240px) {
   .settings-channel-pair { grid-template-columns: minmax(0, 1fr); }
 }

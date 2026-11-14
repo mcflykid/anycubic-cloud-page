@@ -317,6 +317,9 @@ test('consulter les nouveautés du firmware ne déclenche aucune mise à jour', 
     await route.fulfill({response,json:data});
   });
   await login(page,'settings');
+  const badge = page.locator('#firmware-printer-status');
+  await expect(badge).toHaveAttribute('data-state','available');
+  await expect(badge.locator('.firmware-status-label')).toHaveClass(/sr-only/);
   await page.getByRole('button',{name:'Voir les nouveautés'}).first().click();
   const dialog = page.getByRole('dialog',{name:'Nouveautés · Anycubic Kobra S1'});
   await expect(dialog).toContainText('Correctifs fictifs');
