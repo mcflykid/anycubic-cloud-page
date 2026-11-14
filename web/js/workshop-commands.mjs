@@ -20,10 +20,19 @@ export function createCommands(request, refresh) {
   const sensitiveActions = new Set(['firmware', 'ace-firmware', 'factory-reset']);
   const confirmedStates = {pause:'paused', resume:'printing', cancel:'failed'};
   let pendingCommand = null;
+  let pendingStoredPrint = null;
 
   /** Une réponse cloud ne suffit pas : seule la transition de la tâche ciblée retire son bandeau. */
   function observeCommand(snapshot) {
     const printer = snapshot.printer;
+    if (pendingStoredPrint && snapshot.ok === true && printer?.printer_online === true &&
+        pendingStoredPrint.target === workshopState.selectedPrinter &&
+        printer.command_project && printer.command_project !== pendingStoredPrint.previousProject &&
+        (printer.job_name === pendingStoredPrint.name || printer.stored_print_preparing) &&
+        ['downloading', 'checking', 'preheating', 'leveling', 'printing'].includes(printer.job_state)) {
+      if ($('message-text').firstChild === pendingStoredPrint.text) message('');
+      pendingStoredPrint = null;
+    }
     if (!pendingCommand || snapshot.ok !== true || printer?.printer_online !== true ||
         pendingCommand.target !== workshopState.selectedPrinter ||
         pendingCommand.projectKey !== printer.command_project ||
@@ -150,6 +159,7 @@ export function createCommands(request, refresh) {
       const confirmation = await confirmPrint({
         target, name:data.name, details:data.details, image, question, chooseSpools:true, requireSpools:action !== 'print-cloud', filaments, checkAdvice,
         initialSlots:data.slots,
+        stored:action === 'print-local',
         queue: action === 'print-cloud' && !data.fromQueue ? async selected => {
           try {
             await request('/print-queue', {
@@ -166,7 +176,7 @@ export function createCommands(request, refresh) {
       });
       if (!confirmation) return null;
       const {fromQueue, ...payload} = data;
-      data = { ...payload, slots: confirmation.slots };
+      data = { ...payload, slots: confirmation.slots, preparation: confirmation.preparation };
     } else if (question && !sensitive &&
         !(await confirmAction(question, destructiveLabels[action]))) return null;
     if (action === 'idle-settings') data = { ...data, confirmed: !!question || data.confirmed === true };
@@ -190,6 +200,8 @@ export function createCommands(request, refresh) {
       }
       notify(tr('Demande en cours…'));
       const requestId = crypto.randomUUID();
+      const stored = ['print-local', 'print-usb'].includes(action);
+      const previousProject = stored ? workshopState.snapshot?.printer?.command_project : null;
       if (printing) showPrintProgress(tr('Demande en cours…'), requestId);
       const d = await request('/command', {
         printerKey: target,
@@ -201,7 +213,11 @@ export function createCommands(request, refresh) {
       if (confirmedState && projectKey) {
         pendingCommand = {target, projectKey, state:confirmedState, since:performance.now(), text:$('message-text').firstChild};
       }
-      if (printing) followPrintStart(d);
+      if (stored) {
+        // Un projet nouveau avec le même fichier constitue une preuve de préparation, même sans accusé MQTT.
+        pendingStoredPrint = {target, name:data.name, previousProject, text:$('message-text').firstChild};
+      }
+      if (printing) followPrintStart(d, stored ? {name:data.name, previousProject} : null);
       await refresh();
       return d;
     } catch (e) {

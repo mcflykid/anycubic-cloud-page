@@ -12,7 +12,7 @@ import {
 } from './workshop-ui.mjs';
 import { workshopState, setBusy } from './workshop-state.mjs';
 import { slots, filamentAdvice, filamentMetadata } from './workshop-commands.mjs';
-import { createFileThumbnails } from './workshop-file-previews.mjs';
+import { createFileThumbnails, openFilePreview } from './workshop-file-previews.mjs';
 import { createUploadMotion } from './workshop-upload-motion.mjs';
 import { closePrintConfirmation, confirmPrint, followPrintStart, showPrintProgress, showPrintResult } from './workshop-print-confirmation.mjs';
 import { bindFileDialogs } from './workshop-file-dialogs.mjs';
@@ -43,6 +43,13 @@ export function createFiles(request, command, addToQueue) {
       currentFileContext(context) &&
       workshopState.currentTab === 'files',
   );
+  /** Le bouton reflète la disponibilité courante, même si la liste Cloud est ancienne. */
+  function updatePrintAction(menu) {
+    const print = menu.querySelector('[data-file-print]');
+    if (!print) return;
+    print.disabled = workshopState.snapshot?.printer?.is_available === false;
+    print.title = tr(print.disabled ? 'L’imprimante est occupée.' : 'Préparer l’impression de ce fichier avec les bobines choisies.');
+  }
   /** Empêche une ancienne liste de fournir des actions pour une autre source ou un autre dossier. */
   function currentFileContext(context) {
     return (
@@ -157,57 +164,59 @@ export function createFiles(request, command, addToQueue) {
           f.name.toLowerCase().endsWith('.gcode.3mf');
         const format = f.is_dir ? tr('Dossier') : extension === 'gcode' ? 'G-code' : extension?.toUpperCase();
         const printable = !f.is_dir && (listedSource === 'cloud' ? f.printable === true || (f.printable !== false && extension === 'gcode') : extension === 'gcode' || storedGcodePackage);
-        if (format) caption.append(node('span', printable ? formatText('{0} · imprimable', format) : format));
+        const needsSlicing = !f.is_dir && !printable && !f.name.toLowerCase().endsWith('.gcode.3mf') && ['stl', '3mf'].includes(extension);
+        if (format) {
+          const formatLabel = printable ? formatText('{0} · imprimable', format)
+            : needsSlicing ? formatText('{0} · à trancher', format) : format;
+          const label = node('span', formatLabel);
+          if (needsSlicing) {
+            label.title = tr('Ouvrez le modèle original dans votre trancheur, préparez-le pour l’imprimante, puis envoyez le G-code.');
+          }
+          caption.append(label);
+        }
         identity.append(caption);
         name.append(identity);
+        const menu = node('div', null, 'files-action-menu');
+        menu.popover = 'auto';
+        const trigger = node('button', '⋯', 'atelier-control atelier-control-icon files-action-trigger');
+        trigger.type = 'button';
+        trigger.setAttribute('aria-label', formatText('Actions du fichier « {0} »', f.name));
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.popoverTargetElement = menu;
+        menu.addEventListener('beforetoggle', event => {
+          trigger.setAttribute('aria-expanded', String(event.newState === 'open'));
+          if (event.newState === 'open') updatePrintAction(menu);
+        });
+        menu.addEventListener('toggle', event => {
+          if (event.newState !== 'open') return;
+          const rect = trigger.getBoundingClientRect();
+          const gap = 6;
+          const above = rect.top - gap;
+          const below = window.innerHeight - rect.bottom - gap;
+          menu.style.maxHeight = Math.max(0, Math.max(above, below) - gap) + 'px';
+          const openAbove = menu.offsetHeight > below - gap && above > below;
+          menu.style.top = (openAbove ? Math.max(gap, above - menu.offsetHeight) : rect.bottom + gap) + 'px';
+          menu.style.left = Math.max(gap, Math.min(rect.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - gap)) + 'px';
+          menu.querySelector('button:not(:disabled)')?.focus({preventScroll: true});
+        });
         const add = (label, fn, cls) => {
-          const textButton = ['Imprimer', 'Ouvrir', 'Ajouter à la file'].includes(label);
-          const b = node('button', null, 'atelier-control');
+          const b = node('button', tr(label));
           if (cls === 'danger') b.classList.add('atelier-control-danger');
-          if (!textButton) b.classList.add('atelier-control-icon');
-          b.setAttribute('aria-label', tr(label));
-          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          svg.setAttribute('viewBox', '0 0 24 24');
-          svg.setAttribute('class', 'ui-icon');
-          svg.setAttribute('fill', 'none');
-          svg.setAttribute('stroke', 'currentColor');
-          svg.setAttribute('stroke-width', '1.7');
-          svg.setAttribute('aria-hidden', 'true');
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute(
-            'd',
-            {
-              Télécharger: 'M12 3v12m-4-4l4 4 4-4M4 17v4h16v-4',
-              Renommer: 'M4 20l4-1L20 7l-3-3L5 16z',
-              Ouvrir: 'M3 7V5h7l2 3h9v12H3z',
-              Imprimer: 'M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z',
-              Supprimer: 'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15',
-            }[label] || '',
-          );
-          svg.append(path);
-          if (textButton) b.textContent = tr(label);
-          else b.append(svg);
           b.title =
             {
               Imprimer: tr('Préparer l’impression de ce fichier avec les bobines choisies.'),
               Supprimer: tr('Supprimer ce fichier après confirmation.'),
               Ouvrir: tr('Afficher le contenu de ce dossier.'),
             }[label] || tr(label);
-          if (label === 'Imprimer') {
-            if (listedSource !== 'cloud' && !printable) {
-              b.disabled = true;
-              b.title = tr('Le lancement direct de ce format attend une validation de compatibilité.');
-            } else if (listedSource === 'cloud' && f.printable === false) {
-              b.disabled = true;
-              b.title = tr('Ce fichier ne contient pas de G-code imprimable.');
-            } else if (workshopState.snapshot?.printer?.is_available === false) {
-              b.disabled = true;
-              b.title = tr('L’imprimante est occupée.');
-            }
-          }
+          if (label === 'Imprimer') b.dataset.filePrint = '';
           b.type = 'button';
-          b.onclick = fn;
-          wrap.append(b);
+          b.onclick = () => {
+            menu.hidePopover();
+            trigger.focus({preventScroll: true});
+            return fn();
+          };
+          if (label === 'Imprimer') menu.prepend(b);
+          else menu.append(b);
         };
         if (isCloud) {
           const check = node('input');
@@ -237,7 +246,7 @@ export function createFiles(request, command, addToQueue) {
           });
         else if (!context.folder) {
           if (isCloud && printable) add('Ajouter à la file', () => addToQueue(f.handle));
-          add('Imprimer', async () => {
+          if (printable) add('Imprimer', async () => {
             try {
               await command(
                 `print-${listedSource}`,
@@ -255,6 +264,9 @@ export function createFiles(request, command, addToQueue) {
               message(e.message, true);
             }
           });
+          if (printable || (isCloud && extension === '3mf')) {
+            add('Détails du fichier', () => openFilePreview(f, row.querySelector('img')?.currentSrc));
+          }
           add(
             'Supprimer',
             async () => {
@@ -276,8 +288,7 @@ export function createFiles(request, command, addToQueue) {
             'danger',
           );
         }
-        const print = wrap.querySelector('button:not(.atelier-control-icon)');
-        if (print) wrap.prepend(print);
+        if (menu.childElementCount) wrap.append(trigger, menu);
         actions.append(wrap);
         row.append(name, size);
         if (!folderView) row.append(actions);
@@ -698,7 +709,12 @@ export function createFiles(request, command, addToQueue) {
   };
 
   function update() {
-    if (source !== 'cloud' && workshopState.currentTab === 'files') renderFiles();
+    if (workshopState.currentTab !== 'files') return;
+    const openMenu = $('file-rows').querySelector('.files-action-menu:popover-open');
+    if (openMenu) {
+      // Les relevés en arrière-plan ne doivent pas fermer le menu pendant la lecture.
+      updatePrintAction(openMenu);
+    } else if (source !== 'cloud') renderFiles();
   }
 
   return { loadFiles, loadCloudStorage, renderFiles, updateUploadButton, update };

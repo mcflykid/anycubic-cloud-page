@@ -73,6 +73,7 @@ class AnycubicPrinter:
         "_device_status",
         "_ready_status",
         "_is_printing",
+        "_mqtt_work_report",
         "_reason",
         "_video_taskid",
         "_msg",
@@ -190,6 +191,7 @@ class AnycubicPrinter:
         self._device_status = device_status
         self._ready_status = ready_status
         self._is_printing: int = int(is_printing) if is_printing is not None else 1
+        self._mqtt_work_report = None
         self._reason = reason
         self._video_taskid = video_taskid
         self._msg = msg
@@ -218,7 +220,7 @@ class AnycubicPrinter:
         self._mqtt_ace_measurements = {}
 
         self._latest_project: AnycubicProject | None = None
-        self._fan_speed: int = 0
+        self._fan_speed: int | None = None
         self._aux_fan_speed_pct: int | None = None
         self._box_fan_level: int | None = None
         self._print_speed_pct: int = 0
@@ -661,6 +663,7 @@ class AnycubicPrinter:
         self._device_status = data['device_status']
         self._is_printing = data['is_printing']
         if not self.printer_online:
+            self._mqtt_work_report = None
             self._mqtt_drying_statuses.clear()
             self._mqtt_ace_measurements.clear()
         self._material_used = extra_data.get('material_used')
@@ -822,11 +825,9 @@ class AnycubicPrinter:
         state: str,
         payload: AnycubicConsumableData,
     ) -> None:
-        if action == 'workReport' and state == 'free':
-            self._is_printing = 1
-            return
-        elif action == 'workReport' and state == 'busy':
-            self._is_printing = 2
+        if action == 'workReport' and state in ('free', 'busy'):
+            self._is_printing = 1 if state == 'free' else 2
+            self._mqtt_work_report = (self._is_printing, monotonic())
             return
         else:
             raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.printer_status)
@@ -1051,7 +1052,15 @@ class AnycubicPrinter:
             return
         elif action in ['start', 'stop'] and state in ['stoped', 'stopping']:
             data = payload['data']
-            self._is_printing = 1
+            if not self._check_latest_project_id_valid(project_id):
+                data.force_empty()
+                return
+            self._is_printing = 2 if state == 'stopping' else 1
+            self._mqtt_work_report = (self._is_printing, monotonic())
+            if state == 'stopping':
+                # La tâche reste active tant que l’arrêt n’est pas confirmé.
+                data.force_empty()
+                return
             self._update_latest_project_with_mqtt_print_status_data(
                 project_id,
                 AnycubicPrintStatus.Cancelled,
@@ -2557,11 +2566,12 @@ class AnycubicPrinter:
 
     @property
     def latest_project_fan_speed_pct(self) -> int | None:
-        """Vitesse du ventilateur de pièce en pourcentage ; valeur du dernier projet connu."""
-        if self.latest_project:
+        """Privilégie le relevé MQTT de la pièce, plus récent que le projet Cloud pendant la préparation."""
+        if self._fan_speed is not None:
+            return self._fan_speed
+        if self.latest_project and self.latest_project.fan_speed_pct is not None:
             return self.latest_project.fan_speed_pct
-
-        return None
+        return self._project_fan_setting('fan_speed_pct')
 
     def _project_fan_setting(self, key: str) -> int | None:
         """Lit un ventilateur dans les réglages du projet Cloud ; None si la valeur est absente ou invalide."""
@@ -2746,6 +2756,7 @@ class AnycubicPrinter:
         if self._id is None:
             raise AnycubicAPIError(ErrorsGeneral.noid_update_info_from_api)
 
+        started = monotonic()
         details = None
         if include_details:
             response = await self._api_parent.printer_info_for_id(self._id, raw_data=True)
@@ -2756,6 +2767,10 @@ class AnycubicPrinter:
         else:
             await self._api_parent.printer_info_for_id(self._id, self)
 
+        report = self._mqtt_work_report
+        if self.printer_online and report and report[1] > started:
+            # Un rapport reçu pendant la requête est plus récent que son état Cloud.
+            self._is_printing = report[0]
         if with_project:
             self._latest_project = await self._api_parent.get_latest_project(
                 printer_id=self.id,
@@ -2885,6 +2900,7 @@ class AnycubicPrinter:
         file_name: str,
         file_path: str = "/",
         slot_index_list: list[int] | None = None,
+        preparation: dict[str, int] | None = None,
     ) -> str | None:
         """Renvoie l’identifiant de demande d’impression depuis la mémoire interne, avec correspondance ACE éventuelle. slot_index_list suit l’ordre des matériaux avec des indices internes."""
         file_path = self._normalise_file_list_path(file_path).strip("/")
@@ -2895,6 +2911,7 @@ class AnycubicPrinter:
             file_name=file_name,
             file_path=file_path,
             ams_box_mapping=ams_box_mapping,
+            **({"preparation": preparation} if preparation else {}),
         )
 
     async def print_udisk_file(

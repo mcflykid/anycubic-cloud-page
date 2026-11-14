@@ -60,7 +60,8 @@ class TemperatureHistoryTests(unittest.IsolatedAsyncioTestCase):
         """La migration conserve les relevés existants et les agrège sans inventer d’historique."""
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "temperatures.json"
-            stamp = time.time() - 3600
+            # Les deux relevés doivent appartenir à la même heure, même à la fin d’une heure civile.
+            stamp = (int(time.time()) // 3600 - 1) * 3600 + 60
             path.write_text(
                 json.dumps(
                     [
@@ -83,7 +84,7 @@ class TemperatureHistoryTests(unittest.IsolatedAsyncioTestCase):
         """Les agrégats horaires ignorent les mesures absentes, sans assimiler zéro à une lacune."""
         with tempfile.TemporaryDirectory() as directory:
             history = TemperatureHistory(Path(directory) / "temperatures.json")
-            stamp = int(time.time()) - 3 * 3600
+            stamp = (int(time.time()) // 3600 - 3) * 3600 + 60
             self.assertTrue(history.add(stamp, {"nozzle": 0, "bed": None, "ace": None}))
             self.assertTrue(history.add(stamp + 10, {"nozzle": 20, "bed": 0, "ace": None}))
             rows = history.recent(48)
@@ -98,7 +99,7 @@ class TemperatureHistoryTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "temperatures.json"
             history = TemperatureHistory(path)
-            stamp = int(time.time()) - 60
+            stamp = (int(time.time()) // 3600 - 1) * 3600 + 60
             history.add(stamp, {"nozzle": 20})
             history.add(stamp + 10, {"nozzle": 40})
             await history.save_async()
@@ -111,7 +112,7 @@ class TemperatureHistoryTests(unittest.IsolatedAsyncioTestCase):
         """Chaque boîte et emplacement conserve son propre compteur de valeurs disponibles."""
         with tempfile.TemporaryDirectory() as directory:
             history = TemperatureHistory(Path(directory) / "temperatures.json")
-            stamp = int(time.time()) - 2 * 3600
+            stamp = (int(time.time()) // 3600 - 2) * 3600 + 60
             history.add(
                 stamp,
                 {"ace_boxes": {"0": {"humidity": 0, "slots": {"1": {"remaining": 0}}}}},

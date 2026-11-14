@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Adaptateur web autonome de l’API Anycubic avec suivi MQTT et commandes sérialisées."""
 
-import asyncio, contextlib, json, logging, os, pathlib, re, time, uuid
+import asyncio, contextlib, hashlib, json, logging, os, pathlib, re, time, uuid
 from datetime import datetime
 from aiohttp import web
 from vendor_config import load_vendor_config
 
 load_vendor_config()
 import camera_sessions
+from diagnostic_findings import diagnostic_findings
 from camera_sessions import (
     CAMERA_VIEWER_TTL as CAMERA_VIEWER_TTL,
     camera_transport_failure as camera_transport_failure,
@@ -34,12 +35,11 @@ from monitoring import Monitoring
 from notification_reports import collect_history
 from notification_settings import DELIVERY_KEY, install_discord
 from request_validation import json_object
-from task_notes import save_task_note
 from maintenance import filament_kg, maintenance_rows, update_maintenance
 from print_queue import read_queue, update_queue
 from print_observations import drying_advice, heat_alerts, observe_timeline, read_timelines
-from notification_delivery import private_json
-from printer_values import integer, now as now, safeget
+from notification_delivery import PrintEvent, private_json
+from printer_values import integer, now as now, safeget, stored_print_name
 import printer_files
 from web_host import (
     APP_VERSION,
@@ -226,6 +226,8 @@ async def errors(request, handler):
 async def status(req):
     """Renvoie l’état de la cible propre à la requête, sans sélection globale ni cache navigateur."""
     engine = request_engine(req)
+    if isinstance(engine, Engine):
+        await engine.refresh_pending_stored_project()
     snapshot = engine.snapshot()
     printer = snapshot.get("printer")
     if isinstance(req, web.Request) and printer:
@@ -366,20 +368,6 @@ async def print_queue(req):
     )
 
 
-async def task_note(req):
-    """Enregistre uniquement la note locale d’une fiche déjà connue de l’atelier."""
-    selected = request_engine(req)
-    data = await json_object(req)
-    key = data.get("key")
-    owner = selected.fleet_registry.default if selected.fleet_registry else selected
-    async with owner.lock:
-        selected.extras.task(key, allow_other=True)
-        note = await asyncio.to_thread(
-            save_task_note, owner.state_dir / "task-notes.json", key, data
-        )
-    return web.json_response({"note": note}, headers={"Cache-Control": "no-store"})
-
-
 async def printers(req):
     """Renvoie les noms et références opaques du compte ; aucun identifiant cloud brut."""
     return web.json_response(
@@ -456,6 +444,26 @@ async def diagnostic(req):
         snapshot = engine.snapshot()
         printer = snapshot.get("printer") or {}
         trace = getattr(engine, "stored_print_trace", None)
+        stored_print = dict(trace[1]) if trace and trace[0] is engine.printer else None
+        tracker = req.app.get(COMMAND_MQTT_KEY) if isinstance(req, web.Request) else None
+        if stored_print is not None and tracker and len(trace) > 2 and trace[2]:
+            reference = (req.get("printer_key"), trace[2])
+            confirmed_at = tracker.print_starts.get(reference)
+            stored_print["machine_start_confirmed"] = confirmed_at is not None
+            # Une confirmation MQTT seule ne rattache pas une ancienne demande à la tâche courante.
+            project = printer.get("command_project")
+            name = stored_print_name(printer.get("job_name"))
+            stored_print["fresh_project_reported"] = bool(project and project != trace[3])
+            stored_print["expected_file_reported"] = bool(
+                name and name == stored_print_name(trace[4])
+            )
+            stored_print["preparation_identified"] = bool(printer.get("stored_print_preparing"))
+            stored_print["matches_active_job"] = bool(
+                confirmed_at is not None
+                and 0 <= time.time() - confirmed_at <= 300
+                and stored_print["fresh_project_reported"]
+                and stored_print["expected_file_reported"]
+            )
         primary = getattr(engine.api, "cloud_engine", None)
         sample = engine.mqtt_clock_sample
         signal_age = round(time.monotonic() - sample[0]) if sample else None
@@ -475,6 +483,7 @@ async def diagnostic(req):
             if primary and primary is not engine
             else "printer_and_account",
             "signals": own_signals,
+            "signal_now_ms": engine.developer_signals.elapsed_ms(),
             "fans": {
                 "snapshot": {
                     name: printer[name]
@@ -497,13 +506,8 @@ async def diagnostic(req):
                 "reported_remaining_min": printer.get("job_time_remaining"),
                 "mqtt_timestamp_vs_received_s": sample[1] if sample and signal_age <= 300 else None,
                 "clock_sample_age_s": signal_age,
-                "corrected_available": bool(printer.get("corrected_finish")),
-                "samples": safeget(engine, "duration_factor", None)[1]
-                if engine.duration_factor
-                else 0,
-                "speed_changed": engine.estimate_speed_changed,
             },
-            "last_stored_print": trace[1] if trace and trace[0] is engine.printer else None,
+            "last_stored_print": stored_print,
             "ace": [
                 {
                     "loaded_index": box.get("loaded_slot")
@@ -530,6 +534,13 @@ async def diagnostic(req):
                 for box in printer.get("boxes") or []
             ],
         }
+        details = payload["developer"]
+        details["findings"] = diagnostic_findings(
+            details["freshness_s"],
+            details["ace"],
+            details["last_stored_print"],
+            details["job_active"],
+        )
     return web.json_response(
         payload,
         headers={
@@ -936,6 +947,7 @@ async def sample_temperatures(app, selected=None, store=None):
     state_dir = getattr(engine, "state_dir", None)
     timeline_path = state_dir / "print-timelines.json" if state_dir else None
     timelines = None
+    heat_episodes = set()
     while True:
         try:
             state = engine.snapshot()
@@ -969,6 +981,13 @@ async def sample_temperatures(app, selected=None, store=None):
                     last_source = source
                     task = safeget(engine.printer, "latest_project._taskid")
                     machine = safeget(engine.printer, "id")
+                    delivery = app.get(DELIVERY_KEY)
+                    if delivery and delivery.scope and "heat_anomaly" in delivery.config.ace_events:
+                        heat_episodes = await deliver_heat_episodes(
+                            delivery, p, history.recent(1), stamp, machine, task, heat_episodes
+                        )
+                    else:
+                        heat_episodes.clear()
                     if timeline_path and task and machine:
                         if timelines is None:
                             timelines = await asyncio.to_thread(read_timelines, timeline_path)
@@ -995,6 +1014,29 @@ async def sample_temperatures(app, selected=None, store=None):
                 "Relevé de température ignoré (%s)", type(error).__name__
             )
         await asyncio.sleep(10)
+
+
+async def deliver_heat_episodes(delivery, printer, samples, stamp, machine, task, previous):
+    """Envoie une alerte par épisode observé par le collecteur, indépendamment des onglets ouverts."""
+    episodes = {
+        (delivery.scope, machine, task, alert["part"], alert["target"])
+        for alert in heat_alerts(printer, samples, stamp)
+        if machine and task
+    }
+    events = [
+        PrintEvent(
+            hashlib.sha256(json.dumps(["heat_anomaly", *episode, int(stamp)]).encode()).hexdigest(),
+            int(stamp),
+            "heat_anomaly",
+            printer.get("name") or "Imprimante",
+            "",
+            "",
+        )
+        for episode in sorted(episodes - previous)
+    ]
+    if events:
+        await delivery.observe(events)
+    return episodes
 
 
 async def temperatures(req):
@@ -1162,7 +1204,6 @@ app.add_routes(
         web.post("/imprimante-api/maintenance", maintenance),
         web.get("/imprimante-api/print-queue", print_queue),
         web.post("/imprimante-api/print-queue", print_queue),
-        web.post("/imprimante-api/task-note", task_note),
         web.get("/imprimante-api/history", history),
         web.post("/imprimante-api/history/read", history_read),
         web.post("/imprimante-api/history/delete", history_delete),

@@ -272,11 +272,19 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 #print-advice { white-space: pre-line; }
 #print-dialog .confirmation-body > p { margin-block: var(--atelier-space-3) 0; }
 #print-result { flex: 1; margin: 0; overflow-wrap: anywhere; }
-#print-ace { margin: var(--atelier-space-3) 0 0; border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
-#print-ace-rows { display: grid; gap: var(--atelier-space-2); }
+#print-ace { min-width: 0; margin: var(--atelier-space-3) 0 0; padding: 0; border: 0; }
+#print-ace-rows { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }
+.print-ace-row { min-width: 0; width: min(100%, var(--atelier-print-spool-select-width)); }
 .print-ace-row select { max-width: 100%; }
 .print-ace-manual-row { display: flex; align-items: end; gap: var(--atelier-space-2); }
 #print-add-slot { margin-block-start: var(--atelier-space-2); }
+.print-destination { display: flex; align-items: end; flex-wrap: wrap; gap: var(--atelier-space-2); margin-block-start: var(--atelier-space-3); }
+.print-destination > div { min-width: 0; }
+#print-destination-name { margin-block-start: var(--atelier-space-1); overflow-wrap: anywhere; }
+#print-destination-spools { display: flex; flex-wrap: wrap; gap: var(--atelier-space-1); margin: 0; padding: 0; list-style: none; }
+#print-destination-spools[hidden] { display: none; }
+#print-destination-spools li { display: grid; place-items: center; width: var(--atelier-print-swatch-size); height: var(--atelier-print-swatch-size); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); background: var(--spool-color, var(--atelier-surface)); color: var(--atelier-print-swatch-ink); text-shadow: var(--atelier-print-swatch-shadow); }
+#print-destination-spools li[data-engaged] { outline: var(--atelier-active-rule) solid var(--atelier-accent); }
 #print-options { margin-block-start: var(--atelier-space-3); }
 #print-options summary { cursor: pointer; }
 .print-option-list {
@@ -294,8 +302,12 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
   padding: var(--atelier-space-1) var(--atelier-space-2);
   overflow-wrap: anywhere;
 }
+.print-drying-settings { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, var(--atelier-print-drying-field-width)); align-items: end; gap: var(--atelier-space-2); }
+.print-drying-settings input { min-width: 0; width: 100%; }
 @media (max-width: 480px) {
   .print-option-list { grid-template-columns: 1fr; }
+  .print-drying-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .print-drying-settings label { grid-column: 1 / -1; }
 }
 .filament-shortfall { margin: 0; padding: var(--atelier-space-2); color: var(--atelier-warning); border-inline-start: var(--atelier-active-rule) solid currentColor; }
 .rating-task { display: flex; gap: var(--atelier-space-3); align-items: center; overflow-wrap: anywhere; }
@@ -405,7 +417,7 @@ details[open] > .atelier-disclosure::before { transform: rotate(45deg); }
 @media (prefers-reduced-motion: reduce) { .atelier-disclosure::before { transition: none; } }
 button.atelier-count { border: 0; cursor: pointer; }
 
-/* Bandeau de chauffe anormale : pleine largeur au-dessus des cartes, sans action (maquette chauffe-anormale). */
+/* Le bandeau permet de masquer un épisode sans modifier la consigne de l’imprimante. */
 .print-heat-warning {
   grid-column: 1 / -1;
   display: grid;
@@ -419,6 +431,8 @@ button.atelier-count { border: 0; cursor: pointer; }
 .print-heat-warning[hidden] { display: none; }
 .print-heat-warning strong { color: var(--atelier-warning); }
 .print-heat-warning span { font: var(--atelier-caption); }
+.heat-episode { display: flex; flex-wrap: wrap; align-items: center; gap: var(--atelier-space-2); justify-content: space-between; }
+.heat-episode-chart { flex: 0 0 100%; max-width: var(--atelier-compact-dialog-width); }
 #temperatures tr.heat-alert :is(th, td:first-of-type) { color: var(--atelier-warning); font-weight: var(--atelier-semibold); }
 
 /* Conseil de séchage : encadré d’attention sous le module, sans rien lancer (maquette sechage-conseille). */

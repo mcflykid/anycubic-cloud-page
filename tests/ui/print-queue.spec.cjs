@@ -1,5 +1,5 @@
 const {test, expect} = require('@playwright/test');
-const {login, openSection} = require('./helpers.cjs');
+const {login, openSection,chooseFileAction}=require('./helpers.cjs');
 
 test('la file prépare la confirmation sans émettre d’ordre', async ({page}) => {
   let items = [], orders = 0;
@@ -16,7 +16,7 @@ test('la file prépare la confirmation sans émettre d’ordre', async ({page}) 
   await page.route('**/imprimante-api/command', route => { orders++; return route.abort(); });
   await login(page, 'files');
   await page.locator('[data-source=cloud]').click();
-  await page.locator('#file-rows tr').first().getByRole('button',{name:'Ajouter à la file'}).click();
+  await chooseFileAction(page.locator('#file-rows tr').first(), 'Ajouter à la file');
   await expect(page.locator('#message-text')).toContainText('Fichier ajouté à la file d’attente.');
   await openSection(page, 'overview');
   await page.locator('#queue-open').click();
@@ -60,7 +60,7 @@ test('la confirmation mémorise les emplacements sans envoyer d’ordre', async 
   await page.route('**/imprimante-api/command', route => { orders++; return route.abort(); });
   await login(page, 'files');
   await page.locator('[data-source=cloud]').click();
-  await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+  await chooseFileAction(page.locator('#file-rows tr').first(), 'Imprimer');
   await page.locator('#print-ace-rows select').first().selectOption('1');
   await page.locator('#print-add-slot').click();
   await page.locator('#print-ace-rows select').nth(1).selectOption('3');

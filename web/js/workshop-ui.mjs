@@ -284,42 +284,14 @@ export const formatText = (label, ...values) =>
   tr(label).replace(/\{(\d+)\}/g, (_, index) => String(values[index] ?? ''));
 export const timeZone = document.documentElement.dataset.timeZone || 'Europe/Paris';
 
-/** Bande « Fin prévue » des détails : heure du fichier, heure corrigée et base de la correction. */
-export function taskFinish(estimate) {
-  const band = $('correct-finish-settings');
-  band.hidden = !estimate;
-  if (!estimate) return;
-  const time = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
-  const gap = Math.round((estimate.finish - estimate.original) / 60);
-  const corrected = $('correct-finish').checked;
-  const list = $('task-finish-metrics');
-  list.replaceChildren(...[
-    [tr('Selon le fichier'), time.format(estimate.original * 1000)],
-    [tr('Corrigée avec l’historique'), time.format(estimate.finish * 1000) +
-      (gap ? ` · ${gap > 0 ? '+' : '−'}${fmt(Math.abs(gap), ' min')}` : '')],
-  ].map(([label, value], index) => {
-    const row = node('div', null, 'task-detail-metric');
-    // La valeur retenue reste en gras ; l’autre est gardée pour comparaison.
-    if (index === Number(!corrected)) row.dataset.active = 'true';
-    row.append(node('dt', label), node('dd', value));
-    return row;
-  }), $('correct-finish').closest('label'));
-  set('task-finish-basis', formatText('{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %',
-    estimate.samples, estimate.factor.toLocaleString(locale), estimate.live_weight));
-}
-
-/** Présente les deux estimations et les données utilisées pour la correction. */
-export function finishEstimate(id, estimate) {
+/** Ancre la fin prévue au relevé de temps restant transmis par l’imprimante. */
+export function finishEstimate(id, remainingMinutes, observedAt) {
   const element = $(id);
-  let enabled = true;
-  try { enabled = localStorage.getItem('cloud-page-correct-finish') !== 'off'; } catch {}
-  element.hidden = !enabled || !estimate;
+  const reportedAt = Date.parse(observedAt);
+  element.hidden = !Number.isFinite(remainingMinutes) || remainingMinutes <= 0 || !Number.isFinite(reportedAt);
   if (element.hidden) return;
   const time = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
-  element.textContent = formatText('Fin prévue {0} · estimation du fichier {1}',
-    time.format(estimate.finish * 1000), time.format(estimate.original * 1000));
-  element.title = formatText('{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %',
-    estimate.samples, estimate.factor.toLocaleString(locale), estimate.live_weight);
+  element.textContent = formatText('Fin prévue {0}', time.format(reportedAt + remainingMinutes * 60_000));
 }
 
 const timelineIcons = {

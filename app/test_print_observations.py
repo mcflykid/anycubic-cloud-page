@@ -33,9 +33,13 @@ class DryingAdviceTests(unittest.TestCase):
             {"0": {"humidity": 48, "material": "PETG", "temperature": 55, "hours": 6}},
         )
         self.assertEqual(drying_advice(printer, presets, samples[-1:], 1000), {})
+        custom = [{**row, "humidity_threshold": 50} for row in presets]
+        self.assertEqual(drying_advice(printer, custom, samples, 1000), {})
         self.assertEqual(
             drying_advice({**printer, "job_in_progress": True}, presets, samples, 1000), {}
         )
+        # Un état transitoire peut être occupé avant que le Cloud ne rapporte un projet actif.
+        self.assertEqual(drying_advice({**printer, "is_busy": True}, presets, samples, 1000), {})
 
 
 class TimelineTests(unittest.TestCase):
@@ -68,65 +72,6 @@ class TimelineTests(unittest.TestCase):
         self.assertIs(observe_timeline(events, job, 120), events)
 
 
-class FinishEstimateTests(unittest.TestCase):
-    """La correction exige des durées comparables et une vitesse stable."""
-
-    def test_median_excludes_other_printers_and_failed_jobs(self):
-        """Une valeur extrême ne déplace pas la médiane des tâches réussies."""
-        from print_observations import historical_duration_factor
-
-        rows = [
-            {"printer_id": 7, "print_status": 2, "estimated_time_s": 600, "print_time": duration}
-            for duration in (10, 11, 12, 13, 90)
-        ]
-        self.assertIsNone(historical_duration_factor(rows[:4], 7))
-        rows += [{**rows[0], "printer_id": 8}, {**rows[0], "print_status": 3}]
-        self.assertEqual(historical_duration_factor(rows, 7), (1.2, 5))
-
-    def test_task_list_estimate_field_is_accepted(self):
-        """Les lignes de la liste Cloud portent « estimate » et suffisent au ratio."""
-        from print_observations import historical_duration_factor
-
-        rows = [
-            {"printer_id": 7, "print_status": 2, "estimate": 600, "print_time": duration}
-            for duration in (10, 11, 12, 13, 14)
-        ]
-        self.assertEqual(historical_duration_factor(rows, 7), (1.2, 5))
-
-    def test_engine_reads_history_without_the_history_tab(self):
-        """Le moteur relit la première page au plus toutes les trente minutes."""
-        import asyncio
-        from unittest.mock import AsyncMock, patch
-        from types import SimpleNamespace
-        import printer_engine
-
-        engine = printer_engine.Engine()
-        engine.printer = SimpleNamespace(id=7)
-        engine.extras = SimpleNamespace(task_list=AsyncMock())
-        clock = [5000]
-        with patch.object(printer_engine.time, "monotonic", side_effect=lambda: clock[0]):
-            for moment in (5000, 5100, 7000):
-                clock[0] = moment
-                asyncio.run(engine.refresh_duration_factor())
-        self.assertEqual(engine.extras.task_list.await_count, 2)
-
-    def test_finish_uses_live_remaining_time_and_rejects_speed_change(self):
-        """Le relevé de l’imprimante pèse davantage avec la progression."""
-        from print_observations import corrected_finish
-
-        job = {
-            "job_state": "printing",
-            "job_progress": 50,
-            "job_time_elapsed": 5,
-            "job_time_remaining": 5,
-        }
-        self.assertEqual(
-            corrected_finish(job, 600, (1.2, 5), False, 1000),
-            {"finish": 1360, "original": 1300, "samples": 5, "factor": 1.2, "live_weight": 50},
-        )
-        self.assertIsNone(corrected_finish(job, 600, (1.2, 5), True, 1000))
-
-
 class FirmwareObservationTests(unittest.TestCase):
     """Protège la restitution des notes constructeur."""
 
@@ -151,6 +96,14 @@ class FirmwareObservationTests(unittest.TestCase):
             },
         )
         self.assertEqual(firmware_release_notes(None)["text"], "")
+
+    def test_firmware_notes_limit_constructor_text(self):
+        """Une note très longue reste consultable sans transmettre toute la réponse cloud."""
+        from types import SimpleNamespace
+        from native_controls import firmware_release_notes
+
+        note = firmware_release_notes(SimpleNamespace(_update_desc="x" * 20_000))
+        self.assertEqual(len(note["text"]), 4000)
 
 
 class HeatObservationTests(unittest.TestCase):
@@ -183,4 +136,49 @@ class HeatObservationTests(unittest.TestCase):
             {"time": stamp, "nozzle": 180, "nozzle_target": 210} for stamp in range(100, 401, 10)
         ]
         self.assertEqual(heat_alerts(printer, samples[1:], 400), [])
-        self.assertEqual(heat_alerts(printer, samples, 400)[0]["seconds"], 300)
+        warning = heat_alerts(printer, samples, 400)[0]
+        self.assertEqual(warning["seconds"], 300)
+        self.assertEqual(
+            heat_alerts({**printer, "curr_nozzle_temp": 180}, samples, 400)[0]["kind"], "stalled"
+        )
+        self.assertEqual(
+            warning["readings"][-1], {"time": 400, "nozzle": 180, "nozzle_target": 210}
+        )
+
+    def test_impossible_temperature_is_distinct_from_a_heating_delay(self):
+        """Une lecture impossible ne doit pas attendre la durée maximale du préchauffage."""
+        printer = {
+            "printer_online": True,
+            "job_state": "preheating",
+            "target_nozzle_temp": 210,
+            "curr_nozzle_temp": -80,
+        }
+        self.assertEqual(heat_alerts(printer, [], 100)[0]["kind"], "sensor")
+
+
+class HeatDeliveryTests(unittest.IsolatedAsyncioTestCase):
+    """Le suivi de chauffe émet un seul événement Discord par épisode réel ou fictif."""
+
+    async def test_persistent_warning_is_sent_once_until_recovery(self):
+        """Un second épisode émet une nouvelle alerte après une lecture redevenue plausible."""
+        from unittest.mock import AsyncMock, Mock
+        from server import deliver_heat_episodes
+
+        delivery = Mock(scope="fixture", observe=AsyncMock())
+        printer = dict(
+            printer_online=True,
+            job_state="preheating",
+            target_nozzle_temp=210,
+            curr_nozzle_temp=-80,
+        )
+        state = await deliver_heat_episodes(delivery, printer, [], 100, 1, 1, set())
+        await deliver_heat_episodes(delivery, printer, [], 110, 1, 1, state)
+        delivery.observe.assert_awaited_once()
+        recovered = await deliver_heat_episodes(
+            delivery, {**printer, "curr_nozzle_temp": 210}, [], 120, 1, 1, state
+        )
+        await deliver_heat_episodes(delivery, printer, [], 130, 1, 1, recovered)
+        self.assertEqual(delivery.observe.await_count, 2)
+        events = [call.args[0][0] for call in delivery.observe.await_args_list]
+        self.assertEqual([event.result for event in events], ["heat_anomaly", "heat_anomaly"])
+        self.assertNotEqual(events[0].key, events[1].key)

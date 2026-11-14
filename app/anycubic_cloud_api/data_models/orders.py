@@ -228,12 +228,14 @@ class AnycubicStartPrintRequestLocal(AnycubicBaseStartPrintRequest):
     __slots__ = (
         "_filename",
         "_filepath",
+        "_preparation",
     )
 
     def __init__(
         self,
         filename: str = "",
         filepath: str = "",
+        preparation: dict[str, int] | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialise le modèle et ses données locales depuis les paramètres fournis."""
@@ -241,6 +243,12 @@ class AnycubicStartPrintRequestLocal(AnycubicBaseStartPrintRequest):
         self._filename = filename
         self._filepath = filepath
         self._filetype = 1
+        self._preparation = preparation or {}
+
+    @property
+    def task_settings(self) -> dict[str, Any]:
+        """Conserve les options historiques et les valeurs explicites du lancement mémoire."""
+        return {**super().task_settings, **self._preparation}
 
     @property
     def filepath(self) -> str:

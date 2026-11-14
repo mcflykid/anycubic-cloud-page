@@ -11,6 +11,7 @@ from maintenance import filament_kg, maintenance_rows, update_maintenance
 from print_preflight import evaluate_preflight, filament_shortfalls
 from temperature_history import ace_readings
 from print_observations import drying_advice, heat_alerts
+from diagnostic_findings import diagnostic_findings
 from web_host import (
     APP_VERSION,
     install_ui_resources,
@@ -29,7 +30,6 @@ T = time.time()
 NOTICES = web.AppKey("notices", list)
 SLICER_NOTICES = web.AppKey("slicer_notices", list)
 PRINT_TASKS = web.AppKey("print_tasks", list)
-TASK_NOTES = web.AppKey("task_notes", dict)
 MAINTENANCE = web.AppKey("maintenance", Path)
 QUEUE = web.AppKey("queue", list)
 SCENARIO = web.AppKey("scenario", dict)
@@ -319,11 +319,18 @@ def scenario_status(name, printer, at):
             curr_nozzle_temp=28 if slow else 196,
         )
         if slow:
-            samples = [{"time": at - 630 + 30 * i, "bed": 52, "bed_target": 60} for i in range(22)]
+            samples = [
+                {"time": at - 630 + 30 * i, "bed": 51 if i < 10 else 52, "bed_target": 60}
+                for i in range(22)
+            ]
         else:
             # La consigne était atteinte avant la chute : seule une baisse en impression alerte.
             samples = [
-                {"time": at - 300 + 30 * i, "nozzle": 209 if i < 7 else 196, "nozzle_target": 210}
+                {
+                    "time": at - 300 + 30 * i,
+                    "nozzle": 209 if i < 7 else 197 if i < 9 else 196,
+                    "nozzle_target": 210,
+                }
                 for i in range(11)
             ]
         extra["heat_alerts"] = heat_alerts(printer, samples, at)
@@ -357,12 +364,10 @@ async def api(request):
     notices = request.app[NOTICES]
     slicer_notices = request.app[SLICER_NOTICES]
     tasks = request.app[PRINT_TASKS]
-    notes = request.app[TASK_NOTES]
     if path == "demo/reset" and request.method == "POST":
         notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         slicer_notices[:] = [dict(x) for x in NOTICE_FIXTURES]
         tasks[:] = [dict(x) for x in TASKS]
-        notes.clear()
         request.app[MAINTENANCE].write_text(json.dumps(MAINTENANCE_FIXTURE), encoding="utf-8")
         request.app[QUEUE][:] = [dict(x) for x in QUEUE_FIXTURE]
         request.app[SCENARIO]["name"] = "standard"
@@ -374,13 +379,6 @@ async def api(request):
                 return web.json_response({"ok": False, "message": "État inconnu"}, status=400)
             request.app[SCENARIO]["name"] = name
         return web.json_response({"name": request.app[SCENARIO]["name"], "names": SCENARIO_NAMES})
-    if path == "task-note" and request.method == "POST":
-        data = await request.json()
-        if not any(task["key"] == data.get("key") for task in tasks):
-            return web.json_response({"ok": False, "message": "Tâche inconnue"}, status=400)
-        note = {"text": data["text"], "tags": data["tags"]}
-        notes[data["key"]] = note
-        return web.json_response({"note": note})
     if path == "maintenance":
         file = request.app[MAINTENANCE]
         hours, material = PRINTER["statistics"]["hours"], PRINTER["statistics"]["material"]
@@ -647,18 +645,14 @@ async def api(request):
         page = max(1, int(request.query.get("page", 1)))
         offset = (page - 1) * 3
         d = {
-            "items": [
-                {**task, "local_note": notes.get(task["key"])}
-                for task in tasks[offset : offset + 3]
-            ],
+            "items": tasks[offset : offset + 3],
             "page": page,
             "has_more": offset + 3 < len(tasks),
         }
     elif path == "extras/task":
+        is_witness = request.query.get("key") == TASKS[0]["key"]
         d = {
-            "timeline": PRINTER["print_timeline"]
-            if request.query.get("key") == TASKS[0]["key"]
-            else [],
+            "timeline": PRINTER["print_timeline"] if is_witness else [],
             "name": TASKS[0]["name"],
             "reason": "",
             "reason_code": "",
@@ -715,10 +709,19 @@ async def api(request):
                     "requested_slots": [1],
                     "prepared_ace_indices": [0],
                     "serialized_mapping": [{"ams_index": 0, "paint_index": 0}],
+                    "serialized_preparation": {"auto_leveling": 0, "camera_timelapse": 1},
                     "cloud_accepted": True,
+                    "matches_active_job": True,
                 },
                 "signals": [{"transport": "mqtt", "phase": "receive", "type": "print", "ms": 1}],
             }
+            details = d["developer"]
+            details["findings"] = diagnostic_findings(
+                details["freshness_s"],
+                details["ace"],
+                details["last_stored_print"],
+                details["job_active"],
+            )
     elif path == "health":
         d = {"service": "ok", "demo": True}
     else:
@@ -731,7 +734,6 @@ def create_demo(authenticated=False):
     app = web.Application(middlewares=[access_control] if authenticated else [])
     app[NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
     app[SLICER_NOTICES] = [dict(x) for x in NOTICE_FIXTURES]
-    app[TASK_NOTES] = {}
     app[PRINT_TASKS] = [dict(x) for x in TASKS]
     # Le registre réel écrit un fichier : la démonstration lui donne un dossier jetable.
     app[MAINTENANCE] = Path(tempfile.mkdtemp(prefix="cloud-page-demo-")) / "maintenance.json"

@@ -1,5 +1,26 @@
 # Changements
 
+## 2.0.0 — 2026-11-14
+
+- Retire les notes et les étiquettes locales de l’historique (#406).
+- Regroupe les actions du stockage dans un menu à trois points adapté au format et donne accès aux détails disponibles pour les fichiers tranchés et les projets 3MF Cloud (#407).
+- Documente le code 10601 et ajoute les liens communautaires des bobines identifiées et un catalogue Anycubic consultable sans bobine chargée (#405).
+- Actualise les options de lancement mémoire et permet d’arrêter la tâche identifiée pendant la détection IA, signalée comme BETA (#408).
+- Privilégie le relevé MQTT pour la ventilation de pièce pendant la préparation et l’impression (#383).
+- Affiche les températures des dix dernières minutes lors d’une alerte de chauffe, permet de masquer l’épisode et propose une notification Discord facultative (#356).
+- Affiche la fin prévue d’après le temps restant annoncé par l’imprimante, sans correction fondée sur l’historique (#384).
+
+- Place la fermeture de la Vue mur dans un carré marqué ×, en haut à droite (Refs #387).
+
+- Affiche la préparation d’un lancement mémoire dès que l’imprimante rapporte la nouvelle tâche attendue (#394).
+- Permet d’arrêter une nouvelle tâche mémoire identifiée pendant sa vérification et distingue une machine occupée d’une impression active (Refs #331, #394).
+- Rapproche la confirmation du Slicer Next et transmet les options de préparation annoncées par la Kobra S1 pour un lancement mémoire. Les modes de séchage associés au lancement restent indisponibles (#331, #404).
+- Complète les paramètres de séchage du PLA-CF Anycubic et reconnaît trois références RFID supplémentaires de PLA Basic et PLA Glow (Refs #392).
+- Indique quels modèles doivent être tranchés avant leur envoi à l’imprimante.
+- Permet de modifier le seuil d’humidité dans les préréglages de séchage et masque le conseil lorsque l’imprimante est occupée (#344).
+- Affiche les notes de mise à jour du micrologiciel quand le Cloud les fournit, avec un lien vers la documentation officielle (#359).
+- Affiche correctement l’état du relais automatique quand l’ACE renvoie 0 ou 1.
+
 ## 1.18.3 — 2026-11-14
 
 - Corrige le retracé des repères de Commandes courantes, qui levait une erreur après un redimensionnement (#401).

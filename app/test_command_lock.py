@@ -505,6 +505,16 @@ class CommandLockTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads(path.read_text()), entries)
         self.assertEqual(self.engine.presets, entries)
         self.assertEqual(list(path.parent.iterdir()), [path])
+        configured = [{**row, "humidity_threshold": 50} for row in entries]
+        await execute_command(self.engine, "presets", {"presets": configured})
+        self.assertEqual(json.loads(path.read_text()), configured)
+        with self.assertRaises(ValueError):
+            await execute_command(
+                self.engine,
+                "presets",
+                {"presets": [{**row, "humidity_threshold": 101} for row in entries]},
+            )
+        self.assertEqual(self.engine.presets, configured)
 
     async def test_purge_only_abandoned_upload_directories(self):
         """Un lien, une entrée étrangère et un transfert récent restent hors du nettoyage."""

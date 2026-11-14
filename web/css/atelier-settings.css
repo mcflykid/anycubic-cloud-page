@@ -362,3 +362,5 @@ body:has(.workshop-frame) > #ai-dialog { width: min(var(--atelier-ai-dialog-widt
   border-radius: 50%;
   background: currentColor;
 }
+
+.developer-card [data-summary] { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }

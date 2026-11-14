@@ -1,5 +1,98 @@
 const {test,expect}=require('@playwright/test');
-const {login}=require('./helpers.cjs');
+const {login,chooseFileAction}=require('./helpers.cjs');
+
+test('la préparation en démo permet de décocher le nivellement sans envoyer de commande', async ({page}) => {
+ const commands=[];
+ await page.route('**/imprimante-api/command', route => {
+  commands.push(route.request().method());
+  return route.abort();
+ });
+ await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{
+  files:[{name:'fixture.gcode'}],path:'/'
+ }}));
+ await login(page,'files');
+ const row=page.locator('#file-rows');
+ const options=page.locator('#print-options');
+ const leveling=options.getByRole('checkbox',{name:'Mise à niveau du plateau'});
+ await chooseFileAction(row, 'Imprimer');
+ await expect(leveling).toBeChecked();
+ await leveling.uncheck();
+ await expect(leveling).not.toBeChecked();
+ for(const name of ['Compensation de résonance','Détection IA (BETA)','Timelapse','Calibration du débit']){
+  const option=options.getByRole('checkbox',{name});
+  await expect(option).not.toBeChecked();
+  await option.check();
+ }
+ await page.locator('#print-no').click();
+ await chooseFileAction(row, 'Imprimer');
+ await expect(leveling).toBeChecked();
+ await expect(options.getByRole('checkbox',{checked:true})).toHaveCount(1);
+ expect(commands).toEqual([]);
+});
+
+test('la confirmation hors démo garde les options non qualifiées indisponibles', async ({page}) => {
+ await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{
+  files:[{name:'fixture.gcode'}],path:'/'
+ }}));
+ await login(page,'files');
+ await page.locator('.demo-banner').evaluate(banner=>banner.remove());
+ await chooseFileAction(page.locator('#file-rows'), 'Imprimer');
+ const options=page.locator('#print-options');
+ await expect(options.locator('input[type=checkbox]:disabled')).toHaveCount(5);
+ await expect(options.locator('.print-options-live-note')).toBeVisible();
+ await page.locator('#print-no').click();
+});
+
+test('le lancement mémoire envoie le nivellement décoché et seulement les options annoncées', async ({page}) => {
+ const commands=[];
+ await page.route('**/imprimante-api/status**', async route => {
+  const response=await route.fetch(), json=await response.json();
+  json.printer.stored_print_options=['auto_leveling','camera_timelapse'];
+  return route.fulfill({response,json});
+ });
+ await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{
+  files:[{name:'fixture.gcode'}],path:'/'
+ }}));
+ await page.route('**/imprimante-api/command', route => {
+  commands.push(route.request().postDataJSON());
+  return route.fulfill({json:{ok:true,message:'Ordre fictif'}});
+ });
+ await login(page,'files');
+ await page.locator('.demo-banner').evaluate(banner=>banner.remove());
+ await chooseFileAction(page.locator('#file-rows'), 'Imprimer');
+ const dialog=page.locator('#print-dialog');
+ await expect(dialog.locator('#print-destination-spools li')).toHaveCount(4);
+ await expect(dialog.locator('#print-auto-leveling')).toBeChecked();
+ await dialog.locator('#print-auto-leveling').uncheck();
+ await dialog.getByRole('checkbox',{name:'Timelapse'}).check();
+ await expect(dialog.getByRole('checkbox',{name:'Calibration du débit'})).toBeDisabled();
+ await dialog.locator('#print-ace-rows select').selectOption('1');
+ await dialog.locator('#print-yes').click();
+ await expect.poll(()=>commands.map(order=>order.preparation)).toEqual([{auto_leveling:false,camera_timelapse:true}]);
+});
+
+test('la confirmation mémoire reçoit les capacités qui arrivent après son ouverture', async ({page}) => {
+ let ready = false;
+ await page.route('**/imprimante-api/status**', async route => {
+  const response = await route.fetch(), json = await response.json();
+  json.printer.stored_print_options = ready ? ['auto_leveling','ai_detect','camera_timelapse'] : ['auto_leveling'];
+  return route.fulfill({response,json});
+ });
+ await page.route('**/imprimante-api/files/local?**', route =>
+  route.fulfill({json:{files:[{name:'fixture.gcode'}],path:'/'}}));
+ await login(page,'files');
+ await page.locator('.demo-banner').evaluate(banner=>banner.remove());
+ await chooseFileAction(page.locator('#file-rows'), 'Imprimer');
+ const dialog = page.locator('#print-dialog');
+ const leveling = dialog.locator('#print-auto-leveling');
+ const ai = dialog.getByRole('checkbox',{name:'Détection IA (BETA)',exact:true});
+ await expect(ai).toBeDisabled();
+ await leveling.uncheck();
+ ready = true;
+ await expect(ai).toBeEnabled();
+ await expect(dialog.getByRole('checkbox',{name:'Timelapse'})).toBeEnabled();
+ await expect(leveling).not.toBeChecked();
+});
 
 test('les filtres de fichiers combinent matière et durée et isolent les données inconnues', async ({page}) => {
  await page.route('**/imprimante-api/files/cloud?**', route => route.fulfill({json:{files:[
@@ -36,7 +129,7 @@ test('les fichiers tardifs ne changent pas de source et la dernière lecture rep
  await page.getByRole('button',{name:'Clé USB',exact:true}).click();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);release();
  await expect(page.getByText('courant-usb.gcode',{exact:true})).toBeVisible();
  await expect(page.locator('#files-loading')).toBeHidden();await expect(page.getByText('ancien-local.gcode',{exact:true})).toHaveCount(0);
- await page.locator('#file-rows').getByRole('button',{name:'Supprimer',exact:true}).click();await page.locator('#confirm-yes').click();await expect.poll(()=>commands.length).toBe(1);
+ await chooseFileAction(page.locator('#file-rows'), 'Supprimer');await page.locator('#confirm-yes').click();await expect.poll(()=>commands.length).toBe(1);
  expect(commands[0].action).toBe('delete-usb');expect(commands[0].name).toBe('courant-usb.gcode');
 });
 /** Le chemin et le cloud courants sont relus après une consultation en attente. */
@@ -65,7 +158,23 @@ test('les fichiers non imprimables et la dernière page désactivent les actions
  await login(page);
  await page.getByRole('button',{name:'Fichiers',exact:true}).click();
  await page.getByRole('button',{name:'Cloud Anycubic',exact:true}).click();
- await expect(page.locator('#file-rows').getByRole('button',{name:'Imprimer',exact:true})).toBeDisabled();
+ await expect(page.locator('#file-rows')).toContainText('3MF · à trancher');
+ const row = page.locator('#file-rows');
+ await expect(row.getByRole('button',{name:'Imprimer',exact:true})).toHaveCount(0);
+ await expect(row.getByRole('button',{name:'Télécharger',exact:true})).toHaveCount(0);
+ const trigger = row.getByRole('button',{name:/Actions du fichier/});
+ await trigger.focus();
+ await page.keyboard.press('Enter');
+ await expect(trigger).toHaveAttribute('aria-expanded','true');
+ await expect(row.getByRole('button',{name:'Télécharger',exact:true})).toBeVisible();
+ await expect(row.getByRole('button',{name:'Imprimer',exact:true})).toHaveCount(0);
+ await page.keyboard.press('Escape');
+ await expect(trigger).toBeFocused();
+ await expect(trigger).toHaveAttribute('aria-expanded','false');
+ await trigger.click();
+ await row.locator('.files-row-actions').getByRole('button',{name:'Détails du fichier'}).click();
+ await expect(page.getByRole('dialog',{name:'fixture.3mf'})).toBeVisible();
+ await page.keyboard.press('Escape');
  await expect(page.locator('#next-page')).toBeDisabled();
 });
 
@@ -162,7 +271,7 @@ test('l’ordre des bobines se règle dans la confirmation du fichier choisi', a
  await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{files:[{name:'piece.gcode.3mf'}],path:'/'}}));
  await login(page, 'files');
  const row = page.locator('#file-rows tr').first();
- await row.getByRole('button', {name:'Imprimer',exact:true}).click();
+ await chooseFileAction(row, 'Imprimer');
  const dialog = page.getByRole('dialog', {name:'Lancer l’impression'});
  await expect(dialog).toContainText('Kobra S1 · Démonstration');
  await expect(dialog).toContainText('Aperçu indisponible');
@@ -180,4 +289,28 @@ test('l’ordre des bobines se règle dans la confirmation du fichier choisi', a
  await dialog.getByRole('button', {name:'Lancer l’impression',exact:true}).click();
  await expect.poll(() => commands.length).toBe(1);
  expect(commands[0]).toMatchObject({action:'print-local',name:'piece.gcode.3mf',slots:[1,3,2]});
+});
+
+test('une nouvelle tâche mémoire corrélée remplace l’attente sans accusé MQTT', async ({page}) => {
+ let accepted = false;
+ await page.route('**/imprimante-api/status**', async route => {
+  const response = await route.fetch();
+  const data = await response.json();
+  Object.assign(data.printer, accepted
+   ? {job_name:'piece.gcode.3mf', command_project:'nouvelle', job_in_progress:true, job_state:'preheating', is_available:false}
+   : {job_name:'piece.gcode.3mf', command_project:'ancienne', job_in_progress:false, is_available:true});
+  await route.fulfill({json:data});
+ });
+ await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{files:[{name:'piece.gcode.3mf'}],path:'/'}}));
+ await page.route('**/imprimante-api/command', route => {
+  accepted = true;
+  return route.fulfill({json:{ok:true,message:'Confirmation machine en attente'}});
+ });
+ await login(page, 'files');
+ await chooseFileAction(page.locator('#file-rows tr').first(), 'Imprimer');
+ const dialog = page.getByRole('dialog', {name:'Lancer l’impression'});
+ await dialog.locator('#print-ace-rows select').first().selectOption('1');
+ await dialog.getByRole('button', {name:'Lancer l’impression',exact:true}).click();
+ await expect(dialog.getByText('Préparation en cours sur l’imprimante.')).toBeVisible();
+ await expect(page.locator('#message')).toBeHidden();
 });

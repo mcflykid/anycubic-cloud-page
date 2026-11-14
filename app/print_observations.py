@@ -3,59 +3,6 @@
 import math
 import json
 from itertools import pairwise
-from statistics import median
-
-
-def historical_duration_factor(rows, printer_id):
-    """Calcule le ratio médian des vingt dernières réussites de cette machine, si cinq sont exploitables."""
-    completed = [
-        row
-        for row in rows
-        if str(row.get("printer_id")) == str(printer_id) and str(row.get("print_status")) == "2"
-    ][:20]
-    ratios = []
-    for row in completed:
-        try:
-            # La liste des tâches donne « estimate » ; seul le détail d’une tâche donne « estimated_time_s ».
-            estimated = float(row.get("estimated_time_s", row.get("estimate")))
-            actual = float(row["print_time"]) * 60
-        except (KeyError, ValueError, TypeError):
-            continue
-        if math.isfinite(estimated) and math.isfinite(actual) and estimated > 0 and actual > 0:
-            ratios.append(actual / estimated)
-    return (median(ratios), len(ratios)) if len(ratios) >= 5 else None
-
-
-def corrected_finish(job, estimated_seconds, history, speed_changed, at):
-    """Renvoie les fins estimées en secondes Unix pour une tâche en cours à vitesse stable."""
-    if speed_changed or not history or job.get("job_state") != "printing":
-        return None
-    progress, elapsed, remaining = (
-        job.get(key)
-        for key in (
-            "job_progress",
-            "job_time_elapsed",
-            "job_time_remaining",
-        )
-    )
-    if any(
-        type(value) not in (int, float) or not math.isfinite(value) or value < 0
-        for value in (estimated_seconds, progress, elapsed, remaining)
-    ):
-        return None
-    if not estimated_seconds or progress >= 100:
-        return None
-    factor, count = history
-    weight = progress / 100
-    original = max(0, estimated_seconds - elapsed * 60)
-    corrected = max(0, estimated_seconds * factor - elapsed * 60)
-    return {
-        "finish": round(at + corrected * (1 - weight) + remaining * 60 * weight),
-        "original": round(at + original),
-        "samples": count,
-        "factor": round(factor, 3),
-        "live_weight": round(progress),
-    }
 
 
 def observe_timeline(events, job, stamp):
@@ -117,7 +64,11 @@ def drying_advice(printer, presets, samples, at):
     """Propose un préréglage existant après quinze minutes de mesures d’humidité cohérentes."""
     from filament_catalog import material_family
 
-    if not printer.get("printer_online") or printer.get("job_in_progress") is not False:
+    if (
+        not printer.get("printer_online")
+        or printer.get("is_busy") is True
+        or printer.get("job_in_progress") is not False
+    ):
         return {}
     thresholds = {"PLA": 40, "PETG": 30, "PA": 30, "PC": 30, "TPU": 30, "ABS": 30, "ASA": 30}
     configured = {}
@@ -158,8 +109,12 @@ def drying_advice(printer, presets, samples, at):
         }
         if not families or not families <= configured.keys() or not families <= thresholds.keys():
             continue
-        sensitive = min(families, key=lambda family: (thresholds[family], family))
-        if average <= thresholds[sensitive]:
+        limits = {
+            family: configured[family].get("humidity_threshold", thresholds[family])
+            for family in families
+        }
+        sensitive = min(families, key=lambda family: (limits[family], family))
+        if average <= limits[sensitive]:
             continue
         temperature = min(configured[family]["temperature"] for family in families)
         if box.get("model") == "ACE 2 Pro" and temperature > 65:
@@ -181,8 +136,17 @@ def heat_alerts(printer, samples, at):
     warnings = []
     for part, limit in (("nozzle", 300), ("bed", 600)):
         window, deviation = (limit, 5) if phase == "preheating" else (60, 10)
-        goal = printer.get(f"target_{'hotbed' if part == 'bed' else 'nozzle'}_temp")
+        field = "hotbed" if part == "bed" else "nozzle"
+        goal = printer.get(f"target_{field}_temp")
         if type(goal) not in (int, float) or not math.isfinite(goal) or goal <= 0:
+            continue
+        actual = printer.get(f"curr_{field}_temp")
+        # Les bornes larges écartent les codes de défaut sans confondre un changement de cible et une panne.
+        ceiling = 500 if part == "nozzle" else 200
+        if type(actual) in (int, float) and math.isfinite(actual) and not -40 <= actual <= ceiling:
+            warnings.append(
+                {"part": part, "target": goal, "actual": actual, "seconds": 0, "kind": "sensor"}
+            )
             continue
         if phase == "printing":
             # Une chute suppose que la consigne courante a déjà été atteinte sans rupture de suivi.
@@ -218,12 +182,27 @@ def heat_alerts(printer, samples, at):
                 break
             points.append((stamp, temp))
         if points and at - points[0][0] <= 30 and points[0][0] - points[-1][0] >= window:
+            # Une valeur strictement identique, loin de la consigne, signale un capteur possiblement figé.
+            stalled = actual == points[0][1] and all(temp == actual for _, temp in points)
             warnings.append(
                 {
                     "part": part,
                     "target": goal,
                     "actual": points[0][1],
                     "seconds": points[0][0] - points[-1][0],
+                    "kind": "stalled" if stalled else "slow" if phase == "preheating" else "drop",
                 }
             )
+    for warning in warnings:
+        part = warning["part"]
+        warning["readings"] = [
+            {
+                "time": sample["time"],
+                part: sample.get(part),
+                f"{part}_target": sample.get(f"{part}_target"),
+            }
+            for sample in samples
+            if 0 <= at - sample["time"] <= 600
+        ][-120:]
+        warning["observed_at"] = at
     return warnings

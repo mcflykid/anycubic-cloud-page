@@ -12,6 +12,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from anycubic_cloud_api.data_models.gcode_file import AnycubicGcodeFile
 from demo import create_demo
 from developer_signals import mqtt_summary
+from diagnostic_findings import diagnostic_findings
 from upload_formats import validate_cloud_model
 
 
@@ -28,6 +29,9 @@ class DeveloperToolsTests(unittest.IsolatedAsyncioTestCase):
                 trace = (await response.json())["developer"]["last_stored_print"]
                 self.assertEqual(trace["requested_slots"], [1])
                 self.assertEqual(trace["serialized_mapping"], [{"ams_index": 0, "paint_index": 0}])
+                self.assertEqual(
+                    trace["serialized_preparation"], {"auto_leveling": 0, "camera_timelapse": 1}
+                )
                 self.assertFalse(set(trace) & {"name", "filename", "path", "filepath"})
 
     async def test_demo_states_use_the_real_rules_and_reset(self):
@@ -121,3 +125,25 @@ class DeveloperToolsTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result["ventilateurs"], {"fan_speed_pct": 0, "aux_fan_speed_pct": 25})
         self.assertNotIn("private", json.dumps(result))
+
+    def test_mqtt_projection_distinguishes_phase_and_occupancy(self):
+        """Les seuls états affichés sont les valeurs de protocole prévues."""
+        self.assertEqual(mqtt_summary({"type": "print", "state": "checking"})["state"], "checking")
+        busy = mqtt_summary({"type": "status", "action": "workReport", "state": "busy"})
+        self.assertEqual((busy["action"], busy["state"]), ("workReport", "busy"))
+        unknown = mqtt_summary({"type": "print", "state": "private fixture"})
+        self.assertEqual(unknown["state"], "autre")
+
+    def test_findings_ignore_ace_without_a_correlated_active_job(self):
+        """Un chargement en mémoire peut appartenir à une tâche précédente."""
+        ace = [{"observed_slot": 3}]
+        trace = {"requested_slots": [1], "matches_active_job": True}
+        self.assertEqual(
+            diagnostic_findings({"updated_at": 31}, ace, trace, True),
+            ["cloud_stale", "ace_mismatch"],
+        )
+        self.assertEqual(diagnostic_findings({}, ace, trace, False), [])
+        self.assertEqual(diagnostic_findings({}, ace, {"requested_slots": [1]}, True), [])
+        self.assertEqual(
+            diagnostic_findings({}, ace, {**trace, "requested_slots": [1, 3]}, True), []
+        )

@@ -18,19 +18,12 @@ test('la galerie conserve la recherche et la sélection en revenant à la liste'
  await expect(page.locator('#tasks-search')).toHaveValue('Cube');
 });
 
-test('une note locale rend la tâche trouvable par son texte et son étiquette', async ({page}) => {
+test('les détails et les filtres de l’historique ne proposent plus de notes locales', async ({page}) => {
  await history(page);
  await page.locator('#tasks-list .history-detail').first().click();
- const note = page.locator('#task-note-form');
- await note.locator('textarea').fill('Premier essai sur le plateau');
- await note.locator('[name=tags]').fill('Prototype, PLA');
- await note.getByRole('button',{name:'Enregistrer la note'}).click();
- await expect(note.getByRole('status')).toHaveText('Note locale enregistrée.');
- await page.keyboard.press('Escape');
- await page.locator('#tasks-search').fill('Premier essai');
- await page.locator('#tasks-tag').selectOption('Prototype');
- await expect(page.locator('#tasks-list tr')).toHaveCount(1);
- await expect(page.locator('#tasks-list')).toContainText('Prototype');
+ await expect(page.locator('#past-task-dialog')).toBeVisible();
+ await expect(page.locator('#task-note-form')).toHaveCount(0);
+ await expect(page.locator('#tasks-tag')).toHaveCount(0);
 });
 async function history(page){await page.goto('/login');await page.getByLabel('Identifiant').fill('admin');await page.getByLabel('Mot de passe').fill('ui-fixture-password');await page.getByRole('button',{name:'Se connecter',exact:true}).click();expect((await page.request.post('/imprimante-api/demo/reset',{data:{},headers:{Origin:new URL(page.url()).origin}})).status()).toBe(200);await openSection(page,'history');await expect(page.locator('#tasks-list>tr')).toHaveCount(3);}
 test('statuts, recherche combinée, dates par défaut et chargement progressif',async({page})=>{await history(page);await page.locator('#history-period-open').click();const from=await page.locator('#tasks-from').inputValue(),to=await page.locator('#tasks-to').inputValue();expect((new Date(to)-new Date(from))/86400000).toBe(89);await page.getByRole('button',{name:'Personnalisée',exact:true}).click();await expect(page.locator('.history-month:visible')).toHaveCount(1);await page.locator('#history-month-prev').click();const last=page.locator('.history-month [data-day]').last();const firstDay=await last.getAttribute('data-day');await last.click();await expect(page.locator('#history-period-apply')).toBeDisabled();await page.keyboard.press('ArrowRight');const first=page.locator('.history-month [data-day]').first();const lastDay=await first.getAttribute('data-day');await first.click();await page.keyboard.press('ArrowLeft');await expect(page.locator('.history-month [data-day]').last()).toBeFocused();await expect(page.locator('#tasks-from')).toHaveValue(firstDay);await expect(page.locator('#tasks-to')).toHaveValue(lastDay);await page.keyboard.press('Escape');await page.getByRole('button',{name:'Arrêtées',exact:true}).click();await expect(page.locator('#tasks-list>tr')).toHaveCount(1);await expect(page.locator('#tasks-list')).toContainText('Boîte de rangement');await page.locator('#tasks-search').fill('Cube');await expect(page.locator('#tasks-list>tr')).toHaveCount(0);await page.locator('#tasks-search').fill('');await page.getByRole('button',{name:'Tout',exact:true}).click();await page.locator('#tasks-next').click();await expect(page.locator('#tasks-list>tr')).toHaveCount(5);await expect(page.locator('#tasks-list')).not.toContainText('Vase décoratif');await page.locator('#history-period-open').click();await page.getByRole('button',{name:'Personnalisée',exact:true}).click();await page.locator('#tasks-from').fill('2000-01-01');await expect(page.locator('#tasks-list>tr')).toHaveCount(5);await page.locator('#history-period-apply').click();await expect(page.locator('#tasks-list>tr')).toHaveCount(3);await page.locator('#tasks-next').click();await expect(page.locator('#tasks-list>tr')).toHaveCount(6);await page.locator('#tasks-next').click();await expect(page.locator('#tasks-list>tr')).toHaveCount(7);await expect(page.locator('#tasks-next')).toBeHidden();});

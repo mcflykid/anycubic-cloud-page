@@ -1,6 +1,6 @@
 import { $, fmt, formatText, node, set, tr } from './workshop-ui.mjs';
 
-import { manufacturerProfiles } from './filament-profiles-data.mjs';
+import { communityFilamentVariants, manufacturerProfiles, officialPlaBasicVariants } from './filament-profiles-data.mjs';
 
 const storageKey = 'cloud-page-custom-filaments';
 const scalarFields = ['density', 'flow', 'minNozzle'];
@@ -13,6 +13,10 @@ function validateProfile(data) {
   const url = new URL(data.url);
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new TypeError();
   const profile = {name: data.name.trim(), url: url.href};
+  if (data.type != null) {
+    if (typeof data.type !== 'string' || !data.type.trim() || data.type.length > 80) throw new TypeError();
+    profile.type = data.type.trim();
+  }
   for (const key of scalarFields) {
     if (data[key] == null) continue;
     if (!Number.isFinite(data[key]) || data[key] <= 0) throw new TypeError();
@@ -90,23 +94,28 @@ function remainingValue(percent) {
 }
 
 /** Affiche la bobine lue par l’ACE, puis les valeurs d’impression et de séchage de la fiche. */
-function showProfile(spool, title, hex, name, profile, personal) {
+function showProfile(spool, title, hex, name, profile, personal, variant = null) {
   set('filament-slot-title', title);
   set('filament-profile-reference', formatText(personal ? 'Fiche personnelle « {0} »' : 'Valeurs du fabricant pour {0}', name));
-  const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
-    ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
-  rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
-  $('filament-profile-reading').replaceChildren(
-    item('Matériau', spool.material_type || '—'),
-    item('Couleur du filament', colorValue(hex)),
-    item('Filament restant', remainingValue(spool.remaining_percent)),
-    item('Identification', rfid),
-  );
+  $('filament-slot-title').closest('section').hidden = !spool;
+  if (spool) {
+    const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
+      ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
+    rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
+    $('filament-profile-reading').replaceChildren(
+      item('Matériau', spool.material_type || '—'),
+      item('Couleur du filament', colorValue(hex)),
+      item('Filament restant', remainingValue(spool.remaining_percent)),
+      item('Identification', rfid),
+    );
+  }
   const source = $('filament-profile-source');
-  source.href = profile.url;
+  source.href = variant?.productId ? profile.url + '?variant=' + variant.productId : profile.url;
   const communitySource = $('filament-profile-community-source');
-  communitySource.hidden = !profile.profileSource;
-  if (profile.profileSource) communitySource.href = profile.profileSource;
+  const communityUrl = variant?.id ? 'https://3dfilamentprofiles.com/filament/details/' + variant.id
+    : profile.communityVariants?.[hex.join(' · ').toUpperCase()] || profile.profileSource;
+  communitySource.hidden = !communityUrl;
+  if (communityUrl) communitySource.href = communityUrl;
   else communitySource.removeAttribute('href');
   const datasheet = $('filament-profile-datasheet');
   datasheet.hidden = !profile.datasheet;
@@ -120,6 +129,11 @@ function showProfile(spool, title, hex, name, profile, personal) {
     $(id).closest('section').hidden = !shown.length;
   };
   fill('filament-profile-facts', [
+    ['Matériau', !spool ? profile.material : null],
+    ['Type', profile.type],
+    ['SKU fabricant', variant?.sku],
+    ['Couleur du filament', !spool && variant?.hex ? colorValue([variant.hex]) : null],
+    ['Masse nominale', variant?.weight ? fmt(variant.weight, ' g') : null],
     ['Buse', profile.nozzle && range(profile.nozzle, ' °C')],
     ['Plateau', profile.bed && range(profile.bed, ' °C')],
     ['Vitesse d’impression', profile.speed && range(profile.speed, ' mm/s')],
@@ -134,7 +148,49 @@ function showProfile(spool, title, hex, name, profile, personal) {
     ['Température', profile.drying && range(profile.drying, ' °C')],
     ['Durée', profile.hours && range(profile.hours, ' h')],
   ]);
+  const properties = profile.properties;
+  const withTolerance = (value, unit) => value && fmt(value[0]) + ' ± ' + fmt(value[1], unit);
+  fill('filament-profile-properties', properties ? [
+    ['Température de fusion', fmt(properties.melting, ' °C')],
+    ['Température de ramollissement Vicat', fmt(properties.vicat, ' °C')],
+    ['Température de fléchissement sous charge (0,45 MPa)', fmt(properties.heatDeflection, ' °C')],
+    ['Résistance à la traction', withTolerance(properties.tensile, ' MPa')],
+    ['Allongement à la rupture', withTolerance(properties.elongation, ' %')],
+    ['Résistance à la flexion', withTolerance(properties.bending, ' MPa')],
+  ] : []);
   $('filament-profile-dialog').showModal();
+}
+
+/** Les fiches restent consultables sans avoir chargé la matière dans l’ACE. */
+export function bindFilamentCatalogue() {
+  const dialog = $('filament-catalogue-dialog');
+  const search = $('filament-catalogue-search');
+  const list = $('filament-catalogue-list');
+  const render = () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    const variants = new Map(officialPlaBasicVariants.map(variant => [variant.sku, variant]));
+    for (const variant of communityFilamentVariants) {
+      variants.set(variant.sku, {...variants.get(variant.sku), ...variant});
+    }
+    const rows = [...variants.values()]
+      .filter(({profile, color, sku}) => [profile, color, sku].some(value => value.toLocaleLowerCase().includes(query)))
+      .sort((left, right) => left.profile.localeCompare(right.profile) || left.color.localeCompare(right.color));
+    list.replaceChildren(...rows.map(variant => {
+      const entry = node('li');
+      const name = variant.profile + ' · ' + variant.color;
+      const button = node('button', name + ' · ' + variant.sku, 'atelier-control');
+      button.type = 'button';
+      button.onclick = () => showProfile(null, '', [], name, manufacturerProfiles[variant.profile], false, variant);
+      entry.append(button);
+      return entry;
+    }));
+  };
+  search.addEventListener('input', render);
+  $('filament-catalogue-open').onclick = () => {
+    search.value = '';
+    render();
+    dialog.showModal();
+  };
 }
 
 /** Résout aussi les associations personnelles pour proposer la même action depuis les deux fenêtres. */

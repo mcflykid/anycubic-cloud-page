@@ -59,6 +59,97 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("/imprimante-api/axis-position", routes)
         self.assertNotIn("axis_query_supported", self.e.snapshot()["printer"])
 
+    async def test_stop_during_recognized_stored_preparation_is_scoped_to_new_project(self):
+        """Autorise l’arrêt uniquement pour la nouvelle tâche mémoire correspondante."""
+        project = SimpleNamespace(id=2, name="fixture.gcode", print_status="unknown")
+        self.p.id = 1
+        self.p.printer_online = True
+        self.p.is_busy = True
+        self.p.latest_project_print_in_progress = False
+        self.p.latest_project = project
+        self.p.update_info_from_api = AsyncMock()
+        key = self.e.command_project_key()
+        self.e.stored_print_trace = (
+            self.p,
+            {"cloud_accepted": True},
+            "fixture",
+            "old",
+            "fixture.gcode.3mf",
+            time.monotonic(),
+        )
+        self.assertIs(await self.e.verify_active_project("cancel", key), project)
+        with self.assertRaises(ValueError):
+            await self.e.verify_active_project("pause", key)
+        project.print_status = "failed"
+        with self.assertRaises(ValueError):
+            await self.e.verify_active_project("cancel", key)
+        project.print_status = "unknown"
+        project.name = "other.gcode"
+        with self.assertRaises(ValueError):
+            await self.e.verify_active_project("cancel", key)
+
+    async def test_pending_stored_print_refreshes_delayed_project_only_at_bounded_intervals(self):
+        """Le relevé de préparation peut arriver avant le prochain cycle Cloud normal."""
+        self.p.id = 1
+        self.p.printer_online = True
+        self.p.is_busy = True
+        self.p.latest_project_print_in_progress = False
+        self.p.latest_project = SimpleNamespace(id=1, name="old.gcode", print_status="failed")
+        self.e.stored_print_trace = (
+            self.p,
+            {"cloud_accepted": True},
+            "fixture",
+            self.e.command_project_key(),
+            "new.gcode.3mf",
+            time.monotonic(),
+        )
+        fresh = SimpleNamespace(id=2, name="new.gcode", print_status="unknown")
+
+        async def refresh():
+            self.p.latest_project = fresh
+
+        self.p.update_info_from_api = AsyncMock(side_effect=refresh)
+        await self.e.refresh_pending_stored_project()
+        await self.e.refresh_pending_stored_project()
+        self.p.update_info_from_api.assert_awaited_once()
+        self.assertTrue(self.e.stored_print_preparing())
+
+    async def test_stored_print_diagnostic_only_exposes_comparison_results(self):
+        """Un nouveau projet peut porter le nom sans extension finale, sans publier ce nom."""
+        from aiohttp import web
+        from aiohttp.test_utils import TestClient, TestServer
+
+        app = web.Application()
+        app[adapter.COMMAND_MQTT_KEY] = SimpleNamespace(
+            print_starts={("fixture", "request"): time.time()}
+        )
+        self.e.snapshot = lambda: {
+            "printer": {"job_name": "private-witness.gcode", "command_project": "new-project"}
+        }
+        self.e.stored_print_trace = (
+            self.p,
+            {"cloud_accepted": True},
+            "request",
+            "old-project",
+            "private-witness.gcode.3mf",
+            time.monotonic(),
+        )
+
+        async def diagnostic(request):
+            request["selected_engine"] = self.e
+            request["printer_key"] = "fixture"
+            return await adapter.diagnostic(request)
+
+        app.router.add_get("/diagnostic", diagnostic)
+        async with TestClient(TestServer(app)) as client:
+            async with client.get("/diagnostic?developer=1") as response:
+                self.assertNotIn("private-witness", await response.text())
+                trace = (await response.json())["developer"]["last_stored_print"]
+        self.assertTrue(trace["matches_active_job"])
+        self.assertTrue(trace["fresh_project_reported"])
+        self.assertTrue(trace["expected_file_reported"])
+        self.assertFalse(trace["preparation_identified"])
+
     async def test_cloud_files_keep_slice_order_and_omit_unusable_mapping(self):
         """Les couleurs suivent l’ordre du fichier et les données illisibles gardent la saisie manuelle."""
         self.e.api.get_user_cloud_files = AsyncMock(
@@ -283,6 +374,16 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(data["spools"][1]["rfid"])
         self.assertNotIn("sku", str(data))
 
+    async def test_ace_relay_normalizes_cloud_flags_without_guessing_unknown_state(self):
+        """Les indicateurs numériques du Cloud doivent parvenir au navigateur comme booléens."""
+        box = SimpleNamespace(box_id=0)
+        self.e.printer = SimpleNamespace(multi_color_box=[box])
+        for value, expected in ((0, False), (1, True), (None, None), (2, None)):
+            with self.subTest(value=value):
+                box.auto_feed = value
+                relay = self.e.snapshot()["printer"]["boxes"][0]["auto_feed"]
+                self.assertIs(relay, expected)
+
     async def test_rfid_product_profile_uses_current_slot_and_public_sku(self):
         """Expose la fiche résolue et garde les SKU connus ou inconnus côté serveur."""
         slots = [
@@ -304,9 +405,17 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("filament_profile", spool)
         self.assertNotIn("AHLSMW-101", str(spools))
         self.assertNotIn("UNKNOWN", str(spools))
-        slots[0].sku = "AHFGBL-101"
-        updated = self.e.snapshot()["printer"]["boxes"][0]["spools"]
-        self.assertEqual(updated[0]["filament_profile"], "PLA Glow")
+        for sku, profile in (
+            ("AHFGBL-101", "PLA Glow"),
+            ("AHPLBK-107", "PLA Basic"),
+            ("AHPLBR-107", "PLA Basic"),
+            ("HFGBL-105", "PLA Glow"),
+        ):
+            with self.subTest(sku=sku):
+                slots[0].sku = sku
+                updated = self.e.snapshot()["printer"]["boxes"][0]["spools"]
+                self.assertEqual(updated[0]["filament_profile"], profile)
+                self.assertNotIn(sku, str(updated))
         slots[0].sku = "UNKNOWN"
         updated = self.e.snapshot()["printer"]["boxes"][0]["spools"]
         self.assertNotIn("filament_profile", updated[0])

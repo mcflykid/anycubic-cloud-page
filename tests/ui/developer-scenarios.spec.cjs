@@ -58,8 +58,13 @@ test('une chauffe lente puis une chute en impression affichent l’alerte sur le
   await expect(page.locator('#summary-heat-warning')).toContainText(/plateau.*52.*60/i, {timeout:8000});
   await openSection(page, 'overview');
   await expect(page.locator('#printer-heat-warning')).toBeVisible();
+  await expect(page.locator('#printer-heat-warning').getByRole('img', {name:/Températures des dix dernières minutes/})).toBeVisible();
   await expect(page.locator('#printer-bed-row')).toHaveClass(/heat-alert/);
   await expect(page.locator('#printer-nozzle-row')).not.toHaveClass(/heat-alert/);
+  await page.getByRole('button', {name:'Ignorer cet épisode', exact:true}).click();
+  await expect(page.locator('#printer-heat-warning')).toBeHidden();
+  await openSection(page, 'summary');
+  await expect(page.locator('#summary-heat-warning')).toBeHidden();
   await scenario(page, 'chute-en-impression');
   await openSection(page, 'overview');
   await expect(page.locator('#printer-heat-warning')).toContainText(/buse.*196.*210/i, {timeout:8000});
@@ -95,6 +100,13 @@ test('les notes de mise à jour s’affichent, ou renvoient au guide officiel qu
   await expect(page.locator('#firmware-notes-empty')).toContainText('Anycubic ne fournit pas de notes pour cette version.');
   await expect(page.locator('#firmware-notes-text')).toBeHidden();
   await expect(page.locator('#firmware-notes-official')).toHaveAttribute('href', /firmware-update-guide/);
+  await page.keyboard.press('Escape');
+  await page.locator('#firmware-ace-notes').focus();
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#firmware-notes-current')).toHaveText('1.1.36');
+  await expect(page.locator('#firmware-notes-target')).toHaveText('1.1.40');
+  await expect(page.locator('#firmware-notes-empty')).toBeVisible();
 });
 
 test('une erreur JavaScript ne garde que son type, son module et sa ligne', async ({page}) => {
@@ -132,4 +144,40 @@ test('le journal donne une ligne par requête et garde les incidents', async ({p
   await tools.getByLabel('Statut').selectOption('incident');
   await expect(journal).toContainText('GET /files/local · interruption');
   await expect(journal).not.toContainText('/status · réponse 200');
+});
+
+test('la synthèse relie les constats, l’activité et les sections du rapport', async ({page}) => {
+  const reference = 'a'.repeat(32);
+  await page.route('**/imprimante-api/diagnostic?developer=1', async route => {
+    const original = await route.fetch();
+    await route.fulfill({response: original, headers: {...original.headers(), 'X-Request-ID': reference}});
+  });
+  await openSection(page, 'developer');
+  const tools = page.locator('#tab-developer');
+  await tools.getByRole('button', {name:'Relever le diagnostic'}).click();
+  await expect(tools.getByLabel('Constats à examiner')).toContainText('Bobine engagée différente');
+  await tools.getByRole('button', {name:/^Données Cloud/}).click();
+  await expect(tools.getByText('Bandeaux et fraîcheur des données', {exact:true})).toBeFocused();
+  await tools.getByText('Activité unifiée', {exact:true}).click();
+  await tools.getByRole('searchbox').fill('mqtt');
+  await expect(tools.getByRole('list', {name:'Activité unifiée'})).toContainText('MQTT');
+  await tools.getByRole('searchbox').fill(reference);
+  await expect(tools.getByRole('list', {name:'Activité unifiée'})).toContainText(reference);
+  await tools.getByText('Rapport expurgé', {exact:true}).click();
+  await tools.getByLabel('Serveur et ACE').uncheck();
+  await tools.getByRole('button', {name:'Copier un rapport expurgé'}).click();
+  const report = await tools.getByLabel('Aperçu du rapport expurgé').inputValue();
+  expect(report).not.toContain(reference);
+  expect(JSON.parse(report)).not.toHaveProperty('ace');
+  await page.setViewportSize({width:390,height:844});
+  for (const style of ['standard','aurora','lab']) {
+    for (const theme of ['light','dark']) {
+      await page.evaluate(({style,theme}) => {
+        document.documentElement.dataset.style=style;
+        document.documentElement.dataset.theme=theme;
+      }, {style,theme});
+      await expect(tools.locator('[data-summary] button')).toHaveCount(6);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    }
+  }
 });

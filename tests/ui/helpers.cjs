@@ -14,4 +14,9 @@ async function openSection(page, key){
  await expect(tab).toBeVisible();
  await tab.click({timeout:5000});
 }
-module.exports={login,openSection};
+/** Ouvre les actions dans la ligne demandée avant de choisir une commande. */
+async function chooseFileAction(row, name) {
+ await row.getByRole('button', {name:/Actions du fichier/}).click();
+ await row.locator('.files-action-menu').getByRole('button', {name,exact:true}).click();
+}
+module.exports={login,openSection,chooseFileAction};

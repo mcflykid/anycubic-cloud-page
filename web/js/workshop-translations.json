@@ -539,6 +539,30 @@
     "de": "Druckvorschau",
     "it": "Anteprima di stampa"
   },
+  "Températures des dix dernières minutes": {
+    "en": "Temperatures over the last ten minutes",
+    "es": "Temperaturas de los últimos diez minutos",
+    "de": "Temperaturen der letzten zehn Minuten",
+    "it": "Temperature degli ultimi dieci minuti"
+  },
+  "La température ne varie plus ({0}) : {1} depuis {2}.": {
+    "en": "Temperature unchanged ({0}): {1} for {2}.",
+    "es": "Temperatura sin cambios ({0}): {1} desde hace {2}.",
+    "de": "Temperatur unverändert ({0}): {1} seit {2}.",
+    "it": "Temperatura invariata ({0}): {1} da {2}."
+  },
+  "Mesure de température incohérente ({0}) : {1}.": {
+    "en": "Invalid temperature reading ({0}): {1}.",
+    "es": "Lectura de temperatura incoherente ({0}): {1}.",
+    "de": "Unplausibler Temperaturmesswert ({0}): {1}.",
+    "it": "Lettura di temperatura incoerente ({0}): {1}."
+  },
+  "Ignorer cet épisode": {
+    "en": "Dismiss this episode",
+    "es": "Ignorar este episodio",
+    "de": "Diesen Vorfall ausblenden",
+    "it": "Ignora questo episodio"
+  },
   "Aperçu en attente": {
     "en": "Preview waiting for data",
     "es": "Vista previa en espera de datos",
@@ -1565,6 +1589,12 @@
     "de": "Von",
     "it": "Da"
   },
+  "Seuil d’humidité (%)": {
+    "en": "Humidity threshold (%)",
+    "es": "Umbral de humedad (%)",
+    "de": "Feuchtigkeitsschwelle (%)",
+    "it": "Soglia di umidità (%)"
+  },
   "Durée (heures)": {
     "en": "Duration (hours)",
     "es": "Duración (horas)",
@@ -1798,6 +1828,12 @@
     "es": "Detección con IA",
     "de": "KI-Erkennung",
     "it": "Rilevamento AI"
+  },
+  "Détection IA (BETA)": {
+    "en": "AI detection (BETA)",
+    "es": "Detección con IA (BETA)",
+    "de": "KI-Erkennung (BETA)",
+    "it": "Rilevamento AI (BETA)"
   },
   "Détection de filament enchevêtré": {
     "en": "Spaghetti detection",
@@ -5483,6 +5519,18 @@
     "de": "Direkter Druck dieses Formats wartet auf Kompatibilitätsprüfung.",
     "it": "La stampa diretta di questo formato attende la convalida di compatibilità."
   },
+  "{0} · à trancher": {
+    "en": "{0} · needs slicing",
+    "es": "{0} · pendiente de laminar",
+    "de": "{0} · Slicing erforderlich",
+    "it": "{0} · da affettare"
+  },
+  "Ouvrez le modèle original dans votre trancheur, préparez-le pour l’imprimante, puis envoyez le G-code.": {
+    "en": "Open the original model in your slicer, prepare it for the printer, then upload the G-code.",
+    "es": "Abre el modelo original en el laminador, prepáralo para la impresora y envía el G-code.",
+    "de": "Öffnen Sie das Originalmodell im Slicer, bereiten Sie es für den Drucker vor und laden Sie den G-Code hoch.",
+    "it": "Apri il modello originale nel programma di slicing, preparalo per la stampante e invia il G-code."
+  },
   "Export annulé : la période ou l’imprimante a changé.": {
     "en": "Export cancelled: the time range or printer changed.",
     "es": "Exportación cancelada: cambió el período o la impresora.",
@@ -8425,8 +8473,8 @@
   },
   "Catalogue Anycubic": {
     "en": "Anycubic catalogue",
-    "es": "Catálogo Anycubic",
-    "de": "Anycubic Katalog",
+    "es": "Catálogo de Anycubic",
+    "de": "Anycubic-Katalog",
     "it": "Catalogo Anycubic"
   },
   "Choisir la référence de la bobine": {
@@ -8957,30 +9005,6 @@
     "de": "Notizen",
     "it": "Note"
   },
-  "Note locale": {
-    "en": "Local note",
-    "es": "Nota local",
-    "de": "Lokale Notiz",
-    "it": "Nota locale"
-  },
-  "Étiquettes séparées par des virgules": {
-    "en": "Comma-separated tags",
-    "es": "Etiquetas separadas por comas",
-    "de": "Schlagwörter, durch Kommas getrennt",
-    "it": "Etichette separate da virgole"
-  },
-  "Enregistrer la note": {
-    "en": "Save note",
-    "es": "Guardar nota",
-    "de": "Speichern Sie Notiz",
-    "it": "Salva nota"
-  },
-  "Note locale enregistrée.": {
-    "en": "Local note saved.",
-    "es": "Nota local guardada.",
-    "de": "Lokale Notiz gespeichert.",
-    "it": "Nota locale salvata."
-  },
   "Note ou étiquettes invalides.": {
     "en": "Invalid note or tags.",
     "es": "Nota o etiquetas no válidas.",
@@ -8993,23 +9017,11 @@
     "de": "Der Notizspeicher konnte nicht gelesen werden.",
     "it": "Il database delle note non è stato letto."
   },
-  "Corriger la fin prévue avec l’historique": {
-    "en": "Adjust finish time using history",
-    "es": "Ajustar la hora de fin con el historial",
-    "de": "Fertigstellungszeit anhand der Historie anpassen",
-    "it": "Regolare il tempo di finitura utilizzando la cronologia"
-  },
-  "Fin prévue {0} · estimation du fichier {1}": {
-    "en": "Expected finish {0} · file estimate {1}",
-    "es": "Fin previsto {0} · estimación del archivo {1}",
-    "de": "Erwarteter Abschluss {0} · Dateischätzung {1}",
-    "it": "Completamento previsto {0} · Stima file {1}"
-  },
-  "{0} impressions réussies · ratio médian {1} · poids du relevé actuel {2} %": {
-    "en": "{0} successful prints · median ratio {1} · current reading weight {2}%",
-    "es": "{0} impresiones correctas · proporción mediana {1} · peso de la lectura actual {2} %",
-    "de": "{0} erfolgreiche Drucke · Medianverhältnis {1} · aktuelles Gewicht {2}%",
-    "it": "{0} stampeature riuscite · rapporto mediano {1} · peso attuale {2}%"
+  "Fin prévue {0}": {
+    "en": "Estimated finish {0}",
+    "es": "Fin previsto {0}",
+    "de": "Voraussichtliches Ende {0}",
+    "it": "Fine prevista {0}"
   },
   "Chronologie de l’impression": {
     "en": "Print timeline",
@@ -9508,18 +9520,6 @@
     "es": "{0} «{1}»",
     "de": "{0} „{1}“",
     "it": "{0} «{1}»"
-  },
-  "Selon le fichier": {
-    "en": "From the file",
-    "es": "Según el archivo",
-    "de": "Laut Datei",
-    "it": "Secondo il file"
-  },
-  "Corrigée avec l’historique": {
-    "en": "Corrected with history",
-    "es": "Corregida con el historial",
-    "de": "Mit Verlauf korrigiert",
-    "it": "Corretta con lo storico"
   },
   "Recherche récente": {
     "en": "Recent search",
@@ -10102,5 +10102,95 @@
     "es": "Compruebe la puerta, una corriente de aire o el sensor. No se ha enviado ninguna acción a la impresora.",
     "de": "Prüfen Sie Tür, Luftzug oder Sensor. Es wurde keine Aktion an den Drucker gesendet.",
     "it": "Controlla lo sportello, una corrente d’aria o il sensore. Nessuna azione è stata inviata alla stampante."
+  },
+  "Arrêt demandé par l’utilisateur": {
+    "en": "Stopped by the user",
+    "es": "Detención solicitada por el usuario",
+    "de": "Vom Benutzer gestoppt",
+    "it": "Arresto richiesto dall’utente"
+  },
+  "Ce code a été observé lors d’un arrêt manuel. Vérifiez le contexte de la tâche pour confirmer le motif.": {
+    "en": "This code has been observed after a manual stop. Check the task context to confirm the cause.",
+    "es": "Se ha observado este código tras una detención manual. Comprueba el contexto de la tarea para confirmar la causa.",
+    "de": "Dieser Code wurde nach einem manuellen Stopp beobachtet. Prüfen Sie den Auftragskontext, um die Ursache zu bestätigen.",
+    "it": "Questo codice è stato osservato dopo un arresto manuale. Controlla il contesto dell’attività per confermare il motivo."
+  },
+  "Vérifiez si un arrêt a été demandé depuis l’écran, le slicer ou l’atelier. Si personne ne l’a demandé, relevez l’état de la machine et les messages précédents.": {
+    "en": "Check whether a stop was requested from the printer screen, slicer or workshop. If nobody requested it, check the printer state and preceding messages.",
+    "es": "Comprueba si se solicitó detener desde la pantalla, el laminador o el taller. Si nadie lo solicitó, comprueba el estado de la impresora y los mensajes anteriores.",
+    "de": "Prüfen Sie, ob der Stopp am Display, im Slicer oder im Workshop ausgelöst wurde. Falls nicht, prüfen Sie den Druckerstatus und die vorherigen Meldungen.",
+    "it": "Verifica se l’arresto è stato richiesto dal display, dallo slicer o dall’officina. Se nessuno l’ha richiesto, controlla lo stato della stampante e i messaggi precedenti."
+  },
+  "Taille du fichier": {
+    "en": "File size",
+    "es": "Tamaño del archivo",
+    "de": "Dateigröße",
+    "it": "Dimensione del file"
+  },
+  "Rechercher un filament": {
+    "en": "Search filaments",
+    "es": "Buscar un filamento",
+    "de": "Filament suchen",
+    "it": "Cerca un filamento"
+  },
+  "SKU fabricant": {
+    "en": "Manufacturer SKU",
+    "es": "SKU del fabricante",
+    "de": "Hersteller-SKU",
+    "it": "SKU del produttore"
+  },
+  "Actions du fichier « {0} »": {
+    "en": "Actions for file “{0}”",
+    "es": "Acciones del archivo «{0}»",
+    "de": "Aktionen für Datei „{0}“",
+    "it": "Azioni per il file «{0}»"
+  },
+  "Propriétés du matériau": {
+    "en": "Material properties",
+    "es": "Propiedades del material",
+    "de": "Materialeigenschaften",
+    "it": "Proprietà del materiale"
+  },
+  "Masse nominale": {
+    "en": "Nominal weight",
+    "es": "Peso nominal",
+    "de": "Nenngewicht",
+    "it": "Peso nominale"
+  },
+  "Température de fusion": {
+    "en": "Melting temperature",
+    "es": "Temperatura de fusión",
+    "de": "Schmelztemperatur",
+    "it": "Temperatura di fusione"
+  },
+  "Température de ramollissement Vicat": {
+    "en": "Vicat softening temperature",
+    "es": "Temperatura de reblandecimiento Vicat",
+    "de": "Vicat-Erweichungstemperatur",
+    "it": "Temperatura di rammollimento Vicat"
+  },
+  "Température de fléchissement sous charge (0,45 MPa)": {
+    "en": "Heat deflection temperature (0.45 MPa)",
+    "es": "Temperatura de deflexión térmica (0,45 MPa)",
+    "de": "Wärmeformbeständigkeit (0,45 MPa)",
+    "it": "Temperatura di deflessione termica (0,45 MPa)"
+  },
+  "Résistance à la traction": {
+    "en": "Tensile strength",
+    "es": "Resistencia a la tracción",
+    "de": "Zugfestigkeit",
+    "it": "Resistenza alla trazione"
+  },
+  "Allongement à la rupture": {
+    "en": "Elongation at break",
+    "es": "Alargamiento a la rotura",
+    "de": "Bruchdehnung",
+    "it": "Allungamento a rottura"
+  },
+  "Résistance à la flexion": {
+    "en": "Flexural strength",
+    "es": "Resistencia a la flexión",
+    "de": "Biegefestigkeit",
+    "it": "Resistenza a flessione"
   }
 }

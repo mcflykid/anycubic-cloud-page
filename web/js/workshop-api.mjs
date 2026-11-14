@@ -40,7 +40,7 @@ export function createRequest(getPrinter, record = () => {}, simulate = () => un
                 ),
         );
       }
-      record(method, route, 'réponse', attempt + 1, Math.round(performance.now() - started), response.status);
+      record(method, route, 'réponse', attempt + 1, Math.round(performance.now() - started), response.status, response.headers.get('X-Request-ID'));
       if (read && [502, 503, 504].includes(response.status) && !response.headers.has('Retry-After') && attempt === 0) {
         await new Promise((resolve) => setTimeout(resolve, 1200));
         continue;

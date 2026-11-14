@@ -136,6 +136,61 @@ class StoredPrintSpoolTests(unittest.IsolatedAsyncioTestCase):
 class StoredFormatSafetyTests(unittest.IsolatedAsyncioTestCase):
     """Un modèle non qualifié ne doit jamais parvenir à l’ordre physique de lancement."""
 
+    def test_ai_read_probe_is_scoped_to_the_current_printer(self):
+        """Une lecture IA qualifie la S1 courante et ne qualifie aucune autre cible."""
+        from print_preflight import stored_print_options
+
+        printer = SimpleNamespace(machine_name="Anycubic Kobra S1")
+        engine = SimpleNamespace(printer=printer, stored_print_ai_printer=printer)
+        self.assertEqual(stored_print_options(engine), ["ai_detect"])
+        engine.printer = SimpleNamespace(machine_name="Anycubic Kobra S1")
+        self.assertEqual(stored_print_options(engine), [])
+
+    async def test_memory_preparation_requires_supported_options_and_preserves_false(self):
+        """Vérifie le trajet jusqu’à l’ordre, avec un nivellement explicitement désactivé."""
+        from printer_commands import execute_command
+
+        send = AsyncMock(return_value="order")
+        api = SimpleNamespace(_send_anycubic_order=send)
+        api._send_order_start_print = AnycubicAPIFunctions._send_order_start_print.__get__(api)
+        api._send_order_print_local_file = (
+            AnycubicAPIFunctions._send_order_print_local_file.__get__(api)
+        )
+        printer = AnycubicPrinter(api, 1, "Anycubic Kobra S1", id=7)
+        printer._device_status = 1
+        printer._is_printing = 1
+        features = {
+            f"{name}_support": True
+            for name in (
+                "auto_leveling",
+                "vibration_compensation",
+                "ai_detect",
+                "camera_timelapse",
+                "flow_calibration",
+            )
+        }
+        target = SimpleNamespace(
+            printer=printer,
+            api=api,
+            slots=lambda data: None,
+            extras=SimpleNamespace(features=lambda: features),
+        )
+        choices = {name.removesuffix("_support"): True for name in features}
+        choices["auto_leveling"] = False
+        await execute_command(
+            target, "print-local", {"name": "piece.gcode", "preparation": choices}
+        )
+        order = send.await_args.kwargs["order_request"].order_request_data
+        self.assertEqual(
+            order["data"]["task_settings"], {**{name: 1 for name in choices}, "auto_leveling": 0}
+        )
+        features["flow_calibration_support"] = False
+        with self.assertRaises(ValueError):
+            await execute_command(
+                target, "print-local", {"name": "piece.gcode", "preparation": choices}
+            )
+        send.assert_awaited_once()
+
     async def test_unverified_formats_are_rejected_before_any_send(self):
         """Les modèles non tranchés ne peuvent pas emprunter le parcours mémoire."""
         from printer_commands import execute_command

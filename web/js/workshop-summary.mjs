@@ -5,7 +5,8 @@ export function renderSummary(snapshot) {
   const printer = snapshot.printer;
   const online = !!(snapshot.ok && printer?.printer_online);
   const printerState = !snapshot.ok ? 'Cloud indisponible' : !online ? 'Hors ligne'
-    : printer.job_is_paused ? 'En pause' : printer.is_busy ? 'Impression en cours' : 'Disponible';
+    : printer.job_is_paused ? 'En pause' : printer.stored_print_preparing ? 'Vérification…'
+      : printer.job_in_progress ? 'Impression en cours' : printer.is_busy ? 'Imprimante occupée' : 'Disponible';
   set('summary-printer-status', tr(printerState));
   $('summary-printer-status').classList.toggle('offline', !online);
   $('summary-printer-status').dataset.state = printer?.job_is_paused ? 'paused' : printer?.is_busy ? 'running' : '';

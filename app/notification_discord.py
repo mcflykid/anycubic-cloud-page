@@ -78,6 +78,13 @@ CONNECTION_TITLES = {
 }
 
 ACE_TITLES = {
+    "heat_anomaly": (
+        "Chauffe anormale",
+        "Abnormal heating",
+        "Calentamiento anómalo",
+        "Ungewöhnliches Heizverhalten",
+        "Riscaldamento anomalo",
+    ),
     "maintenance_due": ("Entretien", "Maintenance", "Mantenimiento", "Wartung", "Manutenzione"),
     "queue_next": (
         "Vérifiez que le plateau est libre.",
