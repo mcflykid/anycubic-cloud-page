@@ -813,6 +813,74 @@ export function createHistory(request, command, selectedBox) {
     }
   }
 
+  /** Associe les originaux à la fiche visible et laisse le transfert indépendant du lancement. */
+  function bindArchive(task, current) {
+    const panel = $('past-task-archive'), input = $('past-task-archive-input');
+    const target = workshopState.selectedPrinter;
+    if (!target || task.printer_key !== target || [0, 1].includes(task.status_code)) return;
+    const path = '/archive/' + encodeURIComponent(task.key);
+    const list = $('past-task-archive-list');
+    const stillCurrent = () => current() && target === workshopState.selectedPrinter && panel.ontoggle === toggle;
+    const status = text => { if (stillCurrent()) set('past-task-archive-status', text); };
+    let pending = false;
+    const read = async () => {
+      const result = await request(path, {printerKey:target});
+      if (!stillCurrent()) return;
+      list.replaceChildren(...result.files.map(file => {
+        const entry = node('li');
+        const filePath = path + '/' + file.sha256;
+        const download = node('a', tr('Télécharger'));
+        download.href = '/imprimante-api' + filePath + '?printer=' + encodeURIComponent(target);
+        const label = node('span', file.name + ' · SHA-256 ' + file.sha256.slice(0, 12));
+        label.title = file.sha256;
+        entry.append(label, download);
+        if (/\.gcode$/i.test(file.name)) {
+          entry.append(extraButton(tr('Transférer pour réimprimer'), async () => {
+            if (pending || !stillCurrent()) return;
+            pending = true;
+            status(tr('Envoi en cours. Ne fermez pas cette page.'));
+            try {
+              const prepared = await request(filePath + '/prepare', {method:'POST', printerKey:target});
+              if (!stillCurrent()) return;
+              status(tr('Original transféré dans l’espace Cloud.'));
+              $('past-task-dialog').close();
+              await command('print-cloud', {
+                handle:prepared.handle, name:file.name, details:prepared.details, archived:true,
+              }, tr('Vérifiez que le plateau est libre.'), status);
+            } catch (error) {
+              status(error.message);
+            } finally {
+              pending = false;
+            }
+          }, 'atelier-control'));
+        }
+        return entry;
+      }));
+    };
+    panel.hidden = false;
+    input.onchange = async () => {
+      const file = input.files[0];
+      input.value = '';
+      if (!file || pending || !stillCurrent()) return;
+      pending = true;
+      const data = new FormData();
+      data.set('file', file);
+      try {
+        await request(path, {method:'POST', body:data, printerKey:target});
+        status(tr('Original archivé.'));
+        await read();
+      } catch (error) {
+        status(error.message);
+      } finally {
+        pending = false;
+      }
+    };
+    function toggle() {
+      if (panel.open) void read().catch(error => status(error.message));
+    }
+    panel.ontoggle = toggle;
+  }
+
   /** Préserve l’ordre des couleurs annoncé par la fiche de tranche. */
   function reprintFilaments(data) {
     return {
@@ -978,6 +1046,12 @@ export function createHistory(request, command, selectedBox) {
     printTimeline('past-print-timeline');
     const dialog = $('past-task-dialog'), extra = $('past-task-extra');
     pastTaskKey = t.key;
+    $('past-task-archive').hidden = true;
+    $('past-task-archive').open = false;
+    $('past-task-archive').ontoggle = null;
+    $('past-task-archive-input').onchange = null;
+    $('past-task-archive-list').replaceChildren();
+    set('past-task-archive-status', '');
     extra.dataset.history = 'true';
     extra.hidden = true;
     set('past-task-name', t.name);
@@ -1036,6 +1110,7 @@ export function createHistory(request, command, selectedBox) {
       printTimeline('past-print-timeline', d.timeline);
       printDetails = {seconds: d.estimated_seconds, grams: d.material_grams};
       printFilaments = reprintFilaments(d);
+      bindArchive(t, current);
       $('past-task-state').querySelector('span').textContent = tr(t.status);
       $('past-task-state').dataset.state = t.status_code === 3 ? 'stopped' : 'active';
       const hasDiagnostic = !!(d.reason || d.reason_code || d.help_url);
@@ -1091,6 +1166,12 @@ export function createHistory(request, command, selectedBox) {
     const dialog = $('task-rating-dialog'), form = $('rating-form'), preview = $('rating-preview');
     const submit = form.querySelector('button[type=submit]');
     pastTaskKey = t.key;
+    $('past-task-archive').hidden = true;
+    $('past-task-archive').open = false;
+    $('past-task-archive').ontoggle = null;
+    $('past-task-archive-input').onchange = null;
+    $('past-task-archive-list').replaceChildren();
+    set('past-task-archive-status', '');
     set('rating-task-name', t.name);
     set('rating-task-summary', [t.end ? date(t.end) : '', t.status ? tr(t.status) : ''].filter(Boolean).join(' · '));
     set('rating-state', tr('Vérification auprès d’Anycubic…'));

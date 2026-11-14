@@ -71,3 +71,32 @@ test('le chargement de l’historique reprend ses cartes et respecte le mouvemen
   expect((await loaded.first().boundingBox()).width).toBeCloseTo(widthBefore, 0);
   await expect(page.locator('#tasks-list')).not.toHaveAttribute('aria-busy');
 });
+
+test('les originaux tranchés sont dédupliqués et transférés sans lancement implicite', async ({page}) => {
+  const downloads = [];
+  const commands = [];
+  page.on('request', request => {
+    if (request.url().endsWith('/imprimante-api/command')) commands.push(request.url());
+  });
+  page.on('download', download => downloads.push(download.suggestedFilename()));
+  await history(page);
+  await page.locator('#tasks-search').fill('Cube');
+  await page.locator('#tasks-list .history-detail').click();
+  const archive = page.locator('#past-task-archive');
+  await archive.locator('summary').click();
+  const file = {name:'origine.gcode', mimeType:'application/octet-stream', buffer:Buffer.from('G28\nG1 X10')};
+  const input = archive.locator('input');
+  await input.setInputFiles(file);
+  await expect(archive.getByText('Original archivé.', {exact:true})).toBeVisible();
+  await expect(archive.locator('li')).toHaveCount(1);
+  const duplicate = page.waitForResponse(response => response.url().includes('/archive/') && response.request().method() === 'POST');
+  await input.setInputFiles(file);
+  expect((await duplicate).status()).toBe(200);
+  await expect(archive.locator('li')).toHaveCount(1);
+  await archive.getByRole('link', {name:'Télécharger'}).click();
+  await expect.poll(() => downloads).toEqual(['origine.gcode']);
+  await archive.getByRole('button', {name:'Transférer pour réimprimer'}).click();
+  await expect(page.locator('#print-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(commands).toEqual([]);
+});

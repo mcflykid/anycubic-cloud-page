@@ -1,5 +1,4 @@
-import { $, date, finishEstimate, fmt, formatText, mins, node, set, tr } from './workshop-ui.mjs';
-import { measurement } from './workshop-overview.mjs';
+import { $, date, finishEstimate, fmt, formatText, measurement, mins, node, set, tr } from './workshop-ui.mjs';
 import { createRequest } from './workshop-api.mjs';
 
 const root = document.documentElement;

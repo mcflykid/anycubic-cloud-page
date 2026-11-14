@@ -1,7 +1,7 @@
-import { $, fmt, formatText, locale, message, mins, node, set, timeZone, tr } from './workshop-ui.mjs';
+import { $, fmt, formatText, locale, measurement, message, mins, node, set, timeZone, tr } from './workshop-ui.mjs';
 import { bindFilamentCatalogue, filamentProfileAction, openFilamentProfile } from './workshop-filament-profiles.mjs';
 import { workshopState } from './workshop-state.mjs';
-import { definition, measurement, statusBadge } from './workshop-overview.mjs';
+import { definition, statusBadge } from './workshop-overview.mjs';
 
 // Le même hexadécimal peut désigner deux produits, par exemple PLA blanc et PLA Marble blanc.
 const filamentVariants = new Map([
@@ -322,11 +322,12 @@ export function createAce(command, refresh) {
       ? formatText('Séchage à {0}', fmt(dry.target_temperature, ' °C'))
       : tr(active === false ? 'Aucun séchage en cours' : 'État du séchage inconnu'));
     const confirmation = {
-      pending: 'Demande de séchage envoyée',
+      pending: box?.drying_action === 'stop' ? 'Demande d’arrêt envoyée' : 'Demande de séchage envoyée',
       confirmed: 'État du séchage confirmé par l’ACE',
       unconfirmed: 'État du séchage à vérifier',
     }[box?.drying_observation];
-    if (confirmation) set('drying-detail', tr(confirmation));
+    $('drying-confirmation').hidden = !confirmation;
+    set('drying-confirmation', confirmation ? tr(confirmation) : '');
     $('dry-remaining').hidden = $('dry-progress').hidden = !progress;
     if (progress) {
       set('dry-remaining', formatText('{0} restantes', mins(dry.remaining_time)));

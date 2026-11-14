@@ -398,6 +398,15 @@ export const fmt = (v, suffix = '') =>
   v == null
     ? '—'
     : `${typeof v === 'number' ? v.toLocaleString(locale, { maximumFractionDigits: 1 }) : v}${tr(suffix)}`;
+/** Garde les anciennes valeurs lisibles en indiquant leur provenance et leur âge. */
+export function measurement(value, suffix, reading) {
+  const formatted = fmt(value, suffix);
+  if (!reading) return formatted;
+  if (reading.state === 'missing') return formatted === '—' ? tr('Non relevé') : formatted + ' · ' + tr('Âge inconnu');
+  const source = reading.source === 'mqtt' ? 'MQTT' : 'Cloud';
+  const age = formatText('{0} s', reading.age_s);
+  return [formatted, source + ' · ' + age, reading.state === 'stale' ? tr('Périmé') : null].filter(Boolean).join(' · ');
+}
 /** Formate des minutes arrondies en durée lisible ; une valeur absente reste inconnue. */
 export const mins = (v) => {
   if (v == null) return '—';

@@ -13,7 +13,7 @@ const tabDialogs = {
 
 const routes = new Set([
   '/ai-settings', '/camera-close', '/camera-presence', '/camera-session',
-  '/cloud/downloads', '/command', '/demo/scenario', '/diagnostic', '/extras/device', '/extras/rating',
+  '/archive', '/cloud/downloads', '/command', '/demo/scenario', '/diagnostic', '/extras/device', '/extras/rating',
   '/extras/storage', '/extras/task', '/extras/tasks', '/extras/videos', '/files/cloud',
   '/files/local', '/files/usb', '/fleet', '/history', '/history/delete', '/history/read',
   '/journal', '/maintenance', '/monitoring', '/preflight', '/preview', '/print-queue',
@@ -69,6 +69,9 @@ const demoScenarios = [
   ['humidite-absente', 'Humidité non transmise'],
   ['chauffe-lente', 'Plateau trop lent à chauffer'],
   ['chute-en-impression', 'Chute de la buse en impression'],
+  ['ace-deux-boitiers', 'Deux ACE, emplacement vide et RFID inconnu'],
+  ['ace-deconnecte', 'ACE et liaison MQTT coupée'],
+  ['ace-reconnecte', 'MQTT rétabli, mesure ACE encore ancienne'],
   ['mise-a-jour-notes', 'Mise à jour avec notes'],
   ['mise-a-jour-obligatoire', 'Mise à jour obligatoire sans notes'],
 ];
@@ -260,6 +263,7 @@ export function createDeveloperTools(state, request, banner) {
         </details>
         <details open data-diagnostic><summary class="atelier-disclosure">Diagnostic serveur</summary>
           <p data-ace-summary></p><p data-finish-summary></p>
+          <ul class="developer-log" aria-label="Connexions" data-connection></ul>
           <ul class="developer-log" aria-label="Signaux serveur" data-server-signals data-empty="Relevez le diagnostic pour afficher les signaux Cloud et MQTT."></ul>
           <pre tabindex="0" aria-label="Diagnostic du serveur" data-service></pre>
         </details>
@@ -464,6 +468,22 @@ export function createDeveloperTools(state, request, banner) {
       const finish = developer?.finish_timing;
       find('[data-finish-summary]').textContent = finish ?
         `Fin prévue : ${finish.elapsed_min ?? '—'} min écoulées · ${finish.reported_remaining_min ?? '—'} min annoncées` : '';
+      const connectionLabels = {
+        available: 'disponible', unavailable: 'indisponible', connected: 'connecté',
+        disconnected: 'déconnecté', renewed: 'session renouvelée',
+        session_renewing: 'renouvellement en cours', session_deferred: 'renouvellement différé',
+        session_refused: 'session refusée', reconnect_required: 'reconnexion requise',
+        cloud_unavailable: 'Cloud indisponible', mqtt_disconnected: 'liaison MQTT interrompue',
+      };
+      find('[data-connection]').replaceChildren(...Object.entries(developer?.connection ?? {}).map(([key, row]) => {
+        const item = document.createElement('li');
+        const age = Number.isFinite(row.last_success_age_s) ? `${row.last_success_age_s} s` : 'inconnu';
+        const at = row.last_success_at ? new Date(row.last_success_at).toLocaleTimeString('fr-FR') : null;
+        item.textContent = [key === 'cloud' ? 'Cloud' : 'MQTT', connectionLabels[row.state],
+          `Dernier échange réussi ${at ? at + ' · ' : ''}${age}`, connectionLabels[row.cause],
+          connectionLabels[row.session]].filter(Boolean).join(' · ');
+        return item;
+      }));
       renderServerSignals(developer?.signals);
       renderOverview(latest);
       find('[data-state]').textContent = JSON.stringify({
@@ -535,6 +555,7 @@ export function createDeveloperTools(state, request, banner) {
           ace: captured.service?.developer?.ace ?? null,
           impression_mémoire: captured.service?.developer?.last_stored_print ?? null,
           mqtt: captured.service?.developer?.mqtt_connected ?? null,
+          connexions: captured.service?.developer?.connection ?? null,
         } : {}),
       }, null, 2);
       const preview = find('[data-report]');

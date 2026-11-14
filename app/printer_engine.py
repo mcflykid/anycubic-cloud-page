@@ -42,7 +42,7 @@ from printer_commands import execute_command, slot_indices
 from printer_registry import printer_key
 from cloud_extras import key as task_key
 from printer_values import now, safeget, serial, stored_print_name
-from measurement_freshness import Measurements, PRINTER_FIELDS
+from measurement_freshness import CLOUD_POLL_SECONDS, Measurements, PRINTER_FIELDS
 import printer_files
 from print_preflight import (
     STORED_PRINT_OPTIONS,
@@ -262,6 +262,7 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
         if registry:
             owner = registry.owner(get_part_from_mqtt_topic(str(message.topic), 6))
         self.message_engine = owner
+        received = time.monotonic()
         try:
             signals = getattr(owner, "developer_signals", None)
             try:
@@ -320,7 +321,15 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                 and not retained
                 and before != getattr(owner, "mqtt_report_sequence", None)
             ):
-                owner.measurements.mqtt(payload, getattr(self, "measurement_epoch", None))
+                owner.mqtt_exchange_at = now()
+                loop = owner.measurement_loop
+                if loop is not None and not loop.is_closed():
+                    loop.call_soon_threadsafe(
+                        owner.measurements.mqtt,
+                        payload,
+                        getattr(self, "measurement_epoch", None),
+                        received,
+                    )
             return result
         finally:
             self.message_engine = None
@@ -398,13 +407,16 @@ class Engine:
         self.ok = False
         self.updated = None
         self.mqtt_update = None
+        self.mqtt_exchange_at = None
         self.mqtt_report_sequence = 0
         self.measurements = Measurements()
+        self.measurement_loop = None
         self.error = "Connexion en cours"
         self._last_poll_error = None
         self.lock = asyncio.Lock()
         self.events = collections.deque(maxlen=40)
         self.cloudfiles = {}
+        self.archived_cloudfiles = collections.deque(maxlen=200)
         self.commands = collections.OrderedDict()
         self.preview_cache = {}
         self.mqtt_replies = printer_files.MQTTReplies()
@@ -661,6 +673,7 @@ class Engine:
 
     async def refresh_printer_details(self):
         """Partage un relevé HTTP entre le modèle et les capacités pour éviter deux états divergents."""
+        self.measurement_loop = asyncio.get_running_loop()
         self.raw_info = (
             await self.printer.update_info_from_api(include_details=True) if self.printer else {}
         )
@@ -868,7 +881,7 @@ class Engine:
                         message="Observation Discord interrompue ; le suivi Cloud continue",
                         error_type=type(error).__name__,
                     )
-            await asyncio.sleep(60)
+            await asyncio.sleep(CLOUD_POLL_SECONDS)
 
     def command_project_key(self):
         """Renvoie une référence opaque du projet affiché, liée à la machine ; None si le contexte manque."""
@@ -1151,7 +1164,7 @@ class Engine:
             if isinstance(r, dict)
         }
         fields["foreign_detection_supported"] = bool(features.get("fod_support"))
-        epoch = getattr(api, "measurement_epoch", None) if base["mqtt_connected"] else object()
+        epoch = getattr(api, "measurement_epoch", None) if base["mqtt_connected"] else None
         online = fields.get("printer_online") is True
         fields["measurement_freshness"] = {
             key: self.measurements.view(key, epoch, online=online, displayed=fields[key])
@@ -1161,6 +1174,7 @@ class Engine:
         }
         for box in boxes:
             box["drying_observation"] = self.measurements.drying_observation(box["box_id"], epoch)
+            box["drying_action"] = self.measurements.drying_action(box["box_id"])
             box["measurement_freshness"] = {
                 key: self.measurements.view(
                     f"ace:{box['box_id']}:{key}",
