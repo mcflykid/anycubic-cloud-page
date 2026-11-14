@@ -43,13 +43,22 @@ test('la confirmation hors démo garde les options non qualifiées indisponibles
  await page.locator('#print-no').click();
 });
 
+/** Modifie l’état relu en boucle ; une relecture encore en vol à la fermeture de la page est ignorée. */
+async function editStatus(page, edit) {
+ await page.route('**/imprimante-api/status**', async route => {
+  try {
+   const response = await route.fetch(), json = await response.json();
+   edit(json);
+   await route.fulfill({response,json});
+  } catch (error) {
+   if (!/disposed|closed/i.test(String(error))) throw error;
+  }
+ });
+}
+
 test('le lancement mémoire envoie le nivellement décoché et seulement les options annoncées', async ({page}) => {
  const commands=[];
- await page.route('**/imprimante-api/status**', async route => {
-  const response=await route.fetch(), json=await response.json();
-  json.printer.stored_print_options=['auto_leveling','camera_timelapse'];
-  return route.fulfill({response,json});
- });
+ await editStatus(page, json => { json.printer.stored_print_options=['auto_leveling','camera_timelapse']; });
  await page.route('**/imprimante-api/files/local?**', route => route.fulfill({json:{
   files:[{name:'fixture.gcode'}],path:'/'
  }}));
@@ -73,10 +82,8 @@ test('le lancement mémoire envoie le nivellement décoché et seulement les opt
 
 test('la confirmation mémoire reçoit les capacités qui arrivent après son ouverture', async ({page}) => {
  let ready = false;
- await page.route('**/imprimante-api/status**', async route => {
-  const response = await route.fetch(), json = await response.json();
+ await editStatus(page, json => {
   json.printer.stored_print_options = ready ? ['auto_leveling','ai_detect','camera_timelapse'] : ['auto_leveling'];
-  return route.fulfill({response,json});
  });
  await page.route('**/imprimante-api/files/local?**', route =>
   route.fulfill({json:{files:[{name:'fixture.gcode'}],path:'/'}}));
