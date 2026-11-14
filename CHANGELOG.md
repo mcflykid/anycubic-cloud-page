@@ -1,16 +1,20 @@
 # Changements
 
-## En préparation
+## 2.1.0 — 2026-11-14
 
 - Indique la provenance et la fraîcheur des températures, de la ventilation et des mesures ACE (#412).
 - Suit les demandes de séchage manuel jusqu’à un retour du boîtier ciblé ou un état à vérifier (#413).
 - Ajoute la sauvegarde et la restauration privées d’`appdata` et le transfert des fiches personnelles du navigateur (#414).
 - Explique les associations RFID et ajoute quatre références régionales PLA Basic confirmées par Anycubic (#415, #416).
-
 - Détaille les incidents Cloud et MQTT dans le diagnostic expurgé et ajoute des états fictifs ACE à deux boîtiers (#417, #418).
 - Permet d’importer et de télécharger les originaux tranchés depuis le détail d’une impression (#419).
 - Documente les preuves attendues pour le séchage combiné et le timelapse (#421).
 - Fiabilise la provenance des mesures, l’affichage des valeurs anciennes et la confirmation du séchage, avec des tests d’intégration (#424, #425, #426, #427, #428, #429, #430, #431, #432, #433).
+
+- Regroupe le catalogue par gamme avec filtres et pastilles de couleur. Les fiches mettent en avant les réglages d’impression et la configuration des bobines indique le filament restant par emplacement (#434, #435, #436).
+- Met le diagnostic en tête des détails d’une tâche, signale les métadonnées partielles et affiche une frise chronologique à l’échelle (#437, #439).
+- Affiche les totaux de la file d’attente, les filaments manquants et le contrôle « Plateau libéré » (#438).
+- Distingue les boutons désactivés même en contraste élevé et rapproche la fenêtre de lancement de Slicer Next avec des tuiles filament et des options visibles (#440, #442).
 
 ## 2.0.0 — 2026-11-14
 
