@@ -135,18 +135,6 @@
     <label class="atelier-field">Rechercher sur cette page<input id="files-search" type="search"></label>
     <label class="atelier-field">Trier<select id="files-sort"><option value="">Ordre d’origine</option><option value="name">Nom</option><option value="size">Taille</option><option value="date">Date d’ajout</option><option value="duration">Durée estimée</option></select></label>
   </form>
-  <details id="file-advanced">
-    <summary class="atelier-disclosure">Filtres avancés <span id="file-filter-count" hidden></span></summary>
-    <div class="file-advanced-fields">
-      <label class="atelier-field">Matière<select id="file-material" multiple size="3"></select></label>
-      <label class="atelier-field">Nombre de couleurs<select id="file-colors"><option value="">Toutes</option><option value="one">Une couleur</option><option value="few">Deux à quatre couleurs</option><option value="many">Plus de quatre couleurs</option><option value="unknown">Inconnu</option></select></label>
-      <label class="atelier-field">Durée estimée<select id="file-duration"><option value="">Toutes</option><option value="short">Moins d’une heure</option><option value="medium">Une à quatre heures</option><option value="long">Plus de quatre heures</option><option value="unknown">Inconnu</option></select></label>
-      <label class="atelier-field">Date d’ajout<select id="file-added"><option value="">Toutes</option><option value="7">7 derniers jours</option><option value="30">30 derniers jours</option><option value="unknown">Inconnu</option></select></label>
-      <button type="button" id="file-filters-clear">Effacer les filtres</button>
-    </div>
-    <div id="file-filter-chips" class="file-filter-chips"></div>
-    <p id="file-count" role="status"></p>
-  </details>
   <section class="atelier-card files-card" aria-labelledby="files-title">
     <header class="atelier-card-header">
       <h2 id="files-title">Mémoire imprimante</h2><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="files" aria-haspopup="dialog" aria-label="Aide">?</button><p id="files-state" class="atelier-status" role="status">Sélectionnez une source puis actualisez la liste.</p><div id="cloud-tools" hidden><div class="cloud-selection-anchor"><div class="actions cloud-bulk"><span id="cloud-selected-count" class="sr-only">0 sélection</span><span class="count-badge selection-count" aria-hidden="true"><span id="cloud-selection-prefix"></span><span id="cloud-selection-digits"></span><span id="cloud-selection-suffix"></span></span><span id="cloud-selected-size" class="muted"></span><label id="cloud-destination-label" class="atelier-field" hidden>Dossier de destination<select id="cloud-destination"></select></label><button id="cloud-move-selected" type="button" hidden disabled>Déplacer la sélection</button><button id="cloud-download-selected" type="button" disabled title="Préparer le téléchargement des fichiers sélectionnés.">Télécharger</button><button id="cloud-delete-selected" type="button" class="danger" disabled title="Supprimer les fichiers sélectionnés du Cloud après confirmation.">Supprimer</button><button id="cloud-clear-selection" type="button" disabled>Décocher</button></div></div></div>
@@ -366,15 +354,20 @@
     <section class="atelier-card settings-security" aria-labelledby="settings-security-title">
       <header class="atelier-card-header"><h2 id="settings-security-title">Sécurité</h2></header>
       <div class="atelier-card-body settings-channels">
-        <div class="settings-channel"><span><strong>Connexion à deux facteurs</strong></span><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
+        <div class="atelier-field">
+          <span>Connexion à deux facteurs</span>
+          <div class="settings-channel-controls"><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
+        </div>
       </div>
       <footer class="atelier-card-footer"><p>Un code temporaire est demandé après le mot de passe.</p></footer>
     </section>
     <section class="atelier-card settings-discord" aria-labelledby="settings-discord-title" <!-- DISCORD_CARD_VISIBILITY -->>
       <header class="atelier-card-header"><h2 id="settings-discord-title">Notifications Discord</h2></header>
       <div class="atelier-card-body settings-channels">
-        <div class="settings-channel"><span><strong>Alertes</strong></span><span class="atelier-status" data-state="<!-- DISCORD_BADGE_STATE -->"><!-- DISCORD_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></div>
-        <div class="settings-channel"><span><strong>Bilans</strong></span><span class="atelier-status" data-state="<!-- REPORTS_BADGE_STATE -->"><!-- REPORTS_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Configurer</a></div>
+        <div class="settings-channel-pair">
+          <div class="atelier-field"><span>Alertes</span><div class="settings-channel-controls"><span class="atelier-status settings-status-dot" data-state="<!-- DISCORD_BADGE_STATE -->"><span class="sr-only"><!-- DISCORD_STATE --></span></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></div></div>
+          <div class="atelier-field"><span>Bilans</span><div class="settings-channel-controls"><span class="atelier-status settings-status-dot" data-state="<!-- REPORTS_BADGE_STATE -->"><span class="sr-only"><!-- REPORTS_STATE --></span></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Configurer</a></div></div>
+        </div>
       </div>
       <footer class="atelier-card-footer"><p>Un webhook et un salon distincts par canal.</p></footer>
     </section>

@@ -149,8 +149,13 @@ test('les bilans et les alertes ont des réglages et des webhooks distincts', as
   await page.goto('/imprimante.html');
   await page.locator('[data-tab=settings]').click();
   const card=page.getByRole('region',{name:'Notifications Discord'});
-  await expect(card.getByText('Activées',{exact:true})).toBeVisible();
-  await expect(card.getByText('Activés',{exact:true})).toBeVisible();
+  // L’état n’est plus écrit à l’écran : seul le témoin reste visible, le texte est conservé pour l’accessibilité.
+  const dots = card.locator('.settings-status-dot');
+  await expect(dots).toHaveCount(2);
+  await expect(dots.nth(0)).toHaveAttribute('data-state','normal');
+  await expect(dots.nth(0)).toHaveText('Activées');
+  await expect(dots.nth(1)).toHaveAttribute('data-state','normal');
+  await expect(dots.nth(1)).toHaveText('Activés');
   await card.getByRole('link',{name:'Configurer les bilans Discord'}).click();
   await expect(page.getByRole('heading',{name:'Bilans Discord'})).toBeVisible();
   await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();

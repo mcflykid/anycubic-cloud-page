@@ -221,11 +221,14 @@ export function createAce(command, refresh) {
           unknown: 'SKU RFID inconnu du catalogue',
           ambiguous: 'SKU RFID ambigu',
         }[spool.filament_recognition];
-        if (recognition) copy.append(node('p', tr(recognition)));
-        if (typeof spool.rfid === 'boolean')
-          copy.append(node('p', tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle')));
+        // Fiche, identification et engagement partagent une ligne pour garder la liste compacte.
+        const status = node('p', [
+          recognition && tr(recognition),
+          typeof spool.rfid === 'boolean' && tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle'),
+        ].filter(Boolean).join(' · '));
         if (Number.isInteger(box.loaded_slot) && box.loaded_slot >= 0 && box.loaded_slot === (spool.local_slot ?? spool.slot) - 1)
-          copy.append(node('p', tr('Bobine engagée'), 'engaged-spool'));
+          status.append(status.textContent ? ' · ' : '', node('span', tr('Bobine engagée'), 'engaged-spool'));
+        if (status.textContent) copy.append(status);
         const shortfall = p.filament_shortfalls?.find(item => item.slot === (spool.display_slot ?? spool.slot));
         if (shortfall) copy.append(node('p', formatText('Emplacement {0} : environ {1} g restants pour {2} g estimés.',
           shortfall.slot, fmt(shortfall.grams), fmt(shortfall.needed)), 'filament-shortfall'));

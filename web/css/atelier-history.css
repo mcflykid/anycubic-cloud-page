@@ -100,8 +100,9 @@
   border-radius: 0;
 }
 @container history (min-width: 1040px) {
+  /* Liste et Galerie rejoignent la ligne des filtres pour économiser une rangée. */
   .history-toolbar {
-    grid-template-columns: auto repeat(3, minmax(0, 1fr)) auto;
+    grid-template-columns: auto repeat(3, minmax(0, 1fr)) auto auto;
   }
 }
 @container history (min-width: 690px) and (max-width: 1039px) {
