@@ -1,6 +1,6 @@
 {
   "name": "anycubic-cloud-page",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "private": true,
   "description": "Standalone Anycubic Cloud workshop",
   "license": "GPL-3.0-or-later",

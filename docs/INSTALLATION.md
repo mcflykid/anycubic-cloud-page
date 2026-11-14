@@ -178,7 +178,7 @@ Si le téléphone et les codes de secours sont perdus, ajoutez `WEB_TOTP_RESET=t
 Arrêtez uniquement Cloud Page avant de lire son dossier de données afin d’obtenir une copie cohérente. Avec le script de la version installée et un utilisateur autorisé à lire `appdata`, créez une archive à conserver en lieu privé.
 
 ```sh
-python3 scripts/backup_appdata.py backup ./appdata ./acp-backup.zip --version 2.1.0
+python3 scripts/backup_appdata.py backup ./appdata ./acp-backup.zip --version 2.1.1
 python3 scripts/backup_appdata.py restore ./acp-backup.zip ./appdata-restaure
 ```
 

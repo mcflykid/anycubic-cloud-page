@@ -1,5 +1,14 @@
 # Changements
 
+## 2.1.1 — 2026-11-14
+
+- Préserve les compteurs MQTT récents face aux instantanés REST. Une valeur `-1` n’écrase plus le suivi de l’impression (#444).
+- Affiche l’espace utilisé par les originaux et permet de retirer un fichier archivé. Les copies partagées restent disponibles pour les autres tâches (#446).
+- Inclut le temps restant de l’impression active dans « Fin si enchaînée ». L’heure est masquée si une durée manque (#447).
+- Corrige les températures et complète les couleurs, les propriétés et les références des fiches PLA Basic (#450).
+- Ajoute un carnet d’entretien de la Kobra S1 en français, avec neuf fiches et des schémas originaux (#452).
+- Rend les écrans ACE, Fichiers, Historique et Réglages plus compacts. Aligne le contenu de Sécurité et Discord sur Apparence et recentre le bouton de suppression du journal (#454).
+
 ## 2.1.0 — 2026-11-14
 
 - Indique la provenance et la fraîcheur des températures, de la ventilation et des mesures ACE (#412).
