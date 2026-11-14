@@ -94,28 +94,19 @@ test('la confirmation mémoire reçoit les capacités qui arrivent après son ou
  await expect(leveling).not.toBeChecked();
 });
 
-test('les filtres de fichiers combinent matière et durée et isolent les données inconnues', async ({page}) => {
+test('la recherche filtre les fichiers sans filtres avancés', async ({page}) => {
  await page.route('**/imprimante-api/files/cloud?**', route => route.fulfill({json:{files:[
   {handle:'a',name:'PLA court.gcode',details:{material:'PLA',seconds:1800}},
   {handle:'b',name:'PETG long.gcode',details:{material:'PETG',seconds:18000}},
-  {handle:'c',name:'Sans fiche.gcode'},
  ],has_more:false}}));
  await login(page,'files');
  await page.locator('[data-source=cloud]').click();
- await expect(page.locator('#file-rows tr')).toHaveCount(3);
- await page.locator('#file-advanced summary').click();
- await page.locator('#file-material').selectOption('PLA');
- await page.locator('#file-duration').selectOption('short');
- await expect(page.locator('#file-rows')).toContainText('PLA court.gcode');
- await expect(page.locator('#file-count')).toHaveText('1 fichier(s) sur 3');
- await expect(page.locator('#file-filter-count')).toHaveText('(2)');
- await page.locator('#file-filter-chips').getByRole('button',{name:'PLA ×'}).click();
- await expect(page.locator('#file-filter-count')).toHaveText('(1)');
- await expect(page.locator('#file-duration')).toHaveValue('short');
- await page.locator('#file-filters-clear').click();
- await page.locator('#file-material').selectOption('unknown');
- await expect(page.locator('#file-rows')).toContainText('Sans fiche.gcode');
+ await expect(page.locator('#file-rows tr')).toHaveCount(2);
+ // Les filtres avancés ont été retirés : la recherche par nom reste le seul filtre.
+ await expect(page.locator('#file-advanced')).toHaveCount(0);
+ await page.locator('#files-search').fill('petg');
  await expect(page.locator('#file-rows tr')).toHaveCount(1);
+ await expect(page.locator('#file-rows')).toContainText('PETG long.gcode');
 });
 /** Une liste lente ne doit jamais être appliquée à la source choisie entre-temps. */
 test('les fichiers tardifs ne changent pas de source et la dernière lecture repart',async({page})=>{

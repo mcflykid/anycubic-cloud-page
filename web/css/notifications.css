@@ -230,10 +230,17 @@
   }
 }
 
+/* Centré comme le point non lu : la ligne aligne ses autres colonnes en haut. */
 #notifications-panel .notification-delete {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 36px;
   min-height: 36px;
   padding: var(--atelier-space-1);
+  font-size: var(--atelier-title-size);
+  line-height: 1;
 }
 
 #notifications-panel .notification-actions {

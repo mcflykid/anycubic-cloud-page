@@ -151,11 +151,20 @@
 .settings-channel strong { font-weight: var(--atelier-semibold); }
 .settings-channel .muted { font: var(--atelier-caption); }
 .settings-channel .atelier-status { white-space: nowrap; }
+/* Alertes et Bilans partagent une rangée ; l’état se lit au témoin, le texte reste pour les lecteurs d’écran. */
+.settings-channel-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-channel.settings-channel-pair > .settings-channel-item { display: flex; align-items: center; gap: var(--atelier-space-3); min-width: 0; }
+.settings-channel-item strong { flex: 1 1 auto; min-width: 0; }
+.settings-status-dot { gap: 0; }
 #tab-settings .settings-discord .atelier-card-footer > .muted { margin: 0; font: var(--atelier-caption); }
 /* Dans une colonne étroite, le titre et l’état suffisent : la description détaillée reste sur la page du canal. */
 @container settings-channels (max-width: 520px) {
   .settings-channel { gap: var(--atelier-space-2) var(--atelier-space-3); padding-block: var(--atelier-space-2); }
   .settings-channel .muted { display: none; }
+}
+/* « Alertes · témoin · Configurer » tient en deux colonnes jusqu’à une carte très étroite. */
+@container settings-channels (max-width: 360px) {
+  .settings-channel-pair { grid-template-columns: minmax(0, 1fr); }
 }
 @container settings (min-width: 900px) {
   .atelier-settings-row {
