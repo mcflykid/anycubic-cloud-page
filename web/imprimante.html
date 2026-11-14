@@ -399,24 +399,11 @@
   <div class="atelier-card-body">
     <label class="atelier-field">Rechercher un filament<input type="search" id="filament-catalogue-search"></label>
     <div class="actions">
-      <button type="button" id="spool-inventory-open">Inventaire des bobines</button><button type="button" id="filament-profile-export">Exporter les fiches personnelles</button>
+      <button type="button" id="filament-profile-export">Exporter les fiches personnelles</button>
       <label class="atelier-field">Restaurer les fiches personnelles<input type="file" id="filament-profile-restore" accept=".json,application/json"></label>
     </div>
     <p id="filament-profile-transfer-state" role="status"></p>
     <ul class="detail-list" id="filament-catalogue-list"></ul>
-  </div>
-</dialog>
-<dialog id="spool-inventory-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="spool-inventory-title">
-  <header class="atelier-card-header"><h2 id="spool-inventory-title">Inventaire des bobines</h2><button type="button" class="dialog-close">Fermer</button></header>
-  <div class="atelier-card-body">
-    <form id="spool-inventory-form">
-      <label class="atelier-field">Nom de la bobine physique<input name="label" maxlength="80" required></label>
-      <label class="atelier-field">Référence du filament<input name="filament" maxlength="100" required></label>
-      <label class="atelier-field">Identifiant Spoolman facultatif<input name="spoolman" type="number" min="1" max="2147483647"></label>
-      <button type="submit" class="atelier-control">Enregistrer</button>
-    </form>
-    <ul id="spool-inventory-list" class="detail-list"></ul>
-    <button type="button" id="spool-inventory-export">Exporter les associations Spoolman (JSON)</button>
   </div>
 </dialog>
 <dialog id="filament-profile-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="filament-profile-title">

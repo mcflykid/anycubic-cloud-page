@@ -315,21 +315,12 @@ async def execute_command(target, name, d):
         finally:
             stored_trace_context.reset(token)
     elif name in ["delete-cloud", "print-cloud"]:
-        handle = str(d.get("handle"))
-        f = target.cloudfiles.get(handle)
+        f = target.cloudfiles.get(str(d.get("handle")))
         if f is None:
             raise ValueError("Actualisez la liste des fichiers cloud")
         if name == "delete-cloud":
             result = await dispatch_command(a.delete_file_from_cloud(f.id))
         else:
-            if handle in getattr(target, "archived_cloudfiles", ()) or d.get("archived") is True:
-                # La machine et les bobines ont pu changer pendant le transfert séparé.
-                await target.refresh_printer_details()
-                if target.printer is not p or not p.printer_online:
-                    raise ValueError("L’imprimante ciblée a changé ou n’est plus en ligne")
-                ensure_firmware_ready(p)
-                if p.connected_ace_units and not d.get("slots"):
-                    raise ValueError("Sélectionnez les bobines avant de réimprimer.")
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             if f.gcode_id is None or f.gcode_id <= 0:

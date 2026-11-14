@@ -8,9 +8,8 @@
 - Explique les associations RFID et ajoute quatre références régionales PLA Basic confirmées par Anycubic (#415, #416).
 
 - Détaille les incidents Cloud et MQTT dans le diagnostic expurgé et ajoute des états fictifs ACE à deux boîtiers (#417, #418).
-- Archive les originaux tranchés et sépare leur transfert Cloud de la confirmation de réimpression du G-code (#419, #420).
+- Permet d’importer et de télécharger les originaux tranchés depuis le détail d’une impression (#419).
 - Documente les preuves attendues pour le séchage combiné et le timelapse (#421).
-- Ajoute un inventaire local de bobines physiques et un export des associations Spoolman (#422).
 - Fiabilise la provenance des mesures, l’affichage des valeurs anciennes et la confirmation du séchage, avec des tests d’intégration (#424, #425, #426, #427, #428, #429, #430, #431, #432, #433).
 
 ## 2.0.0 — 2026-11-14

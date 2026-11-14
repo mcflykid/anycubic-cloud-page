@@ -189,5 +189,3 @@ Les fiches personnelles résident dans le navigateur. Dans **ACE et filaments �
 ### Originaux tranchés de l’historique
 
 Dans le détail d’une tâche terminée de l’imprimante sélectionnée, ouvrez **Originaux tranchés** pour importer un `.gcode` ou `.gcode.3mf`. L’empreinte SHA-256 distingue les fichiers de même nom et élimine les doublons de contenu. L’archive reste dans le volume privé d’état, avec un quota de 512 Mio et 100 Mio par fichier. Elle est incluse dans la sauvegarde d’`appdata`.
-
-**Transférer pour réimprimer** charge un original `.gcode` dans l’espace Cloud, puis ouvre la confirmation d’impression. Le lancement intervient après la sélection des bobines et une nouvelle vérification de la machine. Les paquets `.gcode.3mf` archivés peuvent être téléchargés. Leur lancement depuis la mémoire de l’imprimante suit le parcours existant.

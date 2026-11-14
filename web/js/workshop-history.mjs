@@ -813,7 +813,7 @@ export function createHistory(request, command, selectedBox) {
     }
   }
 
-  /** Associe les originaux à la fiche visible et laisse le transfert indépendant du lancement. */
+  /** Associe les originaux à la fiche visible pour retrouver les fichiers sans passer par le Cloud. */
   function bindArchive(task, current) {
     const panel = $('past-task-archive'), input = $('past-task-archive-input');
     const target = workshopState.selectedPrinter;
@@ -834,26 +834,6 @@ export function createHistory(request, command, selectedBox) {
         const label = node('span', file.name + ' · SHA-256 ' + file.sha256.slice(0, 12));
         label.title = file.sha256;
         entry.append(label, download);
-        if (/\.gcode$/i.test(file.name)) {
-          entry.append(extraButton(tr('Transférer pour réimprimer'), async () => {
-            if (pending || !stillCurrent()) return;
-            pending = true;
-            status(tr('Envoi en cours. Ne fermez pas cette page.'));
-            try {
-              const prepared = await request(filePath + '/prepare', {method:'POST', printerKey:target});
-              if (!stillCurrent()) return;
-              status(tr('Original transféré dans l’espace Cloud.'));
-              $('past-task-dialog').close();
-              await command('print-cloud', {
-                handle:prepared.handle, name:file.name, details:prepared.details, archived:true,
-              }, tr('Vérifiez que le plateau est libre.'), status);
-            } catch (error) {
-              status(error.message);
-            } finally {
-              pending = false;
-            }
-          }, 'atelier-control'));
-        }
         return entry;
       }));
     };

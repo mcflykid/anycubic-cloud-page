@@ -157,10 +157,10 @@ export function createCommands(request, refresh) {
         grams:rows.map(row => row.grams), slots,
       }, target));
       const confirmation = await confirmPrint({
-        target, name:data.name, details:data.details, image, question, chooseSpools:true, requireSpools:action !== 'print-cloud' || data.archived === true, filaments, checkAdvice,
+        target, name:data.name, details:data.details, image, question, chooseSpools:true, requireSpools:action !== 'print-cloud', filaments, checkAdvice,
         initialSlots:data.slots,
         stored:action === 'print-local',
-        queue: action === 'print-cloud' && !data.fromQueue && !data.archived ? async selected => {
+        queue: action === 'print-cloud' && !data.fromQueue ? async selected => {
           try {
             await request('/print-queue', {
               method:'POST', printerKey:target, headers:{'Content-Type':'application/json'},

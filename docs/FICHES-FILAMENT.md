@@ -53,7 +53,3 @@ L’association tient compte de l’imprimante, du module ACE, de l’emplacemen
 | `minNozzle` | Diamètre minimal de la buse en mm |
 
 Pour une valeur unique dans un intervalle, saisissez deux fois le même nombre, par exemple `[50, 50]`. Les fiches sont consultatives. L’atelier conserve ses contrôles habituels pour les commandes d’impression et de séchage. Le [catalogue communautaire](https://3dfilamentprofiles.com/filaments/anycubic) permet de repérer une référence. Les fiches incluses dans l’atelier citent leur source fabricant.
-
-## Inventaire des bobines
-
-Dans **ACE → Catalogue Anycubic → Inventaire des bobines**, donnez un nom distinct à chaque bobine physique. Plusieurs bobines peuvent partager la même référence de filament. L’identifiant Spoolman facultatif associe une bobine déjà créée dans Spoolman. Le fichier JSON exporté contient les associations et sert au rapprochement manuel. Le formulaire et son export restent dans le navigateur. Les quantités Spoolman et les relevés de l’ACE sont gérés indépendamment.

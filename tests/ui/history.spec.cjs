@@ -72,13 +72,7 @@ test('le chargement de l’historique reprend ses cartes et respecte le mouvemen
   await expect(page.locator('#tasks-list')).not.toHaveAttribute('aria-busy');
 });
 
-test('les originaux tranchés sont dédupliqués et transférés sans lancement implicite', async ({page}) => {
-  const downloads = [];
-  const commands = [];
-  page.on('request', request => {
-    if (request.url().endsWith('/imprimante-api/command')) commands.push(request.url());
-  });
-  page.on('download', download => downloads.push(download.suggestedFilename()));
+test('les originaux tranchés sont dédupliqués et téléchargés depuis l’historique', async ({page}) => {
   await history(page);
   await page.locator('#tasks-search').fill('Cube');
   await page.locator('#tasks-list .history-detail').click();
@@ -93,10 +87,10 @@ test('les originaux tranchés sont dédupliqués et transférés sans lancement 
   await input.setInputFiles(file);
   expect((await duplicate).status()).toBe(200);
   await expect(archive.locator('li')).toHaveCount(1);
+  const pendingDownload = page.waitForEvent('download');
   await archive.getByRole('link', {name:'Télécharger'}).click();
-  await expect.poll(() => downloads).toEqual(['origine.gcode']);
-  await archive.getByRole('button', {name:'Transférer pour réimprimer'}).click();
-  await expect(page.locator('#print-dialog')).toBeVisible();
-  await page.keyboard.press('Escape');
-  expect(commands).toEqual([]);
+  const download = await pendingDownload;
+  expect(download.suggestedFilename()).toBe(file.name);
+  expect(require('node:fs').readFileSync(await download.path())).toEqual(file.buffer);
+  await expect(archive.locator('li button')).toHaveCount(0);
 });
