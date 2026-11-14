@@ -2,7 +2,7 @@
 
 **Suivez et pilotez votre imprimante Anycubic depuis un navigateur.** L’atelier est auto-hébergé et se connecte à votre compte Anycubic Cloud. Le trancheur reste l’outil de préparation des pièces. L’atelier prend le relais pour consulter les fichiers, suivre l’impression et gérer l’ACE.
 
-[English](README.en.md) · [Version 2.1.1 et changements](CHANGELOG.md) · [Releases](https://github.com/mcflykid/anycubic-cloud-page/releases) · [Captures](screenshots/README.md)
+[English](README.en.md) · [Version 2.2.0 et changements](CHANGELOG.md) · [Releases](https://github.com/mcflykid/anycubic-cloud-page/releases) · [Captures](screenshots/README.md)
 
 ![Résumé de l’atelier sur ordinateur, avec données fictives](screenshots/atelier/resume.jpg)
 

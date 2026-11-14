@@ -1,5 +1,12 @@
 # Changements
 
+## 2.2.0 — 2026-11-14
+
+- Ajoute une chronologie interactive dans l’onglet Imprimante. Les repères de la frise ouvrent les événements dans la carte, qui affiche leurs heures et leurs durées (#459).
+- Réunit températures et ventilation dans un seul tableau et adapte la Vue mur au paysage et au portrait, avec un bouton de sortie à droite de l’heure.
+- Retravaille la recherche rapide, l’évaluation d’une impression, les réglages de détection IA et les confirmations de séchage et de suppression de fichiers.
+- Ajoute un aperçu fictif des alertes ACE dans les réglages Discord et regroupe les règles d’apparence dans un seul document HTML.
+
 ## 2.1.1 — 2026-11-14
 
 - Préserve les compteurs MQTT récents face aux instantanés REST. Une valeur `-1` n’écrase plus le suivi de l’impression (#444).
