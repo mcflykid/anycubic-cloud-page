@@ -33,7 +33,7 @@ from maintenance import maintenance_rows
 from print_queue import read_queue
 from command_journal import ACTIONS, MQTT_CONFIRMATIONS, command_mqtt_context, mqtt_digest
 from developer_signals import DeveloperSignals, mqtt_clock_delta, mqtt_summary, stored_trace_context
-from filament_catalog import editable_materials, filament_profile_for_sku
+from filament_catalog import editable_materials, filament_profile_for_sku, filament_recognition
 from idle_controls import idle_limits, print_limits
 from native_controls import ace_model, firmware_release_notes, task_details
 from notification_service import AccountNotifications
@@ -42,6 +42,7 @@ from printer_commands import execute_command, slot_indices
 from printer_registry import printer_key
 from cloud_extras import key as task_key
 from printer_values import now, safeget, serial, stored_print_name
+from measurement_freshness import Measurements, PRINTER_FIELDS
 import printer_files
 from print_preflight import (
     STORED_PRINT_OPTIONS,
@@ -267,6 +268,7 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                 payload = json.loads(message.payload)
             except (UnicodeError, ValueError, TypeError):
                 payload = None
+            target_matches, retained = False, False
             with contextlib.suppress(Exception):
                 target_matches = (
                     owner
@@ -310,7 +312,16 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
                         "light",
                     ):
                         owner.mqtt_replies.receive(payload)
-            return super()._mqtt_message_router(message)
+            before = getattr(owner, "mqtt_report_sequence", None)
+            result = super()._mqtt_message_router(message)
+            if (
+                isinstance(payload, dict)
+                and target_matches
+                and not retained
+                and before != getattr(owner, "mqtt_report_sequence", None)
+            ):
+                owner.measurements.mqtt(payload, getattr(self, "measurement_epoch", None))
+            return result
         finally:
             self.message_engine = None
 
@@ -323,6 +334,8 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             mqtt_code=rc if isinstance(rc, int) else getattr(rc, "value", None),
             connected=not bool(rc),
         )
+        if not rc:
+            self.measurement_epoch = object()
         if rc:
             getattr(self, "cloud_engine", engine).event(
                 "MQTT", "Connexion refusée, code " + str(rc)
@@ -385,6 +398,8 @@ class Engine:
         self.ok = False
         self.updated = None
         self.mqtt_update = None
+        self.mqtt_report_sequence = 0
+        self.measurements = Measurements()
         self.error = "Connexion en cours"
         self._last_poll_error = None
         self.lock = asyncio.Lock()
@@ -594,6 +609,7 @@ class Engine:
     def mqtt_changed(self):
         """Marque la fraîcheur des données lors d’une notification MQTT."""
         self.mqtt_update = now()
+        self.mqtt_report_sequence += 1
 
     def mqtt_connected(self):
         """Consigne l’établissement du suivi MQTT dans le journal affichable."""
@@ -649,6 +665,7 @@ class Engine:
             await self.printer.update_info_from_api(include_details=True) if self.printer else {}
         )
         self.details_updated = now() if self.raw_info else None
+        self.measurements.cloud(self.raw_info)
 
     async def refresh_lifetime_count(self):
         """Relève le compteur cumulé sans bloquer le suivi quand le Cloud ne le fournit pas."""
@@ -1030,6 +1047,10 @@ class Engine:
                 spools = [spool.copy() for spool in spools]
             for spool in spools or []:
                 slot = slots.get(spool.get("local_slot"))
+                if slot:
+                    spool["filament_recognition"] = filament_recognition(
+                        slot.sku, slot.rfid, slot.spool_loaded
+                    )
                 if slot and slot.rfid is True and slot.spool_loaded is True:
                     profile = filament_profile_for_sku(slot.sku)
                     if profile:
@@ -1130,6 +1151,31 @@ class Engine:
             if isinstance(r, dict)
         }
         fields["foreign_detection_supported"] = bool(features.get("fod_support"))
+        epoch = getattr(api, "measurement_epoch", None) if base["mqtt_connected"] else object()
+        online = fields.get("printer_online") is True
+        fields["measurement_freshness"] = {
+            key: self.measurements.view(key, epoch, online=online, displayed=fields[key])
+            if fields.get(key) is not None
+            else {"state": "missing"}
+            for key in PRINTER_FIELDS
+        }
+        for box in boxes:
+            box["drying_observation"] = self.measurements.drying_observation(box["box_id"], epoch)
+            box["measurement_freshness"] = {
+                key: self.measurements.view(
+                    f"ace:{box['box_id']}:{key}",
+                    epoch,
+                    online=online,
+                    displayed=value,
+                )
+                if value is not None
+                else {"state": "missing"}
+                for key, value in (
+                    ("temperature", box["temperature"]),
+                    ("humidity", box["humidity"]),
+                    ("drying", box["drying"]["is_drying"]),
+                )
+            }
         fields["boxes"] = boxes
         fields["filament_shortfalls"] = running_filament_shortfall(
             fields, safeget(p, "latest_project.slice_material_info_list")

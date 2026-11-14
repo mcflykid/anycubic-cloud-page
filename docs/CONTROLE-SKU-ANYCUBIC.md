@@ -29,3 +29,7 @@ Le catalogue local contient 32 fiches sélectionnées après recoupement. Les va
 - Le [guide filament Anycubic](https://wiki.anycubic.com/en/filament-and-resin/filament-guide) décrit les familles et leurs usages. Les données techniques se vérifient dans les fiches produit et PDF Anycubic.
 - Le [relevé de SKU Anycubic](https://github.com/mrRobot62/anycubic_filament_sku_sniffer#complete-list-of-skus-colors-filaments) rapproche références commerciales, familles et couleurs à partir des boutiques. Il confirme notamment `AHLSBR-101` pour Marble Brick Red et `AHLSMW-101` pour Marble White. Puisqu’il reprend la boutique, il facilite la vérification sans constituer une source indépendante pour une puce.
 - La [fiche Anycubic de SpoolmanDB](https://github.com/Donkie/SpoolmanDB/blob/main/filaments/anycubic.json) fournit notamment des couleurs et réglages de PETG. Elle sert à comparer les paramètres et ne suffit pas à valider un SKU lu par l’ACE.
+
+### Variantes régionales PLA Basic
+
+Les quatre références régionales confirmées figurent dans le [guide des fiches](FICHES-FILAMENT.md). Les autres références candidates restent à recouper. Le code de recharge `AHPLBW-A106` est laissé hors de ce lot, la page de recharge contrôlée ne l’ayant pas fourni. Aucune association n’est créée à partir d’une couleur ou d’un motif de SKU.

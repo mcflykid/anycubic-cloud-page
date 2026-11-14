@@ -1,7 +1,7 @@
 import { $, fmt, formatText, locale, message, mins, node, set, timeZone, tr } from './workshop-ui.mjs';
 import { bindFilamentCatalogue, filamentProfileAction, openFilamentProfile } from './workshop-filament-profiles.mjs';
 import { workshopState } from './workshop-state.mjs';
-import { definition, statusBadge } from './workshop-overview.mjs';
+import { definition, measurement, statusBadge } from './workshop-overview.mjs';
 
 // Le même hexadécimal peut désigner deux produits, par exemple PLA blanc et PLA Marble blanc.
 const filamentVariants = new Map([
@@ -191,8 +191,8 @@ export function createAce(command, refresh) {
     }
     set('ace-relay-state', tr(!relayKnown ? 'Inconnu' : box.auto_feed ? 'Activé' : 'Désactivé'));
     definition('ace-stats', [
-      ['Température', fmt(box.temperature, ' °C')],
-      ['Humidité', fmt(box.humidity, ' %')],
+      ['Température', measurement(box.temperature, ' °C', box.measurement_freshness?.temperature)],
+      ['Humidité', measurement(box.humidity, ' %', box.measurement_freshness?.humidity)],
     ]);
     $('spools').replaceChildren(
       ...spools.map((spool, index) => {
@@ -215,6 +215,13 @@ export function createAce(command, refresh) {
           slot: spool.local_slot ?? spool.slot, displaySlot: spool.display_slot ?? spool.slot,
         });
         copy.append(profile);
+        const recognition = {
+          exact: 'Fiche associée par SKU exact',
+          missing: 'SKU RFID absent',
+          unknown: 'SKU RFID inconnu du catalogue',
+          ambiguous: 'SKU RFID ambigu',
+        }[spool.filament_recognition];
+        if (recognition) copy.append(node('p', tr(recognition)));
         if (typeof spool.rfid === 'boolean')
           copy.append(node('p', tr(spool.rfid ? 'RFID reconnu' : 'Configuration manuelle')));
         if (Number.isInteger(box.loaded_slot) && box.loaded_slot >= 0 && box.loaded_slot === (spool.local_slot ?? spool.slot) - 1)
@@ -297,8 +304,10 @@ export function createAce(command, refresh) {
     const index = workshopState.snapshot?.presets?.findIndex(preset =>
       Number(preset.temperature) === temperature && Number(preset.hours) === hours);
     $('dry-presets').querySelectorAll('input').forEach((radio, position) => { radio.checked = position === index; });
-    const printer = workshopState.snapshot?.printer, drying = selectedBox()?.drying?.is_drying;
-    const blocked = !printer?.printer_online || typeof drying !== 'boolean' || dryingPending;
+    const printer = workshopState.snapshot?.printer, box = selectedBox();
+    const drying = box?.drying?.is_drying;
+    const blocked = !printer?.printer_online || typeof drying !== 'boolean' || dryingPending ||
+      box?.drying_observation === 'pending';
     $('dry-start').disabled = blocked || !dryForm.elements.temperature.validity.valid || !dryForm.elements.hours.validity.valid;
     $('dry-stop').disabled = blocked;
     set('dry-start', drying === true ? formatText('Appliquer {0} °C · {1} h', temperature, hours) : tr('Démarrer le séchage'));
@@ -312,6 +321,12 @@ export function createAce(command, refresh) {
     set('drying-detail', active === true
       ? formatText('Séchage à {0}', fmt(dry.target_temperature, ' °C'))
       : tr(active === false ? 'Aucun séchage en cours' : 'État du séchage inconnu'));
+    const confirmation = {
+      pending: 'Demande de séchage envoyée',
+      confirmed: 'État du séchage confirmé par l’ACE',
+      unconfirmed: 'État du séchage à vérifier',
+    }[box?.drying_observation];
+    if (confirmation) set('drying-detail', tr(confirmation));
     $('dry-remaining').hidden = $('dry-progress').hidden = !progress;
     if (progress) {
       set('dry-remaining', formatText('{0} restantes', mins(dry.remaining_time)));

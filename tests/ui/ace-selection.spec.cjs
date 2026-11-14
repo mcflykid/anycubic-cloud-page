@@ -210,3 +210,39 @@ test('le conseil de séchage préremplit le formulaire sans démarrer le module'
   await openSection(page, 'ace');
   await expect(advice).toBeHidden();
 });
+
+test('les mesures ACE distinguent un zéro périmé et l’absence de relevé', async ({page}) => {
+  await page.route(/\/imprimante-api\/status(?:\?|$)/, async route => {
+    const response = await route.fetch();
+    const json = await response.json();
+    if (json.printer?.boxes?.length) {
+      Object.assign(json.printer.boxes[0], {
+        humidity: 0, temperature: null,
+        measurement_freshness: {
+          humidity: {state: 'stale', age_s: 125, source: 'mqtt'},
+          temperature: {state: 'missing'},
+        },
+      });
+    }
+    await route.fulfill({response, json});
+  });
+  await login(page, 'ace');
+  await expect(page.locator('#ace-stats')).toContainText('0 % · MQTT · 125 s · Périmé');
+  await expect(page.locator('#ace-stats')).toContainText('Non relevé');
+});
+
+test('le catalogue restaure un export de fiches et conserve son contenu au téléchargement', async ({page}) => {
+  await login(page, 'ace');
+  await page.getByRole('button', {name:'Catalogue Anycubic'}).click();
+  const fixture = {profiles:[{name:'PLA de démonstration',url:'https://example.com/pla'}],assignments:[]};
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#filament-profile-restore').setInputFiles({
+    name:'fiches.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify(fixture)),
+  });
+  await expect(page.locator('#filament-profile-transfer-state')).toHaveText('Fiches personnelles restaurées');
+  const pending = page.waitForEvent('download');
+  await page.locator('#filament-profile-export').click();
+  const file = await pending;
+  const bytes = require('node:fs').readFileSync(await file.path());
+  expect(JSON.parse(bytes)).toEqual(fixture);
+});

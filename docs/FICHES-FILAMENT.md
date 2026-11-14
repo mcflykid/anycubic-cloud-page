@@ -1,6 +1,8 @@
 # Créer une fiche filament
 
 Pour le PLA Basic, la [boutique Anycubic](https://store.anycubic.com/products/pla-filament) fournit 30 SKU distincts. Le catalogue regroupe les doublons régionaux et donne la couleur et la masse nominale de chaque référence. Les plages d’impression, le séchage et les propriétés mécaniques s’appliquent à la gamme.
+Les boutiques régionales confirment aussi les bobines 1 kg `AHPLCL-105` (transparent), `AHPLGY-105` (gris texturé), `AHPLBW-105` (blanc) et `HPL18-106` (turquoise tropical). Le catalogue les distingue des recharges. Les codes trouvés dans une liste mais absents des variantes vérifiées sont laissés de côté. [Boutique européenne](https://eu.anycubic3d.com/products/pla-filament) · [Boutique britannique](https://uk.anycubic.com/products/pla-filament)
+
 
 Dans **ACE et filaments**, cliquez sur le nom d’un emplacement, par exemple **Emplacement 3 · PLA Marble**. Vous pouvez aussi utiliser le bouton dédié dans la fenêtre ouverte par **Voir** ou **Modifier**. Si une fiche est associée à la bobine, ses caractéristiques s’affichent avec le restant et l’identification RFID rapportés par l’ACE. Si la référence est inconnue, l’atelier ouvre **Créer sa fiche filament**.
 

@@ -214,6 +214,10 @@ export const communityFilamentVariants = [
 
 // Les régions qui partagent le même SKU désignent une seule variante de la boutique Anycubic.
 export const officialPlaBasicVariants = [
+  {"profile": "PLA Basic", "sku": "AHPLCL-105", "color": "Clear", "weight": 1000, "url": "https://eu.anycubic3d.com/products/pla-filament"},
+  {"profile": "PLA Basic", "sku": "AHPLGY-105", "color": "Texture Grey", "weight": 1000, "url": "https://eu.anycubic3d.com/products/pla-filament", "hex": "#75787B"},
+  {"profile": "PLA Basic", "sku": "AHPLBW-105", "color": "White", "weight": 1000, "url": "https://uk.anycubic.com/products/pla-filament", "hex": "#EFF0F1"},
+  {"profile": "PLA Basic", "sku": "HPL18-106", "color": "Tropical Turquoise", "weight": 1000, "url": "https://uk.anycubic.com/products/pla-filament", "hex": "#009CBD"},
   {"profile": "PLA Basic", "sku": "AHPLBW-107", "color": "White", "productId": 43845685149858, "hex": "#EFF0F1", "weight": 1000},
   {"profile": "PLA Basic", "sku": "AHPLBK-105", "color": "Black", "productId": 41189469618338, "hex": "#212721", "weight": 1000},
   {"profile": "PLA Basic", "sku": "AHPLGY-107", "color": "Texture Grey", "productId": 46444260622498, "hex": "#75787B", "weight": 1000},

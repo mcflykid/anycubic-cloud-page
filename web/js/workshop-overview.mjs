@@ -13,6 +13,16 @@ import {
 import { workshopState } from './workshop-state.mjs';
 
 export let previewJob = null;
+
+/** Garde les anciennes valeurs lisibles en indiquant leur provenance et leur âge. */
+export function measurement(value, suffix, reading) {
+  const formatted = fmt(value, suffix);
+  if (!reading) return formatted;
+  if (reading.state === 'missing') return formatted === '—' ? tr('Non relevé') : formatted + ' · ' + tr('Âge inconnu');
+  const source = reading.source === 'mqtt' ? 'MQTT' : 'Cloud';
+  const age = formatText('{0} s', reading.age_s);
+  return [formatted, source + ' · ' + age, reading.state === 'stale' ? tr('Périmé') : null].filter(Boolean).join(' · ');
+}
 /** Remplit une liste descriptive par textContent pour que les valeurs cloud restent du texte. */
 export function definition(target, values) {
   const dl = $(target);
@@ -291,11 +301,23 @@ export function createOverview(request) {
     for (const [id, value] of [
       ['printer-nozzle-current', p.curr_nozzle_temp], ['printer-nozzle-target', p.target_nozzle_temp],
       ['printer-bed-current', p.curr_hotbed_temp], ['printer-bed-target', p.target_hotbed_temp],
-    ]) set(id, fmt(value, ' °C'));
+    ]) {
+      const key = {
+        'printer-nozzle-current':'curr_nozzle_temp', 'printer-nozzle-target':'target_nozzle_temp',
+        'printer-bed-current':'curr_hotbed_temp', 'printer-bed-target':'target_hotbed_temp',
+      }[id];
+      const el = $(id);
+      const reading = p.measurement_freshness?.[key];
+      const summary = measurement(value, ' °C', reading);
+      set(id, reading?.state === 'stale' ? fmt(value, ' °C') + ' · ' + tr('Périmé')
+        : reading?.state === 'missing' ? summary : fmt(value, ' °C'));
+      el.title = summary;
+      el.setAttribute('aria-label', summary);
+    }
     definition('printer-fans', [
-      ['Pièce', fmt(p.fan_speed_pct, ' %')],
-      ['Auxiliaire', fmt(p.aux_fan_speed_pct, ' %')],
-      ['Circulation', fmt(circulationPercent(p.box_fan_level), ' %')],
+      ['Pièce', measurement(p.fan_speed_pct, ' %', p.measurement_freshness?.fan_speed_pct)],
+      ['Auxiliaire', measurement(p.aux_fan_speed_pct, ' %', p.measurement_freshness?.aux_fan_speed_pct)],
+      ['Circulation', measurement(circulationPercent(p.box_fan_level), ' %', p.measurement_freshness?.box_fan_level)],
     ]);
     definition('details', [
       ['Modèle', p.machine_name || '—'],

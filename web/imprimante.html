@@ -398,6 +398,11 @@
   <header class="atelier-card-header"><h2 id="filament-catalogue-title">Catalogue Anycubic</h2><button type="button" class="dialog-close">Fermer</button></header>
   <div class="atelier-card-body">
     <label class="atelier-field">Rechercher un filament<input type="search" id="filament-catalogue-search"></label>
+    <div class="actions">
+      <button type="button" id="filament-profile-export">Exporter les fiches personnelles</button>
+      <label class="atelier-field">Restaurer les fiches personnelles<input type="file" id="filament-profile-restore" accept=".json,application/json"></label>
+    </div>
+    <p id="filament-profile-transfer-state" role="status"></p>
     <ul class="detail-list" id="filament-catalogue-list"></ul>
   </div>
 </dialog>
