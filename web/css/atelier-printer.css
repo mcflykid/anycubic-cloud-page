@@ -455,3 +455,27 @@
     block-size: var(--atelier-journal-time-width);
   }
 }
+
+/* En portrait, les visuels restent sur la même ligne que la frise pour garder les commandes à portée. */
+@container printer (max-width: 600px) {
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) {
+    display: grid;
+    grid-template-columns: var(--atelier-ace-slot-height) minmax(0, 1fr);
+    grid-template-rows: var(--atelier-ace-slot-height) 1fr;
+    gap: var(--atelier-space-2);
+  }
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) > #printer-illustration {
+    inline-size: var(--atelier-ace-slot-height);
+    block-size: var(--atelier-ace-slot-height);
+  }
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) > .printer-task-preview {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) > .printer-task-info {
+    grid-area: 1 / 2 / 3 / 3;
+  }
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) #job-preview {
+    block-size: var(--atelier-ace-slot-height);
+  }
+}
