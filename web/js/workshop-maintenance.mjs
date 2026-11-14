@@ -1,4 +1,5 @@
 import { workshopState } from './workshop-state.mjs';
+import { bindMaintenanceGuide, guideForOperation } from './workshop-maintenance-guide.mjs';
 import { $, confirmAction, date, fmt, formatText, locale, node, set, timeZone, tr } from './workshop-ui.mjs';
 
 /** Une intervention se lit au jour près ; l’heure exacte reste dans l’historique. */
@@ -15,6 +16,7 @@ const tenth = hours => Math.floor(hours * 10) / 10;
 export function bindMaintenance(request) {
   const dialog = $('maintenance-dialog'), form = $('maintenance-form'), done = $('maintenance-done');
   let edited, target, pendingDone, current, busy = false, showHistory = false;
+  const openGuide = bindMaintenanceGuide();
 
   /** Un seul panneau d’édition est visible pour que la saisie reste liée à son opération. */
   function panel(open) {
@@ -52,6 +54,15 @@ export function bindMaintenance(request) {
         : item.unit === 'hours' && last.hours != null
           ? formatText('Dernière fois : {0} à {1}', day(last.time), fmt(last.hours, ' h'))
           : formatText('Dernière fois : {0}', day(last.time)), 'muted'));
+      const guide = guideForOperation(item.id);
+      if (guide) {
+        const read = node('button', tr('Voir la fiche'), 'maintenance-guide-link');
+        read.type = 'button';
+        read.setAttribute('aria-label', formatText('Fiche du carnet : {0}', tr(guide.title)));
+        read.onclick = () => openGuide(guide.id, formatText('{0} · {1}', tr(item.name), amount(item.interval, item.unit)));
+        // Sur la ligne de la dernière intervention, pour ne pas allonger la liste.
+        identity.lastChild.append(' · ', read);
+      }
       const gauge = node('div', null, 'maintenance-gauge');
       if (item.enabled && Number.isFinite(item.elapsed)) {
         const ratio = Math.min(1, item.elapsed / item.interval);
@@ -157,6 +168,7 @@ export function bindMaintenance(request) {
     dialog.showModal();
     void load();
   };
+  $('maintenance-guide-open').onclick = () => openGuide();
   $('maintenance-add').onclick = () => {
     edited = undefined;
     form.reset();

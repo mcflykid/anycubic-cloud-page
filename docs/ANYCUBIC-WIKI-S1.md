@@ -46,6 +46,12 @@ Les opérations proposées pour la Kobra S1 suivent la page [Maintenance Recomme
 
 Les courroies ne figurent pas sur cette page du wiki : l’ancienne opération n’est plus proposée par défaut, mais elle reste en place sur une installation existante. L’ancienne opération « Graisser les axes et tiges » est renommée pour rappeler que l’axe X ne se graisse pas.
 
+### Carnet d’entretien intégré
+
+La fenêtre **Entretien** ouvre un **Carnet d’entretien** en français. Il couvre les neuf points de la page constructeur : vis de l’axe Z, tiges des axes Y et X, caméra, coupe-filament, tête chauffante, chaussette silicone, ventilateurs et plaque en acier. Chaque fiche donne le repère du constructeur, les signes à surveiller, le matériel, les étapes et les précautions ; ouverte depuis une opération, elle rappelle aussi l’échéance réglée dans l’atelier (#452).
+
+Le texte est rédigé pour le projet à partir des faits techniques du constructeur, et les schémas SVG sont dessinés pour l’atelier. Les textes, les captures et la vidéo du wiki ne sont ni copiés ni traduits mot pour mot, faute de licence de réutilisation ; la page source reste accessible en bas du carnet, notamment pour la vidéo. Le carnet n’envoie aucune commande : les chauffes décrites se font depuis l’écran de l’imprimante. Les données sont dans `web/js/maintenance-guide-data.mjs` et les schémas dans `web/js/maintenance-guide-figures.mjs`. Le contenu des fiches est en français ; les libellés de la fenêtre sont traduits.
+
 Une opération calendaire démarre lorsqu’elle est marquée comme faite. Une opération en heures accepte le compteur de la dernière intervention ; une opération en kilogrammes suit le filament cumulé indiqué par le constructeur.
 
 ## Références ACE 2 Pro

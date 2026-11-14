@@ -618,10 +618,18 @@
   </div>
   <footer class="atelier-card-footer"><p class="muted">Rien ne démarre seul : chaque lancement repasse par la confirmation.</p><button id="queue-add-files" class="atelier-control" type="button">Ajouter un fichier</button></footer>
 </dialog>
+<dialog id="maintenance-guide-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="maintenance-guide-title">
+  <header class="atelier-card-header"><h2 id="maintenance-guide-title">Carnet d’entretien</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body maintenance-guide-body">
+    <ul id="maintenance-guide-index" class="maintenance-guide-index" aria-label="Points d’entretien de la Kobra S1"></ul>
+    <article id="maintenance-guide-entry" class="maintenance-guide-entry" hidden></article>
+  </div>
+  <footer class="atelier-card-footer"><p class="muted">Carnet rédigé pour l’atelier d’après les recommandations d’Anycubic pour la Kobra S1. Il n’envoie aucune commande à l’imprimante.</p><a id="maintenance-guide-source" target="_blank" rel="noopener noreferrer">Source et vidéo sur le wiki Anycubic</a></footer>
+</dialog>
 <dialog id="maintenance-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="maintenance-title">
   <header class="atelier-card-header"><h2 id="maintenance-title">Entretien</h2><span id="maintenance-summary" class="atelier-status" hidden></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
   <div class="atelier-card-body maintenance-body">
-    <p class="maintenance-hours"><strong id="maintenance-hours"></strong><span class="muted">Calculé sur le temps d’impression cumulé. Aucune commande n’est envoyée à l’imprimante.</span><a href="https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/maintenance-recommendations" target="_blank" rel="noopener noreferrer">Wiki Anycubic Kobra S1</a></p>
+    <p class="maintenance-hours"><strong id="maintenance-hours"></strong><span class="muted">Calculé sur le temps d’impression cumulé. Aucune commande n’est envoyée à l’imprimante.</span><button id="maintenance-guide-open" class="atelier-control" type="button" aria-haspopup="dialog">Carnet d’entretien</button></p>
     <p id="maintenance-state" role="status"></p>
     <ul id="maintenance-list" class="maintenance-list"></ul>
     <form id="maintenance-done" class="maintenance-panel" aria-labelledby="maintenance-done-title" hidden>

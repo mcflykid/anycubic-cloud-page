@@ -84,6 +84,9 @@
   --atelier-compact-caption: 11px/15px var(--atelier-font);
   --atelier-compact-title: 15px/22px var(--atelier-font);
   --atelier-maintenance-state: 136px;
+  --atelier-maintenance-guide-card: 12rem;
+  --atelier-maintenance-figure: 22rem;
+  --atelier-maintenance-figure-column: 14rem;
   --atelier-controls-device: 304px;
   --atelier-controls-diagram-width: 320px;
   --atelier-controls-illustration: 255px;

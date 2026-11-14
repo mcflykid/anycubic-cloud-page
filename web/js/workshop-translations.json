@@ -10463,22 +10463,106 @@
     "de": "{0} · laut Dateiname",
     "it": "{0} · dal nome del file"
   },
+  "Carnet d’entretien": {
+    "en": "Maintenance logbook",
+    "es": "Cuaderno de mantenimiento",
+    "de": "Wartungsheft",
+    "it": "Libretto di manutenzione"
+  },
+  "Points d’entretien de la Kobra S1": {
+    "en": "Kobra S1 maintenance points",
+    "es": "Puntos de mantenimiento de la Kobra S1",
+    "de": "Wartungspunkte der Kobra S1",
+    "it": "Punti di manutenzione della Kobra S1"
+  },
+  "Carnet rédigé pour l’atelier d’après les recommandations d’Anycubic pour la Kobra S1. Il n’envoie aucune commande à l’imprimante.": {
+    "en": "Logbook written for the workshop from Anycubic’s Kobra S1 recommendations. It sends no command to the printer.",
+    "es": "Cuaderno redactado para el taller a partir de las recomendaciones de Anycubic para la Kobra S1. No envía ningún comando a la impresora.",
+    "de": "Für die Werkstatt verfasstes Heft nach den Empfehlungen von Anycubic für die Kobra S1. Es sendet keinen Befehl an den Drucker.",
+    "it": "Libretto redatto per l’officina dalle raccomandazioni di Anycubic per la Kobra S1. Non invia alcun comando alla stampante."
+  },
+  "Source et vidéo sur le wiki Anycubic": {
+    "en": "Source and video on the Anycubic wiki",
+    "es": "Fuente y vídeo en la wiki de Anycubic",
+    "de": "Quelle und Video im Anycubic-Wiki",
+    "it": "Fonte e video sul wiki Anycubic"
+  },
+  "Voir la fiche": {
+    "en": "View sheet",
+    "es": "Ver la ficha",
+    "de": "Blatt ansehen",
+    "it": "Vedi la scheda"
+  },
+  "Fiche du carnet : {0}": {
+    "en": "Logbook sheet: {0}",
+    "es": "Ficha del cuaderno: {0}",
+    "de": "Heftblatt: {0}",
+    "it": "Scheda del libretto: {0}"
+  },
+  "Tous les points": {
+    "en": "All points",
+    "es": "Todos los puntos",
+    "de": "Alle Punkte",
+    "it": "Tutti i punti"
+  },
+  "Quand": {
+    "en": "When",
+    "es": "Cuándo",
+    "de": "Wann",
+    "it": "Quando"
+  },
+  "Schéma : {0}": {
+    "en": "Diagram: {0}",
+    "es": "Esquema: {0}",
+    "de": "Schema: {0}",
+    "it": "Schema: {0}"
+  },
+  "Rappel réglé dans l’atelier : {0}": {
+    "en": "Reminder set in the workshop: {0}",
+    "es": "Recordatorio configurado en el taller: {0}",
+    "de": "In der Werkstatt eingestellte Erinnerung: {0}",
+    "it": "Promemoria impostato nell’officina: {0}"
+  },
+  "Signes à surveiller": {
+    "en": "Signs to watch for",
+    "es": "Señales a vigilar",
+    "de": "Warnzeichen",
+    "it": "Segnali da osservare"
+  },
+  "Matériel": {
+    "en": "Equipment",
+    "es": "Material",
+    "de": "Material",
+    "it": "Materiale"
+  },
+  "Étapes": {
+    "en": "Steps",
+    "es": "Pasos",
+    "de": "Schritte",
+    "it": "Passaggi"
+  },
+  "Précautions": {
+    "en": "Precautions",
+    "es": "Precauciones",
+    "de": "Vorsichtsmaßnahmen",
+    "it": "Precauzioni"
+  },
   "Masse de la bobine vide": {
     "en": "Empty spool weight",
     "es": "Peso de la bobina vacía",
     "de": "Gewicht der leeren Spule",
     "it": "Peso della bobina vuota"
   },
-  "Température de transition vitreuse": {
-    "en": "Glass transition temperature",
-    "es": "Temperatura de transición vítrea",
-    "de": "Glasübergangstemperatur",
-    "it": "Temperatura di transizione vetrosa"
-  },
   "Résistance au choc Izod": {
     "en": "Izod impact strength",
     "es": "Resistencia al impacto Izod",
     "de": "Izod-Schlagzähigkeit",
     "it": "Resistenza all’urto Izod"
+  },
+  "Température de transition vitreuse": {
+    "en": "Glass transition temperature",
+    "es": "Temperatura de transición vítrea",
+    "de": "Glasübergangstemperatur",
+    "it": "Temperatura di transizione vetrosa"
   }
 }
