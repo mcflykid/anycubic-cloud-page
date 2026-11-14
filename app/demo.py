@@ -1,5 +1,6 @@
 """Démonstration locale sur données fictives, sans connexion cloud ni commande physique."""
 
+import asyncio
 import argparse, base64, csv, io, json, math, os, re, tempfile, time
 from pathlib import Path
 from aiohttp import web
@@ -420,8 +421,11 @@ async def api(request):
                 return web.json_response({"ok": False, "message": str(error)}, status=400)
         if request.method == "GET" and len(extra) == 1:
             return archive_download(*archive.resolve("demo", task, extra[0]))
+        if request.method == "DELETE" and len(extra) == 1:
+            await asyncio.to_thread(archive.remove, "demo", task, extra[0])
+            return web.json_response({"ok": True})
         if request.method == "GET" and not extra:
-            return web.json_response({"files": archive.list("demo", task)})
+            return web.json_response({"files": archive.list("demo", task), **archive.usage()})
         raise web.HTTPNotFound()
     if path == "maintenance":
         file = request.app[MAINTENANCE]

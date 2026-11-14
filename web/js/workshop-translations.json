@@ -1,4 +1,22 @@
 {
+  "{0} / {1} Mio utilisés": {
+    "en": "{0} / {1} MiB used",
+    "es": "{0} / {1} MiB usados",
+    "de": "{0} / {1} MiB belegt",
+    "it": "{0} / {1} MiB usati"
+  },
+  "Retirer « {0} » de cette tâche ?": {
+    "en": "Remove “{0}” from this task?",
+    "es": "¿Retirar «{0}» de esta tarea?",
+    "de": "„{0}“ aus diesem Auftrag entfernen?",
+    "it": "Rimuovere «{0}» da questa attività?"
+  },
+  "Original retiré.": {
+    "en": "Original removed.",
+    "es": "Original retirado.",
+    "de": "Original entfernt.",
+    "it": "Originale rimosso."
+  },
   "Originaux tranchés": {
     "en": "Sliced originals",
     "es": "Originales laminados",

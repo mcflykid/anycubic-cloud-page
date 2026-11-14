@@ -30,3 +30,30 @@ class ArchiveTests(unittest.TestCase):
             self.assertEqual(archive.resolve("a", "task", one)[1].read_bytes(), b"G28\nG1 X2")
             with self.assertRaises(web.HTTPNotFound):
                 archive.resolve("b", "task", one)
+
+    def test_removal_frees_quota_only_for_last_reference(self):
+        """Les autres tâches doivent pouvoir télécharger la même copie après le retrait."""
+        from unittest.mock import patch
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = PrintArchive(root)
+            original = root / "fixture"
+            original.write_bytes(b"G28\nG1 X2")
+            size = original.stat().st_size
+            with patch("print_archive.ARCHIVE_LIMIT", size):
+                digest = archive.add("a", "one", "plate.gcode", original)
+                archive.add("b", "two", "plate.gcode", original)
+                archive.remove("a", "one", digest)
+                self.assertEqual(archive.list("a", "one"), [])
+                self.assertEqual(archive.usage()["used_bytes"], size)
+                self.assertTrue(archive.resolve("b", "two", digest)[1].exists())
+                with self.assertRaises(web.HTTPNotFound):
+                    archive.remove("a", "one", digest)
+                original.unlink()
+                original.write_bytes(b"G28\nG1 X3")
+                with self.assertRaisesRegex(ValueError, "quota"):
+                    archive.add("a", "one", "plate.gcode", original)
+                archive.remove("b", "two", digest)
+                self.assertEqual(archive.usage()["used_bytes"], 0)
+                archive.add("a", "one", "plate.gcode", original)

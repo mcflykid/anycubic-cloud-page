@@ -976,7 +976,13 @@ async def archived_original(req):
         if digest := req.match_info.get("digest"):
             return archive_download(*await asyncio.to_thread(archive.resolve, target, task, digest))
         rows = await asyncio.to_thread(archive.list, target, task)
-        return web.json_response({"files": rows}, headers={"Cache-Control": "private, no-store"})
+        usage = await asyncio.to_thread(archive.usage)
+        return web.json_response(
+            {"files": rows, **usage}, headers={"Cache-Control": "private, no-store"}
+        )
+    if req.method == "DELETE":
+        await asyncio.to_thread(archive.remove, target, task, req.match_info["digest"])
+        return web.json_response({"ok": True})
     if selected.extras is None:
         raise ValueError("Impression historique non disponible")
     known = selected.extras.task(task)
@@ -1278,6 +1284,7 @@ app.add_routes(
         web.get("/imprimante-api/archive/{task}", archived_original, allow_head=False),
         web.post("/imprimante-api/archive/{task}", archived_original),
         web.get("/imprimante-api/archive/{task}/{digest}", archived_original, allow_head=False),
+        web.delete("/imprimante-api/archive/{task}/{digest}", archived_original),
         web.post("/imprimante-api/upload", upload),
         web.post("/imprimante-api/preflight", print_preflight),
         web.post("/imprimante-api/preview", preview),

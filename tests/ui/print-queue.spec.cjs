@@ -81,3 +81,26 @@ test('une file vide explique comment la remplir et masque le plateau libéré', 
   await expect(dialog).toBeHidden();
   await expect(page.locator('#tab-files')).toBeVisible();
 });
+
+test('la fin enchaînée suit le temps restant de la tâche active', async ({page}) => {
+  const now = new Date('2026-11-14T10:00:00Z');
+  await page.clock.setFixedTime(now);
+  let remaining = 30;
+  await page.route('**/imprimante-api/status', async route => {
+    const response = await route.fetch();
+    const json = await response.json();
+    Object.assign(json.printer, {job_in_progress:true, job_time_remaining:remaining});
+    await route.fulfill({response,json});
+  });
+  await page.route('**/imprimante-api/print-queue', route => route.fulfill({json:{
+    items:[{handle:'demo', name:'Cube.gcode', available:true, details:{seconds:600}}],
+  }}));
+  await login(page, 'overview');
+  await page.locator('#queue-open').click();
+  const totals = page.locator('#queue-totals');
+  await expect(totals).toContainText('Fin si enchaînée 11:40');
+  remaining = null;
+  await expect(totals).not.toContainText('Fin si enchaînée');
+  remaining = 15;
+  await expect(totals).toContainText('Fin si enchaînée 11:25');
+});
