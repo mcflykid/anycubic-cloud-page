@@ -184,7 +184,7 @@
 .task-detail-status[data-state="stopped"] i{background:var(--atelier-muted)}
 .task-detail-band{display:flex;flex-direction:column;gap:var(--atelier-space-2);padding:var(--atelier-space-3) var(--atelier-space-4);border-bottom:var(--atelier-rule) solid var(--atelier-line)}
 .task-detail-band:last-of-type{border-bottom:0}
-.task-detail-band>h3{margin:0 0 var(--atelier-space-1);color:var(--atelier-muted);font:var(--atelier-caption);font-weight:var(--atelier-semibold);text-transform:uppercase;letter-spacing:.04em}
+.task-detail-band>h3{margin:0 0 var(--atelier-space-1);color:var(--atelier-muted);font:var(--atelier-caption);font-weight:var(--atelier-semibold);text-transform:uppercase;letter-spacing:var(--atelier-caps-tracking)}
 .task-detail-primary{gap:var(--atelier-space-3)}
 .task-detail-identity{display:flex;align-items:center;gap:var(--atelier-space-4);min-width:0;min-height:var(--atelier-axis-size)}
 .task-detail-thumbnail{display:grid;place-items:center;flex:0 0 var(--atelier-axis-size);width:var(--atelier-axis-size);height:var(--atelier-axis-size);overflow:hidden;border-radius:var(--atelier-control-radius);background:var(--atelier-bg);color:var(--atelier-muted)}
@@ -195,7 +195,7 @@
 .task-detail-preview-fallback[hidden]{display:none}
 .task-detail-metrics{display:grid;width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--atelier-space-2) var(--atelier-space-4);margin:0;font-variant-numeric:tabular-nums}
 /* Libellé au-dessus de la valeur : la lecture suit une seule colonne au lieu d’un zigzag libellé-valeur. */
-.task-detail-metric{display:flex;flex-direction:column;gap:2px;min-width:0}
+.task-detail-metric{display:flex;flex-direction:column;gap:var(--atelier-hairline-gap);min-width:0}
 .task-detail-metric dt{min-width:0;color:var(--atelier-muted);font:var(--atelier-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .task-detail-metric dd{min-width:0;margin:0;font-weight:var(--atelier-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .task-detail-source,.task-detail-note{color:var(--atelier-muted);font:var(--atelier-caption)}
@@ -210,10 +210,10 @@
 /* Après un arrêt, le diagnostic est la première information utile : il suit directement l’identité. */
 .task-detail-diagnostic{padding:var(--atelier-space-3) var(--atelier-space-4);border-bottom:var(--atelier-rule) solid var(--atelier-line)}
 .task-detail-alert{display:flex;align-items:center;gap:var(--atelier-space-3);padding:var(--atelier-space-3) var(--atelier-space-4);border:var(--atelier-rule) solid color-mix(in srgb,var(--atelier-warning) 35%,var(--atelier-line));border-radius:var(--atelier-card-radius);background:color-mix(in srgb,var(--atelier-warning) 8%,var(--atelier-surface))}
-.task-detail-alert>.ui-icon{flex:0 0 20px;inline-size:20px;block-size:20px;color:var(--atelier-warning);align-self:flex-start}
+.task-detail-alert>.ui-icon{flex:0 0 var(--atelier-dialog-alert-icon);inline-size:var(--atelier-dialog-alert-icon);block-size:var(--atelier-dialog-alert-icon);color:var(--atelier-warning);align-self:flex-start}
 .task-detail-alert-text{flex:1 1 auto;min-width:0}
 .task-detail-alert h3{margin:0;font:var(--atelier-text);font-weight:var(--atelier-semibold)}
-.task-detail-alert p{margin:2px 0 0;color:var(--atelier-muted)}
+.task-detail-alert p{margin:var(--atelier-hairline-gap) 0 0;color:var(--atelier-muted)}
 .task-detail-alert-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--atelier-space-2);flex:0 0 auto}
 .task-detail-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--atelier-space-2);margin-top:var(--atelier-space-3)}
 .task-detail-actions p{margin:0 auto 0 0}

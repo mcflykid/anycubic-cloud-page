@@ -63,6 +63,17 @@
   --atelier-destructive-fill: #b42318;
   --atelier-journal-sent-color: light-dark(#2059a5, #99c0ff);
   --atelier-detail-dialog-width: 960px;
+  /* Chronologie et détails de la tâche : géométries propres à la frise et aux pastilles d’événement. */
+  --atelier-caps-tracking: .04em;
+  --atelier-hairline-gap: 2px;
+  --atelier-timeline-dialog-width: 640px;
+  --atelier-timeline-marker: 28px;
+  --atelier-timeline-marker-icon: 14px;
+  --atelier-timeline-compact-marker: 22px;
+  --atelier-timeline-bar: 10px;
+  --atelier-timeline-axis: 16px;
+  --atelier-timeline-segment-min: 3px;
+  --atelier-timeline-rail: 2px;
   --atelier-maintenance-gauge: 208px;
   --atelier-maintenance-counter: 192px;
   --atelier-menu-min: 160px;
