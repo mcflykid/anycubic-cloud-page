@@ -317,6 +317,38 @@ body:has(.workshop-frame) > #print-dialog { width: min(var(--atelier-print-dialo
 .rating-task img { width: var(--atelier-journal-time-width); aspect-ratio: 4 / 3; object-fit: contain; }
 .rating-task p { margin: 0; }
 #print-progress { flex-basis: 100%; width: 100%; accent-color: var(--atelier-accent); }
+
+/* Lancer l’impression, rapprochée du Slicer Next : sections titrées, tuiles filament, options alignées à gauche. */
+#print-dialog .confirmation-heading { border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+#print-dialog .print-task strong, #print-ace legend, .print-destination strong, #print-options > summary { font: var(--atelier-compact-text); font-weight: var(--atelier-semibold); }
+#print-printer { font: var(--atelier-caption); opacity: .9; }
+.print-estimates { gap: var(--atelier-space-1); padding: var(--atelier-space-2) var(--atelier-space-3); box-shadow: var(--atelier-popover-shadow); }
+.print-estimates dt { color: var(--atelier-muted); }
+#print-ace legend { margin-block-end: var(--atelier-space-2); padding: 0; }
+#print-ace-rows { gap: var(--atelier-space-3); }
+#print-dialog .print-ace-row { display: grid; inline-size: min(100%, var(--atelier-print-spool-select-width)); gap: 0; overflow: hidden; padding: 0;
+  border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
+#print-dialog .print-ace-row > span { display: flex; align-items: center; justify-content: center; gap: var(--atelier-space-2); min-block-size: var(--atelier-compact-control);
+  padding: 0 var(--atelier-space-2); background: var(--file-color, var(--atelier-bg)); color: var(--atelier-fg); font: var(--atelier-compact-label); font-weight: var(--atelier-semibold); }
+#print-dialog .print-ace-row > span .material-color { display: none; }
+#print-dialog .print-ace-row select { inline-size: 100%; max-inline-size: none; min-block-size: var(--atelier-control); border: 0; border-block-start: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: 0; background-color: var(--slot-color, var(--atelier-surface)); color: var(--atelier-fg); text-align: center; text-overflow: ellipsis; }
+#print-dialog .print-ace-row[data-file-tone="dark"] > span, #print-dialog .print-ace-row[data-slot-tone="dark"] select { color: var(--atelier-print-swatch-ink); }
+#print-dialog .print-ace-row[data-file-tone="light"] > span, #print-dialog .print-ace-row[data-slot-tone="light"] select { color: var(--atelier-print-swatch-ink-dark); }
+#print-advice:not([hidden]) { display: flex; gap: var(--atelier-space-2); padding: var(--atelier-space-2) var(--atelier-space-3); border-inline-start: var(--atelier-active-rule) solid var(--atelier-warning);
+  border-radius: var(--atelier-control-radius); background: color-mix(in srgb, var(--atelier-warning) 8%, var(--atelier-surface)); color: var(--atelier-warning); font: var(--atelier-caption); }
+.print-destination { padding-block-start: var(--atelier-space-3); border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+#print-destination-spools { padding: var(--atelier-space-1) var(--atelier-space-2); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); gap: var(--atelier-space-2); }
+#print-destination-spools li[data-engaged] { outline-offset: var(--atelier-active-rule); }
+#print-options > summary { display: block; margin-block-end: var(--atelier-space-2); cursor: default; list-style: none; }
+#print-options > summary::-webkit-details-marker { display: none; }
+#print-dialog .print-option-list label { flex-direction: row; justify-content: flex-start; min-block-size: var(--atelier-control); padding: 0 var(--atelier-space-3); text-align: start; }
+#print-dialog .print-option-list label:has(:checked) { border-color: color-mix(in srgb, var(--atelier-accent) 45%, var(--atelier-line)); background: color-mix(in srgb, var(--atelier-accent) 6%, var(--atelier-surface)); }
+#print-dialog .print-option-list label:has(:disabled) { color: var(--atelier-muted); }
+#print-dialog .print-option-list input { flex: 0 0 auto; margin: 0; accent-color: var(--atelier-accent); }
+.print-options-live-note { margin: 0 0 var(--atelier-space-2); color: var(--atelier-muted); font: var(--atelier-caption); }
+#print-dialog .confirmation-footer { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+#print-target { color: var(--atelier-muted); font: var(--atelier-caption); }
 .reset-challenge {
   display: flex;
   align-items: center;

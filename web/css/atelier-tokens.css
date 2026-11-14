@@ -51,6 +51,7 @@
   --atelier-print-drying-field-width: 80px;
   --atelier-print-swatch-size: 24px;
   --atelier-print-swatch-ink: #fff;
+  --atelier-print-swatch-ink-dark: #14181d;
   --atelier-print-swatch-shadow: 0 0 2px #000, 0 1px 2px #000;
   --atelier-print-preview-height: 164px;
   --atelier-print-preview-start: #263749;

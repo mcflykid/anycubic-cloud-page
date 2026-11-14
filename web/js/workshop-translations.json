@@ -10336,5 +10336,11 @@
     "es": "Carga · ranura {0}",
     "de": "Laden · Fach {0}",
     "it": "Caricamento · slot {0}"
+  },
+  "{0} · d’après le nom du fichier": {
+    "en": "{0} · from the file name",
+    "es": "{0} · según el nombre del archivo",
+    "de": "{0} · laut Dateiname",
+    "it": "{0} · dal nome del file"
   }
 }
