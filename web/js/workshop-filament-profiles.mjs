@@ -161,6 +161,13 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
   $('filament-profile-dialog').showModal();
 }
 
+/** Met en évidence le texte recherché sans interpréter le nom comme du HTML. */
+function highlight(text, query) {
+  const index = query ? text.toLocaleLowerCase().indexOf(query) : -1;
+  if (index < 0) return [text];
+  return [text.slice(0, index), node('mark', text.slice(index, index + query.length)), text.slice(index + query.length)];
+}
+
 /** Les fiches restent consultables sans avoir chargé la matière dans l’ACE. */
 export function bindFilamentCatalogue() {
   const dialog = $('filament-catalogue-dialog');
@@ -172,22 +179,70 @@ export function bindFilamentCatalogue() {
     for (const variant of communityFilamentVariants) {
       variants.set(variant.sku, {...variants.get(variant.sku), ...variant});
     }
-    const rows = [...variants.values()]
+    const all = [...variants.values()];
+    const rows = all
       .filter(({profile, color, sku}) => [profile, color, sku].some(value => value.toLocaleLowerCase().includes(query)))
       .sort((left, right) => left.profile.localeCompare(right.profile) || left.color.localeCompare(right.color));
-    list.replaceChildren(...rows.map(variant => {
-      const entry = node('li');
-      const name = variant.profile + ' · ' + variant.color;
-      const button = node('button', name + ' · ' + variant.sku, 'atelier-control');
-      button.type = 'button';
-      button.onclick = () => showProfile(null, '', [], name, manufacturerProfiles[variant.profile], false, variant);
-      entry.append(button);
-      return entry;
+    renderRanges(all, rows);
+    const groups = Map.groupBy(rows.filter(variant => !range || variant.profile === range), variant => variant.profile);
+    list.replaceChildren(...[...groups].map(([profile, items]) => {
+      const group = node('li', null, 'catalogue-group');
+      const heading = node('p', null, 'catalogue-group-title');
+      heading.append(node('b', profile), node('span', items.length === 1 ? tr('1 référence') : formatText('{0} références', items.length)));
+      const entries = node('ul', null, 'catalogue-entries');
+      entries.append(...items.map(variant => {
+        const entry = node('li');
+        const name = variant.profile + ' · ' + variant.color;
+        const button = node('button', null, 'catalogue-entry');
+        button.type = 'button';
+        // Le nom accessible garde la gamme, absente du libellé visible regroupé sous son titre.
+        button.title = name + ' · ' + variant.sku;
+        button.setAttribute('aria-label', button.title);
+        const swatch = node('i', null, 'catalogue-swatch');
+        if (variant.hex) swatch.style.setProperty('--swatch', variant.hex);
+        else swatch.dataset.unknown = 'true';
+        const label = node('span', null, 'catalogue-name');
+        label.append(...highlight(variant.color, query));
+        button.append(swatch, label, node('code', variant.sku), node('span', '›', 'catalogue-chevron'));
+        button.onclick = () => showProfile(null, '', [], name, manufacturerProfiles[variant.profile], false, variant);
+        entry.append(button);
+        return entry;
+      }));
+      group.append(heading, entries);
+      return group;
     }));
+    set('filament-catalogue-count', formatText('{0} références', rows.length));
+    $('filament-catalogue-empty').hidden = rows.length > 0;
   };
+  let range = '';
+  /** Pastilles de gamme créées ici pour laisser intact le gabarit partagé de la fenêtre. */
+  const ranges = node('div', null, 'catalogue-ranges');
+  ranges.setAttribute('role', 'group');
+  ranges.setAttribute('aria-label', tr('Gamme'));
+  const count = node('span', null, 'muted');
+  count.id = 'filament-catalogue-count';
+  dialog.querySelector('.dialog-close').before(count);
+  const empty = node('p', tr('Aucune référence ne correspond à cette recherche.'), 'catalogue-empty');
+  empty.id = 'filament-catalogue-empty';
+  list.before(ranges);
+  list.after(empty);
+  function renderRanges(all, rows) {
+    const totals = Map.groupBy(rows, variant => variant.profile);
+    const names = [...new Set(all.map(variant => variant.profile))].sort((a, b) => a.localeCompare(b));
+    ranges.replaceChildren(...[['', rows.length], ...names.map(name => [name, totals.get(name)?.length || 0])].map(([name, total]) => {
+      const chip = node('button', name || tr('Toutes'), 'catalogue-range');
+      chip.type = 'button';
+      chip.setAttribute('aria-pressed', String(range === name));
+      chip.append(node('span', String(total)));
+      chip.disabled = !total && range !== name;
+      chip.onclick = () => { range = name; render(); };
+      return chip;
+    }));
+  }
   search.addEventListener('input', render);
   $('filament-catalogue-open').onclick = () => {
     search.value = '';
+    range = '';
     render();
     dialog.showModal();
   };

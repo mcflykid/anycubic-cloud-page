@@ -10282,5 +10282,29 @@
     "es": "Ninguna bobina {0} cargada: cárguela antes de iniciar.",
     "de": "Keine {0}-Spule geladen: vor dem Start einlegen.",
     "it": "Nessuna bobina {0} caricata: caricala prima dell’avvio."
+  },
+  "1 référence": {
+    "en": "1 reference",
+    "es": "1 referencia",
+    "de": "1 Referenz",
+    "it": "1 riferimento"
+  },
+  "{0} références": {
+    "en": "{0} references",
+    "es": "{0} referencias",
+    "de": "{0} Referenzen",
+    "it": "{0} riferimenti"
+  },
+  "Gamme": {
+    "en": "Range",
+    "es": "Gama",
+    "de": "Serie",
+    "it": "Gamma"
+  },
+  "Aucune référence ne correspond à cette recherche.": {
+    "en": "No reference matches this search.",
+    "es": "Ninguna referencia coincide con esta búsqueda.",
+    "de": "Keine Referenz entspricht dieser Suche.",
+    "it": "Nessun riferimento corrisponde a questa ricerca."
   }
 }

@@ -286,3 +286,30 @@ body:has(.workshop-frame) > dialog.ace-detail-dialog {
 #filament-profile-import-state:empty { display: none; }
 #filament-profile-import-state { margin: 0; color: var(--atelier-error); }
 #filament-profile-create .atelier-card-footer { justify-content: flex-start; }
+
+/* Catalogue Anycubic : références groupées par gamme, pastille de couleur et référence alignée, sans puce native. */
+#filament-catalogue-dialog .atelier-card-header > .muted { margin-inline-start: auto; font: var(--atelier-caption); }
+.catalogue-ranges { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); margin-block: var(--atelier-space-3); }
+.catalogue-range { display: inline-flex; align-items: center; gap: var(--atelier-space-2); min-block-size: var(--atelier-compact-control); padding: 0 var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-pill-radius); background: var(--atelier-surface); color: var(--atelier-fg); font: var(--atelier-compact-label); font-weight: var(--atelier-semibold); }
+.catalogue-range span { color: var(--atelier-muted); font-weight: var(--atelier-regular); }
+.catalogue-range[aria-pressed="true"] { border-color: color-mix(in srgb, var(--atelier-accent) 45%, var(--atelier-line)); background: color-mix(in srgb, var(--atelier-accent) 10%, var(--atelier-surface)); color: var(--atelier-accent); }
+.catalogue-range[aria-pressed="true"] span { color: inherit; }
+#filament-catalogue-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--atelier-space-4); margin: 0; padding: 0; list-style: none; }
+.catalogue-group-title { display: flex; align-items: center; gap: var(--atelier-space-2); margin: 0 0 var(--atelier-space-2); font: var(--atelier-compact-text); }
+.catalogue-group-title span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.catalogue-group-title::after { content: ""; flex: 1 1 auto; block-size: var(--atelier-rule); background: var(--atelier-line); }
+.catalogue-entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--atelier-content-min)), 1fr)); gap: var(--atelier-space-1) var(--atelier-space-2); margin: 0; padding: 0; list-style: none; }
+.catalogue-entry { display: flex; align-items: center; gap: var(--atelier-space-3); inline-size: 100%; min-block-size: var(--atelier-touch-control); padding: 0 var(--atelier-space-3);
+  border: var(--atelier-rule) solid transparent; border-radius: var(--atelier-control-radius); background: transparent; color: var(--atelier-fg); text-align: start; }
+.catalogue-entry:hover, .catalogue-entry:focus-visible { border-color: color-mix(in srgb, var(--atelier-accent) 40%, var(--atelier-line)); background: color-mix(in srgb, var(--atelier-accent) 6%, var(--atelier-surface)); }
+.catalogue-swatch { flex: 0 0 var(--atelier-icon); inline-size: var(--atelier-icon); block-size: var(--atelier-icon); border-radius: 50%; background: var(--swatch);
+  box-shadow: inset 0 0 0 var(--atelier-rule) color-mix(in srgb, var(--atelier-fg) 22%, transparent); }
+/* Couleur non publiée : motif neutre plutôt qu’une teinte inventée. */
+.catalogue-swatch[data-unknown] { background: repeating-linear-gradient(45deg, var(--atelier-line) 0 var(--atelier-hairline-gap), var(--atelier-surface) var(--atelier-hairline-gap) calc(2 * var(--atelier-hairline-gap))); }
+.catalogue-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--atelier-semibold); }
+.catalogue-name mark { border-radius: var(--atelier-hairline-gap); background: color-mix(in srgb, var(--atelier-warning) 25%, transparent); color: inherit; }
+.catalogue-entry code { color: var(--atelier-muted); font: var(--atelier-caption); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.catalogue-chevron { color: var(--atelier-muted); }
+.catalogue-empty { margin: var(--atelier-space-4) 0; color: var(--atelier-muted); text-align: center; }
+.catalogue-empty[hidden] { display: none; }
