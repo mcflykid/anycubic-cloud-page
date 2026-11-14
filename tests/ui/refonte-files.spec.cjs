@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const {login}=require('./helpers.cjs');
+const {login,chooseFileAction}=require('./helpers.cjs');
 
 test('les fichiers gardent les commandes et le tableau dans la largeur disponible',async({page})=>{
   await page.setViewportSize({width:1440,height:800});
@@ -13,6 +13,14 @@ test('les fichiers gardent les commandes et le tableau dans la largeur disponibl
   expect(new Set(controls.map(control=>control.height))).toEqual(new Set([36]));
   expect(new Set(controls.map(control=>control.y))).toHaveProperty('size',1);
   await page.setViewportSize({width:390,height:844});
+  const trigger = page.locator('#file-rows tr').first().getByRole('button',{name:/Actions du fichier/});
+  await trigger.click();
+  const menu = page.locator('.files-action-menu:popover-open');
+  await expect(menu.getByRole('button',{name:'Télécharger'})).toBeVisible();
+  await expect(menu.locator('button:focus')).toHaveCount(1);
+  const bounds = await menu.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
@@ -20,7 +28,7 @@ test('le renommage sélectionne le nom seul et refuse un doublon', async ({page}
  await login(page, 'files');
  await page.locator('[data-source=cloud]').click();
  const row = page.locator('#file-rows tr').filter({hasText: 'Cube de calibration.gcode'});
- await row.getByRole('button', {name: 'Renommer'}).click();
+ await chooseFileAction(row, 'Renommer');
  const dialog = page.getByRole('dialog', {name: 'Renommer le fichier'});
  const name = dialog.getByLabel('Nouveau nom');
  const save = dialog.getByRole('button', {name: 'Enregistrer'});
@@ -44,7 +52,7 @@ test('un lien de téléchargement expiré peut être renouvelé', async ({page})
  }}));
  await login(page, 'files');
  await page.locator('[data-source=cloud]').click();
- await page.locator('#file-rows tr').first().getByRole('button', {name: 'Télécharger'}).click();
+ await chooseFileAction(page.locator('#file-rows tr').first(), 'Télécharger');
  const dialog = page.getByRole('dialog', {name: 'Téléchargements'});
  await expect(dialog.getByRole('link', {name: 'Télécharger'})).toBeVisible();
  await page.clock.fastForward(301000);

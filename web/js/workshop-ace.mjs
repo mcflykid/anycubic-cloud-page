@@ -1,5 +1,5 @@
 import { $, fmt, formatText, locale, message, mins, node, set, timeZone, tr } from './workshop-ui.mjs';
-import { filamentProfileAction, openFilamentProfile } from './workshop-filament-profiles.mjs';
+import { bindFilamentCatalogue, filamentProfileAction, openFilamentProfile } from './workshop-filament-profiles.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { definition, statusBadge } from './workshop-overview.mjs';
 
@@ -80,6 +80,7 @@ function spoolIllustration(color, index, rfid) {
 
 /** Affiche l’ACE et relie les formulaires aux commandes de la machine. */
 export function createAce(command, refresh) {
+  bindFilamentCatalogue();
   let presetsReady = false, dryingPending = false, selectedBoxId = null, selectedPrinter = null;
   let spoolInitial;
   const spoolForm = $('spool-form'), spoolSave = $('spool-save');
@@ -254,16 +255,17 @@ export function createAce(command, refresh) {
             ['name', tr('Nom')],
             ['temperature', tr('Température (°C)')],
             ['hours', tr('Durée (heures)')],
+            ['humidity_threshold', tr('Seuil d’humidité (%)')],
           ]) {
             const l = node('label', label),
               input = node('input');
             input.name = `${i}-${key}`;
-            input.defaultValue = pr[key];
+            input.defaultValue = pr[key] ?? '';
             input.type = key === 'name' ? 'text' : 'number';
-            input.required = true;
+            input.required = key !== 'humidity_threshold';
             if (key !== 'name') {
               input.min = key === 'temperature' ? 35 : 1;
-              input.max = key === 'temperature' ? 70 : 24;
+              input.max = {temperature: 70, hours: 24, humidity_threshold: 100}[key];
             }
             fs.append(l);
             l.append(input);
@@ -461,7 +463,7 @@ export function createAce(command, refresh) {
     e.preventDefault();
     const f = new FormData(e.target),
       presets = Array.from({ length: 4 }, (_, i) =>
-        Object.fromEntries(['name', 'temperature', 'hours'].map((k) => [k, f.get(`${i}-${k}`)])),
+        Object.fromEntries(['name', 'temperature', 'hours', 'humidity_threshold'].map((k) => [k, f.get(`${i}-${k}`)])),
       );
     const d = await command('presets', { presets });
     if (d) {

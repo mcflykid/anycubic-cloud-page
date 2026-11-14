@@ -118,6 +118,17 @@ class RecentReports(unittest.TestCase):
         self.p._process_mqtt_update_print("start", "nozzle_cooling", Data({"data": {"taskid": 1}}))
         self.assertFalse(self.p.is_busy)
 
+    def test_stop_in_progress_keeps_machine_busy_until_confirmation(self):
+        """Une demande d’arrêt n’est pas encore un retour au repos."""
+        self.p._latest_project = Mock(id=1)
+        self.p._process_mqtt_update_print("stop", "stopping", Data({"data": {"taskid": 1}}))
+        self.assertTrue(self.p.is_busy)
+        self.p._latest_project.update_with_mqtt_print_status_data.assert_not_called()
+        self.p._process_mqtt_update_print("stop", "stoped", Data({"data": {"taskid": 2}}))
+        self.assertTrue(self.p.is_busy)
+        self.p._process_mqtt_update_print("stop", "stoped", Data({"data": {"taskid": 1}}))
+        self.assertTrue(self.p.is_available)
+
     def test_kobra_x_status_property_reflects_reported_task_phase(self):
         """L’indicateur d’état affiche la phase Kobra X déjà déterminée par les rapports connus."""
         project = SimpleNamespace(print_status="unknown")
@@ -348,7 +359,7 @@ class RecentReports(unittest.TestCase):
 class CloudProjectFans(unittest.TestCase):
     """Les ventilateurs absents du flux MQTT restent lisibles depuis le projet Cloud."""
 
-    def test_auxiliary_and_circulation_fall_back_to_project_settings(self):
+    def test_fans_fall_back_to_project_settings(self):
         """Le relevé MQTT reste prioritaire ; le projet complète seulement les valeurs absentes."""
         printer = AnycubicPrinter(
             api_parent=Mock(),
@@ -358,6 +369,7 @@ class CloudProjectFans(unittest.TestCase):
             device_status=1,
             ignore_init_errors=True,
         )
+        self.assertIsNone(printer.latest_project_fan_speed_pct)
         self.assertIsNone(printer.aux_fan_speed_pct)
         printer._latest_project = AnycubicProject(
             api_parent=Mock(),
@@ -371,7 +383,11 @@ class CloudProjectFans(unittest.TestCase):
             gcode_name="fixture.gcode",
             settings='{"fan_speed_pct": 100, "aux_fan_speed_pct": 60, "settings": {"box_fan_level": "40"}}',
         )
+        self.assertEqual(printer.latest_project_fan_speed_pct, 100)
         self.assertEqual(printer.aux_fan_speed_pct, 60)
         self.assertEqual(printer.box_fan_level, 40)
-        printer._aux_fan_speed_pct = 0
+        printer._process_mqtt_update_fan(
+            "auto", "done", {"data": {"fan_speed_pct": 0, "aux_fan_speed_pct": 0}}
+        )
+        self.assertEqual(printer.latest_project_fan_speed_pct, 0)
         self.assertEqual(printer.aux_fan_speed_pct, 0)

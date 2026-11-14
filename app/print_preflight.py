@@ -4,6 +4,48 @@ import hashlib
 import math
 from printer_values import safeget
 
+STORED_PRINT_OPTIONS = {
+    "auto_leveling": ("auto_leveling_support", "supports_function_auto_leveler"),
+    "vibration_compensation": (
+        "vibration_compensation_support",
+        "supports_function_vibration_compensation",
+    ),
+    "ai_detect": ("ai_detect_support", "supports_function_ai_detection"),
+    "camera_timelapse": ("camera_timelapse_support", "supports_function_time_lapse"),
+    "flow_calibration": ("flow_calibration_support", None),
+}
+
+
+def stored_print_options(target):
+    """Renvoie les capacités annoncées pour le lancement mémoire qualifié de la S1."""
+    printer = target.printer
+    if safeget(printer, "machine_name") != "Anycubic Kobra S1":
+        return []
+    extras = getattr(target, "extras", None)
+    features = extras.features() if extras else {}
+    ai_probe = getattr(target, "stored_print_ai_printer", None) is printer
+    return [
+        key
+        for key, (feature, attribute) in STORED_PRINT_OPTIONS.items()
+        if features.get(
+            feature,
+            safeget(printer, attribute) is True or (key == "ai_detect" and ai_probe),
+        )
+        is True
+    ]
+
+
+def validate_stored_print_options(target, choices):
+    """Revalide les choix à l’envoi et encode les valeurs désactivées à zéro."""
+    available = stored_print_options(target)
+    if (
+        not isinstance(choices, dict)
+        or not choices
+        or any(name not in available or type(value) is not bool for name, value in choices.items())
+    ):
+        raise ValueError("Réglages de lancement non disponibles pour cette imprimante.")
+    return {name: int(value) for name, value in choices.items()}
+
 
 def print_file_references(gcode_id, cloud_file_id):
     """Renvoie les références opaques des fichiers Cloud, dans leurs espaces respectifs."""

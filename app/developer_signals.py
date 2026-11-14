@@ -13,7 +13,12 @@ _MQTT_TYPES = frozenset(
 )
 _MQTT_ACTIONS = frozenset(
     "auto cancel change close done get notify open pause print query reply report resume set start status "
-    "stop update upload".split()
+    "stop update upload workReport".split()
+)
+_MQTT_PRINT_STATES = frozenset(
+    "checking downloading preheating printing pausing paused resuming stopping stoped stopped "
+    "failed done free busy auto_leveling z_offset_calibrating frequency_sweeping "
+    "nozzle_purging nozzle_heating hotbed_heating ace_filament_feeding".split()
 )
 
 
@@ -38,6 +43,10 @@ class DeveloperSignals:
                 }
             )
 
+    def elapsed_ms(self):
+        """Positionne le relevé HTTP sur la même horloge que les signaux."""
+        return round((time.monotonic() - self._start) * 1000)
+
     def read(self):
         """Copie les observations pour libérer le verrou avant la réponse HTTP."""
         with self._lock:
@@ -50,11 +59,18 @@ def mqtt_summary(payload):
         return {"format": "illisible"}
     kind = payload.get("type")
     action = payload.get("action")
+    state = payload.get("state")
     data = payload.get("data")
     fans = (
         data.get("settings", data) if isinstance(data, dict) and kind in ("print", "fan") else None
     )
     return {
+        # Permet de distinguer un rapport de phase d’un simple état occupé, sans texte arbitraire.
+        **(
+            {"state": state if isinstance(state, str) and state in _MQTT_PRINT_STATES else "autre"}
+            if kind == "print" or (kind == "status" and action == "workReport")
+            else {}
+        ),
         **(
             {
                 "ventilateurs": {

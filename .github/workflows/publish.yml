@@ -10,10 +10,23 @@ concurrency:
 jobs:
   metadata:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Vérifier la fermeture des issues avant la 2.0.0
+        if: github.ref_name == 'v2.0.0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 1 --json number --jq length)
+          if [ "$issues" != 0 ]; then
+            echo "La 2.0.0 attend la fermeture de toutes les issues."
+            exit 1
+          fi
       - id: version
         env:
           RELEASE_TAG: ${{ github.ref_name }}

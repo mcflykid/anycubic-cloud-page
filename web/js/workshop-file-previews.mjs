@@ -1,7 +1,7 @@
 import { fmt, mins, node, tr } from './workshop-ui.mjs';
 
-/** Agrandit l’image déjà chargée sans une nouvelle requête à l’imprimante. */
-function openFilePreview(file, src) {
+/** Ouvre les détails disponibles sans déclencher une nouvelle requête à l’imprimante. */
+export function openFilePreview(file, src) {
   const dialog = node('dialog', null, 'file-preview-dialog'),
     title = node('h2', file.name),
     close = node('button', tr('Fermer'));
@@ -9,6 +9,8 @@ function openFilePreview(file, src) {
   close.onclick = () => dialog.close();
   dialog.onclose = () => dialog.remove();
   const header = node('div', null, 'dialog-top');
+  title.id = 'file-preview-title';
+  dialog.setAttribute('aria-labelledby', title.id);
   header.append(title, close);
   dialog.append(header);
   if (src) {
@@ -21,6 +23,7 @@ function openFilePreview(file, src) {
   const details = file.details || {};
   const metrics = node('dl', null, 'detail-list');
   for (const [label, value] of [
+    ['Taille du fichier', Number.isFinite(file.size_mb) ? fmt(file.size_mb, ' Mo') : null],
     ['Durée estimée', details.seconds ? mins(details.seconds / 60) : null],
     ['Matériau', details.material],
     ['Épaisseur de couche', details.layer_mm ? fmt(details.layer_mm, ' mm') : null],

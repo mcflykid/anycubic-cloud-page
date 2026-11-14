@@ -58,6 +58,14 @@ class NotificationErrorTests(unittest.IsolatedAsyncioTestCase):
             entry["help_url"], "https://wiki.anycubic.com/en/error-codes/10113-code/s1"
         )
 
+    def test_manual_stop_code_keeps_interruption_and_explains_the_reason(self):
+        """Le code 10601 complète le résultat d’arrêt avec un contrôle du contexte."""
+        entry = history_entry({"id": 28, "print_status": 3, "alarm_code": 10601})
+        self.assertEqual(entry["result"], "Impression arrêtée")
+        self.assertEqual(entry["reason_code"], "10601")
+        self.assertEqual(entry["error_title"], "Arrêt demandé par l’utilisateur")
+        self.assertIn("contexte", entry["error_description"])
+
     def test_every_sheet_has_safe_sources_and_three_languages(self):
         """Chaque fiche française possède ses textes anglais et espagnols et un lien officiel."""
         translations = json.loads(

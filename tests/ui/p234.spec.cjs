@@ -489,7 +489,7 @@ test('les réglages équilibrent les cartes sur ordinateur et les empilent sur m
 
 test('les détails de la tâche partagent trois bandes et trois axes sans défilement', async ({browser}) => {
   // La fin prévue et la chronologie sont des bandes facultatives : seules les trois bandes communes partagent les axes.
-  const core = '.task-detail-band:not(#correct-finish-settings):not(#past-print-timeline)';
+  const core = '.task-detail-band:not(#past-print-timeline)';
   const baseURL = 'http://127.0.0.1:' + (process.env.UI_PORT || '8765');
   const page = await browser.newPage({baseURL, viewport:{width:1440,height:860}});
   const longFileName = '1108-1151-Support montre petit 1_plate(01)_PLA_0.2_3h21m55s '.repeat(4);

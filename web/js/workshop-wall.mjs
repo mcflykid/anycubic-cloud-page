@@ -73,7 +73,8 @@ async function refresh() {
     set('wall-job', printer?.job_name || tr('Aucune impression en cours.'));
     const result = printer?.job_complete ? 'Impression terminée' : printer?.job_failed ? 'Impression arrêtée' : '';
     set('wall-last-result', !active && result ? [tr(result), printer.job_finished_at && date(printer.job_finished_at)].filter(Boolean).join(' · ') : '');
-    finishEstimate('wall-finish', printer?.corrected_finish);
+    finishEstimate('wall-finish',
+      printer?.job_state === 'printing' ? printer.job_time_remaining : null, stamps.at(-1));
     const progress = $('wall-progress');
     progress.hidden = !Number.isFinite(printer?.job_progress);
     if (!progress.hidden) progress.value = printer.job_progress;

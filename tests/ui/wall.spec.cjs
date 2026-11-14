@@ -17,6 +17,11 @@ test('la vue mur affiche les relevés et ne déclenche aucune commande', async (
  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(800);
  expect([...new Set(writes)]).toEqual(['/imprimante-api/preview']);
  const exit=page.getByRole('link',{name:'Quitter la Vue mur'});
+ await expect(exit).toHaveText('×');
+ const square=await exit.boundingBox(), header=await page.locator('.wall header').boundingBox();
+ expect(square.width).toBe(square.height);
+ expect(square.x+square.width).toBeCloseTo(header.x+header.width);
+ expect(square.y).toBeCloseTo(header.y);
  await exit.focus();
  await exit.press('Enter');
  await expect(page).toHaveURL(/\/imprimante\.html$/);

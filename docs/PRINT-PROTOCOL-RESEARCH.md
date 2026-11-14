@@ -4,7 +4,7 @@
 
 Recherche statique uniquement sur les contrats de lancement mémoire/USB, les fichiers `.gcode.3mf`, le séchage associé à la création d’une tâche et les refus de lancement. Aucun ordre d’impression ou de séchage n’a été envoyé. Le binaire Anycubic Slicer Next n’a pas été exécuté. Aucun compte, service Cloud, imprimante, journal privé ou configuration n’a été consulté.
 
-Les contrats ci-dessous distinguent les faits décrits par une source publique, les observations de binaire et les questions qui restent ouvertes. Une sérialisation observée dans un client ne prouve pas son acceptation par chaque firmware ou modèle.
+Les contrats ci-dessous distinguent les faits décrits par une source publique, les observations de binaire et les questions qui restent ouvertes. Une sérialisation observée dans un client ne prouve pas son acceptation par chaque firmware ou modèle. La relecture du 14 novembre complète la recherche initiale pour le lancement direct.
 
 ## Sources consultées
 
@@ -86,6 +86,26 @@ Le contrat de base `filetype`/`filename`/`filepath` du lancement mémoire et USB
 
 ## Affectations et suivi du lancement (#331, #332)
 
+### Observation des interfaces de stockage et d’historique
+
+Les captures de Slicer Next montrent des actions distinctes selon la source et le format. En Cloud, le menu d’un STL propose **Télécharger**, **Renommer** et **Supprimer**. Un projet 3MF propose aussi **Ouvrir** et **Voir détails**. Sur l’appareil, le menu d’un paquet `.gcode.3mf` propose **Imprimer**, **Voir détails** et **Supprimer**. Le dialogue de détails affiche l’aperçu et peut indiquer la matière et la masse. Certains fichiers ont des champs vides. Dans l’historique, les actions observées sont **Réimprimer**, **Voir détails** et **Supprimer**. Le statut, la période, la durée affichée et l’appareil sont visibles dans la liste.
+
+Dans Safari, Cloud Page 1.18.3 liste les paquets exécutables en mémoire et ouvre une confirmation avec le choix ACE. Les cinq options de préparation sont grisées. Dans l’historique, les filtres **Terminées** et **Arrêtées** et l’action **Réimprimer** sont présents. Le volet ACE affiche aussi **Relais automatique : Inconnu**. Le modèle du serveur renvoie un entier pour cet état alors que le navigateur attend un booléen. Aucun ordre n’a été envoyé pendant cette comparaison.
+
+Dans la version de travail pour #331, la mise à niveau du plateau est cochée à l’ouverture et peut être décochée lorsque la cible l’annonce pour le lancement mémoire. Les quatre autres réglages démarrent décochés. En démo, les cinq cases permettent d’essayer le formulaire. La relecture ci-dessous établit le format des réglages pour la mémoire interne.
+
+### Parcours comparés
+
+#### Relecture locale de Slicer Next 2.0.0.3
+
+- **Lancement mémoire (#331, #394).** `DeviceFilesPanel::BeginPrint` transforme les détails d’un fichier mémoire en `ModelSlicerInfo` puis ouvre le parcours de lancement. La branche mémoire de `RemoteManger::SendRemotePrint` construit `filename`, `filepath` et `filetype: 1`. Elle sérialise les cinq réglages dans `data.task_settings` comme des entiers. La sélection ACE est transmise séparément à la fonction de contrôle. Ce constat lève le doute sur la présence de ces champs dans le lancement direct. Il reste à vérifier l’exécution de chaque option sur la S1.
+- **Disponibilité des cases (#331).** `RemotePrintingDialog::SetFunctionObj` exploite les mêmes clés que le sérialiseur. Pour `/v2/device/getPrintOption`, le SDK décrit des entrées `machine_type` avec une liste `option`, dont chaque élément porte notamment `function_name`. Dans le Slicer, la Kobra S1 sélectionnée permet de décocher le nivellement et de cocher les quatre autres cases. Le dialogue a été annulé avant envoi. La comparaison entre cette liste et les capacités annoncées dans le détail de la machine reste à faire.
+- **Séchage (#331, #344).** Le même lancement direct inclut `dry_mode` et `drying_settings`. Les valeurs sont des entiers. Le code initialise durée et température à zéro lorsque le mode est désactivé. La signification des modes actifs et leurs unités restent à qualifier avant de proposer un envoi.
+- **Détails en mémoire (#396).** `DeviceFilesPanel::QueryFileDetail` construit une requête avec `root: local`, `filename` et `plate_index`. Cette voie rejoint la consultation d’aperçu déjà utilisée par Cloud Page. Elle permet de chercher les caractéristiques de tranche dans le relevé reçu. La présence d’une miniature ne prouve pas que le paquet complet peut être récupéré.
+- **Filaments (#392).** Les profils Anycubic fournis avec le trancheur pour S1 et buse de 0,4 mm utilisent des identifiants de profil comme `GFPLA`, `GFPLA Glow` et `GFPLA Marble`. Les profils Glow et Marble déclarent tous deux la famille `PLA` et proposent des réglages de tranche distincts. Ces identifiants aident à expliquer le profil et la compatibilité d’une affectation. L’association de la fiche technique reste fondée sur le SKU RFID exact issu du relevé ACE.
+- **Correspondance de couleur (#331).** `GetPresetFilament` lit `filament_type` dans le préréglage. `CalculateColorAndAmsBox` appelle un calcul de distance RGB entre les couleurs. Cette logique peut aider à classer les emplacements proposés lors de la confirmation. Une couleur proche ne permet pas d’identifier une référence commerciale.
+- **Autres consultations (#359).** La réponse des miniatures du stockage contient `filename`, `file_key` et `thumbnail_url`. La structure des versions ACE contient notamment `update_desc`, `need_update` et `force_update`. Le format ne garantit pas que les notes soient renseignées.
+
 | Source | Affectations en démonstration | Mesure et suivi |
 | --- | --- | --- |
 | Fichier G-code envoyé depuis le navigateur | Une ligne par filament lorsque les commentaires de tranche sont lisibles | Transfert indéterminé. L’annulation bloque l’envoi de l’ordre tant que le transfert est actif. |
@@ -135,3 +155,42 @@ Dans Slicer Next, l’action Imprimer depuis Gestion du stockage → Appareil ou
 1. Reprendre le G-code déjà lancé avec succès et comparer depuis Cloud Page le champ vide et la sélection 1. Garder les mêmes options de préparation et relever, avant chaque essai, la bobine déjà chargée. Observer le premier état machine et la bobine qui alimente réellement la tête, puis arrêter l’essai.
 2. Si le démarrage réussit mais que l’emplacement diffère, lancer le même fichier depuis l’écran ou la vue du stockage de Slicer Next, si disponible, avec la même affectation. Cette observation permet de comparer la sélection de bobine entre les parcours.
 3. Si le lancement mémoire échoue également dans le client officiel, tester l’envoi d’un G-code compatible déjà tranché via le parcours temporaire corrigé par #398.
+
+### Essai de lancement mémoire sur la v1.18.3
+
+Depuis Safari, un paquet monofilament déjà présent en mémoire interne a été lancé
+avec l’emplacement ACE 1. Le plateau était dégagé à la caméra et le flux a été
+fermé avant l’envoi. Le Cloud a accepté l’ordre. Le diagnostic a montré
+l’indice sérialisé 0 et la page a ensuite affiché le préchauffage de la
+nouvelle tâche. Aucun code 10115 n’a été observé pendant cet essai. Le bandeau
+d’attente est resté affiché malgré le préchauffage. À ce stade, l’ACE ne
+rapportait pas de bobine engagée et la page affichait 0 % pour le ventilateur de
+pièce et une valeur inconnue pour les deux autres. Cloud Page affiche désormais
+l’heure de fin à partir du temps restant annoncé pendant l’impression.
+
+L’ordre d’arrêt a été envoyé à 0/34 couche. La machine est redevenue disponible
+avec ses deux consignes à 0 °C. L’affectation effectivement engagée et les
+mesures à la première couche restent à valider. Les réglages de séchage et
+d’éclairage n’ont pas été modifiés pendant l’essai.
+
+### Recette du lancement mémoire avec la version de travail 1.19.0 (#331, #394)
+
+Contrôle du plateau par caméra avant le lancement. Un paquet tranché monofilament en mémoire a été soumis avec le premier emplacement ACE. Le diagnostic confirme `auto_leveling: 0`, `vibration_compensation: 1`, `ai_detect: 1`, `camera_timelapse: 1` et `flow_calibration: 1`. Le Cloud a accepté l’ordre et le Slicer a affiché la phase **Détection d’objets étrangers**. Aucun passage au nivellement n’a été observé avant l’arrêt. L’arrêt ne permet pas de conclure sur les phases suivantes, les vibrations, la calibration du débit ni la création d’une vidéo.
+
+L’atelier indiquait une machine occupée, sans projet actif confirmé et avec le bouton Arrêter désactivé. L’arrêt a été demandé dans le Slicer à 0 %. Le Slicer a ensuite retiré la tâche et les consignes de chauffe étaient à zéro. Le flux Safari a été fermé. Le relevé Cloud Page indiquait encore un état occupé après l’arrêt, avec un projet interrompu à la couche 0.
+
+Lors de la reprise, l’écran de la machine était revenu à l’accueil selon le propriétaire. Slicer Next et le relevé Cloud indiquaient encore une machine occupée, avec la dernière tâche interrompue à la couche 0 et les deux consignes à zéro. Cloud Page conserve l’indisponibilité tant qu’Anycubic rapporte cet état. La version de recette distingue l’occupation de l’impression active. Elle autorise l’arrêt d’un projet mémoire récent uniquement si le nouvel état peut être relié au fichier demandé ; le serveur revérifie ce lien avant l’envoi.
+
+Après le retour à Disponible, le même paquet a été lancé une seconde fois depuis la mémoire, plateau vérifié à la caméra et flux fermé avant le lancement. Le Cloud a accepté la demande avec `auto_leveling: 0`, `vibration_compensation: 0`, `ai_detect: 1`, `camera_timelapse: 1` et `flow_calibration: 0`. Le choix ACE 1 correspond à l’indice sérialisé 0 ; aucune alimentation par l’ACE n’a été observée à cette phase. Slicer Next a affiché **Détection d’objets étrangers** à 0 %, sans 10115 observé. Aucun clip timelapse n’a pu être vérifié durant cet essai court.
+
+Pendant cette phase, Cloud Page a signalé « Imprimante occupée » sans corrélation de la nouvelle tâche et le bouton Arrêter est resté grisé. L’arrêt dans Slicer Next a ramené Cloud Page à « Disponible », les deux consignes de chauffe à zéro, sans changement d’éclairage ou de séchage. Il reste à identifier le rapport permettant de corréler cette phase au projet avant d’élargir les conditions d’arrêt. Le mode développeur distingue les états MQTT reconnus d’un simple rapport d’occupation ; aucune valeur arbitraire du rapport n’est affichée.
+
+### Préparation du fichier source (#396)
+
+La consultation de la mémoire envoie une demande de détail par plaque (ordre 1239). Le parcours actuel accepte uniquement un aperçu PNG ou JPEG de la réponse `fileDetails` ; une vignette ou des paramètres de tranche ne constituent pas un fichier source. Dans la vue Appareil du Slicer, le menu observé pour le paquet tranché propose **Imprimer**, **Voir détails** et **Supprimer**. Le téléchargement apparaît dans la vue Espace Cloud, pour les entrées observées. L’absence de bouton dans la vue Appareil ne démontre pas l’impossibilité de récupérer les octets par un autre transport pris en charge.
+
+| Entrée | Suite vérifiable |
+| --- | --- |
+| `.gcode` ou `.gcode.3mf` en mémoire | Utiliser le lancement du contenu déjà tranché, sous confirmation. Distinguer le refus 10115 de la préparation d’un modèle. |
+| `.stl` ou `.3mf` non tranché, intégralement accessible | Récupérer le modèle intact. Le préparer pour la S1 dans le trancheur, puis contrôler l’aperçu, le plateau et les affectations ACE avant tout transfert. |
+| Fichier dont seuls l’aperçu ou les paramètres sont accessibles | Demander le modèle original. Ne pas reconstruire le modèle à partir de l’aperçu et ne pas déclencher de transfert ou d’impression. |

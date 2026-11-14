@@ -41,15 +41,16 @@ from operational_logging import log_event, safe_exception_frames
 from printer_commands import execute_command, slot_indices
 from printer_registry import printer_key
 from cloud_extras import key as task_key
-from printer_values import now, safeget, serial
+from printer_values import now, safeget, serial, stored_print_name
 import printer_files
 from print_preflight import (
+    STORED_PRINT_OPTIONS,
     ensure_firmware_ready,
     print_file_references,
     running_filament_shortfall,
+    stored_print_options,
     validate_print_indices,
 )
-from print_observations import corrected_finish
 from session_api import CloudSessionAuthError, SessionRecovery
 
 FIELDS = json.loads(pathlib.Path(__file__).with_name("fields.json").read_text())
@@ -197,11 +198,19 @@ class CloudPageAPI(SessionRecovery, AnycubicMQTTAPI):
             mapping = (data.get("ams_info") or {}).get("ams_box_mapping") or []
             validate_print_indices(printer, [row["ams_index"] for row in mapping])
             trace = stored_trace_context.get()
-            if trace is not None and (data.get("data") or {}).get("filetype") in (1, 2):
+            order_data = data.get("data") or {}
+            if trace is not None and order_data.get("filetype") in (1, 2):
                 trace["serialized_mapping"] = [
                     {"ams_index": row["ams_index"], "paint_index": row.get("paint_index")}
                     for row in mapping
                 ]
+                settings = order_data.get("task_settings") or {}
+                # Le diagnostic expose l’ordre envoyé, sans déduire son exécution par le firmware.
+                trace["serialized_preparation"] = {
+                    key: settings[key]
+                    for key in STORED_PRINT_OPTIONS
+                    if type(settings.get(key)) is int and settings[key] in (0, 1)
+                }
         context = command_mqtt_context.get()
         sent_at = time.time()
         if context and data["order_id"] == AnycubicOrderID.START_PRINT.value:
@@ -366,13 +375,9 @@ class Engine:
         self.fleet_registry = None
         self.pinned_id = None
         self.temperature_history = None
-        self.duration_factor = None
-        self.duration_factor_checked = -math.inf
-        self.estimate_project = None
-        self.estimate_speed = None
-        self.estimate_speed_changed = False
         self.print_timeline = (None, [])
         self.stored_print_trace = None
+        self.stored_project_checked = -math.inf
         self.developer_signals = DeveloperSignals()
         self.mqtt_clock_sample = None
         self.account = AccountAuth()
@@ -397,6 +402,7 @@ class Engine:
         self.ai_query_started = None
         self.ai_query_waiter = None
         self.ai_cache = None
+        self.stored_print_ai_printer = None
         self.presets = [
             {"name": "PLA", "temperature": 45, "hours": 4},
             {"name": "PETG", "temperature": 55, "hours": 6},
@@ -658,18 +664,6 @@ class Engine:
             (printer.id, count) if count is not None and self.printer is printer else None
         )
 
-    async def refresh_duration_factor(self):
-        """Relit l’historique toutes les trente minutes pour corriger la fin prévue sans ouvrir l’onglet."""
-        if self.extras is None or self.printer is None:
-            return
-        if time.monotonic() - self.duration_factor_checked < 1800:
-            return
-        self.duration_factor_checked = time.monotonic()
-        # La première page suffit : le ratio ne retient que les vingt dernières réussites.
-        with contextlib.suppress(AnycubicAPIError, TimeoutError, ValueError):
-            async with asyncio.timeout(10):
-                await self.extras.task_list(1)
-
     async def connect(self):
         """Connecte la cible du moteur ; le défaut facultatif se replie sur la première machine, jamais une cible secondaire explicite."""
         if self.fleet_registry and self is not self.fleet_registry.default:
@@ -755,7 +749,6 @@ class Engine:
                     else:
                         await self.refresh_printer_details()
                     await self.refresh_lifetime_count()
-                    await self.refresh_duration_factor()
                     if self._last_poll_error is not None:
                         log_event(
                             OPS_LOG,
@@ -874,6 +867,51 @@ class Engine:
             else None
         )
 
+    async def refresh_pending_stored_project(self):
+        """Relit le nouveau projet pendant la préparation sans attendre le prochain cycle Cloud."""
+        trace = self.stored_print_trace
+        printer = self.printer
+        at = time.monotonic()
+        if (
+            not trace
+            or trace[0] is not printer
+            or trace[1].get("cloud_accepted") is not True
+            or not trace[2]
+            or not printer.printer_online
+            or not printer.is_busy
+            or self.command_project_key() != trace[3]
+            or not 0 <= at - trace[5] <= 90
+            or at - self.stored_project_checked < 10
+            or self.lock.locked()
+            or self.command_lock.locked()
+        ):
+            return
+        async with self.lock:
+            self.stored_project_checked = at
+            with contextlib.suppress(AnycubicAPIError, TimeoutError, ValueError):
+                async with asyncio.timeout(5):
+                    await printer.update_info_from_api()
+
+    def stored_print_preparing(self):
+        """Identifie un nouveau projet mémoire occupé dont le code de phase reste inconnu."""
+        trace = self.stored_print_trace
+        p = self.printer
+        project = getattr(p, "latest_project", None)
+        if (
+            not trace
+            or trace[0] is not p
+            or trace[1].get("cloud_accepted") is not True
+            or not trace[2]
+            or project is None
+            or not p.is_busy
+            or project.print_status != "unknown"
+            or not 0 <= time.monotonic() - trace[5] <= 300
+        ):
+            return False
+        key = self.command_project_key()
+        name = stored_print_name(project.name)
+        return bool(key and key != trace[3] and name and name == stored_print_name(trace[4]))
+
     async def verify_active_project(self, name, expected):
         """Relit le projet sous le verrou de commande ; ValueError refuse une identité ou un état devenus différents."""
         p = self.printer
@@ -889,13 +927,19 @@ class Engine:
             ) from None
         if self.printer is not p or expected != self.command_project_key():
             raise ValueError("Le projet a changé pendant la vérification. Aucune commande envoyée.")
-        if not p.printer_online or not p.latest_project or not p.latest_project_print_in_progress:
-            raise ValueError("Aucune impression active confirmée. Aucune commande envoyée.")
-        paused = p.latest_project_print_is_paused
-        if name in ("pause", "resume") and (
-            not isinstance(paused, bool) or paused != (name == "resume")
+        if (
+            not p.printer_online
+            or not p.latest_project
+            or not (
+                p.latest_project_print_in_progress
+                or (name == "cancel" and self.stored_print_preparing())
+            )
         ):
-            raise ValueError("L’état de pause a changé. Actualisez ; aucune commande envoyée.")
+            raise ValueError("Aucune impression active confirmée. Aucune commande envoyée.")
+        if name in ("pause", "resume"):
+            paused = p.latest_project_print_is_paused
+            if not isinstance(paused, bool) or paused != (name == "resume"):
+                raise ValueError("L’état de pause a changé. Actualisez ; aucune commande envoyée.")
         self.updated = now()
         return p.latest_project
 
@@ -930,26 +974,13 @@ class Engine:
         # Le schéma de champs affichables écarte les identifiants privés ; l’aperçu brut doit aussi rester côté serveur.
         fields.pop("job_image_url", None)
         fields["command_project"] = self.command_project_key()
+        fields["stored_print_preparing"] = self.stored_print_preparing()
+        if fields["stored_print_preparing"]:
+            fields["job_state"] = "checking"
         task = safeget(p, "latest_project._taskid")
         timeline_key, timeline = self.print_timeline
         fields["print_timeline"] = (
             timeline if task and timeline_key == task_key(f"{p.id}:{task}") else []
-        )
-        project = fields["command_project"]
-        speed = fields.get("job_speed_mode")
-        if self.estimate_project != project:
-            self.estimate_project, self.estimate_speed = project, speed
-            self.estimate_speed_changed = False
-        elif speed is not None:
-            if self.estimate_speed is not None and self.estimate_speed != speed:
-                self.estimate_speed_changed = True
-            self.estimate_speed = speed
-        fields["corrected_finish"] = corrected_finish(
-            fields,
-            safeget(p, "latest_project._estimate"),
-            self.duration_factor,
-            self.estimate_speed_changed,
-            time.time(),
         )
         fields["job_file_references"] = print_file_references(
             safeget(p, "latest_project.gcode_id"), None
@@ -977,6 +1008,7 @@ class Engine:
             for fw in (safeget(p, "multi_color_box_fw_version") or [])
         ]
         fields["supported_functions"] = safeget(p, "supported_function_strings")
+        fields["stored_print_options"] = stored_print_options(self)
         fields["camera_light"] = safeget(p, "camera_light_on")
         fields["speed_modes"] = safeget(p, "latest_project_available_print_speed_modes_data_object")
         fields["local_files"] = safeget(p, "local_file_list_object")
@@ -1002,12 +1034,14 @@ class Engine:
                     profile = filament_profile_for_sku(slot.sku)
                     if profile:
                         spool["filament_profile"] = profile
+            # Le modèle Anycubic expose 0/1 ; l’interface distingue un booléen d’un état absent.
+            auto_feed = safeget(box, "auto_feed")
             boxes.append(
                 {
                     "box_id": safeget(box, "box_id", idx),
                     "index": idx,
                     "spools": spools,
-                    "auto_feed": safeget(box, "auto_feed"),
+                    "auto_feed": bool(auto_feed) if auto_feed in (0, 1) else None,
                     "temperature": safeget(box, "current_temperature"),
                     "humidity": safeget(box, "humidity"),
                     "loaded_slot": safeget(box, "loaded_slot"),
@@ -1207,6 +1241,9 @@ class Engine:
         if not isinstance(settings, dict):
             raise ValueError("Les réglages IA ne sont pas fournis par l’imprimante")
         clean = {k: settings.get(k) for k in ["status", "sensitivity_level", "notice_type"]}
+        # Certaines S1 répondent à la lecture IA sans publier son indicateur de capacité.
+        if type(clean["status"]) is int and isinstance(clean["sensitivity_level"], list):
+            self.stored_print_ai_printer = self.printer
         self.ai_cache = (time.monotonic(), clean)
         return clean
 

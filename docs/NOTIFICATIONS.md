@@ -17,6 +17,10 @@ Les bilans sont prévus à **08 h et 21 h** dans le fuseau de l’atelier (`TZ`,
 Le Cloud fournit les résultats, les durées disponibles, les codes d’arrêt et, lorsqu’elle est renseignée, la masse de filament. Les mesures partielles indiquent combien d’impressions disposent d’une valeur. Une lecture inaccessible ou tronquée est signalée dans le bilan. La collecte réutilise l’historique Cloud et reste limitée à quatre imprimantes, trois pages par imprimante et quinze secondes par créneau.
 
 
+## Chauffe anormale
+
+La case « Chauffe anormale » des alertes Discord est désactivée par défaut. Si elle est cochée, l’atelier envoie un message à la détection d’un nouvel épisode. Le bouton « Ignorer cet épisode » masque les bandeaux dans le navigateur. Les températures et les consignes restent consultables dans l’atelier.
+
 ## Événements de l’ACE
 
 Dans les réglages des alertes Discord, chaque événement ACE peut être activé séparément. Les événements partent après observation d’un changement d’état. Un arrêt de séchage demandé depuis l’atelier ne déclenche pas d’alerte d’interruption. Le délai de confirmation du chargement ou du retrait est de cinq minutes. L’atelier signale au plus une estimation de manque de filament par tâche et par emplacement.

@@ -6,15 +6,20 @@ import logging
 import os
 import re
 import tempfile
+import time
 
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
 
-from command_journal import dispatch_command
+from command_journal import command_mqtt_context, dispatch_command
 from native_controls import ai_payload, axis_payload
 from idle_controls import print_limits, set_idle
 from filament_catalog import editable_materials
-from print_preflight import ensure_firmware_ready, validate_print_indices
+from print_preflight import (
+    ensure_firmware_ready,
+    validate_print_indices,
+    validate_stored_print_options,
+)
 from printer_values import filepath, integer, now, safeget
 from printer_files import invalidate_local_preview
 from operational_logging import log_event
@@ -47,6 +52,11 @@ async def execute_command(target, name, d):
                 "name": str(row["name"])[:25],
                 "temperature": integer(row["temperature"], 35, 70),
                 "hours": integer(row["hours"], 1, 24),
+                **(
+                    {"humidity_threshold": integer(row["humidity_threshold"], 1, 100)}
+                    if row.get("humidity_threshold") not in (None, "")
+                    else {}
+                ),
             }
             for row in presets
         ]
@@ -87,6 +97,8 @@ async def execute_command(target, name, d):
         return await set_idle(target, d)
     if name in {"print-local", "print-usb", "print-cloud"}:
         ensure_firmware_ready(p)
+    if "preparation" in d and name != "print-local":
+        raise ValueError("Réglages de lancement non disponibles pour cette imprimante.")
     box = integer(d.get("box", 0), 0, max(0, p.connected_ace_units - 1))
     slot = integer(d.get("slot", 1), 1, 4) - 1
     if name in ["axis", "axis-off", "ai-settings"]:
@@ -248,8 +260,11 @@ async def execute_command(target, name, d):
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             kw["slot_index_list"] = target.slots(d)
+            if "preparation" in d:
+                kw["preparation"] = validate_stored_print_options(target, d["preparation"])
             if hasattr(target, "stored_print_trace"):
                 # La trace reste attachée à la machine qui a reçu la demande.
+                context = command_mqtt_context.get()
                 target.stored_print_trace = (
                     p,
                     {
@@ -259,6 +274,10 @@ async def execute_command(target, name, d):
                         "prepared_ace_indices": kw["slot_index_list"],
                         "cloud_accepted": None,
                     },
+                    context[1].get("request_id") if context else None,
+                    target.command_project_key() if context else None,
+                    filename,
+                    time.monotonic(),
                 )
                 trace = target.stored_print_trace[1]
         token = stored_trace_context.set(trace)

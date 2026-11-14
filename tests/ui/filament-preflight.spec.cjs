@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const {login, openSection}=require('./helpers.cjs');
+const {login, openSection,chooseFileAction}=require('./helpers.cjs');
 
 test('les divergences de bobines sont affichées avant le lancement, sans blocage après confirmation',async({page})=>{
   let uploads=0, payload;
@@ -84,7 +84,7 @@ test('les affectations Cloud suivent les couleurs et les changements de l’ACE'
   });
   await login(page, 'files');
   await page.locator('[data-source=cloud]').click();
-  await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+  await chooseFileAction(page.locator('#file-rows tr').first(), 'Imprimer');
   const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
   const first = dialog.getByRole('combobox',{name:'Filament 1 · PLA'});
   const second = dialog.getByRole('combobox',{name:'Filament 2 · PLA'});
@@ -98,11 +98,11 @@ test('les affectations Cloud suivent les couleurs et les changements de l’ACE'
   await expect(second.getByRole('option',{name:/Emplacement 2 · Emplacement vide/})).toHaveAttribute('disabled', '');
   await expect(submit).toBeDisabled();
   await second.selectOption('3');
-  await dialog.locator('#print-options summary').click();
   await submit.click();
   await expect(dialog).toContainText('Ordre fictif accepté');
   expect(order.slots).toEqual([1,3]);
   expect(order).not.toHaveProperty('drying');
+  expect(order).not.toHaveProperty('task_settings');
 });
 
 test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({page}) => {
@@ -119,7 +119,7 @@ test('le démarrage exige une nouvelle tâche avec le fichier attendu', async ({
   }}));
   await login(page, 'files');
   await page.locator('[data-source=cloud]').click();
-  await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+  await chooseFileAction(page.locator('#file-rows tr').first(), 'Imprimer');
   const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
   await dialog.getByRole('button',{name:'Lancer l’impression'}).click();
   await expect(dialog).toContainText('En attente du démarrage');
@@ -214,7 +214,7 @@ for (const scenario of ['refus avec code', 'réponse perdue']) {
     });
     await login(page, 'files');
     await page.locator('[data-source=cloud]').click();
-    await page.locator('#file-rows tr').first().getByRole('button',{name:'Imprimer',exact:true}).click();
+    await chooseFileAction(page.locator('#file-rows tr').first(), 'Imprimer');
     const dialog = page.getByRole('dialog',{name:'Lancer l’impression'});
     await dialog.getByRole('button',{name:'Lancer l’impression'}).click();
     if (scenario === 'réponse perdue') {
@@ -263,9 +263,9 @@ for (const [language, title, theme] of [
     await expect(dialog.locator('#print-no')).toBeFocused();
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(dialog.getByRole('button',{name:title})).toBeInViewport();
-    await dialog.locator('#print-options summary').click();
-    const preparation = dialog.locator('#print-options input[type=checkbox]:disabled');
+    const preparation = dialog.locator('#print-options input[type=checkbox]:enabled');
     await expect(preparation).toHaveCount(5);
+    await expect(dialog.locator('#print-auto-leveling')).toBeChecked();
     await expect(dialog.locator('#print-drying-mode option:disabled')).toHaveCount(2);
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(dialog.getByRole('button',{name:title})).toBeInViewport();

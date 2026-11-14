@@ -15,7 +15,12 @@ import aiohttp
 from aiohttp import web
 
 from notification_delivery import Delivery, read_config
-from notification_discord import ACE_TITLES, DiscordConfig, message_payload, send_discord
+from notification_discord import (
+    ACE_TITLES,
+    DiscordConfig,
+    message_payload,
+    send_discord,
+)
 from notification_reports import ReportSchedule, format_report, next_report_time
 from operational_logging import log_event
 from web_assets import build_web_assets
@@ -119,6 +124,7 @@ ALERT_GROUPS = (
                 "Une fois par opération qui atteint son échéance.",
             ),
             ("queue_next", "Plateau à libérer", "Fin d’impression avec une suivante dans la file."),
+            ("heat_anomaly", "Chauffe anormale", "Une alerte par épisode de chauffe détecté."),
         ),
     ),
     (
@@ -155,7 +161,7 @@ def alert_groups(config):
         '<header><h3 id="discord-events-print">Impressions</h3>'
         "<span>Toujours envoyées si les alertes sont actives</span></header>"
         '<ul class="discord-event-list"><li><strong>Impression terminée</strong>'
-        "<span>Avec la photo de fin si la caméra est active.</span></li>"
+        "<span>À la confirmation de la fin par Anycubic.</span></li>"
         "<li><strong>Impression échouée ou annulée</strong>"
         "<span>Avec la cause communiquée par l’imprimante.</span></li></ul></section>"
     ]
@@ -305,7 +311,7 @@ async def read_discord_form(request):
     if len(raw) > 4096:
         raise web.HTTPRequestEntityTooLarge(max_size=4096, actual_size=len(raw))
     try:
-        values = parse_qs(raw.decode(), keep_blank_values=True, max_num_fields=16)
+        values = parse_qs(raw.decode(), keep_blank_values=True, max_num_fields=20)
         if any(len(value) != 1 for value in values.values()):
             raise ValueError
         return {key: value[0] for key, value in values.items()}

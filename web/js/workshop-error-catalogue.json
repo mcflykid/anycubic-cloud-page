@@ -60,6 +60,15 @@
     ],
     "title": "Erreur système signalée par l’imprimante"
   },
+  "10601": {
+    "description": "Ce code a été observé lors d’un arrêt manuel. Vérifiez le contexte de la tâche pour confirmer le motif.",
+    "models": [],
+    "source": "https://wiki.anycubic.com/en/error-codes",
+    "steps": [
+      "Vérifiez si un arrêt a été demandé depuis l’écran, le slicer ou l’atelier. Si personne ne l’a demandé, relevez l’état de la machine et les messages précédents."
+    ],
+    "title": "Arrêt demandé par l’utilisateur"
+  },
   "10801": {
     "description": "Le téléchargement peut avoir expiré ou l’imprimante peut avoir perdu son accès à Internet.",
     "models": [],

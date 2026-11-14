@@ -239,9 +239,11 @@ export function createOverview(request) {
       ? tr('Hors ligne')
       : p.job_is_paused
         ? tr('En pause')
-        : p.is_busy
+        : p.stored_print_preparing
+          ? tr('Vérification…')
+          : p.job_in_progress
           ? tr('Impression en cours')
-          : tr('Disponible');
+          : p.is_busy ? tr('Imprimante occupée') : tr('Disponible');
     set('printer-status', state);
     $('printer-status').classList.toggle('offline', !p.printer_online);
     $('printer-status').dataset.state = p.job_is_paused ? 'paused' : p.is_busy ? 'running' : '';
@@ -252,7 +254,7 @@ export function createOverview(request) {
         (!p.printer_online
           ? tr('L’imprimante est hors ligne.')
           : p.is_busy
-            ? tr('Impression en cours')
+            ? state
             : tr('Prête pour la prochaine création.')),
     );
     set(
@@ -260,10 +262,12 @@ export function createOverview(request) {
       p.job_name
         ? {
             printing: tr('Impression en cours'),
+            checking: tr('Vérification…'),
             leveling: tr('Mise à niveau du plateau'),
             preheating: tr('Préchauffage'),
             paused: tr('Impression en pause'),
             finished: tr('Impression terminée'),
+            failed: tr('Impression arrêtée'),
             completed: tr('Impression terminée'),
           }[p.job_state] || fmt(p.job_state)
         : p.is_busy
@@ -308,7 +312,7 @@ export function createOverview(request) {
     ]);
     for (const action of ['pause', 'resume', 'cancel'])
       document.querySelector(`[data-command="${action}"]`).disabled =
-        !p.job_in_progress ||
+        !(p.job_in_progress || (action === 'cancel' && p.stored_print_preparing)) ||
         !p.command_project ||
         (action === 'pause' && p.job_is_paused) ||
         (action === 'resume' && !p.job_is_paused);

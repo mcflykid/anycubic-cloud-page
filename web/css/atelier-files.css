@@ -86,12 +86,33 @@
 .files-table .file-row-caption { display: grid; min-inline-size: 0; }
 .file-row-caption strong { font-weight: var(--atelier-semibold); overflow-wrap: anywhere; }
 .file-row-caption > span { color: var(--atelier-muted); font: var(--atelier-label); }
-.files-row-actions, .files-pages {
+.files-pages {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--atelier-space-2);
+}
+.files-action-trigger { font-size: var(--atelier-icon); }
+.files-action-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  min-inline-size: min(calc(4 * var(--atelier-control)), calc(100vw - var(--atelier-space-3)));
+  max-inline-size: calc(100vw - var(--atelier-space-3));
+  overflow: auto;
+  padding: var(--atelier-space-1);
+  color: var(--atelier-fg);
+  background: var(--atelier-surface);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+.files-action-menu > button {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--atelier-control);
+  text-align: start;
+  white-space: normal;
 }
 #tab-files #files-state {
   margin: 0;
@@ -160,7 +181,6 @@
   .files-table :is(th, td) { padding-inline: var(--atelier-space-2); }
   .files-table .file-thumbnail { display: none; }
   .files-table .files-identity-heading { padding-inline-start: var(--atelier-space-2); }
-  .files-row-actions { max-inline-size: calc(3 * var(--atelier-control) + 2 * var(--atelier-space-2)); }
   .files-table .files-size { white-space: normal; }
 }
 /* La liste défile dans sa carte quand la page contient plus de lignes que la fenêtre. */
@@ -175,9 +195,6 @@
   background: var(--atelier-surface);
 }
 
-@container files (min-width: 580px) {
-  .files-row-actions { flex-wrap: nowrap; }
-}
 #tab-files .atelier-card-header h2,
 #tab-history .atelier-card-header h2 {
   margin: 0;

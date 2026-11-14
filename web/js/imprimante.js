@@ -5,7 +5,6 @@ import {
   fmt,
   mins,
   finishEstimate,
-  taskFinish,
   printTimeline,
   message,
   node,
@@ -18,7 +17,7 @@ import { workshopState } from './workshop-state.mjs';
 import { createDeveloperTools } from './workshop-developer.mjs';
 import { createRequest } from './workshop-api.mjs';
 import { createCamera } from './workshop-camera.mjs';
-import { createTemperatureLoader } from './workshop-temperatures.mjs';
+import { createTemperatureLoader, renderHeatChart } from './workshop-temperatures.mjs';
 import { printTrackingQuery, updatePrintConfirmation } from './workshop-print-confirmation.mjs';
 import { createCommands } from './workshop-commands.mjs';
 import { createOverview } from './workshop-overview.mjs';
@@ -152,15 +151,63 @@ $('printer-timeline-open').onclick = () => $('printer-timeline-dialog').showModa
 // Le Résumé ouvre la même fenêtre que l’onglet Imprimante pour ne pas dupliquer le registre.
 $('summary-maintenance-due').onclick = () => $('maintenance-open').click();
 
-const correctFinish = $('correct-finish');
-try { correctFinish.checked = localStorage.getItem('cloud-page-correct-finish') !== 'off'; } catch {}
-correctFinish.onchange = () => {
-  try { localStorage.setItem('cloud-page-correct-finish', correctFinish.checked ? 'on' : 'off'); } catch {}
-  const estimate = workshopState.snapshot?.printer?.corrected_finish;
-  finishEstimate('summary-finish', estimate);
-  finishEstimate('printer-finish', estimate);
-  taskFinish(estimate);
-};
+const ignoredHeatEpisodes = new Set();
+let heatTarget;
+/** Repart du même relevé que le temps restant pour éviter de décaler la fin à chaque rendu. */
+function renderFinish(snapshot) {
+  const printer = snapshot?.printer;
+  const remaining = printer?.job_state === 'printing' ? printer.job_time_remaining : null;
+  const observedAt = [snapshot?.updated_at, snapshot?.mqtt_updated_at].filter(Boolean).sort().at(-1);
+  for (const id of ['summary-finish', 'printer-finish'])
+    finishEstimate(id, remaining, observedAt);
+}
+
+/** Le masquage s’applique aux deux onglets et prend fin au retour à la normale. */
+function renderHeatAlerts(snapshot) {
+  const target = workshopState.selectedPrinter;
+  if (target !== heatTarget) ignoredHeatEpisodes.clear();
+  heatTarget = target;
+  const alerts = snapshot.heat_alerts || [];
+  const episode = alert => JSON.stringify([snapshot.printer?.command_project, alert.part, alert.target]);
+  const active = new Set(alerts.map(episode));
+  for (const key of ignoredHeatEpisodes)
+    if (!active.has(key)) ignoredHeatEpisodes.delete(key);
+  const visible = alerts.filter(alert => !ignoredHeatEpisodes.has(episode(alert)));
+  for (const id of ['summary-heat-warning', 'printer-heat-warning']) {
+    const banner = $(id);
+    const focusedPart = banner.contains(document.activeElement) ? document.activeElement.dataset.part : null;
+    banner.replaceChildren(...visible.map(alert => {
+      const row = node('div', null, 'heat-episode');
+      const title = node('strong', alert.kind === 'sensor'
+        ? formatText('Mesure de température incohérente ({0}) : {1}.', tr(alert.part === 'bed' ? 'Plateau' : 'Buse'), fmt(alert.actual, ' °C'))
+        : alert.kind === 'stalled'
+          ? formatText('La température ne varie plus ({0}) : {1} depuis {2}.', tr(alert.part === 'bed' ? 'Plateau' : 'Buse'), fmt(alert.actual, ' °C'), mins(alert.seconds / 60))
+        : formatText(
+        alert.part === 'bed'
+          ? 'Le plateau n’atteint pas sa cible : {0} depuis {1} pour {2}.'
+          : 'La buse n’atteint pas sa cible : {0} depuis {1} pour {2}.',
+        fmt(alert.actual, ' °C'), mins(alert.seconds / 60), fmt(alert.target, ' °C'),
+      ));
+      const dismiss = node('button', tr('Ignorer cet épisode'), 'atelier-control');
+      dismiss.type = 'button';
+      dismiss.dataset.part = alert.part;
+      dismiss.onclick = () => {
+        ignoredHeatEpisodes.add(episode(alert));
+        renderHeatAlerts(workshopState.snapshot);
+      };
+      row.append(title, dismiss);
+      const chart = node('div', null, 'temperature-plot heat-episode-chart');
+      renderHeatChart(chart, alert);
+      if (chart.childElementCount) row.append(chart);
+      return row;
+    }));
+    if (visible.length) banner.append(node('span', tr('Vérifiez la porte, un courant d’air ou le capteur. Aucune action n’a été envoyée à l’imprimante.')));
+    banner.hidden = !visible.length;
+    if (focusedPart) [...banner.querySelectorAll('button')].find(button => button.dataset.part === focusedPart)?.focus();
+  }
+  for (const part of ['nozzle', 'bed'])
+    $(`printer-${part}-row`).classList.toggle('heat-alert', alerts.some(alert => alert.part === part));
+}
 
 /** Un relevé répété conserve l’heure et respecte la fermeture manuelle du même incident. */
 function showConnectionNotice(text) {
@@ -182,35 +229,20 @@ async function refreshState() {
     const d = await request('/status' + trackingQuery);
     received = true;
     workshopState.snapshot = d;
+    developer.observe(d);
     observeCommand(d);
     updatePrintConfirmation(d.ok === true, new URLSearchParams(trackingQuery).get('print_tracking'));
     if (workshopState.currentTab === 'camera') camera.updateDiagnostic(d.camera_diagnostic);
     if (d.notifications) history.syncNotifications(d.notifications);
     const p = d.printer;
-    const alerts = d.heat_alerts || [];
-    for (const id of ['summary-heat-warning', 'printer-heat-warning']) {
-      const banner = $(id);
-      banner.replaceChildren(...alerts.map(alert => node('strong', formatText(
-        alert.part === 'bed'
-          ? 'Le plateau n’atteint pas sa cible : {0} depuis {1} pour {2}.'
-          : 'La buse n’atteint pas sa cible : {0} depuis {1} pour {2}.',
-        fmt(alert.actual, ' °C'), mins(alert.seconds / 60), fmt(alert.target, ' °C'),
-      ))));
-      if (alerts.length) banner.append(node('span', tr('Vérifiez la porte, un courant d’air ou le capteur. Aucune action n’a été envoyée à l’imprimante.')));
-      banner.hidden = !alerts.length;
-    }
-    // La ligne concernée reste repérable dans le tableau, même après lecture du bandeau.
-    for (const part of ['nozzle', 'bed']) {
-      $(`printer-${part}-row`).classList.toggle('heat-alert', alerts.some(alert => alert.part === part));
-    }
+    renderHeatAlerts(d);
     $('summary-maintenance-due').hidden = !p?.maintenance_due;
     set('summary-maintenance-due', p?.maintenance_due ? formatText('Entretien : {0} à faire', p.maintenance_due) : '');
     $('maintenance-count').hidden = !p?.maintenance_due;
     set('maintenance-count', p?.maintenance_due ? formatText('{0} à faire', p.maintenance_due) : '');
 
     void printQueue.observe(p, workshopState.selectedPrinter);
-    finishEstimate('summary-finish', p?.corrected_finish);
-    finishEstimate('printer-finish', p?.corrected_finish);
+    renderFinish(d);
     printTimeline('printer-timeline', p?.print_timeline);
     $('printer-timeline-open').hidden = $('printer-timeline').hidden;
     if ($('printer-timeline').hidden && $('printer-timeline-dialog').open) $('printer-timeline-dialog').close();

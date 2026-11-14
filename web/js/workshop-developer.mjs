@@ -18,7 +18,7 @@ const routes = new Set([
   '/files/local', '/files/usb', '/fleet', '/history', '/history/delete', '/history/read',
   '/journal', '/maintenance', '/monitoring', '/preflight', '/preview', '/print-queue',
   '/print/cancel-transfer', '/printers', '/reauth', '/reset/challenge', '/status',
-  '/task-note', '/temperatures', '/upload',
+  '/temperatures', '/upload',
 ]);
 const sharedDialogs = ['confirm-dialog', 'context-help-dialog', 'notification-error-dialog', 'notification-preview-dialog'];
 const measures = [
@@ -98,12 +98,16 @@ function stackOrigin(stack) {
   return match ? [match[1], match[2]] : [null, null];
 }
 
-// Un segment numérique ou hexadécimal long désigne un objet de l’installation : il n’est jamais affiché.
+// Seules les routes publiques connues peuvent entrer dans le rapport.
 function publicRoute(route) {
-  const path = String(route || '').split(/[?#]/)[0];
-  if (!/^\/[\w/.-]*$/.test(path)) return '(autre)';
-  return path.split('/').map(part => /\d{3,}|^[0-9a-f]{8,}$/i.test(part) ? ':id' : part).join('/');
+  return routes.has(route) ? route : '(autre)';
 }
+
+const findingsText = {
+  cloud_stale: 'Données Cloud anciennes. Vérifiez la connexion au compte.',
+  mqtt_stale: 'Rapports MQTT anciens. Vérifiez la connexion et attendez le prochain relevé.',
+  ace_mismatch: 'Bobine engagée différente de la sélection. Vérifiez l’affectation ACE.',
+};
 
 function browserFamily() {
   const ua = navigator.userAgent;
@@ -169,6 +173,23 @@ export function createDeveloperTools(state, request, banner) {
   let started = 0;
   let generation = 0;
   let currentService = null;
+  let serviceReadAt = 0;
+  let lastProgress;
+  let progressRegressed = false;
+
+  function observe(snapshot) {
+    if (!active) return;
+    const printer = snapshot?.printer;
+    if (snapshot?.ok !== true || printer?.job_state !== 'printing' ||
+        !printer.command_project || !Number.isFinite(printer.job_progress)) {
+      lastProgress = undefined;
+      progressRegressed = false;
+      return;
+    }
+    if (lastProgress?.task !== printer.command_project) progressRegressed = false;
+    else if (printer.job_progress < lastProgress.value) progressRegressed = true;
+    lastProgress = {task: printer.command_project, value: printer.job_progress};
+  }
   let lastRead = 0;
   let witnessPending;
   let witness;
@@ -218,6 +239,17 @@ export function createDeveloperTools(state, request, banner) {
     card.innerHTML = `
       <header class="atelier-card-header"><h2>Outils de développement</h2><button type="button" class="atelier-control" data-disable aria-label="Désactiver le mode développeur">Ω</button></header>
       <div class="atelier-card-body">
+        <nav data-summary data-wide aria-label="État en un coup d’œil"></nav>
+        <details open data-wide><summary class="atelier-disclosure">À examiner</summary>
+          <ul class="developer-log" data-findings aria-label="Constats à examiner"></ul>
+        </details>
+        <details data-wide><summary class="atelier-disclosure">Activité unifiée</summary>
+          <div class="developer-filters">
+            <label>Rechercher dans l’activité <input data-activity-search type="search"></label>
+            <label>Gravité <select data-activity-level><option value="">Toutes</option><option value="incident">Incidents</option></select></label>
+          </div>
+          <ul class="developer-log" data-activity aria-label="Activité unifiée"></ul>
+        </details>
         <details open data-trace><summary class="atelier-disclosure">Journal HTTP</summary>
           <div class="developer-filters">
             <label>Méthode <select data-method><option value="">Toutes</option>${['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(value => `<option>${value}</option>`).join('')}</select></label>
@@ -226,7 +258,7 @@ export function createDeveloperTools(state, request, banner) {
           </div>
           <ul class="developer-log" aria-label="Requêtes" data-empty="Aucune requête depuis l’activation."></ul>
         </details>
-        <details open><summary class="atelier-disclosure">Diagnostic serveur</summary>
+        <details open data-diagnostic><summary class="atelier-disclosure">Diagnostic serveur</summary>
           <p data-ace-summary></p><p data-finish-summary></p>
           <ul class="developer-log" aria-label="Signaux serveur" data-server-signals data-empty="Relevez le diagnostic pour afficher les signaux Cloud et MQTT."></ul>
           <pre tabindex="0" aria-label="Diagnostic du serveur" data-service></pre>
@@ -234,7 +266,7 @@ export function createDeveloperTools(state, request, banner) {
         <details data-errors><summary class="atelier-disclosure">Erreurs du navigateur</summary>
           <ul class="developer-log" aria-label="Erreurs du navigateur" data-error-list data-empty="Aucune erreur JavaScript depuis l’ouverture de la page."></ul>
         </details>
-        <details><summary class="atelier-disclosure">Bandeaux et fraîcheur des données</summary>
+        <details data-banners><summary class="atelier-disclosure">Bandeaux et fraîcheur des données</summary>
           <button type="button" class="atelier-control" data-refresh-state>Actualiser les relevés</button>
           <pre data-state tabindex="0"></pre>
         </details>
@@ -254,6 +286,12 @@ export function createDeveloperTools(state, request, banner) {
           <p>Chargement de la référence…</p><p data-warnings></p><ul></ul>
         </details>
         <details data-export data-wide><summary class="atelier-disclosure">Rapport expurgé</summary>
+          <div class="developer-filters">
+            <label><input type="checkbox" data-report-part="http" checked> HTTP</label>
+            <label><input type="checkbox" data-report-part="browser" checked> Navigateur</label>
+            <label><input type="checkbox" data-report-part="server" checked> Serveur et ACE</label>
+            <label><input type="checkbox" data-report-part="status" checked> Bandeaux et fraîcheur</label>
+          </div>
           <button type="button" class="atelier-control" data-copy>Copier un rapport expurgé</button>
           <textarea data-report rows="12" aria-label="Aperçu du rapport expurgé" readonly hidden></textarea>
         </details>
@@ -266,7 +304,7 @@ export function createDeveloperTools(state, request, banner) {
     const find = selector => card.querySelector(selector);
     const output = find('[data-service]');
     const summary = find('[data-ace-summary]');
-    const journal = find('.developer-log');
+    const journal = find('[data-trace] .developer-log');
     const [method, status, route] = [...find('[data-trace]').querySelectorAll('select')];
     const feedback = find('[data-feedback]');
     const witnessPanel = find('[data-witness]');
@@ -318,11 +356,75 @@ export function createDeveloperTools(state, request, banner) {
           (event.durée_ms === undefined ? '' : ` · ${event.durée_ms} ms`);
         return row;
       }));
+      renderActivity();
       find('[data-error-list]').replaceChildren(...errors.toReversed().map(error => {
         const row = document.createElement('li');
         row.dataset.attention = 'true';
         row.textContent = `${error.heure} · ${error.type} · ${error.module} · ${error.onglet}` + (error.nombre > 1 ? ` · ×${error.nombre}` : '');
         return row;
+      }));
+    }
+
+    function renderActivity() {
+      const query = find('[data-activity-search]').value.trim().toLowerCase();
+      const incidentsOnly = find('[data-activity-level]').value === 'incident';
+      const service = currentService?.developer;
+      const entries = [
+        ...signals.map(event => [event.at, event.incident, ['HTTP', event.méthode, event.route, event.HTTP ?? event.phase, event.reference].filter(Boolean).join(' · ')]),
+        ...errors.map(event => [event.at, true, ['JS', event.type, event.module].join(' · ')]),
+        ...(service?.signals || []).map(event => [
+          Number.isFinite(service.signal_now_ms) ? serviceReadAt - (service.signal_now_ms - event.ms) : serviceReadAt,
+          event.phase === 'error' || event.http >= 400,
+          [event.transport.toUpperCase(), event.phase, event.endpoint || event.type, event.state, event.code].filter(Boolean).join(' · '),
+        ]),
+      ].sort((a, b) => b[0] - a[0]);
+      find('[data-activity]').replaceChildren(...entries.filter(([, incident, label]) =>
+        (!incidentsOnly || incident) && label.toLowerCase().includes(query),
+      ).map(([at, incident, label]) => {
+        const row = document.createElement('li');
+        row.dataset.attention = String(incident);
+        row.textContent = `${new Date(at).toLocaleTimeString('fr-FR')} · ${label}`;
+        return row;
+      }));
+    }
+
+    find('[data-activity-search]').oninput = renderActivity;
+    find('[data-activity-level]').onchange = renderActivity;
+
+    function renderOverview(latest) {
+      const service = latest.service;
+      const details = service?.developer;
+      const age = latest.fraîcheur.updated_at.âge_s;
+      const pending = latest.bandeaux?.commande;
+      const examined = new Set((details?.findings || []).map(code => findingsText[code]).filter(Boolean));
+      if (pending?.bandeau_visible && pending.attente_s > 30)
+        examined.add('Confirmation en attente. Comparez la phase attendue avec le dernier relevé.');
+      if (age > 30) examined.add(findingsText.cloud_stale);
+      if (latest.fraîcheur.mqtt_updated_at.âge_s > 30) examined.add(findingsText.mqtt_stale);
+      if (progressRegressed) examined.add('Progression en recul sur la même tâche. Vérifiez les rapports reçus.');
+      find('[data-findings]').replaceChildren(...(examined.size ? [...examined] : ['Aucune incohérence détectée.']).map(text => {
+        const row = document.createElement('li');
+        row.textContent = text;
+        return row;
+      }));
+      find('[data-summary]').replaceChildren(...[
+        ['Service', service ? service.cloud_available === false ? 'Cloud indisponible' : 'relevé' : 'à relever', '[data-diagnostic]'],
+        ['Données Cloud', age === null ? 'inconnues' : `${age} s`, '[data-banners]'],
+        ['MQTT', details ? details.mqtt_connected ? 'connecté' : 'déconnecté' : 'inconnu', '[data-diagnostic]'],
+        ['Commande', pending?.bandeau_visible ? 'en attente' : 'aucune attente', '[data-banners]'],
+        ['Navigateur', `${errors.length} erreurs`, '[data-errors]'],
+        ['ACE', details ? `${details.ace?.length ?? 0} module(s)` : 'à relever', '[data-diagnostic]'],
+      ].map(([name, value, target]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'atelier-control';
+        button.textContent = `${name} · ${value}`;
+        button.onclick = () => {
+          const pane = find(target);
+          pane.open = true;
+          pane.querySelector('summary').focus();
+        };
+        return button;
       }));
     }
 
@@ -333,7 +435,7 @@ export function createDeveloperTools(state, request, banner) {
         const subject = event.endpoint || [event.type, event.action].filter(Boolean).join('/');
         const result = event.http ?? (event.code === undefined || event.code === null ? '' : `code ${event.code}`);
         row.dataset.attention = String(event.phase === 'error' || event.http >= 400);
-        row.textContent = [`+${event.ms} ms`, event.transport, event.phase, subject, result,
+        row.textContent = [`+${event.ms} ms`, event.transport, event.phase, subject, event.state, result,
           event.duration_ms === undefined ? '' : `${event.duration_ms} ms`].filter(Boolean).join(' · ');
         return row;
       }));
@@ -351,12 +453,19 @@ export function createDeveloperTools(state, request, banner) {
       const selected = print?.requested_slots?.join(', ') || '—';
       const serialized = print?.serialized_mapping?.map(row => row.ams_index).join(', ') || '—';
       const observed = developer?.ace?.flatMap(box => box.observed_slot ?? []).join(', ') || '—';
+      const evidence = [
+        ['Nouveau projet', print?.fresh_project_reported],
+        ['Fichier attendu', print?.expected_file_reported],
+        ['Préparation identifiée', print?.preparation_identified],
+      ].filter(([, value]) => typeof value === 'boolean')
+        .map(([label, value]) => `${label} : ${value ? 'oui' : 'non'}`);
       summary.textContent = print ?
-        `Choix ACE ${selected} · Indice sérialisé ${serialized} · Emplacement actuellement engagé ${observed}` : '';
+        [`Choix ACE ${selected} · Indice sérialisé ${serialized} · Emplacement actuellement engagé ${observed}`, ...evidence].join(' · ') : '';
       const finish = developer?.finish_timing;
       find('[data-finish-summary]').textContent = finish ?
-        `Fin prévue : ${finish.elapsed_min ?? '—'} min écoulées · ${finish.reported_remaining_min ?? '—'} min annoncées · correction par l’historique ${finish.corrected_available ? 'disponible' : 'absente'}` : '';
+        `Fin prévue : ${finish.elapsed_min ?? '—'} min écoulées · ${finish.reported_remaining_min ?? '—'} min annoncées` : '';
       renderServerSignals(developer?.signals);
+      renderOverview(latest);
       find('[data-state]').textContent = JSON.stringify({
         bandeaux: latest.bandeaux, fraîcheur: latest.fraîcheur, mesures: latest.mesures,
         sections_modifiées: baseline ? Object.keys(latest).filter(key =>
@@ -398,6 +507,7 @@ export function createDeveloperTools(state, request, banner) {
         const response = await request('/diagnostic?developer=1', {printerKey, timeoutMs: 8000});
         if (stillCurrent()) {
           currentService = response;
+          serviceReadAt = Date.now();
           feedback.textContent = 'Diagnostic relevé.';
         }
       } catch {
@@ -410,17 +520,22 @@ export function createDeveloperTools(state, request, banner) {
     find('[data-compare]').onclick = () => { baseline = capture(); capture(); feedback.textContent = 'Point de comparaison fixé.'; };
     find('[data-copy]').onclick = async () => {
       const captured = capture();
+      const enabled = key => find(`[data-report-part="${key}"]`).checked;
+      const withoutReference = ({reference, ...entry}) => entry;
       const text = JSON.stringify({
-        version: captured.version, navigateur: browserFamily(), onglet: captured.onglet,
-        requêtes: captured.signaux_page.slice(-20),
-        incidents: captured.incidents.slice(-20),
-        erreurs_js: captured.erreurs_js,
-        commande: captured.bandeaux?.commande ?? null,
-        fraîcheur: captured.fraîcheur,
-        fin_prévue: captured.service?.developer?.finish_timing ?? null,
-        ace: captured.service?.developer?.ace ?? null,
-        impression_mémoire: captured.service?.developer?.last_stored_print ?? null,
-        mqtt: captured.service?.developer?.mqtt_connected ?? null,
+        version: captured.version, navigateur: browserFamily(),
+        ...(enabled('http') ? {
+          requêtes: captured.signaux_page.slice(-20).map(withoutReference),
+          incidents: captured.incidents.slice(-20).map(withoutReference),
+        } : {}),
+        ...(enabled('browser') ? {erreurs_js: captured.erreurs_js} : {}),
+        ...(enabled('status') ? {commande: captured.bandeaux?.commande, fraîcheur: captured.fraîcheur} : {}),
+        ...(enabled('server') ? {
+          fin_prévue: captured.service?.developer?.finish_timing ?? null,
+          ace: captured.service?.developer?.ace ?? null,
+          impression_mémoire: captured.service?.developer?.last_stored_print ?? null,
+          mqtt: captured.service?.developer?.mqtt_connected ?? null,
+        } : {}),
       }, null, 2);
       const preview = find('[data-report]');
       preview.value = text;
@@ -476,6 +591,8 @@ export function createDeveloperTools(state, request, banner) {
     incidents.length = 0;
     readings.clear();
     currentService = null;
+    lastProgress = undefined;
+    progressRegressed = false;
     simulation = null;
     started = performance.now();
     unread.hidden = true;
@@ -510,8 +627,9 @@ export function createDeveloperTools(state, request, banner) {
     if (same) {
       same.nombre++;
       same.heure = clock();
+      same.at = Date.now();
     } else {
-      errors.push({heure: clock(), nombre: 1, ...row});
+      errors.push({heure: clock(), at: Date.now(), nombre: 1, ...row});
       if (errors.length > 20) errors.shift();
     }
     if (active) notify(true);
@@ -535,6 +653,7 @@ export function createDeveloperTools(state, request, banner) {
   return {
     leave,
     show,
+    observe,
     simulate(route) {
       if (!active || !isDemo || simulation?.route !== route || !simulation.remaining) return;
       simulation.remaining--;
@@ -542,14 +661,14 @@ export function createDeveloperTools(state, request, banner) {
       if (simulation.mode === 'timeout') return Promise.reject(new DOMException('Échéance simulée', 'TimeoutError'));
       return new Promise(resolve => setTimeout(resolve, 1000));
     },
-    record(method, route, phase, attempt, duration, status) {
+    record(method, route, phase, attempt, duration, status, reference) {
       // L’envoi n’apporte rien de plus que sa réponse : une requête occupe une seule ligne.
       if (!active || phase === 'envoi') return;
       const event = {
-        id: ++sequence, heure: clock(), ms: Math.round(performance.now() - started),
+        id: ++sequence, heure: clock(), at: Date.now(), ms: Math.round(performance.now() - started),
         méthode: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].includes(method) ? method : 'AUTRE',
         route: publicRoute(route), phase, tentative: attempt,
-        durée_ms: duration, HTTP: status,
+        durée_ms: duration, HTTP: status, reference: /^[a-f0-9]{32}$/.test(reference || '') ? reference : undefined,
       };
       event.incident = phase === 'interruption' || attempt > 1 || status >= 400;
       signals.push(event);

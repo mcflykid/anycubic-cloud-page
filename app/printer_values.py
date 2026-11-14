@@ -19,6 +19,15 @@ def safeget(obj, key, default=None):
         return default
 
 
+def stored_print_name(value):
+    """Compare l’affichage Cloud au paquet mémoire quand une extension a été retirée."""
+    return (
+        value.casefold().removesuffix(".3mf").removesuffix(".gcode")
+        if isinstance(value, str)
+        else ""
+    )
+
+
 def serial(obj):
     """Renvoie une structure JSON compatible, avec conversion ISO des dates."""
     if obj is None or isinstance(obj, (str, bool, int, float)):

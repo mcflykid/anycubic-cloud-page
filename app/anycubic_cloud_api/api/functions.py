@@ -964,6 +964,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         file_name: str,
         file_path: str = "",
         ams_box_mapping: list[AnycubicMaterialMapping] | None = None,
+        preparation: dict[str, int] | None = None,
     ) -> str | None:
         if not printer:
             return None
@@ -971,6 +972,7 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         print_request = AnycubicStartPrintRequestLocal(
             filename=file_name,
             filepath=file_path,
+            preparation=preparation,
         )
 
         return await self._send_order_start_print(

@@ -10,8 +10,7 @@ from command_journal import dispatch_command
 from native_controls import PARAMS, TIMELAPSE_GALLERY_ENABLED
 from printer_values import integer
 from request_validation import json_object
-from task_notes import read_task_notes
-from print_observations import historical_duration_factor, read_timelines
+from print_observations import read_timelines
 from anycubic_cloud_api.models.http import AnycubicAPIEndpoint, HTTP_METHODS
 from anycubic_cloud_api.data_models.orders import (
     AnycubicProjectOrderRequest,
@@ -302,19 +301,10 @@ class CloudExtras:
             else {}
         )
         items = []
-        own_history = []
-        registry = getattr(self.e, "fleet_registry", None)
-        notes_path = getattr(registry.default if registry else self.e, "state_dir", None)
-        notes = (
-            await asyncio.to_thread(read_task_notes, notes_path / "task-notes.json")
-            if notes_path
-            else {}
-        )
         for r in rows:
             taskid = r.get("task_id") or r.get("taskid") or r.get("id")
             r = {**lookup.get((str(r.get("printer_id")), str(taskid)), {}), **r, "taskid": taskid}
             r.setdefault("id", taskid)
-            own_history.append(r)
             k = key(str(r.get("printer_id")) + ":" + str(taskid))
             self.tasks[k] = r
             status = r.get("print_status")
@@ -341,7 +331,6 @@ class CloudExtras:
                 {
                     "key": k,
                     "colors": colors,
-                    "local_note": notes.get(k),
                     "name": clean_text(
                         r.get("task_name") or r.get("gcode_name") or r.get("model") or "Impression",
                         300,
@@ -365,12 +354,6 @@ class CloudExtras:
             )
         while len(self.tasks) > 500:
             self.tasks.pop(next(iter(self.tasks)))
-        if page == 1 and not all_printers:
-            own_history.sort(
-                key=lambda row: number(row.get("start_time") or row.get("create_time"), 0),
-                reverse=True,
-            )
-            self.e.duration_factor = historical_duration_factor(own_history, self.e.printer.id)
         items.sort(key=lambda r: number(r.get("start"), 0), reverse=True)
         return {"items": items, "page": page, "has_more": more}
 

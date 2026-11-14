@@ -1,7 +1,27 @@
 const {test,expect}=require('@playwright/test');
-const {login,openSection}=require('./helpers.cjs');
+const {login,openSection,chooseFileAction}=require('./helpers.cjs');
 test('déconnexion au clavier et révocation effective',async({page})=>{await login(page);const button=page.getByRole('button',{name:'Se déconnecter',exact:true});await expect(page.locator('.portal-nav').getByRole('link',{name:'Anycubic Cloud Page'})).toHaveAttribute('href','/imprimante.html');await expect(page.getByText('Atelier autonome',{exact:true})).toHaveCount(0);await button.focus();await button.press('Enter');await expect(page).toHaveURL(/\/login$/);const response=await page.request.get('/imprimante-api/status');expect(response.status()).toBe(401);});
 module.exports={login};
+
+test('une préparation identifiée autorise l’arrêt sans assimiler toute occupation à une impression',async({page})=>{
+ let preparing=false;
+ await page.route('**/imprimante-api/status**',async route=>{
+  const response=await route.fetch();
+  const json=await response.json();
+  Object.assign(json.printer,{is_busy:true,is_available:false,job_in_progress:false,
+   command_project:'fixture-project',stored_print_preparing:preparing,job_state:preparing?'checking':'unknown'});
+  await route.fulfill({response,json});
+ });
+ await login(page,'overview');
+ const stop=page.locator('[data-command=cancel]');
+ await expect(page.locator('#printer-status')).toHaveText('Imprimante occupée');
+ await expect(stop).toBeDisabled();
+ preparing=true;
+ await expect(stop).toBeEnabled({timeout:8000});
+ await expect(page.locator('#printer-status')).toHaveText('Vérification…');
+ await expect(page.locator('[data-command=pause]')).toBeDisabled();
+ await expect(page.locator('[data-command=resume]')).toBeDisabled();
+});
 
 
 test('un catalogue inaccessible laisse l’atelier fonctionner en français',async({page})=>{
@@ -229,14 +249,14 @@ test('le style visuel se mémorise indépendamment du mode sombre', async ({page
 
 test('une suppression nomme son effet et place le focus sur Annuler', async ({page}) => {
  await login(page, 'files');
- const remove = page.locator('#file-rows').getByRole('button', {name: 'Supprimer', exact: true}).first();
- await remove.click();
+ const row = page.locator('#file-rows tr').filter({has:page.locator('.files-action-menu button', {hasText:'Supprimer'})}).first();
+ await chooseFileAction(row, 'Supprimer');
  const dialog = page.locator('#confirm-dialog');
  await expect(dialog.getByRole('button', {name: 'Supprimer', exact: true})).toBeVisible();
  await expect(dialog.getByRole('button', {name: 'Annuler', exact: true})).toBeFocused();
  await page.keyboard.press('Escape');
  await expect(dialog).toBeHidden();
- await expect(remove).toBeFocused();
+ await expect(row.getByRole('button',{name:/Actions du fichier/})).toBeFocused();
 });
 
 test('la réinitialisation affiche le temps restant et bloque un code expiré', async ({page}) => {
@@ -319,7 +339,7 @@ test('la détection IA garde les réglages visibles en cas d’échec et suit le
  await page.setViewportSize({width: 390, height: 800});
  await login(page, 'settings');
  await page.locator('#ai-open').click();
- const dialog = page.getByRole('dialog', {name: 'Détection IA'});
+ const dialog = page.getByRole('dialog', {name: 'Détection IA (BETA)', exact: true});
  await expect(dialog.locator('#ai-state')).toHaveText('Lecture impossible');
  await expect(dialog.getByRole('switch').first()).toBeDisabled();
  fail = false;

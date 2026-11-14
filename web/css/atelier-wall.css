@@ -3,16 +3,23 @@
 body { margin: 0; background: var(--atelier-bg); color: var(--atelier-fg); font: var(--atelier-reading-font); font-variant-numeric: tabular-nums; }
 .wall { display: grid; gap: var(--atelier-space-5); padding: var(--atelier-space-5); }
 .wall :is(h1, h2, p, dl) { margin: 0; overflow-wrap: anywhere; }
-.wall header { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--atelier-space-3); }
+.wall header { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--atelier-space-3); min-block-size: var(--atelier-touch-control); padding-inline-end: calc(var(--atelier-touch-control) + var(--atelier-space-3)); }
 .wall header time { margin-inline-start: auto; color: var(--atelier-muted); }
 #wall-exit {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: var(--atelier-control);
-  padding-inline: var(--atelier-space-3);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--atelier-touch-control);
+  block-size: var(--atelier-touch-control);
   border: var(--atelier-rule) solid var(--atelier-line);
   border-radius: var(--atelier-control-radius);
   color: inherit;
+  font-size: var(--atelier-title-size);
+  line-height: 1;
+  text-decoration: none;
 }
 #wall-exit:focus-visible { outline: var(--atelier-rule) solid var(--atelier-accent); }
 .wall-task { display: grid; gap: var(--atelier-space-4); align-items: center; }

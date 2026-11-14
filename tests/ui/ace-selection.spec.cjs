@@ -95,6 +95,49 @@ test('un emplacement ACE ouvre une fiche de filament sans commande', async ({pag
  expect(commands).toHaveLength(0);
 });
 
+test('les trois premières fiches ACE ouvrent leurs variantes communautaires', async ({page}) => {
+ await page.route('**/imprimante-api/status', async route => {
+  const response = await route.fetch(), json = await response.json();
+  const profiles = ['PLA Basic', 'PLA Basic', 'PLA Marble'];
+  const colors = [[33, 39, 33], [146, 121, 104], [239, 240, 241]];
+  profiles.forEach((profile, index) => Object.assign(json.printer.boxes[0].spools[index], {
+   material_type: profile, rfid: true, filament_profile: profile, color: colors[index],
+  }));
+  await route.fulfill({response, json});
+ });
+ await login(page, 'ace');
+ const dialog = page.getByRole('dialog', {name: 'Fiche filament', exact: true});
+ for (let slot = 1; slot <= 3; slot++) {
+  await page.locator('#spools').getByRole('button', {name: new RegExp('Emplacement ' + slot)}).click();
+  await expect(dialog.getByRole('link', {name: '3D Filament Profiles', exact: true}))
+   .toHaveAttribute('href', 'https://3dfilamentprofiles.com/filament/details/' + [560, 2830, 15191][slot - 1]);
+  await expect(dialog.locator('#filament-profile-facts')).toContainText(slot === 3 ? 'Marble' : 'Basic');
+  await page.keyboard.press('Escape');
+ }
+});
+
+test('le catalogue retrouve une fiche par SKU sans sélectionner de bobine', async ({page}) => {
+ await login(page, 'ace');
+ await page.getByRole('button', {name:'Catalogue Anycubic'}).click();
+ const catalogue = page.getByRole('dialog', {name:'Catalogue Anycubic'});
+ await catalogue.getByLabel('Rechercher un filament').fill('HASBK-103');
+ await expect(catalogue.locator('#filament-catalogue-list button')).toHaveCount(0);
+ await catalogue.getByLabel('Rechercher un filament').fill('AHLSMW-101');
+ await catalogue.getByRole('button', {name:/PLA Marble · Marble White · AHLSMW-101/}).click();
+ const profile = page.getByRole('dialog', {name:'Fiche filament', exact:true});
+ await expect(profile.locator('#filament-profile-facts')).toContainText('AHLSMW-101');
+ await expect(profile.getByRole('link', {name:'3D Filament Profiles', exact:true}))
+   .toHaveAttribute('href', 'https://3dfilamentprofiles.com/filament/details/15191');
+ await expect(profile.locator('#filament-profile-reading')).toBeHidden();
+ await page.keyboard.press('Escape');
+ await catalogue.getByLabel('Rechercher un filament').fill('AHPLBW-107');
+ await catalogue.getByRole('button', {name:/PLA Basic · White · AHPLBW-107/}).click();
+ await expect(profile.locator('#filament-profile-facts')).toContainText('#EFF0F1');
+ await expect(profile.locator('#filament-profile-properties')).toContainText('48 ± 5 MPa');
+ await expect(profile.getByRole('link', {name:'Fiche fabricant'}))
+  .toHaveAttribute('href', 'https://store.anycubic.com/products/pla-filament?variant=43845685149858');
+});
+
 test('un emplacement inconnu propose uniquement la création et retrouve sa fiche après rechargement', async ({page}) => {
  let color;
  await page.route('**/imprimante-api/status', async route => {

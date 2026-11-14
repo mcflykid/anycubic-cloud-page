@@ -20,6 +20,8 @@ Relevé du 11 novembre 2026 : le texte des 60 guides anglais du [sommaire Kobra 
 
 ## Choix de présentation
 
+Le code **10601** a été associé à un arrêt demandé par l’utilisateur dans un [relevé publié sur Kobra 3](https://github.com/chrisfore/anycubic_ha_local/blob/main/custom_components/anycubic/anycubic_local/const.py). Il a également été signalé pendant la recette Kobra S1. Vérifier si un arrêt a été demandé et consulter les événements qui le précèdent. Le catalogue public Anycubic consulté ne proposait pas de fiche dédiée pour ce code.
+
 La fiche d’erreur s’ouvre dans l’atelier et contient un résumé original, les premiers contrôles et la source officielle facultative. La notification reste intacte. Un code inconnu conserve son numéro et le message reçu, sans inventer de diagnostic. Le catalogue local ne télécharge pas le wiki à l’ouverture et les URL de suivi ne sont pas conservées.
 
 Une prochaine étape possible : des conseils intégrés à la page qui en a besoin (Réseau, Fichiers, Caméra ou Calibrations), sans les mélanger aux alertes de la cloche. Les afficher à la demande ou dans un état pertinent, avec une option pour les masquer. Aucun conseil ne déclenche une commande.

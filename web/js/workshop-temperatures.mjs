@@ -26,7 +26,7 @@ const hour = (t) =>
   new Date(t * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone });
 
 /** Trace les mesures et les consignes éventuelles en interrompant les séries aux lacunes. */
-function renderChart(host, current, title, rows, hours, key, unit, minimumTop, color) {
+function renderChart(host, current, title, rows, hours, key, unit, minimumTop, color, end = Date.now() / 1000) {
   const valid = rows.filter((r) => Number.isFinite(r[key])),
     last = valid.at(-1);
   host.replaceChildren();
@@ -42,7 +42,6 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
     R = 12,
     T = 12,
     B = 28,
-    end = Date.now() / 1000,
     start = end - hours * 3600,
     top = Math.max(
       minimumTop,
@@ -135,6 +134,14 @@ function renderChart(host, current, title, rows, hours, key, unit, minimumTop, c
   legend.append(node('span', tr('━ Mesurée')));
   if (rows.some((r) => r[key + '_target'] != null)) legend.append(node('span', '┄ Cible'));
   host.append(legend);
+}
+
+/** Réutilise l’échelle et les lacunes des statistiques pour le relevé joint à l’alerte. */
+export function renderHeatChart(host, alert) {
+  if (!alert.readings?.length) return;
+  const label = tr('Températures des dix dernières minutes');
+  renderChart(host, node('span'), label, alert.readings, 1 / 6, alert.part, ' °C',
+    alert.part === 'bed' ? 75 : 225, 'var(--atelier-warning)', alert.observed_at);
 }
 
 /** Garde l’identité du boîtier au-dessus de ses courbes, y compris pour les anciens relevés. */
