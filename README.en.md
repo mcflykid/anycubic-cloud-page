@@ -2,7 +2,7 @@
 
 **Follow and control your Anycubic printer from a browser.** This self-hosted workshop connects to your Anycubic Cloud account. Prepare models in your slicer, then use the workshop to browse files, track prints and manage your ACE.
 
-[Français](README.md) · [Version 2.2.0 and changelog](CHANGELOG.md) · [Releases](https://github.com/mcflykid/anycubic-cloud-page/releases) · [Screenshots](screenshots/README.md)
+[Français](README.md) · [Version 2.2.1 and changelog](CHANGELOG.md) · [Releases](https://github.com/mcflykid/anycubic-cloud-page/releases) · [Screenshots](screenshots/README.md)
 
 ![Desktop overview with demo data](screenshots/atelier/resume.jpg)
 

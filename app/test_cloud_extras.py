@@ -52,7 +52,9 @@ class ResetTests(unittest.TestCase):
 
     def test_history_duration_never_fabricates_an_end(self):
         """Des horodatages présents donnent des minutes ; une fin absente ou antérieure reste inconnue."""
-        self.assertEqual(history_minutes({"create_time": 1000, "end_time": 1120}), 2)
+        self.assertEqual(
+            history_minutes({"print_status": 2, "create_time": 1000, "end_time": 1120}), 2
+        )
         self.assertIsNone(history_minutes({"create_time": 1000}))
         self.assertIsNone(history_minutes({"create_time": 1000, "end_time": 999}))
 

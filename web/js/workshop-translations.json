@@ -10822,5 +10822,59 @@
     "es": "Temperatura de transición vítrea",
     "de": "Glasübergangstemperatur",
     "it": "Temperatura di transizione vetrosa"
+  },
+  "Intervalle début-fin": {
+    "en": "Start–end interval",
+    "es": "Intervalo inicio-fin",
+    "de": "Intervall Start–Ende",
+    "it": "Intervallo inizio-fine"
+  },
+  "Compteur historique v2": {
+    "en": "History v2 counter",
+    "es": "Contador del historial v2",
+    "de": "Zähler Verlauf v2",
+    "it": "Contatore cronologia v2"
+  },
+  "Compteur getProjects": {
+    "en": "getProjects counter",
+    "es": "Contador getProjects",
+    "de": "Zähler getProjects",
+    "it": "Contatore getProjects"
+  },
+  "Compteur du détail v5": {
+    "en": "Detail v5 counter",
+    "es": "Contador del detalle v5",
+    "de": "Zähler Detail v5",
+    "it": "Contatore dettaglio v5"
+  },
+  "Compteur du détail de secours": {
+    "en": "Fallback detail counter",
+    "es": "Contador del detalle alternativo",
+    "de": "Zähler Ersatzdetail",
+    "it": "Contatore dettaglio alternativo"
+  },
+  "Durée historique": {
+    "en": "History duration",
+    "es": "Duración del historial",
+    "de": "Verlaufsdauer",
+    "it": "Durata cronologia"
+  },
+  "Comparaison des durées": {
+    "en": "Duration comparison",
+    "es": "Comparación de duraciones",
+    "de": "Dauervergleich",
+    "it": "Confronto durate"
+  },
+  "Valeurs divergentes": {
+    "en": "Conflicting values",
+    "es": "Valores contradictorios",
+    "de": "Abweichende Werte",
+    "it": "Valori discordanti"
+  },
+  "Champ estimé Cloud": {
+    "en": "Cloud estimated field",
+    "es": "Campo estimado Cloud",
+    "de": "Cloud-Schätzfeld",
+    "it": "Campo stimato Cloud"
   }
 }

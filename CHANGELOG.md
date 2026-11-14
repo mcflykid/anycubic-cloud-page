@@ -1,5 +1,11 @@
 # Changements
 
+## 2.2.1 — 2026-11-14
+
+- Corrige le choix de la durée dans l’historique : les tâches terminées ou arrêtées privilégient leur intervalle début-fin valide ; le complément de projets ne change plus la durée selon la pagination (#462).
+- Conserve séparément les compteurs et leur provenance dans les détails, signale les divergences et distingue le champ estimé Cloud des indications tirées du nom de fichier (#462).
+- Aligne les bilans Discord sur ces durées historiques et précise la nature des valeurs agrégées (#462).
+
 ## 2.2.0 — 2026-11-14
 
 - Ajoute une chronologie interactive dans l’onglet Imprimante. Les repères de la frise ouvrent les événements dans la carte, qui affiche leurs heures et leurs durées (#459).

@@ -1,3 +1,4 @@
+import { historyDurationText, historyDurationValues } from './workshop-history-duration.mjs';
 import { createNotificationMotion } from './workshop-notification-motion.mjs';
 import {
   $,
@@ -754,7 +755,7 @@ export function createHistory(request, command, selectedBox) {
       title.title = task.name;
       const state = node('span', tr(task.status), 'atelier-status history-status-' + task.status_code);
       const details = node('span', [task.start && date(task.start),
-        Number.isFinite(task.elapsed_minutes) && mins(task.elapsed_minutes)].filter(Boolean).join(' · '));
+        historyDurationText(task)].filter(Boolean).join(' · '));
       if (task.start) {
         const started = node('time', date(task.start));
         started.className = 'sr-only';
@@ -915,7 +916,7 @@ export function createHistory(request, command, selectedBox) {
             'atelier-status history-status-' + t.status_code,
           ),
           started = node('td', t.start ? date(t.start) : '—', 'history-table-start'),
-          duration = node('td', t.elapsed_minutes == null ? '—' : fmt(t.elapsed_minutes, ' min'), 'files-size history-table-duration'),
+          duration = node('td', historyDurationText(t), 'files-size history-table-duration'),
           actionsCell = node('td', null, 'files-actions-cell'),
           actions = node('div', null, 'files-row-actions'),
           open = extraButton(tr('Détail'), () => openPastTask(t), 'atelier-control history-detail'),
@@ -1160,6 +1161,8 @@ export function createHistory(request, command, selectedBox) {
         remainingSeconds: t.status_code === 2 ? 0 : null,
         dimensions: d.dimensions,
         estimatedSeconds: d.estimated_seconds,
+        estimatedLabel: d.duration ? 'Champ estimé Cloud' : 'Temps estimé',
+        timeValues: historyDurationValues(d.duration),
         materialGrams: d.material_grams,
         parameters: params,
       });
@@ -1186,7 +1189,7 @@ export function createHistory(request, command, selectedBox) {
     set('past-task-archive-usage', '');
     set('rating-task-name', t.name);
     set('rating-task-summary', [t.start || t.end ? date(t.start || t.end) : '',
-      Number.isFinite(t.elapsed_minutes) ? mins(t.elapsed_minutes) : ''].filter(Boolean).join(' · '));
+      historyDurationText(t)].filter(Boolean).join(' · '));
     set('rating-task-status', t.status ? tr(t.status) : '');
     $('rating-task-status').dataset.state = t.status_code === 2 ? 'active' : '';
     set('rating-state', tr('Vérification auprès d’Anycubic…'));

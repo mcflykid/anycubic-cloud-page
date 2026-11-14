@@ -35,13 +35,14 @@ export function renderTaskDetails(data) {
   renderMetrics('task-detail-progress', [
     [tr('Progression'), data.progress == null ? null : fmt(data.progress, ' %')],
     [tr('Couches'), data.layerCountDisplay ?? (positive(data.layers) == null ? null : `${fmt(data.currentLayer ?? data.layers)} / ${fmt(data.totalLayers ?? data.layers)}`)],
-    [tr('Temps restant'), duration(data.remainingSeconds)],
+    ...(data.timeValues ? data.timeValues.map(([label, value]) => [tr(label), value])
+      : [[tr('Temps restant'), duration(data.remainingSeconds)]]),
   ]);
-  // Les secondes du fichier priment sur le libellé Cloud pour garder un seul format de durée.
+  // Le détail historique conserve le nom du champ Cloud ; un repli sur le nom du fichier reste identifié.
   const seconds = positive(data.estimatedSeconds) ?? positive(compactSeconds(data.estimatedTime));
   const fileValues = [
     [tr('Dimensions'), dimensions(data.dimensions)],
-    seconds != null ? [tr('Temps estimé'), duration(seconds)]
+    seconds != null ? [tr(data.estimatedLabel || 'Temps estimé'), duration(seconds)]
       : [tr('Temps estimé'), duration(hints.seconds), tr('d’après le nom du fichier')],
     [tr('Filament estimé'), positive(data.materialGrams) == null ? null : fmt(data.materialGrams, ' g')],
   ];
