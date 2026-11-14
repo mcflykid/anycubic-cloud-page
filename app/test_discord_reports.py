@@ -68,6 +68,22 @@ class ReportDeliveryTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(payload["avatar_url"], _report_payload(None, config)["avatar_url"])
             self.assertFalse((state / "notification-delivery.json").exists())
 
+    async def test_terminal_interval_is_not_replaced_by_cloud_counter(self):
+        """Le bilan utilise le même intervalle que l’historique, sans doubler le compteur."""
+        from notification_reports import _make_report
+
+        row = {
+            "print_status": 3,
+            "start_time": 1800000000,
+            "end_time": 1800000600,
+            "print_time": 90,
+        }
+        report = _make_report("fixture", 1800000000, 1800001000, PARIS, [row], True)
+        self.assertEqual(report.durations, (10,))
+        message = format_report(report, DiscordConfig(language="fr"))
+        self.assertIn("intervalles ou compteurs", message)
+        self.assertIn("10 min", message)
+
     async def test_only_terminal_rows_and_verified_metrics(self):
         now = local_stamp(2026, 11, 11, 21)
         printer = SimpleNamespace(id=5)

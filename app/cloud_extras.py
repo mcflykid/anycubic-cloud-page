@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Fonctions cloud complémentaires avec filtrage des données exposées au navigateur."""
 
+from history_durations import history_duration, detail_duration
+
 import logging
 import asyncio, base64, contextlib, hashlib, heapq, hmac, math, pathlib, re, secrets, time, urllib.parse
 import aiohttp
@@ -33,13 +35,8 @@ def number(v, default=None):
 
 
 def history_minutes(row):
-    """Renvoie la durée connue en minutes ; les horodatages ne remplacent pas une fin absente."""
-    reported = number(row.get("print_time"))
-    if reported is not None:
-        return reported
-    start = number(row.get("start_time") or row.get("create_time"))
-    end = number(row.get("end_time"))
-    return (end - start) / 60 if start is not None and end is not None and end >= start else None
+    """Renvoie l’intervalle terminal ou le compteur principal, sans valeur complémentaire."""
+    return history_duration(row)["minutes"]
 
 
 def notification_timestamp(value):
@@ -303,7 +300,9 @@ class CloudExtras:
         items = []
         for r in rows:
             taskid = r.get("task_id") or r.get("taskid") or r.get("id")
-            r = {**lookup.get((str(r.get("printer_id")), str(taskid)), {}), **r, "taskid": taskid}
+            supplement = lookup.get((str(r.get("printer_id")), str(taskid)), {})
+            duration = history_duration(r, supplement)
+            r = {**supplement, **r, "taskid": taskid, "_history_duration": duration}
             r.setdefault("id", taskid)
             k = key(str(r.get("printer_id")) + ":" + str(taskid))
             self.tasks[k] = r
@@ -339,7 +338,8 @@ class CloudExtras:
                     "end": r.get("end_time"),
                     "status": outcome,
                     "status_code": status,
-                    "elapsed_minutes": history_minutes(r),
+                    "elapsed_minutes": duration["minutes"],
+                    "duration": duration,
                     "progress": number(r.get("progress")),
                     "reason": diagnostic_text(r.get("reason")),
                     "can_reprint": bool(number(r.get("gcode_id"), 0) > 0),
@@ -630,6 +630,7 @@ class CloudExtras:
         """Renvoie les détails filtrés d’une tâche ; lève ValueError si Anycubic ne les fournit pas."""
         r = self.task(k, allow_other=True)
         d = None
+        duration_source = "history_v5"
         with contextlib.suppress(Exception):
             d = await self.api(
                 "/v5/project/printHistory/detail",
@@ -637,6 +638,7 @@ class CloudExtras:
                 method="GET",
             )
         if not isinstance(d, dict):
+            duration_source = "project_info"
             d = await self.e.api.project_info_for_id(r["id"])
         if not isinstance(d, dict):
             raise ValueError("Détails non fournis par Anycubic")
@@ -713,6 +715,9 @@ class CloudExtras:
             "estimated_seconds": number(d.get("estimated_time_s")),
             "material_grams": number(d.get("total_filament_used")),
             "reported_minutes": number(r.get("print_time")),
+            "duration": detail_duration(
+                r.get("_history_duration") or history_duration(r), d, duration_source
+            ),
             "materials": materials,
         }
 
