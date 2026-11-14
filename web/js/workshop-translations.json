@@ -7295,11 +7295,11 @@
     "de": "Kamera-basierte Fehlerüberwachung",
     "it": "Monitoraggio difetti basato su telecamera"
   },
-  "Une mise à jour proposée par Anycubic s’installe lorsque l’imprimante est libre.": {
-    "en": "An update offered by Anycubic installs when the printer is idle.",
-    "es": "Las actualizaciones de Anycubic se instalan cuando la impresora está libre.",
-    "de": "Ein Update von Anycubic wird installiert, wenn der Drucker inaktiv ist.",
-    "it": "Un aggiornamento di Anycubic viene installato quando la stampante è inattiva."
+  "Une mise à jour s’installe lorsque l’imprimante est libre.": {
+    "en": "An update installs when the printer is idle.",
+    "es": "Una actualización se instala cuando la impresora está libre.",
+    "de": "Ein Update wird installiert, wenn der Drucker inaktiv ist.",
+    "it": "Un aggiornamento viene installato quando la stampante è inattiva."
   },
   "Ces paramètres se règlent dans le fichier Compose.": {
     "en": "These settings are configured in the Compose file.",
