@@ -173,6 +173,8 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
     ['Matériau de la buse', profile.nozzleMaterial ? tr(profile.nozzleMaterial) : null],
     ['Densité', profile.density == null ? null : new Intl.NumberFormat(document.documentElement.lang,
       {maximumFractionDigits: 3}).format(profile.density) + ' g/cm³'],
+    // Retirée d’une pesée, elle donne le filament restant sans dépendre de l’ACE.
+    ['Masse de la bobine vide', profile.emptySpool == null ? null : fmt(profile.emptySpool, ' g')],
   ]);
   // Le wiki et les fiches donnent la durée de séchage en heures : elle rejoint sa température.
   fill('filament-profile-drying', [
@@ -182,12 +184,14 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
   const properties = profile.properties;
   const withTolerance = (value, unit) => value && fmt(value[0]) + ' ± ' + fmt(value[1], unit);
   fill('filament-profile-properties', properties ? [
+    ['Température de transition vitreuse', fmt(properties.glassTransition, ' °C')],
     ['Température de fusion', fmt(properties.melting, ' °C')],
     ['Température de ramollissement Vicat', fmt(properties.vicat, ' °C')],
     ['Température de fléchissement sous charge (0,45 MPa)', fmt(properties.heatDeflection, ' °C')],
     ['Résistance à la traction', withTolerance(properties.tensile, ' MPa')],
     ['Allongement à la rupture', withTolerance(properties.elongation, ' %')],
     ['Résistance à la flexion', withTolerance(properties.bending, ' MPa')],
+    ['Résistance au choc Izod', withTolerance(properties.impact, ' kJ/m²')],
   ] : []);
   $('filament-profile-dialog').showModal();
 }

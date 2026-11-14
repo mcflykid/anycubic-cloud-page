@@ -134,8 +134,16 @@ test('le catalogue retrouve une fiche par SKU sans sélectionner de bobine', asy
  await catalogue.getByRole('button', {name:/PLA Basic · White · AHPLBW-107/}).click();
  await expect(profile.locator('#filament-profile-facts')).toContainText('#EFF0F1');
  await expect(profile.locator('#filament-profile-properties')).toContainText('48 ± 5 MPa');
+ // Valeurs de la fiche technique PLA v3.0 et masse de bobine vide (#450).
+ await expect(profile.locator('#filament-profile-properties')).toContainText('61,2 °C');
+ await expect(profile.locator('#filament-profile-properties')).toContainText('22 ± 1 kJ/m²');
+ await expect(profile.locator('#filament-profile-facts')).toContainText('125 g');
  await expect(profile.getByRole('link', {name:'Fiche fabricant'}))
   .toHaveAttribute('href', 'https://store.anycubic.com/products/pla-filament?variant=43845685149858');
+ await page.keyboard.press('Escape');
+ await catalogue.getByLabel('Rechercher un filament').fill('AHPLTE-107');
+ await catalogue.getByRole('button', {name:/PLA Basic · Texture Red · AHPLTE-107/}).click();
+ await expect(profile.locator('#filament-profile-facts')).toContainText('#EF3340');
 });
 
 test('un emplacement inconnu propose uniquement la création et retrouve sa fiche après rechargement', async ({page}) => {
