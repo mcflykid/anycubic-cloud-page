@@ -430,9 +430,9 @@
       <div class="spool-fields">
         <p id="spool-rfid-note" role="status"></p>
         <label id="spool-material-edit" class="atelier-field">Matériau<select id="spool-material" name="material"><option>PLA</option><option>PETG</option><option>ABS</option><option>PACF</option><option>PC</option><option>ASA</option><option>HIPS</option><option>PA</option><option>PLA SE</option></select></label>
-        <p id="spool-material-read" class="spool-readonly" hidden><span>Matériau</span><strong id="spool-material-value"></strong><span role="img" aria-label="Lecture seule">🔒</span></p>
+        <p id="spool-material-read" class="spool-readonly" hidden><span>Matériau</span><strong id="spool-material-value"></strong><span class="spool-lock"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Lu sur la puce</span></p>
         <label id="spool-color-edit" class="atelier-field">Couleur du filament<input id="spool-color" type="color" name="color" value="#b1b3b3"><output id="spool-color-value" for="spool-color">#B1B3B3</output></label>
-        <p id="spool-color-read" class="spool-readonly" hidden><span>Couleur du filament</span><strong id="spool-color-read-value"></strong><span role="img" aria-label="Lecture seule">🔒</span></p>
+        <p id="spool-color-read" class="spool-readonly" hidden><span>Couleur du filament</span><strong id="spool-color-read-value"></strong><span class="spool-lock"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Lu sur la puce</span></p>
         <p id="spool-catalog-color" class="muted" hidden></p>
         <button type="button" id="spool-profile-open" class="atelier-control" aria-haspopup="dialog" hidden>Fiche filament</button>
         <div class="spool-remaining"><span>Filament restant</span><strong id="spool-remaining"></strong><progress id="spool-remaining-progress" max="100" aria-label="Filament restant"></progress></div>

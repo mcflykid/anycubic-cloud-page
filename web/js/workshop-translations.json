@@ -10306,5 +10306,35 @@
     "es": "Ninguna referencia coincide con esta búsqueda.",
     "de": "Keine Referenz entspricht dieser Suche.",
     "it": "Nessun riferimento corrisponde a questa ricerca."
+  },
+  "Lu sur la puce": {
+    "en": "Read from the chip",
+    "es": "Leído del chip",
+    "de": "Vom Chip gelesen",
+    "it": "Letto dal chip"
+  },
+  "Les données RFID viennent de la bobine : rien à enregistrer.": {
+    "en": "RFID data comes from the spool: nothing to save.",
+    "es": "Los datos RFID vienen de la bobina: nada que guardar.",
+    "de": "RFID-Daten stammen von der Spule: nichts zu speichern.",
+    "it": "I dati RFID provengono dalla bobina: niente da salvare."
+  },
+  "Modifiez le matériau ou la couleur pour enregistrer.": {
+    "en": "Change the material or colour to save.",
+    "es": "Cambie el material o el color para guardar.",
+    "de": "Ändern Sie Material oder Farbe zum Speichern.",
+    "it": "Modifica il materiale o il colore per salvare."
+  },
+  "Une commande à la fois : l’ACE confirme chaque étape avant la suivante.": {
+    "en": "One command at a time: the ACE confirms each step before the next.",
+    "es": "Una orden a la vez: el ACE confirma cada paso antes del siguiente.",
+    "de": "Ein Befehl nach dem anderen: Die ACE bestätigt jeden Schritt vor dem nächsten.",
+    "it": "Un comando alla volta: l’ACE conferma ogni passaggio prima del successivo."
+  },
+  "Chargement · emplacement {0}": {
+    "en": "Loading · slot {0}",
+    "es": "Carga · ranura {0}",
+    "de": "Laden · Fach {0}",
+    "it": "Caricamento · slot {0}"
   }
 }

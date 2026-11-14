@@ -344,3 +344,21 @@ body:has(.workshop-frame) > dialog.ace-detail-dialog {
   .filament-profile-body > #filament-profile-drying-band:not([hidden]) + .filament-band:not([hidden]),
   .filament-profile-body > #filament-profile-drying-band:has(+ .filament-band:not([hidden])) { grid-column: 1 / -1; border-inline-start: 0; }
 }
+
+/* Configurer une bobine : légende de groupe, restant par emplacement, lecture seule explicite. */
+.spool-slots legend { padding: 0; margin-block-end: var(--atelier-space-2); color: var(--atelier-muted); font: var(--atelier-caption); font-weight: var(--atelier-semibold); text-transform: uppercase; letter-spacing: var(--atelier-caps-tracking); text-decoration: none; }
+.spool-slot-option { row-gap: var(--atelier-space-1); }
+.spool-slot-meta { display: flex; justify-content: space-between; gap: var(--atelier-space-2); font-variant-numeric: tabular-nums; }
+.spool-slot-gauge { grid-column: 1 / -1; block-size: var(--atelier-space-1); border-radius: var(--atelier-pill-radius);
+  background: linear-gradient(90deg, var(--atelier-accent) var(--remaining), var(--atelier-line) var(--remaining)); }
+.spool-lock { display: inline-flex; align-items: center; gap: var(--atelier-space-1); color: var(--atelier-muted); font: var(--atelier-caption); }
+.spool-lock .ui-icon { inline-size: var(--atelier-timeline-marker-icon); block-size: var(--atelier-timeline-marker-icon); }
+.spool-readonly { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; border: var(--atelier-rule) solid var(--atelier-line); }
+.spool-readonly > span:first-child { color: var(--atelier-muted); }
+.spool-actions h3 { color: var(--atelier-muted); font: var(--atelier-caption); font-weight: var(--atelier-semibold); text-transform: uppercase; letter-spacing: var(--atelier-caps-tracking); }
+#spool-selected-state:not(:empty) { padding: 0 var(--atelier-space-2); border-radius: var(--atelier-pill-radius); background: color-mix(in srgb, var(--atelier-accent) 12%, var(--atelier-surface)); color: var(--atelier-accent); font: var(--atelier-caption); font-weight: var(--atelier-semibold); }
+#spool-action-state { font: var(--atelier-caption); }
+#spool-action-state[data-state="blocked"] { color: var(--atelier-warning); }
+#spool-dialog .atelier-card-footer { align-items: center; }
+#spool-save-reason { flex: 1 1 auto; margin: 0; font: var(--atelier-caption); }
+#spool-save-reason:empty { display: none; }
