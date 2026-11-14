@@ -10546,5 +10546,23 @@
     "es": "Precauciones",
     "de": "Vorsichtsmaßnahmen",
     "it": "Precauzioni"
+  },
+  "Masse de la bobine vide": {
+    "en": "Empty spool weight",
+    "es": "Peso de la bobina vacía",
+    "de": "Gewicht der leeren Spule",
+    "it": "Peso della bobina vuota"
+  },
+  "Résistance au choc Izod": {
+    "en": "Izod impact strength",
+    "es": "Resistencia al impacto Izod",
+    "de": "Izod-Schlagzähigkeit",
+    "it": "Resistenza all’urto Izod"
+  },
+  "Température de transition vitreuse": {
+    "en": "Glass transition temperature",
+    "es": "Temperatura de transición vítrea",
+    "de": "Glasübergangstemperatur",
+    "it": "Temperatura di transizione vetrosa"
   }
 }
