@@ -175,6 +175,55 @@
 }
 .maintenance-hours .muted { font: var(--atelier-caption); }
 #maintenance-state:empty { display: none; }
+.maintenance-guide-link { padding: 0; border: 0; background: none; color: var(--atelier-accent); font: var(--atelier-caption); text-decoration: underline; cursor: pointer; }
+
+/* Carnet : index en cartes, puis une fiche par point avec son schéma. */
+#maintenance-guide-dialog { --panel-width: var(--atelier-journal-dialog-width); }
+.maintenance-guide-body { padding: var(--atelier-space-4); }
+.maintenance-guide-index { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--atelier-maintenance-guide-card), 1fr)); gap: var(--atelier-space-3); margin: 0; padding: 0; list-style: none; }
+.maintenance-guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--atelier-space-1);
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+  background: var(--atelier-surface);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.maintenance-guide-card:hover, .maintenance-guide-card:focus-visible { border-color: var(--atelier-accent); }
+.maintenance-guide-card .muted { font: var(--atelier-caption); }
+/* Schéma à gauche, texte à droite : la fiche tient en moins de hauteur. */
+.maintenance-guide-entry { display: grid; grid-template-columns: var(--atelier-maintenance-figure-column) minmax(0, 1fr); align-items: start; gap: var(--atelier-space-3) var(--atelier-space-4); }
+.maintenance-guide-entry > * { grid-column: 2; }
+.maintenance-guide-entry > :is(button, h3) { grid-column: 1 / -1; justify-self: start; }
+.maintenance-guide-entry > .maintenance-figure { grid-column: 1; grid-row: 3 / span 6; }
+@media (max-width: 760px) {
+  .maintenance-guide-entry { grid-template-columns: minmax(0, 1fr); }
+  .maintenance-guide-entry > *, .maintenance-guide-entry > .maintenance-figure { grid-column: 1; grid-row: auto; }
+}
+.maintenance-guide-entry h3 { margin: 0; }
+.maintenance-guide-entry > p { margin: 0; }
+.maintenance-guide-section { inline-size: 100%; }
+.maintenance-guide-section h4 { margin: 0 0 var(--atelier-space-1); font: var(--atelier-label); font-weight: var(--atelier-semibold); }
+.maintenance-guide-section :is(ul, ol) { margin: 0; padding-inline-start: var(--atelier-space-5); }
+.maintenance-guide-section li + li { margin-block-start: var(--atelier-space-1); }
+.maintenance-figure { inline-size: 100%; max-inline-size: var(--atelier-maintenance-figure); block-size: auto; }
+.maintenance-guide-card .maintenance-figure { max-inline-size: none; }
+.maintenance-figure * { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.maintenance-figure .mg-frame { fill: var(--atelier-bg); stroke: var(--atelier-line); stroke-width: 1.5; }
+.maintenance-figure .mg-part { stroke: var(--atelier-muted); stroke-width: 4; }
+.maintenance-figure .mg-focus { stroke: var(--atelier-accent); stroke-width: 5; }
+.maintenance-figure .mg-thin { stroke-width: 2.5; }
+.maintenance-figure .mg-accent-fill, .maintenance-figure .mg-drop { fill: var(--atelier-accent); stroke: none; }
+.maintenance-figure .mg-hint { stroke: var(--atelier-fg); stroke-width: 2.5; stroke-dasharray: 4 5; }
+.maintenance-figure .mg-cloth { fill: var(--atelier-surface); stroke: var(--atelier-fg); stroke-width: 2.5; }
+.maintenance-figure .mg-heat, .maintenance-figure .mg-warning { stroke: var(--atelier-warning); stroke-width: 3; }
 #maintenance-state { margin: 0; padding-inline: var(--atelier-space-4); color: var(--atelier-error); }
 .maintenance-list { margin: 0; padding: 0; list-style: none; border-block-start: var(--atelier-rule) solid var(--atelier-line); }
 .maintenance-list > li {

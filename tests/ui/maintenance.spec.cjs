@@ -46,3 +46,27 @@ test('la démonstration présente des opérations du wiki dans trois unités', a
   await expect(dialog).toContainText(' kg sur 3 kg');
   await expect(dialog.getByText('À faire',{exact:true})).toBeVisible();
 });
+
+test('le carnet d’entretien s’ouvre dans l’atelier sans commande ni renvoi vers le wiki', async ({page}) => {
+  let commands = 0;
+  await page.route('**/imprimante-api/command', route => { commands++; return route.abort(); });
+  await login(page);
+  await page.getByRole('button',{name:/^Entretien/}).click();
+  const dialog = page.getByRole('dialog',{name:'Entretien'});
+  // Chaque opération du registre par défaut ouvre sa fiche du carnet (#452).
+  await dialog.getByRole('button',{name:'Fiche du carnet : Tiges de l’axe X'}).click();
+  const guide = page.getByRole('dialog',{name:'Carnet d’entretien'});
+  await expect(guide.getByRole('heading',{name:'Tiges de l’axe X'})).toBeFocused();
+  await expect(guide).toContainText('Ne graissez jamais l’axe X');
+  await expect(guide).toContainText('Rappel réglé dans l’atelier');
+  await expect(guide.getByRole('img',{name:'Schéma : Tiges de l’axe X'})).toBeVisible();
+  await guide.getByRole('button',{name:'Tous les points'}).click();
+  await expect(guide.getByRole('list',{name:'Points d’entretien de la Kobra S1'}).getByRole('button')).toHaveCount(9);
+  await guide.getByRole('button',{name:/Caméra/}).click();
+  await expect(guide.getByRole('heading',{name:'Caméra'})).toBeVisible();
+  await guide.getByRole('button',{name:'Fermer'}).click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button',{name:'Carnet d’entretien'}).click();
+  await expect(guide.getByRole('list',{name:'Points d’entretien de la Kobra S1'})).toBeVisible();
+  expect(commands).toBe(0);
+});
