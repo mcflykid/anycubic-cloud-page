@@ -32,6 +32,19 @@ if TYPE_CHECKING:
     from .printing_settings import AnycubicPrintingSettings
 
 
+# Trois cycles REST de 60 s : au-delà, un MQTT muet ne doit plus figer la progression.
+LIVE_COUNTERS_TTL_SECONDS = 180
+
+
+def _reported_int(value: Any) -> int | None:
+    """Renvoie un compteur entier déclaré, ou None ; Anycubic envoie -1 pour « non communiqué »."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number >= 0 else None
+
+
 class AnycubicProject:
     """Données d’un projet d’impression réunissant historique cloud, tranche et rapports MQTT."""
     __slots__ = (
@@ -74,6 +87,7 @@ class AnycubicProject:
         "_monitor",
         "_last_update_time",
         "_settings",
+        "_live_counters_at",
         "_localtask",
         "_source",
         "_device_message",
@@ -188,6 +202,7 @@ class AnycubicProject:
         self._set_progress(progress)
         self._set_connect_status(connect_status)
         self._print_status: int | None = None
+        self._live_counters_at: float | None = None
         self._set_print_status(print_status)
         self._set_reason(reason)
         self._slice_data = slice_data  # À CONFIRMER : format constructeur inconnu ; ne pas le confondre avec slice_param, analysé séparément.
@@ -347,7 +362,7 @@ class AnycubicProject:
         self._estimate = int(estimate)
 
     def _set_remain_time(self, remain_time: int | str | None) -> None:
-        self._remain_time = int(remain_time) if remain_time is not None else None
+        self._remain_time = _reported_int(remain_time)
 
     def _set_material(self, material: str | None) -> None:
         self._material = str(material) if material is not None else None
@@ -549,6 +564,11 @@ class AnycubicProject:
         if update_project.id != self._id:
             return False
 
+        # L’instantané REST peut dater d’avant le dernier rapport MQTT : il ne doit pas faire reculer le suivi.
+        same_run = self.print_in_progress and update_project.print_in_progress
+        live = self._live_counters() if same_run and self._live_counters_fresh() else None
+        floor = self._progress if same_run else None
+
         self._set_user_id(update_project._user_id)
         self._set_printer_id(update_project._printer_id)
         self._set_gcode_id(update_project._gcode_id)
@@ -608,7 +628,33 @@ class AnycubicProject:
         self._set_type_function_ids(update_project._type_function_ids)
         self._available_print_speed_modes = update_project._available_print_speed_modes
 
+        if live is not None:
+            self._restore_live_counters(live)
+        if floor is not None and self._progress < floor:
+            self._progress = floor
+
         return True
+
+    def _live_counters_fresh(self) -> bool:
+        return (
+            self._live_counters_at is not None
+            and time.monotonic() - self._live_counters_at < LIVE_COUNTERS_TTL_SECONDS
+        )
+
+    def _live_counters(self) -> dict[str, Any]:
+        return {
+            'progress': self._progress,
+            'remain_time': self._remain_time,
+            'curr_layer': self._settings.get('curr_layer'),
+            'total_layers': self._settings.get('total_layers'),
+        }
+
+    def _restore_live_counters(self, live: dict[str, Any]) -> None:
+        self._progress = live['progress']
+        self._remain_time = live['remain_time']
+        for key in ('curr_layer', 'total_layers'):
+            if live[key] is not None:
+                self._settings[key] = live[key]
 
     def update_target_temps(
         self,
@@ -642,11 +688,11 @@ class AnycubicProject:
         mqtt_data.get('file_root_path')
         mqtt_data.get('filetype')
 
-        if 'curr_layer' in mqtt_data:
-            self._settings['curr_layer'] = int(mqtt_data['curr_layer'])
-
-        if 'total_layers' in mqtt_data:
-            self._settings['total_layers'] = int(mqtt_data['total_layers'])
+        # Un -1 ne doit pas effacer la dernière valeur connue ni passer pour une couche ou une durée nulle.
+        for key in ('curr_layer', 'total_layers'):
+            if key in mqtt_data and (value := _reported_int(mqtt_data[key])) is not None:
+                self._settings[key] = value
+                self._live_counters_at = time.monotonic()
 
         if 'filename' in mqtt_data:
             self.set_filename(mqtt_data['filename'])
@@ -656,11 +702,13 @@ class AnycubicProject:
         if 'print_time' in mqtt_data:
             self._print_time = int(mqtt_data['print_time'])
 
-        if 'progress' in mqtt_data:
-            self._progress = int(mqtt_data['progress'])
+        if 'progress' in mqtt_data and (progress := _reported_int(mqtt_data['progress'])) is not None:
+            self._progress = progress
+            self._live_counters_at = time.monotonic()
 
-        if 'remain_time' in mqtt_data:
-            self._remain_time = int(mqtt_data['remain_time'])
+        if 'remain_time' in mqtt_data and (remain := _reported_int(mqtt_data['remain_time'])) is not None:
+            self._remain_time = remain
+            self._live_counters_at = time.monotonic()
 
         if 'supplies_usage' in mqtt_data:
             self._set_print_setting(
@@ -964,12 +1012,12 @@ class AnycubicProject:
     @property
     def print_current_layer(self) -> int | None:
         """Numéro de la couche actuellement imprimée."""
-        return self._get_print_setting_as_int('curr_layer')
+        return _reported_int(self._get_print_setting('curr_layer'))
 
     @property
     def print_total_layers(self) -> int | None:
         """Nombre total de couches du projet."""
-        return self._get_print_setting_as_int('total_layers')
+        return _reported_int(self._get_print_setting('total_layers'))
 
     @property
     def print_model_height(self) -> float | None:
