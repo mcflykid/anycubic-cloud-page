@@ -14,10 +14,11 @@
 
 - Affiche la préparation d’un lancement mémoire dès que l’imprimante rapporte la nouvelle tâche attendue (#394).
 - Permet d’arrêter une nouvelle tâche mémoire identifiée pendant sa vérification et distingue une machine occupée d’une impression active (Refs #331, #394).
-- Rapproche la confirmation du Slicer Next et transmet les options de préparation annoncées par la Kobra S1 pour un lancement mémoire (Refs #331).
+- Rapproche la confirmation du Slicer Next et transmet les options de préparation annoncées par la Kobra S1 pour un lancement mémoire. Les modes de séchage associés au lancement restent indisponibles (#331, #404).
 - Complète les paramètres de séchage du PLA-CF Anycubic et reconnaît trois références RFID supplémentaires de PLA Basic et PLA Glow (Refs #392).
 - Indique quels modèles doivent être tranchés avant leur envoi à l’imprimante.
-- Permet de modifier le seuil d’humidité dans les préréglages de séchage et masque le conseil lorsque l’imprimante est occupée (Refs #344).
+- Permet de modifier le seuil d’humidité dans les préréglages de séchage et masque le conseil lorsque l’imprimante est occupée (#344).
+- Affiche les notes de mise à jour du micrologiciel quand le Cloud les fournit, avec un lien vers la documentation officielle (#359).
 - Affiche correctement l’état du relais automatique quand l’ACE renvoie 0 ou 1.
 
 ## 1.18.3 — 2026-11-14
