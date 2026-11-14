@@ -66,11 +66,12 @@ test('le Laboratoire replie son rail en gardant toutes les destinations', async 
   await page.addInitScript(() => localStorage.setItem('cloud-page-style', 'lab'));
   await login(page, 'summary');
   const toggle = page.locator('#lab-navigation-toggle');
-  const before = await page.locator('.atelier-navigation').boundingBox();
+  const rail = page.locator('.atelier-navigation');
+  await expect(rail).toBeVisible();
+  const before = await rail.boundingBox();
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  const after = await page.locator('.atelier-navigation').boundingBox();
-  expect(after.width).toBeLessThan(before.width);
+  await expect.poll(async () => (await rail.boundingBox())?.width ?? Infinity).toBeLessThan(before.width);
   await expect(page.locator('#atelier-tabs').getByRole('button', { name: 'Fichiers' })).toBeVisible();
 });
 

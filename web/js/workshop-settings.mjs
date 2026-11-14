@@ -100,8 +100,6 @@ export function createSettings(request, command, camera) {
   }
   $('task-details-open').onclick = () => {
     delete $('past-task-extra').dataset.history;
-    $('past-task-photo-controls').hidden = $('past-task-photo-zoom').hidden = true;
-    $('past-task-preview').parentElement.hidden = false;
     renderTaskDetails();
     $('past-task-dialog').showModal();
   };
