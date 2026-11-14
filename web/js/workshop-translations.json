@@ -10462,5 +10462,23 @@
     "es": "{0} · según el nombre del archivo",
     "de": "{0} · laut Dateiname",
     "it": "{0} · dal nome del file"
+  },
+  "Masse de la bobine vide": {
+    "en": "Empty spool weight",
+    "es": "Peso de la bobina vacía",
+    "de": "Gewicht der leeren Spule",
+    "it": "Peso della bobina vuota"
+  },
+  "Température de transition vitreuse": {
+    "en": "Glass transition temperature",
+    "es": "Temperatura de transición vítrea",
+    "de": "Glasübergangstemperatur",
+    "it": "Temperatura di transizione vetrosa"
+  },
+  "Résistance au choc Izod": {
+    "en": "Izod impact strength",
+    "es": "Resistencia al impacto Izod",
+    "de": "Izod-Schlagzähigkeit",
+    "it": "Resistenza all’urto Izod"
   }
 }
