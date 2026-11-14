@@ -11,7 +11,7 @@ import time
 from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from anycubic_cloud_api.data_models.printing_settings import AnycubicPrintingSettings
 
-from command_journal import command_mqtt_context, dispatch_command
+from command_journal import command_dispatch, command_mqtt_context, dispatch_command
 from native_controls import ai_payload, axis_payload
 from idle_controls import print_limits, set_idle
 from filament_catalog import editable_materials
@@ -157,16 +157,39 @@ async def execute_command(target, name, d):
                 + " : état confirmé par l’imprimante"
             )
         return "Demande d’éclairage envoyée. Vérifiez son état dans la vidéo."
-    elif name == "dry-start":
-        result = await dispatch_command(
-            p.multi_color_box_drying_start(
-                duration=integer(d["hours"], 1, 24) * 60,
-                target_temp=integer(d["temperature"], 35, 70),
-                box_id=box,
+    elif name in {"dry-start", "dry-stop"}:
+        temperature = integer(d["temperature"], 35, 70) if name == "dry-start" else None
+        minutes = integer(d["hours"], 1, 24) * 60 if name == "dry-start" else None
+        epoch = getattr(a, "measurement_epoch", None)
+        if target.measurements.drying_observation(box, epoch) == "pending":
+            raise ValueError("Demande de séchage envoyée")
+        before_send = command_dispatch.get()
+
+        async def observe_send():
+            # La journalisation précède l’intention pour exclure les rapports antérieurs à l’envoi.
+            if before_send is not None:
+                await before_send()
+            target.measurements.start_drying_observation(
+                box, epoch, temperature=temperature, minutes=minutes
             )
-        )
-    elif name == "dry-stop":
-        result = await dispatch_command(p.multi_color_box_drying_stop(box_id=box))
+
+        token = command_dispatch.set(observe_send)
+        try:
+            if temperature is not None:
+                result = await dispatch_command(
+                    p.multi_color_box_drying_start(
+                        duration=minutes, target_temp=temperature, box_id=box
+                    )
+                )
+            else:
+                result = await dispatch_command(p.multi_color_box_drying_stop(box_id=box))
+        except BaseException:
+            target.measurements.clear_drying_observation(box)
+            raise
+        finally:
+            command_dispatch.reset(token)
+        if result is None or result is False:
+            target.measurements.clear_drying_observation(box)
     elif name == "auto-feed":
         result = await dispatch_command(
             p.multi_color_box_set_auto_feed(bool(d["enabled"]), box_id=box)
@@ -292,12 +315,21 @@ async def execute_command(target, name, d):
         finally:
             stored_trace_context.reset(token)
     elif name in ["delete-cloud", "print-cloud"]:
-        f = target.cloudfiles.get(str(d.get("handle")))
+        handle = str(d.get("handle"))
+        f = target.cloudfiles.get(handle)
         if f is None:
             raise ValueError("Actualisez la liste des fichiers cloud")
         if name == "delete-cloud":
             result = await dispatch_command(a.delete_file_from_cloud(f.id))
         else:
+            if handle in getattr(target, "archived_cloudfiles", ()) or d.get("archived") is True:
+                # La machine et les bobines ont pu changer pendant le transfert séparé.
+                await target.refresh_printer_details()
+                if target.printer is not p or not p.printer_online:
+                    raise ValueError("L’imprimante ciblée a changé ou n’est plus en ligne")
+                ensure_firmware_ready(p)
+                if p.connected_ace_units and not d.get("slots"):
+                    raise ValueError("Sélectionnez les bobines avant de réimprimer.")
             if not p.is_available:
                 raise ValueError("Imprimante non disponible")
             if f.gcode_id is None or f.gcode_id <= 0:

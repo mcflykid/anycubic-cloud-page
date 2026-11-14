@@ -12,7 +12,7 @@ export function createRequest(getPrinter, record = () => {}, simulate = () => un
     let response;
     for (let attempt = 0; attempt < (read ? 2 : 1); attempt++) {
       const started = performance.now();
-      const route = path.split('?')[0];
+      const route = path.startsWith('/archive/') ? '/archive' : path.split('?')[0];
       record(method, route, 'envoi', attempt + 1);
       try {
         const simulated = read && simulate(route);

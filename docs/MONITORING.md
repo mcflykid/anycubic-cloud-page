@@ -56,3 +56,10 @@ serveur et ne fait pas sa reprise de lecture habituelle sur cette réponse.
 Les données lentes et les mises à jour MQTT restent des pistes d’optimisation
 séparées de cette protection. La [comparaison des intégrations](UPSTREAM-COMPARISON.md)
 documente notamment la resynchronisation REST configurable d’ioBroker.
+
+
+## Fraîcheur des mesures sur l’atelier
+
+Les températures et la ventilation de l’imprimante ainsi que les mesures des boîtiers ACE indiquent l’origine et l’âge du relevé quand ils sont connus. Un champ absent d’un message ne reçoit pas l’horodatage du message. Au-delà de deux minutes, ou après la perte de la connexion MQTT d’origine, la dernière valeur est indiquée comme périmée. Un relevé Cloud reste identifié séparément. Un vrai zéro est conservé.
+
+Le séchage manuel attend jusqu’à trente secondes un nouveau rapport MQTT du module ciblé. Au démarrage, la température et la durée doivent aussi correspondre. Si le retour manque ou si la connexion change, la fenêtre demande de vérifier l’état. Une demande incertaine n’est jamais renvoyée automatiquement.

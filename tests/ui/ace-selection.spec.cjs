@@ -210,3 +210,60 @@ test('le conseil de séchage préremplit le formulaire sans démarrer le module'
   await openSection(page, 'ace');
   await expect(advice).toBeHidden();
 });
+
+test('les mesures ACE distinguent un zéro périmé et l’absence de relevé', async ({page}) => {
+  await page.route(/\/imprimante-api\/status(?:\?|$)/, async route => {
+    const response = await route.fetch();
+    const json = await response.json();
+    if (json.printer?.boxes?.length) {
+      Object.assign(json.printer.boxes[0], {
+        humidity: 0, temperature: null,
+        measurement_freshness: {
+          humidity: {state: 'stale', age_s: 125, source: 'mqtt'},
+          temperature: {state: 'missing'},
+        },
+      });
+    }
+    await route.fulfill({response, json});
+  });
+  await login(page, 'ace');
+  await expect(page.locator('#ace-stats')).toContainText('0 % · MQTT · 125 s · Périmé');
+  await expect(page.locator('#ace-stats')).toContainText('Non relevé');
+});
+
+test('le catalogue restaure un export de fiches et conserve son contenu au téléchargement', async ({page}) => {
+  await login(page, 'ace');
+  await page.getByRole('button', {name:'Catalogue Anycubic'}).click();
+  const fixture = {profiles:[{name:'PLA de démonstration',url:'https://example.com/pla'}],assignments:[]};
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#filament-profile-restore').setInputFiles({
+    name:'fiches.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify(fixture)),
+  });
+  await expect(page.locator('#filament-profile-transfer-state')).toHaveText('Fiches personnelles restaurées');
+  const pending = page.waitForEvent('download');
+  await page.locator('#filament-profile-export').click();
+  const file = await pending;
+  const bytes = require('node:fs').readFileSync(await file.path());
+  expect(JSON.parse(bytes)).toEqual(fixture);
+});
+
+test('l’inventaire distingue deux bobines du même filament et exporte leurs associations', async ({page}) => {
+  await login(page, 'ace');
+  await page.getByRole('button', {name:'Catalogue Anycubic'}).click();
+  await page.getByRole('button', {name:'Inventaire des bobines'}).click();
+  const dialog = page.locator('#spool-inventory-dialog');
+  for (const n of [7, 8]) {
+    await dialog.getByLabel('Nom de la bobine physique').fill('Bobine ' + n);
+    await dialog.getByLabel('Référence du filament').fill('PLA Basic');
+    await dialog.getByLabel('Identifiant Spoolman facultatif').fill(String(n));
+    await dialog.getByRole('button', {name:'Enregistrer'}).click();
+  }
+  await expect(dialog.locator('li')).toHaveCount(2);
+  const event = page.waitForEvent('download');
+  await dialog.getByRole('button', {name:/Exporter les associations/}).click();
+  const download = await event;
+  const {readFile} = require('node:fs/promises');
+  const data = JSON.parse(await readFile(await download.path(), 'utf8'));
+  expect(data.spools.map(spool => spool.spoolman_id)).toEqual([7, 8]);
+  expect(data.spools.map(spool => spool.filament)).toEqual(['PLA Basic', 'PLA Basic']);
+});

@@ -1,4 +1,4 @@
-import { $, date, finishEstimate, fmt, formatText, mins, node, set, tr } from './workshop-ui.mjs';
+import { $, date, finishEstimate, fmt, formatText, measurement, mins, node, set, tr } from './workshop-ui.mjs';
 import { createRequest } from './workshop-api.mjs';
 
 const root = document.documentElement;
@@ -85,10 +85,10 @@ async function refresh() {
       printer?.job_eta ? date(printer.job_eta) : '',
     ].filter(Boolean).join(' · ') : '');
     $('wall-temperature').replaceChildren(...[
-      ['Buse', printer?.curr_nozzle_temp], ['Plateau', printer?.curr_hotbed_temp],
-    ].map(([label, value]) => {
+      ['Buse', 'curr_nozzle_temp'], ['Plateau', 'curr_hotbed_temp'],
+    ].map(([label, key]) => {
       const item = node('div');
-      item.append(node('dt', tr(label)), node('dd', fmt(value, ' °C')));
+      item.append(node('dt', tr(label)), node('dd', measurement(printer?.[key], ' °C', printer?.measurement_freshness?.[key])));
       return item;
     }));
     $('wall-ace').replaceChildren(...(printer?.boxes || []).map(box => {
@@ -96,7 +96,7 @@ async function refresh() {
       const drying = box.drying?.is_drying;
       const dryingState = drying === true ? 'Séchage en cours' : drying === false ? 'Séchage inactif' : 'État du séchage inconnu';
       item.append(node('h2', box.model || tr('Module ACE')),
-        node('p', tr(dryingState) + ' · ' + fmt(box.humidity, ' %')), slots);
+        node('p', tr(dryingState) + ' · ' + measurement(box.humidity, ' %', box.measurement_freshness?.humidity)), slots);
       for (const spool of box.spools || []) {
         const row = node('li'), color = node('span', null, 'wall-swatch');
         const rgb = spool.color?.slice(0, 3);

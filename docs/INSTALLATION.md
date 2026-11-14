@@ -172,3 +172,22 @@ Sur une installation distante, effectuez cette configuration via HTTPS. Gardez l
 Après trois codes refusés, ressaisissez le mot de passe pour ouvrir une nouvelle vérification. Après vingt échecs sur des codes temporaires en deux minutes, attendez la fin du délai affiché ou utilisez un code de secours avec votre mot de passe.
 
 Si le téléphone et les codes de secours sont perdus, ajoutez `WEB_TOTP_RESET=true` au fichier d’environnement utilisé par Compose et recréez le service avec `docker compose up -d`. Ce démarrage efface le facteur local et les anciens codes de secours. Retirez ensuite le réglage et recréez à nouveau le service avant de configurer une nouvelle clé. Cette procédure requiert un accès au déploiement et le mot de passe web. Elle n’agit pas sur le compte Anycubic.
+
+## Sauvegarder et restaurer appdata
+
+Arrêtez uniquement Cloud Page avant de lire son dossier de données afin d’obtenir une copie cohérente. Avec le script de la version installée et un utilisateur autorisé à lire `appdata`, créez une archive à conserver en lieu privé.
+
+```sh
+python3 scripts/backup_appdata.py backup ./appdata ./acp-backup.zip --version 2.1.0
+python3 scripts/backup_appdata.py restore ./acp-backup.zip ./appdata-restaure
+```
+
+Indiquez la version réellement installée. Le manifeste contient les tailles et empreintes SHA-256 des fichiers. La restauration exige un dossier neuf, qu’elle retire en cas d’archive invalide. Pour essayer la copie, préparez une installation distincte et pointez `APPDATA_DIR` vers ce dossier en utilisant l’image correspondant au manifeste. La sauvegarde inclut les réglages Discord et les secrets du serveur. Gardez l’archive hors des répertoires partagés.
+
+Les fiches personnelles résident dans le navigateur. Dans **ACE et filaments → Catalogue Anycubic**, exportez-les séparément. La restauration de cet export demande une confirmation avant de remplacer les fiches du navigateur.
+
+### Originaux tranchés de l’historique
+
+Dans le détail d’une tâche terminée de l’imprimante sélectionnée, ouvrez **Originaux tranchés** pour importer un `.gcode` ou `.gcode.3mf`. L’empreinte SHA-256 distingue les fichiers de même nom et élimine les doublons de contenu. L’archive reste dans le volume privé d’état, avec un quota de 512 Mio et 100 Mio par fichier. Elle est incluse dans la sauvegarde d’`appdata`.
+
+**Transférer pour réimprimer** charge un original `.gcode` dans l’espace Cloud, puis ouvre la confirmation d’impression. Le lancement intervient après la sélection des bobines et une nouvelle vérification de la machine. Les paquets `.gcode.3mf` archivés peuvent être téléchargés. Leur lancement depuis la mémoire de l’imprimante suit le parcours existant.

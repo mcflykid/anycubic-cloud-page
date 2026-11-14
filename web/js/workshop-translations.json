@@ -1,4 +1,184 @@
 {
+  "Originaux tranchés": {
+    "en": "Sliced originals",
+    "es": "Originales laminados",
+    "de": "Geslicte Originale",
+    "it": "Originali affettati"
+  },
+  "Importer un original": {
+    "en": "Import an original",
+    "es": "Importar un original",
+    "de": "Original importieren",
+    "it": "Importa un originale"
+  },
+  "Transférer pour réimprimer": {
+    "en": "Transfer to reprint",
+    "es": "Transferir para reimprimir",
+    "de": "Zum erneuten Drucken übertragen",
+    "it": "Trasferisci per ristampare"
+  },
+  "Original archivé.": {
+    "en": "Original archived.",
+    "es": "Original archivado.",
+    "de": "Original archiviert.",
+    "it": "Originale archiviato."
+  },
+  "Original transféré dans l’espace Cloud.": {
+    "en": "Original transferred to cloud storage.",
+    "es": "Original transferido al almacenamiento en la nube.",
+    "de": "Original in den Cloud-Speicher übertragen.",
+    "it": "Originale trasferito nell’archivio cloud."
+  },
+  "Inventaire des bobines": {
+    "en": "Spool inventory",
+    "es": "Inventario de bobinas",
+    "de": "Spuleninventar",
+    "it": "Inventario delle bobine"
+  },
+  "Nom de la bobine physique": {
+    "en": "Physical spool name",
+    "es": "Nombre de la bobina física",
+    "de": "Name der physischen Spule",
+    "it": "Nome della bobina fisica"
+  },
+  "Référence du filament": {
+    "en": "Filament reference",
+    "es": "Referencia del filamento",
+    "de": "Filamentreferenz",
+    "it": "Riferimento del filamento"
+  },
+  "Identifiant Spoolman facultatif": {
+    "en": "Optional Spoolman ID",
+    "es": "ID de Spoolman opcional",
+    "de": "Optionale Spoolman-ID",
+    "it": "ID Spoolman facoltativo"
+  },
+  "Exporter les associations Spoolman (JSON)": {
+    "en": "Export Spoolman mappings (JSON)",
+    "es": "Exportar asociaciones de Spoolman (JSON)",
+    "de": "Spoolman-Zuordnungen exportieren (JSON)",
+    "it": "Esporta associazioni Spoolman (JSON)"
+  },
+  "Stockage local indisponible.": {
+    "en": "Local storage is unavailable.",
+    "es": "Almacenamiento local no disponible.",
+    "de": "Lokaler Speicher nicht verfügbar.",
+    "it": "Memoria locale non disponibile."
+  },
+  "Cette bobine est déjà enregistrée.": {
+    "en": "This spool is already registered.",
+    "es": "Esta bobina ya está registrada.",
+    "de": "Diese Spule ist bereits erfasst.",
+    "it": "Questa bobina è già registrata."
+  },
+  "Inventaire limité à 500 bobines.": {
+    "en": "The inventory is limited to 500 spools.",
+    "es": "Inventario limitado a 500 bobinas.",
+    "de": "Inventar auf 500 Spulen begrenzt.",
+    "it": "Inventario limitato a 500 bobine."
+  },
+  "Modes combinés en attente de validation sur l’imprimante.": {
+    "en": "Combined modes are pending printer validation.",
+    "es": "Modos combinados pendientes de validación en la impresora.",
+    "de": "Kombinierte Modi warten auf die Prüfung am Drucker.",
+    "it": "Modalità combinate in attesa di convalida sulla stampante."
+  },
+  "Exporter les fiches personnelles": {
+    "en": "Export personal profiles",
+    "es": "Exportar fichas personales",
+    "de": "Eigene Profile exportieren",
+    "it": "Esporta schede personali"
+  },
+  "Restaurer les fiches personnelles": {
+    "en": "Restore personal profiles",
+    "es": "Restaurar fichas personales",
+    "de": "Eigene Profile wiederherstellen",
+    "it": "Ripristina schede personali"
+  },
+  "Remplacer les fiches personnelles de ce navigateur ?": {
+    "en": "Replace personal profiles in this browser?",
+    "es": "¿Reemplazar las fichas personales de este navegador?",
+    "de": "Eigene Profile in diesem Browser ersetzen?",
+    "it": "Sostituire le schede personali di questo browser?"
+  },
+  "Fiches personnelles restaurées": {
+    "en": "Personal profiles restored",
+    "es": "Fichas personales restauradas",
+    "de": "Eigene Profile wiederhergestellt",
+    "it": "Schede personali ripristinate"
+  },
+  "Fiche associée par SKU exact": {
+    "en": "Profile matched by exact SKU",
+    "es": "Ficha asociada por SKU exacto",
+    "de": "Profil durch exakte SKU zugeordnet",
+    "it": "Scheda associata tramite SKU esatto"
+  },
+  "SKU RFID absent": {
+    "en": "RFID SKU missing",
+    "es": "Falta el SKU RFID",
+    "de": "RFID-SKU fehlt",
+    "it": "SKU RFID mancante"
+  },
+  "SKU RFID inconnu du catalogue": {
+    "en": "RFID SKU not in catalogue",
+    "es": "SKU RFID desconocido en el catálogo",
+    "de": "RFID-SKU nicht im Katalog",
+    "it": "SKU RFID assente dal catalogo"
+  },
+  "SKU RFID ambigu": {
+    "en": "Ambiguous RFID SKU",
+    "es": "SKU RFID ambiguo",
+    "de": "Mehrdeutige RFID-SKU",
+    "it": "SKU RFID ambiguo"
+  },
+  "Non relevé": {
+    "en": "Not reported",
+    "es": "Sin lectura",
+    "de": "Nicht gemeldet",
+    "it": "Non rilevato"
+  },
+  "Âge inconnu": {
+    "en": "Unknown age",
+    "es": "Antigüedad desconocida",
+    "de": "Alter unbekannt",
+    "it": "Età sconosciuta"
+  },
+  "Périmé": {
+    "en": "Stale",
+    "es": "Desactualizado",
+    "de": "Veraltet",
+    "it": "Non aggiornato"
+  },
+  "{0} s": {
+    "en": "{0} s",
+    "es": "{0} s",
+    "de": "{0} s",
+    "it": "{0} s"
+  },
+  "Demande d’arrêt envoyée": {
+    "en": "Stop request sent",
+    "es": "Solicitud de parada enviada",
+    "de": "Stoppanfrage gesendet",
+    "it": "Richiesta di arresto inviata"
+  },
+  "Demande de séchage envoyée": {
+    "en": "Drying request sent",
+    "es": "Solicitud de secado enviada",
+    "de": "Trocknungsanfrage gesendet",
+    "it": "Richiesta di asciugatura inviata"
+  },
+  "État du séchage confirmé par l’ACE": {
+    "en": "Drying state confirmed by the ACE",
+    "es": "Estado de secado confirmado por el ACE",
+    "de": "Trocknungsstatus vom ACE bestätigt",
+    "it": "Stato di asciugatura confermato dall’ACE"
+  },
+  "État du séchage à vérifier": {
+    "en": "Check the drying state",
+    "es": "Compruebe el estado de secado",
+    "de": "Trocknungsstatus prüfen",
+    "it": "Verificare lo stato di asciugatura"
+  },
   "Développeur": {
     "en": "Developer",
     "es": "Desarrollo",

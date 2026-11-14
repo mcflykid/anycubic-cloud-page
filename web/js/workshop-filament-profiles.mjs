@@ -1,3 +1,4 @@
+import { bindSpoolInventory } from './workshop-spool-inventory.mjs';
 import { $, fmt, formatText, node, set, tr } from './workshop-ui.mjs';
 
 import { communityFilamentVariants, manufacturerProfiles, officialPlaBasicVariants } from './filament-profiles-data.mjs';
@@ -110,7 +111,7 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
     );
   }
   const source = $('filament-profile-source');
-  source.href = variant?.productId ? profile.url + '?variant=' + variant.productId : profile.url;
+  source.href = variant?.url ?? (variant?.productId ? profile.url + '?variant=' + variant.productId : profile.url);
   const communitySource = $('filament-profile-community-source');
   const communityUrl = variant?.id ? 'https://3dfilamentprofiles.com/filament/details/' + variant.id
     : profile.communityVariants?.[hex.join(' · ').toUpperCase()] || profile.profileSource;
@@ -163,9 +164,46 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
 
 /** Les fiches restent consultables sans avoir chargé la matière dans l’ACE. */
 export function bindFilamentCatalogue() {
+  bindSpoolInventory();
   const dialog = $('filament-catalogue-dialog');
   const search = $('filament-catalogue-search');
   const list = $('filament-catalogue-list');
+  const exportButton = $('filament-profile-export');
+  const restoreInput = $('filament-profile-restore');
+  exportButton.onclick = () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(readCustomProfiles())], {type:'application/json'}));
+    const link = node('a');
+    link.href = url;
+    link.download = 'fiches-filament-personnelles.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  restoreInput.onchange = async () => {
+    const file = restoreInput.files[0];
+    if (!file) return;
+    try {
+      if (file.size > 2_000_000) throw new TypeError();
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data?.profiles) || data.profiles.length > 100 ||
+          !Array.isArray(data.assignments) || data.assignments.length > 400) throw new TypeError();
+      const profiles = data.profiles.map(validateProfile);
+      const names = new Set(profiles.map(profile => profile.name));
+      if (names.size !== profiles.length) throw new TypeError();
+      const assignments = data.assignments.map(({position, signature, name}) => {
+        if (typeof position !== 'string' || position.length > 256 ||
+            typeof signature !== 'string' || signature.length > 512 || !names.has(name)) throw new TypeError();
+        return {position, signature, name};
+      });
+      if (!dialog.open || restoreInput.files[0] !== file ||
+          !window.confirm(tr('Remplacer les fiches personnelles de ce navigateur ?'))) return;
+      localStorage.setItem(storageKey, JSON.stringify({profiles, assignments}));
+      set('filament-profile-transfer-state', tr('Fiches personnelles restaurées'));
+    } catch {
+      set('filament-profile-transfer-state', tr('Import impossible. Vérifiez le fichier et le stockage du navigateur.'));
+    } finally {
+      if (restoreInput.files[0] === file) restoreInput.value = '';
+    }
+  };
   const render = () => {
     const query = search.value.trim().toLocaleLowerCase();
     const variants = new Map(officialPlaBasicVariants.map(variant => [variant.sku, variant]));

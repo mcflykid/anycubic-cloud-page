@@ -181,3 +181,16 @@ test('la synthèse relie les constats, l’activité et les sections du rapport'
     }
   }
 });
+
+test('deux ACE distinguent un zéro mesuré de la reconnexion sans donnée fraîche', async ({page}) => {
+  await scenario(page, 'ace-deux-boitiers');
+  await openSection(page, 'ace');
+  await expect(page.locator('#ace-stats')).toContainText('0 %');
+  await expect(page.locator('#spools')).toContainText('SKU RFID inconnu du catalogue');
+  await scenario(page, 'ace-deconnecte');
+  const diagnostic = await (await page.request.get('/imprimante-api/diagnostic?developer=1')).json();
+  expect(diagnostic.developer.connection.mqtt.cause).toBe('mqtt_disconnected');
+  await scenario(page, 'ace-reconnecte');
+  await openSection(page, 'ace');
+  await expect(page.locator('#ace-stats')).toContainText('Périmé');
+});

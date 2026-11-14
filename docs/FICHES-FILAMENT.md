@@ -1,6 +1,8 @@
 # Créer une fiche filament
 
 Pour le PLA Basic, la [boutique Anycubic](https://store.anycubic.com/products/pla-filament) fournit 30 SKU distincts. Le catalogue regroupe les doublons régionaux et donne la couleur et la masse nominale de chaque référence. Les plages d’impression, le séchage et les propriétés mécaniques s’appliquent à la gamme.
+Les boutiques régionales confirment aussi les bobines 1 kg `AHPLCL-105` (transparent), `AHPLGY-105` (gris texturé), `AHPLBW-105` (blanc) et `HPL18-106` (turquoise tropical). Le catalogue les distingue des recharges. Les codes trouvés dans une liste mais absents des variantes vérifiées sont laissés de côté. [Boutique européenne](https://eu.anycubic3d.com/products/pla-filament) · [Boutique britannique](https://uk.anycubic.com/products/pla-filament)
+
 
 Dans **ACE et filaments**, cliquez sur le nom d’un emplacement, par exemple **Emplacement 3 · PLA Marble**. Vous pouvez aussi utiliser le bouton dédié dans la fenêtre ouverte par **Voir** ou **Modifier**. Si une fiche est associée à la bobine, ses caractéristiques s’affichent avec le restant et l’identification RFID rapportés par l’ACE. Si la référence est inconnue, l’atelier ouvre **Créer sa fiche filament**.
 
@@ -51,3 +53,7 @@ L’association tient compte de l’imprimante, du module ACE, de l’emplacemen
 | `minNozzle` | Diamètre minimal de la buse en mm |
 
 Pour une valeur unique dans un intervalle, saisissez deux fois le même nombre, par exemple `[50, 50]`. Les fiches sont consultatives. L’atelier conserve ses contrôles habituels pour les commandes d’impression et de séchage. Le [catalogue communautaire](https://3dfilamentprofiles.com/filaments/anycubic) permet de repérer une référence. Les fiches incluses dans l’atelier citent leur source fabricant.
+
+## Inventaire des bobines
+
+Dans **ACE → Catalogue Anycubic → Inventaire des bobines**, donnez un nom distinct à chaque bobine physique. Plusieurs bobines peuvent partager la même référence de filament. L’identifiant Spoolman facultatif associe une bobine déjà créée dans Spoolman. Le fichier JSON exporté contient les associations et sert au rapprochement manuel. Le formulaire et son export restent dans le navigateur. Les quantités Spoolman et les relevés de l’ACE sont gérés indépendamment.
