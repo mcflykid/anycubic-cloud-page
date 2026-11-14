@@ -93,25 +93,74 @@
   #tab-overview .printer-task-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-.timeline-days { display: grid; gap: var(--atelier-space-2); }
-.timeline-day { margin: 0; color: var(--atelier-muted); font: var(--atelier-caption); }
-.timeline-day:not(:first-child) { margin-block-start: var(--atelier-space-2); }
-.print-timeline ol { display: grid; gap: var(--atelier-space-2); margin: 0; padding: 0; list-style: none; }
-.print-timeline li { display: flex; align-items: center; gap: var(--atelier-space-2); }
-.print-timeline li > .ui-icon { color: var(--atelier-accent); }
-.print-timeline time { min-inline-size: 5ch; font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-.timeline-markers { position: relative; margin: var(--atelier-space-4); block-size: var(--atelier-control); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
-.timeline-markers button { position: absolute; inset-inline-start: var(--timeline-position); transform: translateX(-50%); }
+/* Chronologie : phases à l’échelle du temps ; les repères restent dans la frise même aux extrémités. */
+.print-timeline {
+  --timeline-prepare: var(--atelier-muted);
+  --timeline-heat: color-mix(in srgb, var(--atelier-warning) 55%, var(--atelier-surface));
+  --timeline-print: var(--atelier-accent);
+  --timeline-pause: var(--atelier-warning);
+}
+.timeline-band { display: grid; gap: var(--atelier-space-2); margin-block-end: var(--atelier-space-4); padding-block-end: var(--atelier-space-4); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+.timeline-markers { position: relative; block-size: var(--atelier-control); }
+.timeline-markers button {
+  position: absolute; inset-block-end: 0; inset-inline-start: var(--timeline-position);
+  /* Décalage proportionnel : 0 % colle au bord gauche, 100 % au bord droit, sans icône coupée. */
+  transform: translateX(calc(-1 * var(--timeline-position)));
+  inline-size: 28px; block-size: 28px; min-block-size: 0; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--atelier-surface); color: var(--timeline-print); border: var(--atelier-rule) solid currentColor;
+}
+.timeline-markers button .ui-icon { inline-size: 14px; block-size: 14px; }
 .timeline-markers button:focus-visible { z-index: 1; }
-.print-timeline li:focus { outline: var(--atelier-rule) solid var(--atelier-accent); }
+.timeline-phases { position: relative; block-size: 10px; border-radius: 5px; background: var(--atelier-bg); }
+.timeline-phases span {
+  position: absolute; inset-block: 0; inset-inline-start: var(--timeline-start); inline-size: var(--timeline-width);
+  min-inline-size: 3px; border-radius: 3px; background: var(--timeline-print); box-shadow: 0 0 0 1px var(--atelier-surface);
+}
+.timeline-axis { position: relative; block-size: 16px; color: var(--atelier-muted); font: var(--atelier-caption); font-variant-numeric: tabular-nums; }
+.timeline-axis time { position: absolute; inset-inline-start: var(--timeline-position); transform: translateX(calc(-1 * var(--timeline-position))); white-space: nowrap; }
+.timeline-legend { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2) var(--atelier-space-4); margin: 0; padding: 0; list-style: none; color: var(--atelier-muted); font: var(--atelier-caption); }
+.timeline-legend span { display: inline-flex; align-items: center; gap: var(--atelier-space-2); }
+.timeline-legend span::before { content: ""; inline-size: 8px; block-size: 8px; border-radius: 2px; background: var(--timeline-print); }
+:is(.timeline-phases span, .timeline-legend span)[data-phase="downloading"],
+:is(.timeline-phases span, .timeline-legend span)[data-phase="checking"] { --timeline-print: var(--timeline-prepare); }
+:is(.timeline-phases span, .timeline-legend span)[data-phase="preheating"],
+:is(.timeline-phases span, .timeline-legend span)[data-phase="leveling"] { --timeline-print: var(--timeline-heat); }
+:is(.timeline-phases span, .timeline-legend span)[data-phase="paused"] { --timeline-print: var(--timeline-pause); }
+.timeline-phases span[data-phase], .timeline-legend span[data-phase]::before { background: var(--timeline-print); }
+
+.timeline-days { display: grid; gap: var(--atelier-space-1); }
+.timeline-day { margin: 0 0 var(--atelier-space-2); color: var(--atelier-muted); font: var(--atelier-caption); font-weight: var(--atelier-semibold); text-transform: uppercase; letter-spacing: .04em; }
+.timeline-day:not(:first-child) { margin-block-start: var(--atelier-space-3); }
+.print-timeline ol { display: grid; margin: 0; padding: 0; list-style: none; }
+.print-timeline li { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: var(--atelier-space-3); align-items: start; padding-block: var(--atelier-space-2); }
+/* Le rail relie les pastilles : il s’arrête au dernier événement de la journée. */
+.print-timeline li:not(:last-child)::after { content: ""; position: absolute; inset-inline-start: 13px; inset-block: calc(var(--atelier-space-2) + 30px) calc(-1 * var(--atelier-space-2) + 2px); inline-size: 2px; background: var(--atelier-line); }
+.timeline-icon { inline-size: 28px; block-size: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--timeline-print); background: color-mix(in srgb, currentColor 12%, var(--atelier-surface)); }
+.timeline-icon .ui-icon { inline-size: 14px; block-size: 14px; }
+.timeline-text { display: grid; gap: 2px; min-inline-size: 0; }
+.timeline-text .muted { font: var(--atelier-caption); color: var(--atelier-muted); }
+.timeline-when { display: grid; justify-items: end; gap: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.timeline-when time { font-weight: var(--atelier-semibold); }
+.timeline-when .muted { font: var(--atelier-caption); color: var(--atelier-muted); }
+:is(.print-timeline li, .timeline-markers button)[data-kind="preheating"],
+:is(.print-timeline li, .timeline-markers button)[data-kind="leveling"] { --timeline-print: color-mix(in srgb, var(--atelier-warning) 80%, var(--atelier-fg)); }
+:is(.print-timeline li, .timeline-markers button)[data-kind="paused"],
+:is(.print-timeline li, .timeline-markers button)[data-kind="filament_low"] { --timeline-print: var(--atelier-warning); }
+:is(.print-timeline li, .timeline-markers button)[data-kind="failed"] { --timeline-print: var(--atelier-error); }
+:is(.print-timeline li, .timeline-markers button)[data-kind="finished"] { --timeline-print: var(--atelier-normal); }
+:is(.print-timeline li, .timeline-markers button)[data-kind="downloading"],
+:is(.print-timeline li, .timeline-markers button)[data-kind="checking"] { --timeline-print: var(--atelier-muted); }
+.timeline-markers button[data-kind] { color: var(--timeline-print); }
+.print-timeline li:focus { outline: var(--atelier-rule) solid var(--atelier-accent); outline-offset: 2px; border-radius: 6px; }
+#printer-timeline-summary { margin-inline-start: auto; }
 
 /* Les fenêtres locales partagent un pied de carte plutôt qu’une rangée collée aux mesures. */
 .printer-material-actions { flex-wrap: wrap; justify-content: flex-start; }
 .printer-material-actions > .atelier-control { display: inline-flex; align-items: center; gap: var(--atelier-space-2); }
 .printer-material-actions > .muted { flex: 1 1 auto; margin: 0; font: var(--atelier-caption); text-align: end; }
 #maintenance-open.primary .atelier-count, #queue-open.primary .atelier-count { background: var(--atelier-on-accent); }
-#printer-timeline-dialog { --panel-width: var(--atelier-download-dialog-width); }
+#printer-timeline-dialog { --panel-width: 640px; }
 
 /* Entretien : une ligne par opération, l’état et l’action alignés en colonnes comme dans la maquette. */
 #maintenance-dialog { --panel-width: var(--atelier-journal-dialog-width); }
@@ -231,3 +280,15 @@
 
 /* La carte du dessous garde l’écart des cartes voisines, pas la marge générique d’un onglet. */
 #tab-overview > .printer-materials { margin-block-start: calc(var(--atelier-space-4) - var(--atelier-space-5)); }
+
+/* Dans Détails de la tâche, la chronologie reste un résumé : événements en ligne, sans rail, pour tenir sans défilement. */
+#past-print-timeline .timeline-band { margin-block-end: var(--atelier-space-2); padding-block-end: 0; border: 0; }
+#past-print-timeline ol { display: flex; flex-wrap: wrap; gap: var(--atelier-space-1) var(--atelier-space-4); }
+#past-print-timeline li { display: inline-flex; align-items: center; gap: var(--atelier-space-2); padding: 0; }
+#past-print-timeline li::after { content: none; }
+#past-print-timeline .timeline-icon { inline-size: 22px; block-size: 22px; }
+#past-print-timeline .timeline-text { display: contents; }
+#past-print-timeline .timeline-text b { font-weight: var(--atelier-regular); }
+#past-print-timeline .timeline-when { order: -1; }
+#past-print-timeline .timeline-when .muted, #past-print-timeline .timeline-text .muted { display: none; }
+#past-print-timeline .timeline-day { margin-block-end: var(--atelier-space-1); }

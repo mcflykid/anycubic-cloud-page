@@ -1040,10 +1040,13 @@ export function createHistory(request, command, selectedBox) {
       $('past-task-state').dataset.state = t.status_code === 3 ? 'stopped' : 'active';
       const hasDiagnostic = !!(d.reason || d.reason_code || d.help_url);
       $('past-task-diagnostic').hidden = !hasDiagnostic;
+      // Le titre du catalogue d’erreurs remplace le motif Cloud brut (« User initiated »), resté en anglais.
+      const sheet = d.reason_code ? errorSheet(d.reason_code) : null;
+      set('past-task-reason-title', sheet?.title ? tr(sheet.title) : tr('Diagnostic'));
       set(
         'past-task-reason',
         [
-          d.reason && serverText(d.reason, 'Pas de diagnostic traduit pour cet événement.'),
+          sheet?.description ? tr(sheet.description) : d.reason && serverText(d.reason, 'Pas de diagnostic traduit pour cet événement.'),
           d.reason_code && tr('Code') + ' ' + d.reason_code,
         ].filter(Boolean).join(' · '),
       );
@@ -1072,6 +1075,7 @@ export function createHistory(request, command, selectedBox) {
       }
       const params = d.parameters || {};
       renderTaskBands({
+        name: d.name || t.name,
         progress: t.progress,
         layers: d.layers,
         layerCountDisplay: d.layers == null ? null : t.status_code === 2 ? `${fmt(d.layers)} / ${fmt(d.layers)}` : fmt(d.layers),
@@ -1081,7 +1085,7 @@ export function createHistory(request, command, selectedBox) {
         materialGrams: d.material_grams,
         parameters: params,
       });
-      extra.hidden = !hasDiagnostic && !d.materials?.length && rate.hidden && reprint.hidden && !$('past-task-actions-state').textContent;
+      extra.hidden = !d.materials?.length && rate.hidden && reprint.hidden && !$('past-task-actions-state').textContent;
     } catch (e) {
       if (current()) $('past-task-state').querySelector('span').textContent = e.message;
     }

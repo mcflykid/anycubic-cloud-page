@@ -1,5 +1,11 @@
 import { $, fmt, node, single, tr, valueUnit } from './workshop-ui.mjs';
 
+// Le Cloud renvoie 0 au lieu de rien quand le fichier n’a pas de métadonnées : ces réglages ne valent jamais 0.
+const ZERO_MEANS_ABSENT = new Set([
+  'layer_height', 'perimeters', 'perimeter_extrusion_width', 'temperature', 'bed_temperature',
+  'outer_wall_speed', 'travel_speed',
+]);
+
 const PARAMETER_COLUMNS = [
   [
     [tr('Hauteur de couche'), 'layer_height', ' mm'],
@@ -21,44 +27,79 @@ const PARAMETER_COLUMNS = [
   ],
 ];
 
-/** Affiche les trois bandes depuis les données courantes ou historiques disponibles. */
+/** Affiche les trois bandes ; une valeur absente ou fictive (0 du Cloud) n’apparaît jamais comme une mesure. */
 export function renderTaskDetails(data) {
+  const hints = fileNameHints(data.name);
+  const parameters = usableParameters(data.parameters);
+  if (parameters.layer_height == null && hints.layerHeight != null) parameters.layer_height = hints.layerHeight;
   renderMetrics('task-detail-progress', [
     [tr('Progression'), data.progress == null ? null : fmt(data.progress, ' %')],
-    [tr('Couches'), data.layerCountDisplay ?? (data.layers == null ? null : `${fmt(data.currentLayer ?? data.layers)} / ${fmt(data.totalLayers ?? data.layers)}`)],
+    [tr('Couches'), data.layerCountDisplay ?? (positive(data.layers) == null ? null : `${fmt(data.currentLayer ?? data.layers)} / ${fmt(data.totalLayers ?? data.layers)}`)],
     [tr('Temps restant'), duration(data.remainingSeconds)],
   ]);
-  renderMetrics('past-task-data', [
+  // Les secondes du fichier priment sur le libellé Cloud pour garder un seul format de durée.
+  const seconds = positive(data.estimatedSeconds) ?? positive(compactSeconds(data.estimatedTime));
+  const fileValues = [
     [tr('Dimensions'), dimensions(data.dimensions)],
-    // Les secondes du fichier priment sur le libellé Cloud pour garder un seul format de durée.
-    [tr('Temps estimé'), duration(data.estimatedSeconds ?? compactSeconds(data.estimatedTime)) ?? data.estimatedTime],
-    [tr('Filament estimé'), data.materialGrams == null ? null : fmt(data.materialGrams, ' g')],
-  ]);
+    seconds != null ? [tr('Temps estimé'), duration(seconds)]
+      : [tr('Temps estimé'), duration(hints.seconds), tr('d’après le nom du fichier')],
+    [tr('Filament estimé'), positive(data.materialGrams) == null ? null : fmt(data.materialGrams, ' g')],
+  ];
+  renderMetrics('past-task-data', fileValues);
   const host = $('past-task-parameters');
   host.replaceChildren();
   for (let column = 0; column < PARAMETER_COLUMNS.length; column++) {
     const list = node('dl', null, 'task-detail-metrics task-detail-parameters-column');
     list.dataset.column = String(column + 1);
     for (const [label, key, kind = ''] of PARAMETER_COLUMNS[column]) {
-      const value = data.parameters?.[key];
+      const value = parameters[key];
       if (value == null) continue;
-      const row = node('div', null, 'task-detail-metric');
-      row.append(node('dt', label), node('dd', parameterValue(value, kind)));
-      list.append(row);
+      const fromName = key === 'layer_height' && usableParameters(data.parameters).layer_height == null;
+      list.append(metric(label, parameterValue(value, kind), fromName ? tr('d’après le nom du fichier') : ''));
     }
     if (list.childElementCount) host.append(list);
   }
+  const partial = $('past-task-partial');
+  if (partial) partial.hidden = fileValues.every(([, value, source]) => value != null && !source);
+}
+
+/** Ligne de mesure : libellé, valeur, puis l’origine quand elle n’est pas le fichier lui-même. */
+function metric(label, value, source = '') {
+  const row = node('div', null, 'task-detail-metric');
+  row.append(node('dt', label), node('dd', value));
+  if (source) row.append(node('span', source, 'task-detail-source'));
+  return row;
+}
+
+/** Nombre strictement positif, sinon null : 0 signale ici une donnée manquante. */
+function positive(value) {
+  const number = Number(value);
+  return value != null && value !== '' && Number.isFinite(number) && number > 0 ? number : null;
+}
+
+/** Retire les réglages fictifs ; si tous sont fictifs, le fichier n’en a transmis aucun. */
+function usableParameters(source = {}) {
+  const entries = Object.entries(source || {}).filter(([key, value]) =>
+    value != null && !(ZERO_MEANS_ABSENT.has(key) && positive(single(value)) == null));
+  const meaningful = entries.some(([key]) => ZERO_MEANS_ABSENT.has(key));
+  const known = Object.keys(source || {}).some(key => ZERO_MEANS_ABSENT.has(key));
+  return known && !meaningful ? {} : Object.fromEntries(entries);
+}
+
+/** Lit le suffixe du slicer Anycubic « _PLA_0.2_41m58s » ; null pour tout autre nom. */
+export function fileNameHints(name) {
+  const match = /_([A-Za-z][\w+-]*)_(\d+(?:\.\d+)?)_((?:\d+h)?(?:\d+m)?(?:\d+s)?)(?:\.\w+)?$/.exec(name || '');
+  if (!match || !match[3]) return {};
+  return {material: match[1], layerHeight: Number(match[2]), seconds: compactSeconds(match[3])};
 }
 
 /** Remplit une grille de mesures sans laisser de valeur absente prendre la place d'une mesure réelle. */
 function renderMetrics(id, values) {
   const list = $(id);
   list.replaceChildren();
-  for (const [label, value] of values) {
+  for (const [label, value, source] of values) {
     if (value == null) continue;
-    const row = node('div', null, 'task-detail-metric');
-    row.append(node('dt', label), node('dd', value));
-    list.append(row);
+    list.append(metric(label, value, source));
   }
 }
 
@@ -67,7 +108,7 @@ function dimensions(value) {
   const sides = Array.isArray(value)
     ? value
     : value && ['length', 'width', 'height'].map((key) => value[key]);
-  return sides?.length === 3 && sides.every((side) => side != null)
+  return sides?.length === 3 && sides.every((side) => positive(side) != null)
     ? `${sides.map((side) => fmt(side)).join(' × ')} mm`
     : null;
 }

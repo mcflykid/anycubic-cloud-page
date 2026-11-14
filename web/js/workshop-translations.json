@@ -10192,5 +10192,35 @@
     "es": "Resistencia a la flexión",
     "de": "Biegefestigkeit",
     "it": "Resistenza a flessione"
+  },
+  "Préparation": {
+    "en": "Preparation",
+    "es": "Preparación",
+    "de": "Vorbereitung",
+    "it": "Preparazione"
+  },
+  "Durée {0}": {
+    "en": "Duration {0}",
+    "es": "Duración {0}",
+    "de": "Dauer {0}",
+    "it": "Durata {0}"
+  },
+  "Pauses {0}": {
+    "en": "Pauses {0}",
+    "es": "Pausas {0}",
+    "de": "Pausen {0}",
+    "it": "Pause {0}"
+  },
+  "d’après le nom du fichier": {
+    "en": "from the file name",
+    "es": "según el nombre del archivo",
+    "de": "laut Dateiname",
+    "it": "dal nome del file"
+  },
+  "Métadonnées partielles : le Cloud n’a pas transmis toutes les valeurs de ce fichier.": {
+    "en": "Partial metadata: the Cloud did not send every value for this file.",
+    "es": "Metadatos parciales: la nube no envió todos los valores de este archivo.",
+    "de": "Unvollständige Metadaten: Die Cloud hat nicht alle Werte dieser Datei übermittelt.",
+    "it": "Metadati parziali: il Cloud non ha inviato tutti i valori di questo file."
   }
 }

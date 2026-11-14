@@ -326,32 +326,102 @@ function timelineIcon(kind) {
   return icon;
 }
 
-/** Regroupe les relevés par journée locale sans perdre l’heure complète des repères clavier. */
+const timelineLabels = {
+  downloading: 'Téléchargement en cours', checking: 'Vérification…',
+  preheating: 'Préchauffage', leveling: 'Mise à niveau du plateau',
+  printing: 'Impression en cours', paused: 'En pause', resumed: 'Impression reprise',
+  finished: 'Impression terminée', failed: 'Impression arrêtée', spool: 'Changement de bobine',
+  filament_low: 'Filament bientôt épuisé',
+};
+const timelinePhases = {
+  downloading: 'Préparation', checking: 'Préparation', preheating: 'Préchauffage', leveling: 'Préchauffage',
+  printing: 'Impression', resumed: 'Impression', paused: 'Pause',
+};
+const timelineEnds = new Set(['finished', 'failed']);
+
+/** Nettoie les relevés : le micrologiciel annonce parfois « impression » une seconde avant le préchauffage. */
+export function tidyTimeline(events = []) {
+  const entries = events.filter(event => Object.hasOwn(timelineLabels, event.kind));
+  const kept = entries.filter((event, index) => {
+    const next = entries[index + 1];
+    return !(event.kind === 'printing' && next && ['preheating', 'leveling'].includes(next.kind)
+      && next.time - event.time <= 60);
+  });
+  // Après ce retrait, deux phases identiques peuvent se suivre : seule la première compte.
+  return kept.filter((event, index) => {
+    const previous = kept[index - 1];
+    return !(previous && timelinePhases[event.kind] && timelinePhases[previous.kind] === timelinePhases[event.kind]
+      && event.kind !== 'resumed');
+  });
+}
+
+/** Découpe la chronologie en phases bornées par la phase suivante ou par la fin de l’impression. */
+function timelineSegments(entries, now) {
+  const bounds = entries.filter(event => timelinePhases[event.kind] || timelineEnds.has(event.kind));
+  const open = bounds.length && !timelineEnds.has(bounds.at(-1).kind);
+  return bounds.flatMap((event, index) => {
+    if (!timelinePhases[event.kind]) return [];
+    const end = bounds[index + 1]?.time ?? (open ? Math.max(event.time, now) : event.time);
+    return [{event, phase: timelinePhases[event.kind], start: event.time, end}];
+  });
+}
+
+/** Regroupe les relevés par journée locale, avec une frise à l’échelle et des repères clavier sans débordement. */
 export function printTimeline(id, events = []) {
   const section = $(id);
-  const labels = {
-    downloading: 'Téléchargement en cours', checking: 'Vérification…',
-    preheating: 'Préchauffage', leveling: 'Mise à niveau du plateau',
-    printing: 'Impression en cours', paused: 'En pause', resumed: 'Impression reprise',
-    finished: 'Impression terminée', failed: 'Impression arrêtée', spool: 'Changement de bobine',
-    filament_low: 'Filament bientôt épuisé',
-  };
   const days = section.querySelector('.timeline-days');
-  const entries = events.filter(event => Object.hasOwn(labels, event.kind));
+  const entries = tidyTimeline(events);
   section.hidden = !entries.length;
+  const summary = $(id + '-summary');
+  if (summary) summary.hidden = section.hidden;
   const signature = JSON.stringify(entries);
   if (section.dataset.events === signature) return;
   section.dataset.events = signature;
-  const first = entries[0]?.time, last = entries.at(-1)?.time;
-  const day = new Intl.DateTimeFormat(locale, {dateStyle:'short', timeZone});
+  if (!entries.length) {
+    for (const part of section.querySelectorAll('.timeline-phases, .timeline-axis, .timeline-legend, .timeline-markers, .timeline-days'))
+      part.replaceChildren();
+    return;
+  }
+  const segments = timelineSegments(entries, Date.now() / 1000);
+  const first = entries[0]?.time;
+  const last = Math.max(entries.at(-1)?.time ?? 0, segments.at(-1)?.end ?? 0);
+  const span = last - first;
+  const position = time => (span > 0 ? 100 * (time - first) / span : 50);
+  const day = new Intl.DateTimeFormat(locale, {dateStyle:'full', timeZone});
   const clock = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
   const full = new Intl.DateTimeFormat(locale, {dateStyle:'short', timeStyle:'short', timeZone});
+  const durations = new Map(segments.map(segment => [segment.event, segment.end - segment.start]));
+  if (summary) {
+    const pauses = entries.filter(event => event.kind === 'paused').length;
+    summary.textContent = [formatText('Durée {0}', mins(span / 60)), formatText('Pauses {0}', pauses)].join(' · ');
+  }
+  const phases = section.querySelector('.timeline-phases');
+  phases?.replaceChildren(...segments.map(segment => {
+    const bar = node('span');
+    bar.dataset.phase = segment.event.kind === 'resumed' ? 'printing' : segment.event.kind;
+    bar.title = [tr(segment.phase), clock.format(segment.start * 1000), mins((segment.end - segment.start) / 60)].join(' · ');
+    bar.style.setProperty('--timeline-start', position(segment.start) + '%');
+    bar.style.setProperty('--timeline-width', Math.max(0, position(segment.end) - position(segment.start)) + '%');
+    return bar;
+  }));
+  const axis = section.querySelector('.timeline-axis');
+  axis?.replaceChildren(...(span > 0 ? [0, .25, .5, .75, 1] : [0]).map(ratio => {
+    const tick = node('time', clock.format((first + ratio * span) * 1000));
+    tick.style.setProperty('--timeline-position', ratio * 100 + '%');
+    return tick;
+  }));
+  const legend = section.querySelector('.timeline-legend');
+  legend?.replaceChildren(...[...new Set(segments.map(segment => segment.phase))].map(phase => {
+    const item = node('span', tr(phase));
+    item.dataset.phase = segments.find(segment => segment.phase === phase).event.kind.replace('resumed', 'printing');
+    return item;
+  }));
   const markers = section.querySelector('.timeline-markers');
   markers?.replaceChildren();
   days.replaceChildren();
   let previousDay, list;
   entries.forEach((event, index) => {
-    const slots = event.kind === 'spool' ? event.slots.map(([box, slot]) =>
+    const slots = event.kind === 'spool' ? (event.slots || []).map(([box, slot]) =>
       formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
     const shortages = event.kind === 'filament_low' ? (event.shortages || []).map(slot => formatText('Emplacement {0}', slot)).join(', ') : '';
     const timestamp = event.time * 1000;
@@ -361,20 +431,32 @@ export function printTimeline(id, events = []) {
       days.append(node('p', currentDay, 'timeline-day'), list);
       previousDay = currentDay;
     }
-    const text = [tr(labels[event.kind]), slots, shortages].filter(Boolean).join(' · ');
+    const label = tr(timelineLabels[event.kind]);
+    const detail = [slots, shortages].filter(Boolean).join(' · ');
     const time = node('time', clock.format(timestamp));
     time.dateTime = new Date(timestamp).toISOString();
+    const pill = node('span', null, 'timeline-icon');
+    pill.append(timelineIcon(event.kind));
+    const text = node('span', null, 'timeline-text');
+    text.append(node('b', label));
+    if (detail) text.append(node('span', detail, 'muted'));
+    const when = node('span', null, 'timeline-when');
+    when.append(time);
+    const duration = durations.get(event);
+    if (duration >= 60) when.append(node('span', mins(duration / 60), 'muted'));
     const item = node('li');
-    item.append(timelineIcon(event.kind), time, node('span', text));
+    item.dataset.kind = event.kind;
+    item.append(pill, text, when);
     list.append(item);
     if (markers) {
       item.tabIndex = -1;
       const marker = node('button');
       marker.append(timelineIcon(event.kind));
       marker.type = 'button';
-      marker.title = [full.format(timestamp), text].join(' · ');
+      marker.dataset.kind = event.kind;
+      marker.title = [full.format(timestamp), label, detail].filter(Boolean).join(' · ');
       marker.setAttribute('aria-label', marker.title);
-      marker.style.setProperty('--timeline-position', (last > first ? 100 * (event.time - first) / (last - first) : 50) + '%');
+      marker.style.setProperty('--timeline-position', position(event.time) + '%');
       marker.onclick = () => item.focus();
       marker.onkeydown = event => {
         const offset = {ArrowLeft:-1, ArrowRight:1}[event.key];
