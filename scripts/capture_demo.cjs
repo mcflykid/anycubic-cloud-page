@@ -295,6 +295,27 @@ async function main() {
     if (!ready) throw new Error('Démonstration locale indisponible');
     browser = await chromium.launch();
     const page = await browser.newPage({viewport:desktop, reducedMotion:'reduce', locale:'fr-FR'});
+    if (process.argv.includes('--galerie')) {
+      await signIn(page, base);
+      await page.waitForURL(/imprimante\.html$/);
+      for (const [tab, file, ready] of [
+        ['summary', 'resume', '#summary-progress'],
+        ['overview', 'imprimante', '#printer-model'],
+        ['ace', 'ace-et-filaments', '#spools .ace-spool-row'],
+        ['files', 'fichiers', '#file-rows tr'],
+        ['history', 'historique', '#tasks-list > tr'],
+        ['statistics', 'statistiques', '#chart-nozzle svg'],
+        ['settings', 'reglages', '#tab-settings'],
+      ]) {
+        await openSection(page, tab);
+        await page.locator(ready).first().waitFor();
+        await photo(page, 'atelier/' + file + '.jpg');
+      }
+      await page.setViewportSize(mobile);
+      await openSection(page, 'summary');
+      await photo(page, 'atelier/resume-mobile.jpg');
+      return;
+    }
     if (process.argv.includes('--print-confirmation')) {
       await signIn(page, base);
       await capturePrintConfirmation(page);

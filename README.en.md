@@ -1,22 +1,14 @@
 # Anycubic Cloud Page
 
-Version **2.0.0**. [Changelog](CHANGELOG.md).
+**Follow and control your Anycubic printer from a browser.** This self-hosted workshop connects to your Anycubic Cloud account. Prepare models in your slicer, then use the workshop to browse files, track prints and manage your ACE.
 
-**A standalone web workshop for Anycubic Cloud, without keeping AnycubicSlicerNext open.**
+[Français](README.md) · [Version 2.0.0 and changelog](CHANGELOG.md) · [Releases](https://github.com/mcflykid/anycubic-cloud-page/releases) · [Screenshots](screenshots/README.md)
 
-[![Latest release](https://img.shields.io/github/v/release/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/releases/latest)
-[![Open issues](https://img.shields.io/github/issues/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen)
-[![Closed issues](https://img.shields.io/github/issues-closed/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aclosed)
-[![Upcoming release](https://img.shields.io/github/milestones/progress-percent/mcflykid/anycubic-cloud-page/9)](https://github.com/mcflykid/anycubic-cloud-page/milestone/9)
-[![Last commit](https://img.shields.io/github/last-commit/mcflykid/anycubic-cloud-page)](https://github.com/mcflykid/anycubic-cloud-page/commits/main)
+![Desktop overview with demo data](screenshots/atelier/resume.jpg)
 
-[Français / full screenshot gallery](README.md) · [Cloud authentication and token recovery](docs/CLOUD-CONNECTION.md) · [Compatibility](docs/COMPATIBILITY.md)
+## Install with Docker Compose
 
-A self-hosted Python/aiohttp application with a responsive French interface: printer status, ACE/filament management, local/USB/cloud files, G-code upload, Agora camera, print history and settings. Home Assistant is not required. With several printers, the top-bar selector remembers the browser’s last choice; commands carry an explicit printer target.
-
-## Quick start
-
-Docker Compose is sufficient. From an empty directory, download the files of the latest release:
+Use an Anycubic account with a linked printer and a Linux Docker host on **amd64 or arm64**. In an empty directory, download the Compose file and configuration template.
 
 ```sh
 curl -fL https://github.com/mcflykid/anycubic-cloud-page/releases/latest/download/compose.yaml -o compose.yaml
@@ -25,39 +17,25 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-1. Set ANYCUBIC_EMAIL, ANYCUBIC_PASSWORD and WEB_PASSWORD in `.env`. WEB_USER defaults to admin; the web password requires six characters.
-2. Run `docker compose config --quiet`, then `docker compose up -d`.
-3. Open **http://localhost:8080/imprimante.html** and sign in with your web credentials.
-4. For remote access, set the exact PUBLIC_ORIGIN and follow the [reverse proxy guide](docs/REVERSE-PROXY.md).
+1. Enter `ANYCUBIC_EMAIL` and `ANYCUBIC_PASSWORD` in `.env` and set a separate `WEB_PASSWORD`. The default web username is `admin`.
+2. Run `docker compose up -d`.
+3. Open [the workshop on your Docker host](http://localhost:8080/imprimante.html). The service listens on the local interface by default.
 
-The image follows `latest`; pin a published image tag in compose.yaml if you need a fixed release. All persistent data stays under APPDATA_DIR (default `./appdata`). A container proxy uses the same file with PROXY_NETWORK and PROXY_NETWORK_EXTERNAL=true. The HTTP port remains bound to 127.0.0.1 by default. **Never expose it directly to the Internet.** See also the [central environment example](docs/REVERSE-PROXY.md#intégrer-à-une-stack-existante-avec-un-env-central-et-dockerdir) and the [installation guide](docs/INSTALLATION.md).
+Persistent data is stored in `./appdata`. To pin a release, set `APP_IMAGE` to its image tag in `.env`. For access from another device, configure an HTTPS reverse proxy and the matching public origin. [Installation guide](docs/INSTALLATION.md) · [HTTPS proxy](docs/REVERSE-PROXY.md) · [Anycubic sign-in](docs/CLOUD-CONNECTION.md)
 
-## Work tracking
+## What you can do
 
-[Open issues](https://github.com/mcflykid/anycubic-cloud-page/issues?q=is%3Aissue+is%3Aopen) describe proposed fixes and improvements. The [upcoming release milestone](https://github.com/mcflykid/anycubic-cloud-page/milestone/9) groups work for the next release and its acceptance criteria.
+- Track progress, layers, estimated finish, temperatures, fans and print phases. Display the wall view or use available printer controls.
+- View ACE slots, recognized RFID spools and reported remaining amounts. Browse the Anycubic catalogue, create filament profiles and see drying suggestions.
+- Browse printer memory, USB and cloud storage. File actions depend on source and format. Launch supported sliced files.
+- Open the live camera, search print history, review print details and configure Discord notifications.
+- Review fleet health and measurements, set up two-factor sign-in, and read firmware notes when Anycubic provides them.
 
-## Screens
+The reference setup is a **Kobra S1 with ACE 2 Pro**. Available operations depend on the device and firmware. A short run submitted the timelapse option without an observed clip. Combined print-and-dry modes remain unavailable. [Compatibility](docs/COMPATIBILITY.md) · [Filament profiles](docs/FICHES-FILAMENT.md) · [Notifications](docs/NOTIFICATIONS.md)
 
-The language selector next to the notification bell remembers French, English, Spanish, German or Italian in the browser. German and Italian are automatically checked and have not received a native-speaker review. If the translation catalogue cannot load, the workshop and sign-in page use French.
+## Try the demo
 
-| Tab | Features | Screenshot |
-| --- | --- | --- |
-| Summary | Current print, printer temperatures and ACE status | — |
-| Printer | State, preview, progress and live temperatures | [View](screenshots/10-session.jpg) |
-| ACE / filaments | Spools, RFID information, remaining filament and drying | [View](screenshots/02-ace-filaments.png) |
-| Files | Printer memory, USB and cloud file operations | [View](screenshots/03-fichiers.png) |
-| Upload / print | Cloud storage for G-code, STL and 3MF, plus G-code printing with ACE mapping | [View](screenshots/04-envoyer-imprimer.png) |
-| Camera | Agora video, zoom, lights and guarded axis controls | [View](screenshots/05-camera.png) |
-| History | Status/date/name filters, preview cards, details and confirmed cloud history removal; notifications in the top-bar bell | [View](screenshots/06-historique.png) |
-| Fleet and health | Availability and freshness of monitored printers | — |
-| Statistics | Local charts for the past 24 hours covering temperatures, ACE humidity and estimated remaining filament by slot | — |
-| Settings | Connection, AI settings and update eligibility | [View](screenshots/07-reglages.png) |
-
-All public screenshots use synthetic demo data. The camera illustration is not a real video stream.
-
-In **Settings → Appearance**, choose one of three styles. Light, dark and system mode are independent. Print history includes a date-range calendar. The spool details show the detected RFID color and lock edits to the material and color.
-
-## Offline demo
+From the repository, with Python 3.13:
 
 ```sh
 python3 -m venv .venv
@@ -66,28 +44,6 @@ pip install -r app/requirements.txt
 python app/demo.py
 ```
 
-Open `http://127.0.0.1:8081`. The demo never connects to Anycubic and rejects physical commands.
+Open [the local demo](http://127.0.0.1:8081). It uses synthetic data and requires no printer or Anycubic account.
 
-## Scope and credits
-
-Initially exercised with a Kobra S1 Combo and ACE 2 Pro. Read operations, cloud file test operations and the original camera path have real observations; physical actions and firmware installation are not all validated. Cloud acceptance is not physical confirmation. See the [compatibility matrix](docs/COMPATIBILITY.md).
-
-The cloud engine derives from [ljschmitt/hass-anycubic_cloud_v3](https://github.com/ljschmitt/hass-anycubic_cloud_v3). This project does not claim to be the first implementation of Anycubic Cloud access. It provides a separate workshop UI and documents its authentication, session, preview and MQTT adaptations. See [third-party notices](THIRD_PARTY_NOTICES.md).
-
-GPL-3.0-or-later. Independent community project; not an official Anycubic product.
-
-`TZ` defaults to `Europe/Paris` and controls history, chart labels and application log times. `PUID`/`PGID` default to `1000`. Startup prepares `appdata` as root, then starts the server without root privileges. `init: true`, `pids_limit: 100`, resource limits, read-only root and privilege restrictions are enabled. `/etc/localtime` is mounted read-only. The unhealthy-restart label is commented out and requires an external tool.
-
-## Project status
-
-The workshop enters maintenance with ten sections and three styles. In **Settings → Discord notifications**, alert and report webhooks are configured separately. Known error codes have local help in French, English and Spanish.
-
-See the [qualification notes](docs/CLOSURE.md) for Kobra S1 Combo coverage and remaining checks. Printing `.gcode.3mf`, Cloud mesh export and the timelapse gallery remain unavailable. Other printer models require separate validation. [Discord](docs/NOTIFICATIONS.md) · [Installation and Compose variables](docs/INSTALLATION.md)
-
-## Web sign-in
-
-The French `/login` form uses an eight-hour session cookie: HttpOnly, SameSite=Strict, and Secure when `PUBLIC_ORIGIN` is HTTPS. Sign-out revokes the session. Five failures per five-minute window limit attempts per connection address; users behind a proxy may share this limit. Restarting the application or changing the web password invalidates sessions.
-
-![Sign-in page — synthetic demo](screenshots/00-connexion.jpg)
-
-The [HTML layout references](docs/DESIGN.md#maquettes-de-référence) cover all ten tabs.
+Independent community project under [GPL-3.0-or-later](LICENSE). Its cloud engine derives from [hass-anycubic_cloud_v3](https://github.com/ljschmitt/hass-anycubic_cloud_v3). [Third-party notices](THIRD_PARTY_NOTICES.md) · [Contributing](CONTRIBUTING.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Security](SECURITY.md)
