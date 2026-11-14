@@ -51,8 +51,10 @@ test('les mesures absentes gardent les cartes',async({page})=>{
  });
  await login(page);
  const metrics=page.locator('#temperatures');
- await expect(metrics.locator('td')).toHaveCount(4);
- await expect(metrics).toContainText('—');
+ const rows=metrics.locator('tbody tr');
+ await expect(rows.getByRole('rowheader')).toHaveText(['Buse','Plateau','Pièce','Auxiliaire','Circulation']);
+ for(const row of await rows.all())
+  await expect(row.getByRole('cell').last()).toHaveText(/^(—(?: · .*|$)|Non relevé$)/);
 });
 
 test('l’avertissement des axes reste en bas de la carte sur ordinateur et mobile',async({page})=>{
