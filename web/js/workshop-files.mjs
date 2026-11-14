@@ -222,15 +222,13 @@ export function createFiles(request, command, addToQueue) {
               const ok = await command(
                 `delete-${listedSource}`,
                 { ...f, path: listedPath },
-                formatText(
-                  'Supprimer définitivement « {0} » de {1} ?',
-                  f.name,
-                  listedSource === 'cloud'
-                    ? tr('votre espace cloud')
-                    : listedSource === 'usb'
-                      ? tr('la clé USB')
-                      : tr('la mémoire de l’imprimante'),
-                ),
+                {
+                  title: tr('Supprimer ce fichier ?'),
+                  text: formatText('Ce fichier sera supprimé de {0}. Cette action est définitive.',
+                    listedSource === 'cloud' ? tr('votre espace cloud') :
+                      listedSource === 'usb' ? tr('la clé USB') : tr('la mémoire de l’imprimante')),
+                  items: [f.name],
+                },
               );
               if (ok) loadFiles();
             },
@@ -637,10 +635,11 @@ export function createFiles(request, command, addToQueue) {
     const ok = await command(
       'cloud-delete-many',
       { handles: [...cloudSelected] },
-      formatText(
-        'Supprimer définitivement les {0} fichiers sélectionnés du Cloud Anycubic ?',
-        cloudSelected.size,
-      ),
+      {
+        title: formatText('Supprimer {0} fichiers ?', cloudSelected.size),
+        text: tr('Ces fichiers seront supprimés du Cloud Anycubic. Cette action est définitive.'),
+        items: cloudRows.filter(file => cloudSelected.has(file.handle)).map(file => file.name),
+      },
     );
     if (ok) {
       cloudSelected.clear();

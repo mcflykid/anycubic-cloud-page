@@ -345,7 +345,7 @@ test('la détection IA garde les réglages visibles en cas d’échec et suit le
  fail = false;
  await dialog.getByRole('button', {name: 'Réessayer la lecture'}).click();
  await expect(dialog.locator('#ai-state')).toHaveText('Lecture à jour');
- const toggle = dialog.getByRole('switch', {name: 'Détection de filament enchevêtré'});
+ const toggle = dialog.getByRole('switch', {name: 'Filament enchevêtré'});
  const level = dialog.locator('[name=spaghetti_level]').first();
  const save = dialog.getByRole('button', {name: 'Enregistrer', exact: true});
  await expect(level).toBeDisabled();

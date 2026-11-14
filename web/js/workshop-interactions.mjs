@@ -40,7 +40,7 @@ export function initializeInteractions() {
   results.setAttribute('role', 'listbox');
   results.setAttribute('aria-label', tr('Accès rapide'));
   const close = node('button', tr('Fermer'), 'dialog-close atelier-control'); close.type = 'button';
-  const count = node('p', null, 'muted');
+  const count = node('p', null, 'sr-only');
   count.setAttribute('role', 'status');
   let origin, moved;
   let recent = [];
@@ -57,13 +57,37 @@ export function initializeInteractions() {
     ['Entretien', 'overview', 'maintenance-open'],
     ['File d’attente', 'overview', 'queue-open'],
     ['Commandes courantes', 'overview', 'controls-open'],
-    ['Chronologie de l’impression', 'overview', 'printer-timeline-open'],
     ['Détection IA', 'settings', 'ai-open'],
     ['Journal des commandes', 'settings', 'settings-logs-open'],
     ['Régler le séchage', 'ace', 'go-drying'],
+    ['Préréglages de séchage', 'ace', 'go-drying', 'dry-edit-presets'],
     ['Période de l’historique', 'history', 'history-period-open'],
     ['Journal historique', 'history', 'historical-notifications-open'],
   ];
+  const discord = document.querySelector('.settings-discord a[href$="/discord"]');
+  const icons = {
+    Onglets: 'M4 6h16v12H4zM4 9h16', Fenêtres: 'M5 9h14M8 13h8m-5 4h2',
+    Réglages: 'M12 3v5m0 8v5M3 12h5m8 0h5M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
+    Fichiers: 'M4 7h6l2 2h8v10H4z', Historique: 'm12 3 8 4v10l-8 4-8-4V7zM4 7l8 4 8-4m-8 4v10',
+    drying: 'M12 4c-2 4-5 6-5 10a5 5 0 0 0 10 0c0-4-3-6-5-10z',
+  };
+  function optionIcon(group) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg'), path = document.createElementNS(ns, 'path');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('class', 'ui-icon quick-option-icon');
+    path.setAttribute('d', icons[group]);
+    svg.append(path);
+    return svg;
+  }
+  function selectOption(option, scroll = false) {
+    for (const candidate of results.querySelectorAll('[role=option]'))
+      candidate.setAttribute('aria-selected', String(candidate === option));
+    if (!option) { input.removeAttribute('aria-activedescendant'); return; }
+    input.setAttribute('aria-activedescendant', option.id);
+    if (scroll) option.scrollIntoView({block:'nearest'});
+  }
   const trigger = $('quick-open');
   /** Filtre les onglets visibles et crée des boutons sans interpréter leur texte comme du HTML. */
   const render = () => {
@@ -74,17 +98,23 @@ export function initializeInteractions() {
         const heading = document.querySelector(`#tab-${button.dataset.tab} h2`);
         if (heading) { heading.tabIndex = -1; heading.focus(); }
       }])],
-      ['Fenêtres', windows.filter(([, , id]) => $(id) && !$(id).disabled && !$(id).hidden).map(([title, tab, id]) => [tr(title), tabName(tab), () => {
-        openTab(tab);
-        $(id).click();
-      }])],
+      ['Fenêtres', windows.filter(([, , id]) => $(id) && !$(id).disabled && !$(id).hidden).map(([title, tab, id, target]) => [tr(title),
+        target ? tabName(tab) + ' › ' + tr('Régler le séchage') : tabName(tab), () => {
+          openTab(tab);
+          $(id).click();
+          if (target) $(target)?.focus();
+        }, id === 'go-drying' && !target ? 'drying' : 'Fenêtres'])],
+      ['Réglages', discord && !discord.closest('[hidden]:not(.tab-panel)') ? [[
+        tr('Événements de l’ACE') + ' : ' + tr('Séchage terminé'), tr('Notifications Discord'),
+        () => { location.assign(discord.href + '#discord-ace_drying_done'); },
+      ]] : []],
       ['Fichiers', [...document.querySelectorAll('#file-rows .file-row-caption strong')].map(name => [
         name.textContent, tabName('files'), () => { openTab('files'); $('files-search').value = name.textContent; $('files-search').dispatchEvent(new Event('input')); $('files-search').focus(); },
       ])],
       ['Historique', [...document.querySelectorAll(
         '#tasks-list:not(:empty) .history-card-name, #tasks-gallery .history-card-name',
       )].map(name => [
-        name.textContent, tabName('history'), () => {
+        name.textContent, name.closest('tr, .history-gallery-card')?.querySelector('time,.history-table-start')?.textContent?.split(/[ ,]/)[0] || tabName('history'), () => {
           const detail = name.closest('tr, .history-gallery-card')?.querySelector('.history-detail, .task-thumbnail');
           openTab('history');
           detail?.click();
@@ -113,9 +143,11 @@ export function initializeInteractions() {
       const label = node('strong', tr(group));
       label.setAttribute('role', 'presentation');
       results.append(label);
-      for (const [name, where, action] of matching) {
+      for (const [name, where, action, icon = group] of matching) {
         const choice = node('button', null, 'quick-option'); choice.type = 'button';
-        choice.append(node('span', name), node('span', where, 'muted'));
+        const key = node('kbd', tr('Entrée'), 'quick-enter');
+        key.setAttribute('aria-hidden', 'true');
+        choice.append(optionIcon(icon), node('span', name), node('span', where, 'muted'), key);
         choice.setAttribute('role', 'option');
         choice.setAttribute('aria-selected', 'false');
         choice.onclick = () => {
@@ -137,7 +169,10 @@ export function initializeInteractions() {
       empty.setAttribute('role', 'presentation');
       results.append(empty);
     }
-    input.setAttribute('aria-expanded', String(total > 0 || (!query && recent.length > 0)));
+    const options = [...results.querySelectorAll('[role=option]')];
+    options.forEach((option, index) => { option.id = 'quick-option-' + index; option.tabIndex = -1; });
+    input.setAttribute('aria-expanded', String(options.length > 0));
+    selectOption(options[0]);
   };
   /** Ouvre la palette modale, vide la recherche précédente et place le focus dans son champ. */
   const show = () => {
@@ -156,19 +191,15 @@ export function initializeInteractions() {
   };
   close.onclick = () => dialog.close(); input.oninput = render;
   input.onkeydown = event => {
-    if (event.key === 'ArrowDown') { event.preventDefault(); results.querySelector('button')?.focus(); }
-    if (event.key === 'Enter') { event.preventDefault(); results.querySelector('button')?.click(); }
-  };
-  results.onfocusin = event => {
-    for (const option of results.querySelectorAll('[role=option]'))
-      option.setAttribute('aria-selected', String(option === event.target));
-  };
-  results.onkeydown = event => {
-    if (!['ArrowDown','ArrowUp'].includes(event.key)) return;
-    event.preventDefault();
-    const buttons = [...results.querySelectorAll('button')];
-    const index = buttons.indexOf(document.activeElement), delta = event.key === 'ArrowDown' ? 1 : -1;
-    buttons[(index + delta + buttons.length) % buttons.length]?.focus();
+    const options = [...results.querySelectorAll('[role=option]')];
+    if (!options.length) return;
+    const active = results.querySelector('[aria-selected="true"]');
+    if (event.key === 'Enter') { event.preventDefault(); active?.click(); }
+    const offset = {ArrowDown:1, ArrowUp:-1}[event.key];
+    if (offset) {
+      event.preventDefault();
+      selectOption(options[(options.indexOf(active) + offset + options.length) % options.length], true);
+    }
   };
   document.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k' || event.altKey) return;
@@ -177,16 +208,19 @@ export function initializeInteractions() {
   });
   field.append(Object.assign(node('span', null, 'quick-field-icon'), {innerHTML:
     '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>'}), input);
-  header.append(title, close);
-  body.append(field, results);
+  title.classList.add('sr-only');
+  close.textContent = tr('Échap');
+  close.setAttribute('aria-label', tr('Fermer'));
+  header.append(title, field, close);
+  body.append(results);
   const hints = node('p', null, 'quick-hints');
-  for (const [keys, label] of [[['↑', '↓'], 'parcourir'], [['↵'], 'ouvrir'], [['Échap'], 'fermer']]) {
+  for (const [keys, label] of [[['↑', '↓'], 'parcourir'], [['Entrée'], 'ouvrir'], [['Échap'], 'fermer']]) {
     const hint = node('span');
-    hint.append(...keys.map(key => node('kbd', key)), ' ' + tr(label));
+    hint.append(...keys.map(key => node('kbd', tr(key))), ' ' + tr(label));
     hints.append(hint);
   }
   count.setAttribute('aria-live', 'polite');
-  footer.append(hints, count);
+  footer.append(hints, node('p', tr('Aucune action n’est lancée depuis la recherche.'), 'muted'), count);
   dialog.append(header, body, footer); document.body.append(dialog);
   document.querySelectorAll('textarea').forEach(area => {
     /** Ajuste la hauteur au contenu sans dépasser la limite visuelle de 320 pixels. */

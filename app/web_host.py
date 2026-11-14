@@ -928,7 +928,11 @@ async def index(request):
 
 async def wall(request):
     """Sert la vue de suivi avec les mêmes règles d’authentification que l’atelier."""
-    return web.Response(text=build_web_assets(ROOT)[0]["mur.html"], content_type="text/html")
+    zone = html.escape(request.app.get(TIME_ZONE_KEY) or display_timezone(), quote=True)
+    content = build_web_assets(ROOT)[0]["mur.html"].replace(
+        '<html lang="fr"', f'<html lang="fr" data-time-zone="{zone}"', 1
+    )
+    return web.Response(text=content, content_type="text/html")
 
 
 async def about(request):

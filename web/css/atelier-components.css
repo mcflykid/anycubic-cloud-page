@@ -487,3 +487,17 @@ button.atelier-count { border: 0; cursor: pointer; }
 
 /* Le thème fournit le contraste de l’avertissement dans les deux modes. */
 #temperatures [data-stale="true"] { color: var(--atelier-warning); }
+
+#confirm-severity {
+  margin-inline-start: auto;
+  padding-inline: var(--atelier-space-2);
+  border-radius: var(--atelier-pill-radius);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: var(--atelier-accent);
+  font: var(--atelier-caption);
+  font-weight: var(--atelier-semibold);
+}
+[data-severity="destructive"] #confirm-severity { color: var(--atelier-error); }
+#confirm-items { margin: var(--atelier-space-3) 0 0; padding: var(--atelier-space-2) var(--atelier-space-6); border-radius: var(--atelier-control-radius); background: var(--atelier-bg); overflow-wrap: anywhere; }
+#confirm-note { margin-block: var(--atelier-space-3) 0; }
+#confirm-dialog .confirmation-body > :last-child { margin-block-end: 0; }

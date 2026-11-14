@@ -61,13 +61,36 @@
   --atelier-ace-dialog-width: 640px;
   --atelier-journal-dialog-width: 880px;
   --atelier-ai-switch-size: 1.2em;
+  /* Les aperçus et la Vue mur gardent l’échelle et les couleurs de leurs écrans. */
+  --atelier-discord-preview-width: 32rem;
+  --atelier-discord-preview-channel: #303237;
+  --atelier-discord-preview-text: #f2f3f5;
+  --atelier-discord-preview-avatar: #0d6b60;
+  --atelier-discord-preview-icon: 1.35rem;
+  --atelier-discord-preview-muted: #b5bac1;
+  --atelier-discord-preview-app: #5059d9;
+  --atelier-discord-preview-success: #23a559;
+  --atelier-discord-preview-embed: #27292d;
+  --atelier-discord-preview-warning: #f0b232;
+  --atelier-discord-preview-error: #f23f43;
+  --atelier-discord-preview-label: #dbdee1;
+  --atelier-task-preview-size: 112px;
+  --atelier-chronology-mobile-height: 5rem;
+  --atelier-ai-switch-width: 2.25rem;
+  --atelier-ai-switch-height: 1.25rem;
+  --atelier-wall-heading: clamp(1.2rem, 2.4vw, 1.85rem);
+  --atelier-wall-progress: clamp(2.6rem, 6.4vw, 5.25rem);
+  --atelier-wall-dot: .65em;
+  --atelier-wall-dot-gap: .45em;
+  --atelier-wall-spool-title: 1.15rem;
+  --atelier-rating-star: light-dark(#a76700, #ffd16a);
+  --atelier-rating-width: 432px;
   --atelier-destructive-fill: #b42318;
   --atelier-journal-sent-color: light-dark(#2059a5, #99c0ff);
   --atelier-detail-dialog-width: 960px;
   /* Chronologie et détails de la tâche : géométries propres à la frise et aux pastilles d’événement. */
   --atelier-caps-tracking: .04em;
   --atelier-hairline-gap: 2px;
-  --atelier-timeline-dialog-width: 640px;
   --atelier-timeline-marker: 28px;
   --atelier-timeline-marker-icon: 14px;
   --atelier-timeline-compact-marker: 22px;

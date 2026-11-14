@@ -470,7 +470,18 @@ export function createAce(command, refresh) {
     dryingPending = true;
     updateDryFields();
     try {
-      await startDrying(settings, tr('Démarrer le séchage avec ces paramètres ?'));
+      const box = selectedBox();
+      const preset = workshopState.snapshot?.presets?.find(entry =>
+        Number(entry.temperature) === Number(settings.temperature) && Number(entry.hours) === Number(settings.hours));
+      const updating = box?.drying?.is_drying === true;
+      await startDrying(settings, {
+        title: tr(updating ? 'Modifier le séchage ?' : 'Démarrer le séchage ?'),
+        label: tr(updating ? 'Modifier le séchage' : 'Démarrer le séchage'),
+        text: formatText('{0} va sécher les bobines à {1} °C pendant {2} h.',
+          box?.model || tr('Module ACE'), settings.temperature, settings.hours),
+        note: [preset && formatText('Préréglage {0}.', preset.name),
+          tr('Le séchage peut être arrêté à tout moment.')].filter(Boolean).join(' '),
+      });
     } finally {
       dryingPending = false;
       updateDryFields();

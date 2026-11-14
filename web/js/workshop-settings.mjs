@@ -128,12 +128,12 @@ export function createSettings(request, command, camera) {
     $('ai-spaghetti-controls').disabled = !canEdit || !spaghetti.checked;
     $('ai-foreign-controls').disabled = foreign.disabled || !foreign.checked;
     $('ai-foreign-option').hidden = !printer?.foreign_detection_supported;
-    $('ai-camera-note').hidden = camera.hasVideo;
     aiSave.disabled = !canEdit || JSON.stringify(aiValues()) === aiInitial;
     $('ai-retry').disabled = aiLoading || !printer?.printer_online;
     if (!printer?.printer_online) set('ai-state', tr('Hors ligne'));
     else if (aiInitial) set('ai-state', tr(canEdit || aiSaving ? 'Lecture à jour' : 'Imprimante occupée'));
     else if (!aiLoading) set('ai-state', tr('Lecture impossible'));
+    $('ai-state').dataset.state = canEdit || (aiInitial && aiSaving) ? 'active' : 'offline';
   }
   /** Ignore une réponse reçue après fermeture ou changement de cible. */
   async function loadAiSettings() {

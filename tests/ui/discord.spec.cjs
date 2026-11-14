@@ -7,6 +7,11 @@ test('Discord se configure, se teste et se retire sans réafficher le webhook',a
   await login(page);
   await page.locator('[data-tab=settings]').click();
   await page.getByRole('link',{name:'Configurer les notifications Discord'}).click();
+  const preview = page.getByRole('region',{name:'Aperçu dans Discord'});
+  await expect(preview.locator('article')).toHaveCount(3);
+  await expect(preview).toContainText('Séchage PETG terminé');
+  await expect(preview).toContainText('Séchage interrompu');
+  await expect(preview).toContainText('Chargement de l’emplacement 3 refusé');
   await page.setViewportSize({width:390,height:844});
   await page.emulateMedia({colorScheme:'dark'});
   const password=page.getByLabel('Mot de passe web');

@@ -755,6 +755,11 @@ export function createHistory(request, command, selectedBox) {
       const state = node('span', tr(task.status), 'atelier-status history-status-' + task.status_code);
       const details = node('span', [task.start && date(task.start),
         Number.isFinite(task.elapsed_minutes) && mins(task.elapsed_minutes)].filter(Boolean).join(' · '));
+      if (task.start) {
+        const started = node('time', date(task.start));
+        started.className = 'sr-only';
+        item.append(started);
+      }
       item.append(check, preview, title, state, details);
       const colors = (task.colors || []).filter(color => /^#[0-9a-f]{6}$/i.test(color));
       if (colors.length) {
@@ -1163,6 +1168,10 @@ export function createHistory(request, command, selectedBox) {
       if (current()) $('past-task-state').querySelector('span').textContent = e.message;
     }
   }
+  function showRating(stars) {
+    const label = ['Très décevant', 'Décevant', 'Correct', 'Très bien', 'Excellent'][stars - 1];
+    set('rating-value', label ? formatText('{0} sur 5', stars) + ' · ' + tr(label) : '');
+  }
   /** Vérifie l’éligibilité cloud avant d’autoriser l’envoi d’une note sur la tâche sélectionnée. */
   async function openRating(t) {
     const dialog = $('task-rating-dialog'), form = $('rating-form'), preview = $('rating-preview');
@@ -1176,7 +1185,10 @@ export function createHistory(request, command, selectedBox) {
     set('past-task-archive-status', '');
     set('past-task-archive-usage', '');
     set('rating-task-name', t.name);
-    set('rating-task-summary', [t.end ? date(t.end) : '', t.status ? tr(t.status) : ''].filter(Boolean).join(' · '));
+    set('rating-task-summary', [t.start || t.end ? date(t.start || t.end) : '',
+      Number.isFinite(t.elapsed_minutes) ? mins(t.elapsed_minutes) : ''].filter(Boolean).join(' · '));
+    set('rating-task-status', t.status ? tr(t.status) : '');
+    $('rating-task-status').dataset.state = t.status_code === 2 ? 'active' : '';
     set('rating-state', tr('Vérification auprès d’Anycubic…'));
     set('rating-value', '');
     form.reset();
@@ -1196,14 +1208,14 @@ export function createHistory(request, command, selectedBox) {
       form.querySelector('fieldset').disabled = !d.available || d.already_rated;
       if (d.already_rated && Number.isInteger(d.stars) && d.stars >= 1 && d.stars <= 5) {
         form.elements.stars.value = String(d.stars);
-        set('rating-value', formatText('{0} sur 5', d.stars));
+        showRating(d.stars);
       }
       set(
         'rating-state',
         d.already_rated
           ? tr('Cette impression est déjà évaluée')
           : d.available
-            ? tr('La note sera envoyée au compte Anycubic')
+            ? tr('La note est envoyée à votre compte Anycubic.')
             : tr('Anycubic ne propose pas d’évaluation pour cette impression'),
       );
     } catch (e) {
@@ -1213,7 +1225,7 @@ export function createHistory(request, command, selectedBox) {
   $('rating-form').onchange = (event) => {
     const form = event.currentTarget, stars = Number(new FormData(form).get('stars'));
     form.querySelector('button[type=submit]').disabled = !stars;
-    set('rating-value', stars ? formatText('{0} sur 5', stars) : '');
+    showRating(stars);
   };
   $('rating-form').onsubmit = async (e) => {
     e.preventDefault();

@@ -64,31 +64,64 @@
       <header class="atelier-card-header"><h2 id="printer-task-title">Impression</h2><p id="printer-status" class="atelier-status offline">Chargement…</p></header>
       <div class="atelier-card-body printer-task-body">
         <img id="printer-illustration" src="/imprimante-api/ui/icons/printer.svg" class="summary-device-image" alt="" width="380" height="380">
-        <div class="printer-task-info"><div><h3 id="job-name" tabindex="0">L’imprimante se connecte.</h3><p id="job-state" class="muted"></p></div>
+        <div class="printer-task-info">
+          <div><h3 id="job-name" tabindex="0">L’imprimante se connecte.</h3><p class="printer-task-phase"><span id="job-state"></span><span id="job-layer" hidden></span></p></div>
           <div class="atelier-progress-group" id="job-progress-wrap" hidden><label for="job-progress">Progression <strong id="job-progress-text"></strong></label><progress id="job-progress" value="0" max="100"></progress></div>
-          <p id="printer-finish" class="muted" tabindex="0" hidden></p>
-          <dl id="job-stats" class="atelier-measures"></dl>
+          <div class="printer-task-times">
+            <dl id="job-stats" class="atelier-measures"></dl>
+            <p id="printer-finish" class="muted" tabindex="0" hidden></p>
+          </div>
+          <div id="printer-task-timeline" class="printer-task-timeline print-timeline" hidden>
+            <div id="printer-task-markers" class="timeline-markers"></div>
+            <div class="timeline-phases"></div>
+            <div class="timeline-axis"></div>
+            <div class="timeline-legend"></div>
+          </div>
         </div>
-        <div class="printer-task-preview"><img id="job-preview" alt="Aperçu de l’impression" hidden><p id="job-preview-state" class="preview-state" role="status" hidden></p></div>
+        <div class="printer-task-preview"><svg class="printer-preview-placeholder" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5 41 15v18L24 43 7 33V15z M7 15l17 10 17-10M24 25v18"/></svg><img id="job-preview" alt="Aperçu de l’impression" hidden><p id="job-preview-state" class="preview-state" role="status" hidden></p></div>
       </div>
       <footer class="atelier-card-footer printer-task-actions"><button class="atelier-control" data-command="pause" disabled data-confirm="Mettre l’impression en pause ?"><span>Pause</span></button><button class="atelier-control" data-command="resume" disabled data-confirm="Reprendre l’impression ?"><span>Reprendre</span></button><button class="atelier-control atelier-control-danger" data-command="cancel" disabled data-confirm="Arrêter l’impression en cours ? Cette action ne reprend pas le travail arrêté."><span>Arrêter</span></button><button class="atelier-control" type="button" id="task-details-open" title="Consulter les dimensions, la consommation et les paramètres du G-code."><span>Détails</span></button></footer>
     </section>
     <section class="atelier-card" aria-labelledby="printer-metrics-title">
       <header class="atelier-card-header"><h2 id="printer-metrics-title">Températures et ventilation</h2></header>
       <div class="atelier-card-body printer-metrics">
-      <table id="temperatures"><thead><tr><th scope="col"><span class="sr-only">Mesure</span></th><th scope="col">Actuelle</th><th scope="col">Cible</th></tr></thead><tbody>
-          <tr id="printer-nozzle-row"><th scope="row">Buse</th><td id="printer-nozzle-current">—</td><td id="printer-nozzle-target">—</td></tr>
-          <tr id="printer-bed-row"><th scope="row">Plateau</th><td id="printer-bed-current">—</td><td id="printer-bed-target">—</td></tr>
-        </tbody></table>
-        <dl id="printer-fans" class="atelier-measures"></dl>
+        <table id="temperatures">
+          <thead><tr><th scope="col"><span class="sr-only">Mesure</span></th><th scope="col">Cible</th><th scope="col">Actuelle</th></tr></thead>
+          <tbody>
+            <tr id="printer-nozzle-row"><th scope="row">Buse</th><td id="printer-nozzle-target">—</td><td id="printer-nozzle-current">—</td></tr>
+            <tr id="printer-bed-row"><th scope="row">Plateau</th><td id="printer-bed-target">—</td><td id="printer-bed-current">—</td></tr>
+          </tbody>
+          <tbody class="printer-fan-rows">
+            <tr><th scope="row">Pièce</th><td></td><td id="printer-part-fan-current">—</td></tr>
+            <tr><th scope="row">Auxiliaire</th><td></td><td id="printer-aux-fan-current">—</td></tr>
+            <tr><th scope="row">Circulation</th><td></td><td id="printer-circulation-current">—</td></tr>
+          </tbody>
+        </table>
       </div>
       <footer class="atelier-card-footer"><button class="atelier-control" type="button" id="controls-open">Commandes courantes</button></footer>
     </section>
   </div>
-  <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
-    <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
-    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl></div><footer class="atelier-card-footer printer-material-actions"><button id="maintenance-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3Z"/></svg><span>Entretien</span><span id="maintenance-count" class="atelier-count" data-state="due" hidden></span></button><button id="queue-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>File d’attente</span><span id="queue-count" class="atelier-count" hidden></span></button><button id="printer-timeline-open" class="atelier-control" type="button" aria-haspopup="dialog" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Chronologie de l’impression</span></button><p class="muted">Registre local : aucune commande envoyée à l’imprimante.</p></footer>
-  </section>
+  <div class="printer-secondary">
+    <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
+      <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
+      <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl></div><footer class="atelier-card-footer printer-material-actions"><button id="maintenance-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3Z"/></svg><span>Entretien</span><span id="maintenance-count" class="atelier-count" data-state="due" hidden></span></button><button id="queue-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>File d’attente</span><span id="queue-count" class="atelier-count" hidden></span></button><p class="muted">Registre local : aucune commande envoyée à l’imprimante.</p></footer>
+    </section>
+    <section class="atelier-card printer-chronology print-timeline" aria-labelledby="printer-chronology-title">
+      <header class="atelier-card-header">
+        <h2 id="printer-chronology-title" tabindex="-1">Chronologie</h2>
+        <div id="printer-chronology-controls" hidden>
+          <button id="printer-chronology-previous" class="atelier-control" type="button" aria-controls="printer-chronology-events" aria-label="Événement précédent" title="Événement précédent">↑</button>
+          <button id="printer-chronology-next" class="atelier-control" type="button" aria-controls="printer-chronology-events" aria-label="Événement suivant" title="Événement suivant">↓</button>
+          <button id="printer-chronology-play" class="atelier-control" type="button" aria-controls="printer-chronology-events" aria-label="Suspendre le défilement" title="Suspendre le défilement">Ⅱ</button>
+        </div>
+      </header>
+      <div class="printer-chronology-window">
+        <p id="printer-chronology-date" class="timeline-day" hidden></p>
+        <ol id="printer-chronology-events" class="atelier-card-body" aria-live="off" hidden></ol>
+      </div>
+      <footer class="atelier-card-footer printer-chronology-footer" id="printer-chronology-source"></footer>
+    </section>
+  </div>
 </section>
 <section id="tab-ace" class="tab-panel" hidden>
   <div class="ace-workspace">
@@ -451,25 +484,25 @@
   </div>
   <footer class="atelier-card-footer"><button type="button" id="dry-stop" class="danger" hidden>Arrêter le séchage</button><button type="submit" form="dry-form" id="dry-start" class="primary" disabled>Démarrer le séchage</button></footer>
 </dialog>
-<dialog id="ai-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="ai-title">
-  <header class="atelier-card-header"><h2 id="ai-title">Détection IA (BETA)</h2><span id="ai-state" role="status"></span><button type="button" class="dialog-close" aria-label="Fermer la détection IA">Fermer</button></header>
+<dialog id="ai-dialog" class="settings-dialog atelier-panel-dialog ace-detail-dialog" aria-labelledby="ai-title">
+  <header class="atelier-card-header"><h2 id="ai-title">Détection IA (BETA)</h2><span id="ai-state" class="atelier-status" role="status"></span><button type="button" class="dialog-close atelier-control" aria-label="Fermer la détection IA">Fermer</button></header>
   <div class="atelier-card-body ai-detail-body">
     <div class="ai-read-error" id="ai-read-error" hidden><p id="ai-error-detail"></p><button id="ai-retry" type="button">Réessayer la lecture</button></div>
     <form id="ai-form">
       <section class="ai-option">
-        <label class="ai-switch"><input name="spaghetti" type="checkbox" role="switch" disabled> Détection de filament enchevêtré</label>
-        <p>Signale un enchevêtrement de filament pendant l’impression.</p>
-        <fieldset id="ai-spaghetti-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="spaghetti_level" value="0"><span>Faible</span></label><label><input type="radio" name="spaghetti_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="spaghetti_level" value="2"><span>Élevée</span></label></div><div class="ai-segments" role="group" aria-label="En cas de détection"><span>En cas de détection</span><label><input type="radio" name="pause" value="false" checked><span>Notifier seulement</span></label><label><input type="radio" name="pause" value="true"><span>Mettre l’impression en pause</span></label></div></fieldset>
+        <label class="ai-switch"><input name="spaghetti" type="checkbox" role="switch" disabled> Filament enchevêtré</label>
+        <p>Repère les amas de filament dans l’image de la caméra.</p>
+        <fieldset id="ai-spaghetti-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="spaghetti_level" value="0"><span>Faible</span></label><label><input type="radio" name="spaghetti_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="spaghetti_level" value="2"><span>Élevée</span></label></div><div class="ai-segments" role="group" aria-label="En cas de détection"><span>En cas de détection</span><label><input type="radio" name="pause" value="false" checked><span>Notifier</span></label><label><input type="radio" name="pause" value="true"><span>Mettre en pause</span></label></div></fieldset>
       </section>
       <section class="ai-option" id="ai-foreign-option">
-        <label class="ai-switch"><input name="foreign" type="checkbox" role="switch" disabled> Détection d’objets étrangers</label>
-        <p>Signale les objets étrangers détectés sur le plateau.</p>
+        <label class="ai-switch"><input name="foreign" type="checkbox" role="switch" disabled> Objets étrangers</label>
+        <p>Signale un objet posé sur le plateau avant ou pendant l’impression.</p>
         <fieldset id="ai-foreign-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="foreign_level" value="0"><span>Faible</span></label><label><input type="radio" name="foreign_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="foreign_level" value="2"><span>Élevée</span></label></div></fieldset>
       </section>
     </form>
-    <p id="ai-camera-note">La détection IA utilise la caméra. <button id="ai-camera-open" type="button">Ouvrir l’onglet Caméra</button></p>
+    <p id="ai-camera-note">La détection utilise la caméra de l’imprimante. <button id="ai-camera-open" type="button">Onglet Caméra</button></p>
   </div>
-  <footer class="atelier-card-footer"><span>Les réglages sont envoyés à l’imprimante.</span><button type="submit" form="ai-form" id="ai-save" class="primary" disabled>Enregistrer</button></footer>
+  <footer class="atelier-card-footer"><span>Les réglages sont envoyés à l’imprimante.</span><button type="submit" form="ai-form" id="ai-save" class="primary atelier-control atelier-control-primary" disabled>Enregistrer</button></footer>
 </dialog>
 <dialog id="settings-logs-dialog" aria-labelledby="settings-logs-title" class="settings-dialog journal-dialog">
   <header class="atelier-card-header"><h2 id="settings-logs-title">Journal des commandes</h2><button class="dialog-close" type="button">Fermer</button></header>
@@ -526,7 +559,24 @@
 <section class="task-detail-band"><h3>Paramètres</h3><div id="past-task-parameters" class="task-detail-parameter-grid"></div></section>
 <section id="past-print-timeline" class="task-detail-band print-timeline" hidden><h3>Chronologie de l’impression</h3><div class="timeline-band"><div class="timeline-phases"></div><div class="timeline-axis"></div><div class="timeline-legend"></div></div><div class="timeline-days"></div></section>
 <div id="past-task-extra" class="task-detail-extra" hidden><details id="past-task-materials" hidden><summary class="atelier-disclosure">Filaments estimés par matière</summary><ul id="past-task-material-list"></ul></details><div class="task-detail-actions"><button id="past-task-rate" hidden>Évaluer</button><button id="past-task-reprint" hidden>Imprimer à nouveau</button><p id="past-task-actions-state" class="muted"></p></div></div><details id="past-task-archive" hidden><summary class="atelier-disclosure">Originaux tranchés</summary><label class="atelier-field">Importer un original<input id="past-task-archive-input" type="file" accept=".gcode,.gcode.3mf"></label><p id="past-task-archive-usage" class="muted"></p><p id="past-task-archive-status" role="status"></p><ul class="detail-list" id="past-task-archive-list"></ul></details></dialog>
-<dialog id="task-rating-dialog" class="settings-dialog" aria-labelledby="rating-title"><div class="dialog-top"><h2 id="rating-title">Évaluer l’impression</h2><button class="dialog-close" type="button">Fermer</button></div><div class="rating-task"><img id="rating-preview" alt="" hidden><div><strong id="rating-task-name"></strong><p id="rating-task-summary" class="muted"></p></div></div><p id="rating-state" class="muted" role="status"></p><form id="rating-form"><fieldset disabled><legend>Votre note</legend><div class="rating-stars" role="radiogroup" aria-label="Note sur cinq étoiles"><label><input type="radio" name="stars" value="1" required><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">1 ★</span></label><label><input type="radio" name="stars" value="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">2 ★</span></label><label><input type="radio" name="stars" value="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">3 ★</span></label><label><input type="radio" name="stars" value="4"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">4 ★</span></label><label><input type="radio" name="stars" value="5"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">5 ★</span></label></div><p id="rating-value" role="status"></p><button type="submit" class="primary" disabled>Envoyer à Anycubic</button></fieldset></form></dialog>
+<dialog id="task-rating-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="rating-title">
+  <header class="atelier-card-header"><h2 id="rating-title">Évaluer l’impression</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <form id="rating-form">
+    <div class="atelier-card-body rating-body">
+      <div class="rating-task">
+        <div class="rating-thumbnail"><img id="rating-preview" alt="" hidden></div>
+        <div><strong id="rating-task-name"></strong><p id="rating-task-summary" class="muted"></p><p id="rating-task-status" class="atelier-status"></p></div>
+      </div>
+      <fieldset disabled>
+        <legend>Votre note</legend>
+        <div class="rating-stars" role="radiogroup" aria-label="Note sur cinq étoiles"><label><input type="radio" name="stars" value="1" required><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">1 ★</span></label><label><input type="radio" name="stars" value="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">2 ★</span></label><label><input type="radio" name="stars" value="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">3 ★</span></label><label><input type="radio" name="stars" value="4"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">4 ★</span></label><label><input type="radio" name="stars" value="5"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">5 ★</span></label></div>
+        <p id="rating-value" role="status"></p>
+      </fieldset>
+      <p id="rating-state" class="muted" role="status"></p>
+    </div>
+    <footer class="atelier-card-footer"><button class="dialog-close atelier-control" type="button">Annuler</button><button type="submit" class="atelier-control atelier-control-primary primary" disabled>Envoyer à Anycubic</button></footer>
+  </form>
+</dialog>
 <dialog id="reset-dialog" class="settings-dialog reset-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reset-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reset-title">Réinitialisation usine</h2></div><div class="confirmation-body"><p>Les réglages de l’imprimante seront remis à zéro. L’imprimante pourra devoir être reconnectée au compte Anycubic.</p><label class="check"><input id="reset-understood" type="checkbox"> Je veux réinitialiser cette imprimante</label><button id="reset-get-code" type="button" disabled>Obtenir le code</button><form id="reset-form" hidden><p>Recopiez ce code avant deux minutes :</p><div class="reset-challenge"><output id="reset-code" class="reset-code"></output><time id="reset-countdown"></time></div><label>Code de confirmation<input name="code" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reset-password-state" class="muted" role="status"></p><p id="reset-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reset-form" id="reset-submit" class="danger" disabled>Confirmer la réinitialisation</button></div></dialog>
 <dialog id="controls-dialog" class="settings-dialog controls-dialog" aria-labelledby="controls-title">
   <header class="atelier-card-header current-controls-header">
@@ -595,11 +645,7 @@
   </form>
 </dialog>
 <dialog id="reauth-dialog" class="settings-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reauth-title" aria-describedby="reauth-question"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reauth-title">Confirmer avec le mot de passe web</h2></div><div class="confirmation-body"><p id="reauth-question" hidden></p><form id="reauth-form" method="dialog"><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reauth-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reauth-form" id="reauth-submit" class="danger">Installer la mise à jour</button></div></dialog>
-<dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2></div><div class="confirmation-body"><p id="confirm-text"></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
-<dialog id="printer-timeline-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="printer-timeline-title">
-  <header class="atelier-card-header"><h2 id="printer-timeline-title">Chronologie de l’impression</h2><span id="printer-timeline-summary" class="muted" hidden></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
-  <section id="printer-timeline" class="atelier-card-body print-timeline" hidden><div class="timeline-band"><div class="timeline-markers"></div><div class="timeline-phases"></div><div class="timeline-axis"></div><div class="timeline-legend"></div></div><div class="timeline-days"></div></section>
-</dialog>
+<dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2><span id="confirm-severity"></span></div><div class="confirmation-body"><p id="confirm-text"></p><ul id="confirm-items" hidden></ul><p id="confirm-note" class="muted" hidden></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
 <dialog id="queue-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="queue-title">
   <header class="atelier-card-header"><h2 id="queue-title">File d’attente</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
   <div class="atelier-card-body queue-body">

@@ -1,6 +1,6 @@
 # Les trois styles de l’atelier
 
-Les styles partagent les cartes, leurs dimensions et leurs commandes. Le menu latéral repliable de Laboratoire est la seule différence de disposition sur ordinateur. Les [maquettes de référence](DESIGN.md#maquettes-de-référence) fixent la structure des pages.
+Les [règles communes de l’atelier](regles.html) définissent les critères d’apparence des trois styles. Ce guide décrit leur utilisation.
 
 | Style | Palette | Navigation sur ordinateur |
 | --- | --- | --- |

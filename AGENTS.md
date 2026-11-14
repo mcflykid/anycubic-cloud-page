@@ -6,6 +6,9 @@
 - Modifier du code, c'est mettre à jour ses annotations dans le même changement. Une annotation devenue fausse est un bug.
 - Les annotations restent courtes : une ligne si possible, trois au maximum hors docstring.
 
+## Apparence de l’atelier
+- La référence unique pour les critères d’apparence est [Règles communes de l’atelier](docs/regles.html).
+
 ## Publication d'une version
 Chaque livraison terminée et testée reçoit un numéro inédit. Une livraison peut regrouper plusieurs commits avant sa publication finale.
 1. Numéro : correctif ou commentaires → correctif suivant ; nouvelle fonction → version mineure suivante. Demander en cas de doute.

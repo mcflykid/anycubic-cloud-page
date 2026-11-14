@@ -86,6 +86,25 @@ test('la recherche rapide ouvre un réglage sans émettre de commande', async ({
  expect(commands).toBe(0);
 });
 
+test('la recherche du séchage ouvre les préréglages au clavier sans commande', async ({page}) => {
+ const commands = [];
+ await page.route('**/imprimante-api/command', route => {
+  commands.push(route.request().postData());
+  return route.abort();
+ });
+ await login(page);
+ await page.getByRole('button',{name:'Accès rapide'}).click();
+ const search = page.getByRole('combobox',{name:'Rechercher une section'});
+ await search.fill('sech');
+ await expect(page.locator('.quick-results [aria-selected=true]')).toContainText('Régler le séchage');
+ await search.press('ArrowDown');
+ await expect(page.locator('.quick-results [aria-selected=true]')).toContainText('Préréglages de séchage');
+ await search.press('Enter');
+ await expect(page.locator('#dry-dialog')).toBeVisible();
+ await expect(page.locator('#dry-edit-presets')).toBeFocused();
+ expect(commands).toHaveLength(0);
+});
+
 test('la sélection tactile ne lance aucune action et laisse défiler hors gouttière',async({browser})=>{
  const context=await browser.newContext({baseURL:'http://127.0.0.1:'+(process.env.UI_PORT||'8765'),hasTouch:true,viewport:{width:1280,height:900}});
  const page=await context.newPage();

@@ -237,6 +237,8 @@ export function createOverview(request) {
   function renderOverview(p) {
     renderHardware(p);
     renderJobPreview(p);
+    const active = p.printer_online && (p.job_in_progress || p.job_is_paused || p.stored_print_preparing);
+    $('job-name').closest('.printer-task-body').classList.toggle('has-active-job', Boolean(active));
     const state = !p.printer_online
       ? tr('Hors ligne')
       : p.job_is_paused
@@ -276,19 +278,19 @@ export function createOverview(request) {
           ? tr('Le cloud n’a pas encore fourni le projet.')
           : tr('Aucune impression en cours.'),
     );
-    $('job-state').hidden = $('job-state').textContent === state;
+    $('job-state').hidden = !active && $('job-state').textContent === state;
+    const layers = p.job_current_layer == null ? '—' : `${p.job_current_layer} / ${p.job_total_layers ?? '—'}`;
+    $('job-layer').hidden = !active || !Number.isInteger(p.job_current_layer) || p.job_current_layer < 1;
+    set('job-layer', formatText('Couche {0}', layers));
     $('job-progress-wrap').hidden = p.job_progress == null;
     if (p.job_progress != null) {
       $('job-progress').value = p.job_progress;
       set('job-progress-text', fmt(p.job_progress, ' %'));
     }
-    definition('job-stats', [
+    definition('job-stats', active ? [['Temps restant', mins(p.job_time_remaining)]] : [
       ['Temps écoulé', mins(p.job_time_elapsed)],
       ['Temps restant', mins(p.job_time_remaining)],
-      [
-        'Couches',
-        p.job_current_layer == null ? '—' : `${p.job_current_layer} / ${p.job_total_layers ?? '—'}`,
-      ],
+      ['Couches', layers],
     ]);
     for (const [id, key] of [
       ['printer-nozzle-current', 'curr_nozzle_temp'], ['printer-nozzle-target', 'target_nozzle_temp'],
@@ -304,11 +306,9 @@ export function createOverview(request) {
       el.title = summary;
       el.setAttribute('aria-label', summary);
     }
-    definition('printer-fans', [
-      ['Pièce', measurement(p.fan_speed_pct, ' %', p.measurement_freshness?.fan_speed_pct)],
-      ['Auxiliaire', measurement(p.aux_fan_speed_pct, ' %', p.measurement_freshness?.aux_fan_speed_pct)],
-      ['Circulation', measurement(circulationPercent(p.box_fan_level), ' %', p.measurement_freshness?.box_fan_level)],
-    ]);
+    set('printer-part-fan-current', measurement(p.fan_speed_pct, ' %', p.measurement_freshness?.fan_speed_pct));
+    set('printer-aux-fan-current', measurement(p.aux_fan_speed_pct, ' %', p.measurement_freshness?.aux_fan_speed_pct));
+    set('printer-circulation-current', measurement(circulationPercent(p.box_fan_level), ' %', p.measurement_freshness?.box_fan_level));
     definition('details', [
       ['Modèle', p.machine_name || '—'],
       ['Micrologiciel', fmt(p.firmware)],

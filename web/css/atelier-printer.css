@@ -57,7 +57,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--atelier-space-2);
 }
-.printer-metrics { display: grid; align-content: start; gap: var(--atelier-space-3); }
+.printer-metrics { display: grid; align-content: start; }
 #tab-overview #temperatures {
   display: table;
   width: 100%;
@@ -70,12 +70,15 @@
   padding: var(--atelier-space-1) 0;
   text-align: right;
 }
+/* Les deux groupes restent dans le même tableau pour partager les colonnes. */
+#temperatures .printer-fan-rows > tr:first-child > :is(th, td) {
+  padding-block-start: calc(1lh + 3 * var(--atelier-space-1) + var(--atelier-rule));
+}
 #temperatures thead th { color: var(--atelier-muted); font: var(--atelier-label); }
 #temperatures tbody th {
   text-align: left;
   font-weight: var(--atelier-semibold);
 }
-.printer-materials { margin-block-start: var(--atelier-space-4); }
 #tab-overview .atelier-measures .metric-icon { display: none; }
 @container printer (min-width: 900px) {
   .printer-workspace {
@@ -153,14 +156,12 @@
 :is(.print-timeline li, .timeline-markers button)[data-kind="checking"] { --timeline-print: var(--atelier-muted); }
 .timeline-markers button[data-kind] { color: var(--timeline-print); }
 .print-timeline li:focus { outline: var(--atelier-rule) solid var(--atelier-accent); outline-offset: var(--atelier-hairline-gap); border-radius: var(--atelier-control-radius); }
-#printer-timeline-summary { margin-inline-start: auto; }
 
 /* Les fenêtres locales partagent un pied de carte plutôt qu’une rangée collée aux mesures. */
 .printer-material-actions { flex-wrap: wrap; justify-content: flex-start; }
 .printer-material-actions > .atelier-control { display: inline-flex; align-items: center; gap: var(--atelier-space-2); }
-.printer-material-actions > .muted { flex: 1 1 auto; margin: 0; font: var(--atelier-caption); text-align: end; }
+.printer-material-actions > .muted { flex: 1 1 100%; margin: 0; font: var(--atelier-caption); text-align: left; }
 #maintenance-open.primary .atelier-count, #queue-open.primary .atelier-count { background: var(--atelier-on-accent); }
-#printer-timeline-dialog { --panel-width: var(--atelier-timeline-dialog-width); }
 
 /* Entretien : une ligne par opération, l’état et l’action alignés en colonnes comme dans la maquette. */
 #maintenance-dialog { --panel-width: var(--atelier-journal-dialog-width); }
@@ -351,8 +352,19 @@
 .maintenance-interval { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--atelier-space-2); }
 .maintenance-fields label[hidden] { display: none; }
 
-/* La carte du dessous garde l’écart des cartes voisines, pas la marge générique d’un onglet. */
-#tab-overview > .printer-materials { margin-block-start: calc(var(--atelier-space-4) - var(--atelier-space-5)); }
+/* Les compteurs déterminent la hauteur commune pour que le défilement ne déplace pas les cartes. */
+.printer-secondary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--atelier-space-4);
+  margin-block-start: calc(var(--atelier-space-4) - var(--atelier-space-5));
+}
+@container printer (min-width: 900px) {
+  .printer-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .printer-secondary > .printer-materials { display: flex; flex-direction: column; }
+  .printer-secondary .printer-material-actions { margin-block-start: auto; }
+  .printer-chronology-window { flex: 1; contain: size; }
+}
 
 /* Dans Détails de la tâche, la chronologie reste un résumé : événements en ligne, sans rail, pour tenir sans défilement. */
 #past-print-timeline .timeline-band { margin-block-end: var(--atelier-space-2); padding-block-end: 0; border: 0; }
@@ -365,3 +377,81 @@
 #past-print-timeline .timeline-when { order: -1; }
 #past-print-timeline .timeline-when .muted, #past-print-timeline .timeline-text .muted { display: none; }
 #past-print-timeline .timeline-day { margin-block-end: var(--atelier-space-1); }
+
+/* La fenêtre masque le mouvement hors de la carte, sans barre de défilement. */
+.printer-chronology { display: flex; flex-direction: column; }
+.printer-chronology > .atelier-card-header { flex-wrap: wrap; }
+.printer-chronology > .atelier-card-header:has(+ .printer-chronology-window > ol[hidden]) { border-block-end: 0; }
+.printer-chronology-window { overflow: clip; }
+.printer-chronology-window > ol[hidden] { display: none; }
+.printer-chronology-window > ol.atelier-card-body { padding: var(--atelier-space-2) var(--atelier-space-4); }
+#printer-chronology-controls:not([hidden]) { display: flex; gap: var(--atelier-space-1); margin-inline-start: auto; }
+#printer-chronology-controls > button { min-inline-size: var(--atelier-control); padding-inline: var(--atelier-space-1); }
+.printer-chronology .timeline-day { padding: var(--atelier-space-2) var(--atelier-space-4) 0; margin: 0; }
+.printer-chronology-footer {
+  margin-block-start: auto;
+  color: var(--atelier-muted);
+  font: var(--atelier-caption);
+}
+.printer-chronology li[data-kind="filament_low"] b { color: var(--atelier-warning); }
+
+/* Le visuel de la pièce prend la place de la machine pendant la tâche pour réserver la largeur aux mesures. */
+.printer-task-phase, .printer-task-times > p { margin: 0; }
+.printer-task-phase > #job-state[hidden] + #job-layer::before { content: none; }
+.printer-task-phase > #job-layer::before { content: " · "; }
+#job-layer { color: var(--atelier-muted); font: var(--atelier-label); }
+.printer-preview-placeholder { display: none; }
+#tab-overview .has-active-job { flex-wrap: nowrap; }
+.has-active-job > #printer-illustration { display: none; }
+#tab-overview .has-active-job > .printer-task-preview {
+  order: -1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--atelier-space-1);
+  flex: 0 0 clamp(var(--atelier-ace-slot-height), 16%, var(--atelier-task-preview-size));
+  min-block-size: clamp(var(--atelier-ace-slot-height), 12vw, var(--atelier-task-preview-size));
+  border-radius: var(--atelier-control-radius);
+  background: var(--atelier-bg);
+}
+#tab-overview .has-active-job #job-preview { height: auto; max-height: var(--atelier-task-preview-size); }
+.has-active-job .printer-task-preview:has(img[hidden]) .printer-preview-placeholder {
+  display: block;
+  width: 55%;
+  fill: color-mix(in srgb, currentColor 25%, transparent);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  color: var(--atelier-muted);
+}
+.printer-task-times { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--atelier-space-1) var(--atelier-space-4); }
+.has-active-job #job-stats { display: block; margin: 0; }
+.printer-task-timeline:not([hidden]) { display: grid; gap: var(--atelier-space-1); }
+.printer-task-timeline .timeline-markers { block-size: var(--atelier-timeline-marker); }
+.printer-task-timeline .timeline-axis { display: flex; justify-content: space-between; }
+.printer-task-timeline .timeline-axis time { position: static; transform: none; }
+.printer-task-timeline .timeline-legend { gap: var(--atelier-space-1) var(--atelier-space-3); }
+@container printer (max-width: 430px) {
+  .printer-task-timeline .timeline-axis time:nth-child(even) { display: none; }
+}
+
+@container printer (max-width: 899px) {
+  .printer-chronology-window:has(> ol:not([hidden])) { min-block-size: var(--atelier-chronology-mobile-height); }
+}
+
+/* Sur les écrans bas, la frise tient avec les quatre cartes grâce aux marges réduites. */
+@media (max-height: 800px) and (min-width: 900px) {
+  #tab-overview .atelier-card-body { padding-block: var(--atelier-space-2); }
+  #tab-overview .atelier-card-header, #tab-overview .atelier-card-footer { padding-block: var(--atelier-space-2); }
+  .printer-task-info { gap: var(--atelier-space-1); }
+  .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) {
+    flex-wrap: nowrap;
+  }
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) > :is(#printer-illustration, .printer-task-preview) {
+    flex: 0 0 var(--atelier-journal-time-width);
+    inline-size: var(--atelier-journal-time-width);
+  }
+  #tab-overview .printer-task-body:not(.has-active-job):has(.printer-task-timeline:not([hidden])) :is(#printer-illustration, #job-preview) {
+    block-size: var(--atelier-journal-time-width);
+  }
+}

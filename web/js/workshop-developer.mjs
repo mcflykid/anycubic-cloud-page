@@ -1,6 +1,6 @@
 const tabDialogs = {
   summary: ['queue-dialog', 'maintenance-dialog'],
-  overview: ['controls-dialog', 'printer-timeline-dialog'],
+  overview: ['controls-dialog'],
   ace: ['spool-dialog', 'dry-dialog', 'filament-profile-dialog', 'filament-profile-create'],
   files: ['print-dialog'],
   upload: ['cloud-rename-dialog', 'cloud-download-dialog', 'print-dialog'],

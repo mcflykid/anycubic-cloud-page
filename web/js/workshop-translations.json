@@ -1,4 +1,244 @@
 {
+  "Ordinaire": {
+    "en": "Ordinary",
+    "es": "Ordinaria",
+    "de": "Normal",
+    "it": "Ordinaria"
+  },
+  "Destructive": {
+    "en": "Destructive",
+    "es": "Destructiva",
+    "de": "Destruktiv",
+    "it": "Distruttiva"
+  },
+  "Filament enchevêtré": {
+    "en": "Tangled filament",
+    "es": "Filamento enredado",
+    "de": "Verheddertes Filament",
+    "it": "Filamento aggrovigliato"
+  },
+  "Objets étrangers": {
+    "en": "Foreign objects",
+    "es": "Objetos extraños",
+    "de": "Fremdkörper",
+    "it": "Oggetti estranei"
+  },
+  "Repère les amas de filament dans l’image de la caméra.": {
+    "en": "Detects filament clumps in the camera image.",
+    "es": "Detecta acumulaciones de filamento en la imagen de la cámara.",
+    "de": "Erkennt Filamentansammlungen im Kamerabild.",
+    "it": "Rileva accumuli di filamento nelle immagini della fotocamera."
+  },
+  "Signale un objet posé sur le plateau avant ou pendant l’impression.": {
+    "en": "Flags an object on the bed before or during printing.",
+    "es": "Detecta objetos en la base antes o durante la impresión.",
+    "de": "Meldet Gegenstände auf dem Druckbett vor oder während des Drucks.",
+    "it": "Segnala oggetti sul piano prima o durante la stampa."
+  },
+  "Notifier": {
+    "en": "Notify",
+    "es": "Avisar",
+    "de": "Benachrichtigen",
+    "it": "Notifica"
+  },
+  "Mettre en pause": {
+    "en": "Pause",
+    "es": "Pausar",
+    "de": "Pausieren",
+    "it": "Metti in pausa"
+  },
+  "La détection utilise la caméra de l’imprimante.": {
+    "en": "Detection uses the printer camera.",
+    "es": "La detección usa la cámara de la impresora.",
+    "de": "Die Erkennung nutzt die Druckerkamera.",
+    "it": "Il rilevamento usa la fotocamera della stampante."
+  },
+  "Onglet Caméra": {
+    "en": "Camera tab",
+    "es": "Pestaña Cámara",
+    "de": "Kamera-Tab",
+    "it": "Scheda Fotocamera"
+  },
+  "Caméra en direct": {
+    "en": "Live camera",
+    "es": "Cámara en directo",
+    "de": "Live-Kamera",
+    "it": "Videocamera in diretta"
+  },
+  "Restant": {
+    "en": "Remaining",
+    "es": "Restante",
+    "de": "Verbleibend",
+    "it": "Rimanente"
+  },
+  "Démarrer le séchage ?": {
+    "en": "Start drying?",
+    "es": "¿Iniciar el secado?",
+    "de": "Trocknung starten?",
+    "it": "Avviare l’asciugatura?"
+  },
+  "Modifier le séchage ?": {
+    "en": "Change drying settings?",
+    "es": "¿Cambiar el secado?",
+    "de": "Trocknung ändern?",
+    "it": "Modificare l’asciugatura?"
+  },
+  "Modifier le séchage": {
+    "en": "Change drying settings",
+    "es": "Cambiar el secado",
+    "de": "Trocknung ändern",
+    "it": "Modifica asciugatura"
+  },
+  "{0} va sécher les bobines à {1} °C pendant {2} h.": {
+    "en": "{0} will dry the spools at {1} °C for {2} h.",
+    "es": "{0} secará las bobinas a {1} °C durante {2} h.",
+    "de": "{0} trocknet die Spulen bei {1} °C für {2} Std.",
+    "it": "{0} asciugherà le bobine a {1} °C per {2} h."
+  },
+  "Préréglage {0}.": {
+    "en": "{0} preset.",
+    "es": "Preajuste {0}.",
+    "de": "Voreinstellung {0}.",
+    "it": "Preimpostazione {0}."
+  },
+  "Le séchage peut être arrêté à tout moment.": {
+    "en": "Drying can be stopped at any time.",
+    "es": "El secado se puede detener en cualquier momento.",
+    "de": "Die Trocknung kann jederzeit gestoppt werden.",
+    "it": "L’asciugatura può essere interrotta in qualsiasi momento."
+  },
+  "Supprimer ce fichier ?": {
+    "en": "Delete this file?",
+    "es": "¿Eliminar este archivo?",
+    "de": "Diese Datei löschen?",
+    "it": "Eliminare questo file?"
+  },
+  "Ce fichier sera supprimé de {0}. Cette action est définitive.": {
+    "en": "This file will be deleted from {0}. This action is permanent.",
+    "es": "Se eliminará este archivo de {0}. Esta acción es irreversible.",
+    "de": "Diese Datei wird aus {0} gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "it": "Il file sarà eliminato da {0}. L’azione è definitiva."
+  },
+  "Supprimer {0} fichiers ?": {
+    "en": "Delete {0} files?",
+    "es": "¿Eliminar {0} archivos?",
+    "de": "{0} Dateien löschen?",
+    "it": "Eliminare {0} file?"
+  },
+  "Ces fichiers seront supprimés du Cloud Anycubic. Cette action est définitive.": {
+    "en": "These files will be deleted from Anycubic Cloud. This action is permanent.",
+    "es": "Estos archivos se eliminarán de Anycubic Cloud. Esta acción es irreversible.",
+    "de": "Diese Dateien werden aus der Anycubic Cloud gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "it": "Questi file saranno eliminati dal cloud Anycubic. L’azione è definitiva."
+  },
+  "Aucune action n’est lancée depuis la recherche.": {
+    "en": "Search does not run any actions.",
+    "es": "La búsqueda no ejecuta acciones.",
+    "de": "Die Suche löst keine Aktionen aus.",
+    "it": "La ricerca non avvia alcuna azione."
+  },
+  "Échap": {
+    "en": "Esc",
+    "es": "Esc",
+    "de": "Esc",
+    "it": "Esc"
+  },
+  "Entrée": {
+    "en": "Enter",
+    "es": "Intro",
+    "de": "Eingabe",
+    "it": "Invio"
+  },
+  "La note est envoyée à votre compte Anycubic.": {
+    "en": "Your rating is sent to your Anycubic account.",
+    "es": "La valoración se envía a tu cuenta de Anycubic.",
+    "de": "Die Bewertung wird an dein Anycubic-Konto gesendet.",
+    "it": "La valutazione viene inviata al tuo account Anycubic."
+  },
+  "Excellent": {
+    "en": "Excellent",
+    "es": "Excelente",
+    "de": "Ausgezeichnet",
+    "it": "Eccellente"
+  },
+  "Très bien": {
+    "en": "Very good",
+    "es": "Muy bien",
+    "de": "Sehr gut",
+    "it": "Molto buono"
+  },
+  "Correct": {
+    "en": "Fair",
+    "es": "Aceptable",
+    "de": "Ordentlich",
+    "it": "Sufficiente"
+  },
+  "Décevant": {
+    "en": "Disappointing",
+    "es": "Decepcionante",
+    "de": "Enttäuschend",
+    "it": "Deludente"
+  },
+  "Très décevant": {
+    "en": "Very disappointing",
+    "es": "Muy decepcionante",
+    "de": "Sehr enttäuschend",
+    "it": "Molto deludente"
+  },
+  "Heures de l’atelier ({0}). Les événements proviennent du Cloud et du registre local.": {
+    "en": "Workshop time ({0}). Events come from the Cloud and the local log.",
+    "es": "Hora del taller ({0}). Los eventos proceden de la nube y del registro local.",
+    "de": "Werkstattzeit ({0}). Die Ereignisse stammen aus der Cloud und dem lokalen Protokoll.",
+    "it": "Ora dell’officina ({0}). Gli eventi provengono dal cloud e dal registro locale."
+  },
+  "Chronologie": {
+    "en": "Timeline",
+    "es": "Cronología",
+    "de": "Zeitverlauf",
+    "it": "Cronologia"
+  },
+  "Événement précédent": {
+    "en": "Previous event",
+    "es": "Evento anterior",
+    "de": "Vorheriges Ereignis",
+    "it": "Evento precedente"
+  },
+  "Événement suivant": {
+    "en": "Next event",
+    "es": "Evento siguiente",
+    "de": "Nächstes Ereignis",
+    "it": "Evento successivo"
+  },
+  "Suspendre le défilement": {
+    "en": "Pause scrolling",
+    "es": "Pausar desplazamiento",
+    "de": "Bildlauf anhalten",
+    "it": "Sospendi scorrimento"
+  },
+  "Reprendre le défilement": {
+    "en": "Resume scrolling",
+    "es": "Reanudar desplazamiento",
+    "de": "Bildlauf fortsetzen",
+    "it": "Riprendi scorrimento"
+  },
+  "{0} événement": {
+    "en": "{0} event",
+    "es": "{0} evento",
+    "de": "{0} Ereignis",
+    "it": "{0} evento"
+  },
+  "{0} événements": {
+    "en": "{0} events",
+    "es": "{0} eventos",
+    "de": "{0} Ereignisse",
+    "it": "{0} eventi"
+  },
+  "Maintenant": {
+    "en": "Now",
+    "es": "Ahora",
+    "de": "Jetzt",
+    "it": "Ora"
+  },
   "{0} / {1} Mio utilisés": {
     "en": "{0} / {1} MiB used",
     "es": "{0} / {1} MiB usados",

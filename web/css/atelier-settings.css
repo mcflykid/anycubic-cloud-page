@@ -360,3 +360,45 @@ body:has(.workshop-frame) > #ai-dialog { width: min(var(--atelier-ai-dialog-widt
 }
 
 .developer-card [data-summary] { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }
+
+#ai-dialog .atelier-card-header { justify-content: space-between; }
+#ai-state { margin-inline-start: auto; }
+.ai-option p { margin-inline-start: calc(var(--atelier-ai-switch-width) + var(--atelier-space-3)); color: var(--atelier-muted); }
+.ai-switch { gap: var(--atelier-space-3); }
+.ai-switch input {
+  appearance: none;
+  position: relative;
+  flex: 0 0 var(--atelier-ai-switch-width);
+  inline-size: var(--atelier-ai-switch-width);
+  block-size: var(--atelier-ai-switch-height);
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--atelier-pill-radius);
+  background: var(--atelier-muted);
+}
+.ai-switch input::after {
+  content: "";
+  position: absolute;
+  inset-block: var(--atelier-hairline-gap);
+  inset-inline-start: var(--atelier-hairline-gap);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--atelier-surface);
+}
+.ai-switch input:checked { background: var(--atelier-accent); }
+.ai-switch input:checked::after { inset-inline-start: auto; inset-inline-end: var(--atelier-hairline-gap); }
+.ai-switch input:disabled { opacity: .55; }
+#ai-spaghetti-controls { grid-template-columns: 4fr 5fr; gap: var(--atelier-space-3); }
+.ai-segments { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-rows: auto auto; gap: 0; }
+.ai-segments > span { grid-column: 1 / -1; margin-block-end: var(--atelier-space-1); color: var(--atelier-muted); font: var(--atelier-caption); }
+.ai-segments label span { flex: 1; justify-content: center; text-align: center; border-radius: 0; }
+.ai-segments label:first-of-type span { border-radius: var(--atelier-control-radius) 0 0 var(--atelier-control-radius); }
+.ai-segments label:last-of-type span { border-radius: 0 var(--atelier-control-radius) var(--atelier-control-radius) 0; }
+.ai-segments label + label span { border-inline-start: 0; }
+.ai-segments input:checked + span { background: var(--atelier-accent); color: var(--atelier-on-accent); font-weight: var(--atelier-semibold); }
+#ai-camera-note, #ai-dialog footer > span { color: var(--atelier-muted); }
+#ai-camera-open { min-height: 0; padding: 0; border: 0; background: transparent; color: var(--atelier-accent); text-decoration: underline; }
+@media (max-width: 540px) {
+  #ai-spaghetti-controls { grid-template-columns: 1fr; }
+}

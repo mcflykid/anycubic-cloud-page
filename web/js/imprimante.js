@@ -5,7 +5,7 @@ import {
   fmt,
   mins,
   finishEstimate,
-  printTimeline,
+  printerChronology,
   message,
   node,
   serverText,
@@ -147,7 +147,6 @@ export function refresh() {
 
 let refreshPending = null;
 
-$('printer-timeline-open').onclick = () => $('printer-timeline-dialog').showModal();
 // Le Résumé ouvre la même fenêtre que l’onglet Imprimante pour ne pas dupliquer le registre.
 $('summary-maintenance-due').onclick = () => $('maintenance-open').click();
 
@@ -160,6 +159,8 @@ function renderFinish(snapshot) {
   const observedAt = [snapshot?.updated_at, snapshot?.mqtt_updated_at].filter(Boolean).sort().at(-1);
   for (const id of ['summary-finish', 'printer-finish'])
     finishEstimate(id, remaining, observedAt);
+  const finish = $('printer-finish');
+  printerChronology(printer, observedAt, finish.hidden ? '' : finish.textContent, workshopState.selectedPrinter);
 }
 
 /** Le masquage s’applique aux deux onglets et prend fin au retour à la normale. */
@@ -243,9 +244,6 @@ async function refreshState() {
 
     void printQueue.observe(p, workshopState.selectedPrinter);
     renderFinish(d);
-    printTimeline('printer-timeline', p?.print_timeline);
-    $('printer-timeline-open').hidden = $('printer-timeline').hidden;
-    if ($('printer-timeline').hidden && $('printer-timeline-dialog').open) $('printer-timeline-dialog').close();
     set(
       'connection',
       !d.ok ? tr('Cloud indisponible') : p?.printer_online ? tr('En ligne') : tr('Hors ligne'),

@@ -13,15 +13,24 @@ test('la vue mur affiche les relevés et ne déclenche aucune commande', async (
  await expect(page.locator('#wall-ace')).toContainText('ACE 2 Pro');
  await expect(page.locator('#wall-progress-text')).toHaveText('100 %');
  await expect(page.locator('#wall-preview')).toBeVisible();
- await page.setViewportSize({width:800,height:1280});
- expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(800);
- expect([...new Set(writes)]).toEqual(['/imprimante-api/preview']);
  const exit=page.getByRole('link',{name:'Quitter la Vue mur'});
  await expect(exit).toHaveText('×');
- const square=await exit.boundingBox(), header=await page.locator('.wall header').boundingBox();
- expect(square.width).toBe(square.height);
- expect(square.x+square.width).toBeCloseTo(header.x+header.width);
- expect(square.y).toBeCloseTo(header.y);
+ await expect(page.locator('#wall-clock')).toHaveText(/\d{2}:\d{2}/);
+ for (const viewport of [{width:1280,height:800}, {width:800,height:1280}]) {
+  await page.setViewportSize(viewport);
+  const [square, header, clock, camera, readings] = await Promise.all([
+   exit.boundingBox(), page.locator('.wall-header').boundingBox(), page.locator('#wall-clock').boundingBox(),
+   page.locator('.wall-visual').boundingBox(), page.locator('.wall-readings').boundingBox(),
+  ]);
+  expect(square.width).toBe(square.height);
+  expect(square.x+square.width).toBeCloseTo(header.x+header.width);
+  expect(square.x).toBeGreaterThan(clock.x+clock.width);
+  expect(square.y + square.height / 2).toBeCloseTo(clock.y + clock.height / 2);
+  if (viewport.width > viewport.height) expect(camera.x + camera.width).toBeLessThan(readings.x);
+  else expect(camera.y + camera.height).toBeLessThan(readings.y);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+ }
+ expect([...new Set(writes)]).toEqual(['/imprimante-api/preview']);
  await exit.focus();
  await exit.press('Enter');
  await expect(page).toHaveURL(/\/imprimante\.html$/);

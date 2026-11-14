@@ -295,6 +295,7 @@ export function finishEstimate(id, remainingMinutes, observedAt) {
 }
 
 const timelineIcons = {
+  now: 'M12 12h.01m9 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
   downloading: 'M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4',
   checking: 'M9 12l2 2 4-4M5 4h14v16H5z',
   preheating: 'M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0zM12 10v7',
@@ -366,6 +367,226 @@ function timelineSegments(entries, now) {
   });
 }
 
+/** Partage le libellé des relevés entre la carte et la chronologie détaillée. */
+function timelineDetail(event) {
+  if (event.kind === 'spool') return (event.slots || []).map(([box, slot]) =>
+    formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ');
+  if (event.kind === 'filament_low') return (event.shortages || []).map(slot =>
+    formatText('Emplacement {0}', slot)).join(', ');
+  return '';
+}
+
+const chronology = { printerKey: null, project: null, index: -1, playing: null, timer: null };
+const reducedChronologyMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+/** La phase courante ouvre la lecture, puis les événements défilent dans leur ordre d’enregistrement. */
+export function printerChronology(printer, observedAt, finish, printerKey) {
+  const entries = tidyTimeline(printer?.print_timeline ?? []).filter(event => Number.isFinite(event.time));
+  const active = printer?.printer_online && (printer.job_in_progress || printer.job_is_paused || printer.stored_print_preparing);
+  const phase = printer?.job_is_paused ? 'paused' : printer?.stored_print_preparing ? 'checking' : printer?.job_state;
+  const kind = Object.hasOwn(timelinePhases, phase) ? phase : 'now';
+  const current = active ? {
+    kind, time:Date.parse(observedAt) / 1000,
+    detail:[
+      Number.isInteger(printer.job_current_layer) && printer.job_current_layer >= 0
+        ? formatText('Couche {0}', Number.isInteger(printer.job_total_layers) && printer.job_total_layers > 0
+          ? `${printer.job_current_layer} / ${printer.job_total_layers}` : printer.job_current_layer) : '',
+      Number.isFinite(printer.job_progress) && printer.job_progress >= 0 ? fmt(printer.job_progress, ' %') : '',
+      finish,
+    ].filter(Boolean).join(' · '),
+  } : null;
+  const list = $('printer-chronology-events');
+  const controls = $('printer-chronology-controls');
+  const play = $('printer-chronology-play');
+  const viewport = list.parentElement;
+  const dayHeading = $('printer-chronology-date');
+  const source = $('printer-chronology-source');
+  source.textContent = formatText('Heures de l’atelier ({0}). Les événements proviennent du Cloud et du registre local.', timeZone);
+  const markers = $('printer-task-markers');
+  const rail = $('printer-task-timeline');
+  rail.hidden = !entries.length || (!active && !timelineEnds.has(entries.at(-1).kind));
+  const project = active ? printer.command_project || printer.job_name || '' : null;
+  if (chronology.printerKey !== printerKey || chronology.project !== project) {
+    chronology.printerKey = printerKey;
+    chronology.project = project;
+    chronology.index = -1;
+  }
+  if (chronology.index >= entries.length) chronology.index = -1;
+  const shown = current ? [...entries, current] : entries;
+  controls.hidden = shown.length < 2 || (!current && chronology.index < 0);
+  const first = entries[0]?.time;
+  const last = entries.at(-1)?.time;
+  const end = Number.isFinite(current?.time) ? Math.max(last, current.time) : last;
+  const span = end - first;
+  const segments = timelineSegments(entries, end);
+  const durations = new Map(segments.map(segment => [segment.event, segment.end - segment.start]));
+  const clock = new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone});
+  const day = new Intl.DateTimeFormat(locale, {dateStyle:'full', timeZone});
+  const playing = () => chronology.playing ?? !reducedChronologyMotion.matches;
+  function render(direction = 0, focus = false) {
+    const index = chronology.index < 0 ? entries.length : chronology.index;
+    const event = shown[index];
+    const dateLabel = Number.isFinite(event?.time) ? day.format(event.time * 1000) : '';
+    dayHeading.hidden = !dateLabel;
+    dayHeading.textContent = dateLabel;
+    // Un changement de jour garde ses heures sous leur propre en-tête.
+    const visible = shown.slice(index, index + 2).filter(entry => entry === event ||
+      (dateLabel && Number.isFinite(entry.time) && day.format(entry.time * 1000) === dateLabel));
+    const isPlaying = playing() && Boolean(current);
+    const label = tr(isPlaying ? 'Suspendre le défilement' : 'Reprendre le défilement');
+    play.textContent = isPlaying ? 'Ⅱ' : '▶';
+    play.title = label;
+    play.setAttribute('aria-label', label);
+    list.setAttribute('aria-live', isPlaying ? 'off' : 'polite');
+    list.hidden = !event;
+    controls.hidden = shown.length < 2 || !event;
+    play.hidden = !current;
+    const signature = JSON.stringify([printerKey, project, chronology.index, visible.map(entry => [entry, durations.get(entry)])]);
+    if (list.dataset.events !== signature) {
+      list.dataset.events = signature;
+      const restoreFocus = list.contains(document.activeElement);
+      if (!event) {
+        list.replaceChildren();
+        if (restoreFocus) $('printer-chronology-title').focus({preventScroll:true});
+        return;
+      }
+      list.replaceChildren(...visible.map(event => {
+        const item = node('li');
+        item.dataset.kind = event.kind;
+        item.tabIndex = -1;
+        const pill = node('span', null, 'timeline-icon');
+        pill.append(timelineIcon(event.kind));
+        const time = node('time');
+        if (Number.isFinite(event.time)) {
+          const timestamp = new Date(event.time * 1000);
+          time.textContent = clock.format(timestamp);
+          time.dateTime = timestamp.toISOString();
+          time.title = date(event.time);
+        }
+        const text = node('span', null, 'timeline-text');
+        text.append(node('b', tr(event.kind === 'now' ? 'Maintenant' : timelineLabels[event.kind])));
+        const detail = event.detail || timelineDetail(event);
+        if (detail) text.append(node('span', detail, 'muted'));
+        const when = node('span', null, 'timeline-when');
+        when.append(time);
+        const duration = durations.get(event);
+        if (duration >= 60) when.append(node('span', mins(duration / 60), 'muted'));
+        item.append(pill, text, when);
+        return item;
+      }));
+      if (direction && !reducedChronologyMotion.matches) {
+        list.animate([
+          {transform: `translateY(${direction * -100}%)`, opacity: 0},
+          {transform: 'translateY(0)', opacity: 1},
+        ], {duration: 850, easing: 'ease-out'});
+      }
+      if (restoreFocus) list.firstElementChild?.focus({preventScroll:true});
+    }
+    if (focus) list.firstElementChild?.focus();
+  }
+  function step(direction) {
+    const index = chronology.index < 0 ? shown.length - 1 : chronology.index;
+    const next = (index + direction + shown.length) % shown.length;
+    chronology.index = current && next === entries.length ? -1 : next;
+    render(direction);
+  }
+  function schedule() {
+    clearTimeout(chronology.timer);
+    chronology.timer = null;
+    if (!current || !playing() || controls.hidden) return;
+    chronology.timer = setTimeout(() => {
+      if (!document.hidden && viewport.getClientRects().length
+        && !viewport.matches(':hover, :focus-within')) chronology.step(1);
+      chronology.schedule();
+    }, 6500);
+  }
+  function navigate(direction) {
+    step(direction);
+    schedule();
+  }
+  $('printer-chronology-previous').onclick = () => navigate(-1);
+  $('printer-chronology-next').onclick = () => navigate(1);
+  play.onclick = () => {
+    chronology.playing = !playing();
+    render();
+    schedule();
+  };
+  reducedChronologyMotion.onchange = () => {
+    chronology.playing = null;
+    render();
+    schedule();
+  };
+  // Le rafraîchissement remplace le relevé en cours sans repousser le prochain événement.
+  chronology.step = step;
+  chronology.schedule = schedule;
+  if (!chronology.timer || controls.hidden) schedule();
+  chronology.select = index => {
+    chronology.index = index;
+    render(0, true);
+    schedule();
+  };
+  const position = time => span > 0 ? 100 * (time - first) / span : 0;
+  const markersSignature = JSON.stringify(rail.hidden ? [] : entries);
+  if (markers.dataset.events !== markersSignature) {
+    markers.dataset.events = markersSignature;
+    markers.replaceChildren(...(rail.hidden ? [] : entries.map((event, index) => {
+      const marker = node('button');
+      marker.type = 'button';
+      marker.append(timelineIcon(event.kind));
+      marker.dataset.kind = event.kind;
+      marker.setAttribute('aria-controls', list.id);
+      marker.title = [clock.format(event.time * 1000), tr(timelineLabels[event.kind]), timelineDetail(event)].filter(Boolean).join(' · ');
+      marker.setAttribute('aria-label', marker.title);
+      marker.onclick = () => chronology.select(index);
+      marker.onkeydown = event => {
+        const offset = {ArrowLeft:-1, ArrowRight:1}[event.key];
+        const target = offset && markers.children[index + offset];
+        if (target) {
+          event.preventDefault();
+          target.focus();
+        }
+      };
+      return marker;
+    })));
+  }
+  if (!rail.hidden) {
+    const signature = JSON.stringify([markersSignature, end]);
+    if (rail.dataset.events !== signature) {
+      rail.dataset.events = signature;
+      renderTimelineBand(rail, segments, first, span, position, clock);
+      [...markers.children].forEach((marker, index) => {
+        marker.style.setProperty('--timeline-position', position(entries[index].time) + '%');
+      });
+    }
+  }
+  render();
+}
+
+/** Partage les couleurs et les graduations entre l’impression et son historique. */
+function renderTimelineBand(section, segments, first, span, position, clock) {
+  const phases = section.querySelector('.timeline-phases');
+  phases?.replaceChildren(...segments.map(segment => {
+    const bar = node('span');
+    bar.dataset.phase = segment.event.kind === 'resumed' ? 'printing' : segment.event.kind;
+    bar.title = [tr(segment.phase), clock.format(segment.start * 1000), mins((segment.end - segment.start) / 60)].join(' · ');
+    bar.style.setProperty('--timeline-start', position(segment.start) + '%');
+    bar.style.setProperty('--timeline-width', Math.max(0, position(segment.end) - position(segment.start)) + '%');
+    return bar;
+  }));
+  const axis = section.querySelector('.timeline-axis');
+  axis?.replaceChildren(...(span > 0 ? [0, .25, .5, .75, 1] : [0]).map(ratio => {
+    const tick = node('time', clock.format((first + ratio * span) * 1000));
+    tick.style.setProperty('--timeline-position', ratio * 100 + '%');
+    return tick;
+  }));
+  const legend = section.querySelector('.timeline-legend');
+  legend?.replaceChildren(...[...new Set(segments.map(segment => segment.phase))].map(phase => {
+    const item = node('span', tr(phase));
+    item.dataset.phase = segments.find(segment => segment.phase === phase).event.kind.replace('resumed', 'printing');
+    return item;
+  }));
+}
+
 /** Regroupe les relevés par journée locale, avec une frise à l’échelle et des repères clavier sans débordement. */
 export function printTimeline(id, events = []) {
   const section = $(id);
@@ -395,35 +616,12 @@ export function printTimeline(id, events = []) {
     const pauses = entries.filter(event => event.kind === 'paused').length;
     summary.textContent = [formatText('Durée {0}', mins(span / 60)), formatText('Pauses {0}', pauses)].join(' · ');
   }
-  const phases = section.querySelector('.timeline-phases');
-  phases?.replaceChildren(...segments.map(segment => {
-    const bar = node('span');
-    bar.dataset.phase = segment.event.kind === 'resumed' ? 'printing' : segment.event.kind;
-    bar.title = [tr(segment.phase), clock.format(segment.start * 1000), mins((segment.end - segment.start) / 60)].join(' · ');
-    bar.style.setProperty('--timeline-start', position(segment.start) + '%');
-    bar.style.setProperty('--timeline-width', Math.max(0, position(segment.end) - position(segment.start)) + '%');
-    return bar;
-  }));
-  const axis = section.querySelector('.timeline-axis');
-  axis?.replaceChildren(...(span > 0 ? [0, .25, .5, .75, 1] : [0]).map(ratio => {
-    const tick = node('time', clock.format((first + ratio * span) * 1000));
-    tick.style.setProperty('--timeline-position', ratio * 100 + '%');
-    return tick;
-  }));
-  const legend = section.querySelector('.timeline-legend');
-  legend?.replaceChildren(...[...new Set(segments.map(segment => segment.phase))].map(phase => {
-    const item = node('span', tr(phase));
-    item.dataset.phase = segments.find(segment => segment.phase === phase).event.kind.replace('resumed', 'printing');
-    return item;
-  }));
+  renderTimelineBand(section, segments, first, span, position, clock);
   const markers = section.querySelector('.timeline-markers');
   markers?.replaceChildren();
   days.replaceChildren();
   let previousDay, list;
   entries.forEach((event, index) => {
-    const slots = event.kind === 'spool' ? (event.slots || []).map(([box, slot]) =>
-      formatText('ACE {0} · emplacement {1}', Number(box) + 1, slot)).join(', ') : '';
-    const shortages = event.kind === 'filament_low' ? (event.shortages || []).map(slot => formatText('Emplacement {0}', slot)).join(', ') : '';
     const timestamp = event.time * 1000;
     const currentDay = day.format(timestamp);
     if (currentDay !== previousDay) {
@@ -432,7 +630,7 @@ export function printTimeline(id, events = []) {
       previousDay = currentDay;
     }
     const label = tr(timelineLabels[event.kind]);
-    const detail = [slots, shortages].filter(Boolean).join(' · ');
+    const detail = timelineDetail(event);
     const time = node('time', clock.format(timestamp));
     time.dateTime = new Date(timestamp).toISOString();
     const pill = node('span', null, 'timeline-icon');
@@ -529,12 +727,20 @@ export function message(text, error = false) {
   $('message').classList.toggle('error', error);
 }
 /** Renvoie une promesse booléenne ; un libellé destructif donne la priorité à l’annulation. */
-export function confirmAction(text, destructiveLabel = '') {
+export function confirmAction(question, destructiveLabel = '') {
+  const {text, title, label, items = [], note} = typeof question === 'string' ? {text:question} : question;
   return new Promise((resolve) => {
     const d = $('confirm-dialog');
     const yes = $('confirm-yes'), no = $('confirm-no');
+    set('confirm-title', title || tr('Confirmer'));
     set('confirm-text', text);
-    set('confirm-yes', destructiveLabel || tr('Confirmer'));
+    set('confirm-yes', label || destructiveLabel || tr('Confirmer'));
+    set('confirm-severity', tr(destructiveLabel ? 'Destructive' : 'Ordinaire'));
+    const list = $('confirm-items');
+    list.replaceChildren(...items.map(name => node('li', name)));
+    list.hidden = !items.length;
+    $('confirm-note').hidden = !note;
+    set('confirm-note', note || '');
     d.dataset.severity = destructiveLabel ? 'destructive' : 'ordinary';
     yes.classList.toggle('primary', !destructiveLabel);
     yes.classList.toggle('danger', !!destructiveLabel);

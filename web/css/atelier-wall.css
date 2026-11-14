@@ -1,36 +1,60 @@
-/* La grille suit l’orientation de l’écran et garde les températures près du projet. */
+/* L’image garde la priorité en paysage et remonte au-dessus des mesures en portrait. */
 :root { color-scheme: dark; }
 body { margin: 0; background: var(--atelier-bg); color: var(--atelier-fg); font: var(--atelier-reading-font); font-variant-numeric: tabular-nums; }
-.wall { display: grid; gap: var(--atelier-space-5); padding: var(--atelier-space-5); }
+.wall { box-sizing: border-box; display: grid; gap: var(--atelier-space-4); padding: var(--atelier-space-4); }
 .wall :is(h1, h2, p, dl) { margin: 0; overflow-wrap: anywhere; }
-.wall header { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--atelier-space-3); min-block-size: var(--atelier-touch-control); padding-inline-end: calc(var(--atelier-touch-control) + var(--atelier-space-3)); }
-.wall header time { margin-inline-start: auto; color: var(--atelier-muted); }
+.wall-header { display: grid; grid-template-columns: minmax(0, auto) 1fr auto auto auto; align-items: center; gap: var(--atelier-space-3); }
+.wall-header h1, #wall-clock { font-size: var(--atelier-wall-heading); font-weight: var(--atelier-semibold); }
+#wall-updated, .wall-muted, #wall-temperature dt, .wall-remaining { color: var(--atelier-muted); }
+#wall-updated { font: var(--atelier-caption); text-align: end; }
+#wall-clock { justify-self: end; white-space: nowrap; }
+#wall-state[data-active="true"]::before, #wall-live::before { content: ""; display: inline-block; inline-size: var(--atelier-wall-dot); block-size: var(--atelier-wall-dot); border-radius: 50%; margin-inline-end: var(--atelier-wall-dot-gap); background: var(--atelier-accent); }
 #wall-exit {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-end: 0;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  inline-size: var(--atelier-touch-control);
-  block-size: var(--atelier-touch-control);
-  border: var(--atelier-rule) solid var(--atelier-line);
-  border-radius: var(--atelier-control-radius);
-  color: inherit;
-  font-size: var(--atelier-title-size);
-  line-height: 1;
-  text-decoration: none;
+  display: grid; place-items: center; justify-self: end; box-sizing: border-box;
+  inline-size: var(--atelier-control); block-size: var(--atelier-control);
+  border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius);
+  color: inherit; font-size: var(--atelier-title-size); line-height: 1; text-decoration: none;
 }
 #wall-exit:focus-visible { outline: var(--atelier-rule) solid var(--atelier-accent); }
-.wall-task { display: grid; gap: var(--atelier-space-4); align-items: center; }
-.wall-task img { width: 100%; max-height: 45dvh; object-fit: contain; }
-#wall-progress-text { font-size: var(--atelier-machine-responsive-size); font-weight: var(--atelier-semibold); }
-#wall-progress { width: 100%; accent-color: var(--atelier-accent); }
-#wall-temperature, #wall-ace { display: flex; gap: var(--atelier-space-4); flex-wrap: wrap; }
-#wall-temperature div, #wall-ace article { padding: var(--atelier-space-4); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-card-radius); }
-#wall-temperature dd { margin: 0; font-size: var(--atelier-title-size); }
-#wall-ace ul { list-style: none; padding: 0; }
-#wall-ace li { display: flex; gap: var(--atelier-space-2); align-items: center; }
-.wall-warning { color: var(--atelier-warning); }
-.wall-swatch { width: var(--atelier-icon); height: var(--atelier-icon); border-radius: var(--atelier-pill-radius); border: var(--atelier-rule) solid var(--atelier-line); }
-@media (orientation: landscape) { .wall-task { grid-template-columns: 1fr 1fr; } }
+.wall-task { display: grid; gap: var(--atelier-space-4); min-block-size: 0; }
+.wall-visual, .wall-readings, #wall-ace article {
+  min-inline-size: 0; background: var(--atelier-surface); border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+}
+.wall-visual { position: relative; display: grid; place-items: center; min-block-size: 0; overflow: hidden; }
+.wall-visual img { inline-size: 100%; block-size: 100%; min-block-size: 0; object-fit: contain; }
+#wall-live { position: absolute; z-index: 1; inset: var(--atelier-space-3) auto auto var(--atelier-space-3); padding: var(--atelier-space-1) var(--atelier-space-3); background: var(--atelier-bg); border-radius: var(--atelier-pill-radius); font: var(--atelier-caption); }
+#wall-live::before { background: var(--atelier-error); }
+.wall-readings { padding: var(--atelier-space-4); }
+.wall-progress-line { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--atelier-space-2); }
+#wall-progress-text { font-size: var(--atelier-wall-progress); line-height: 1.25; font-weight: var(--atelier-semibold); }
+.wall progress { display: block; width: 100%; accent-color: var(--atelier-accent); }
+.wall [hidden] { display: none; }
+#wall-temperature { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--atelier-space-3); margin-block-start: var(--atelier-space-3); }
+#wall-temperature dd { margin: 0; font-size: var(--atelier-title-size); font-weight: var(--atelier-semibold); }
+#wall-temperature small { font: var(--atelier-caption); }
+#wall-ace { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--atelier-space-3); }
+#wall-ace article { padding: var(--atelier-space-2) var(--atelier-space-4); }
+#wall-ace h2 { display: flex; align-items: center; flex-wrap: wrap; gap: var(--atelier-space-2); font-size: var(--atelier-wall-spool-title); }
+.wall-swatch { flex: none; width: var(--atelier-icon); height: var(--atelier-icon); border-radius: 50%; border: var(--atelier-rule) solid var(--atelier-line); }
+#wall-ace article[data-engaged="true"] { border-color: var(--atelier-accent); }
+.wall-engaged { margin-inline-start: auto; padding-inline: var(--atelier-space-2); border-radius: var(--atelier-pill-radius); background: var(--atelier-accent); color: var(--atelier-on-accent); font: var(--atelier-caption); }
+.wall-remaining { display: flex; justify-content: space-between; gap: var(--atelier-space-2); font: var(--atelier-caption); }
+.wall-warning, .wall-spool[data-low="true"] strong { color: var(--atelier-warning); }
+.wall-spool[data-low="true"] progress { accent-color: var(--atelier-warning); }
+.wall-drying { grid-column: 1 / -1; }
+@media (orientation: landscape) and (min-width: 720px) {
+  .wall { grid-template-rows: auto minmax(0, 1fr) auto; min-block-size: 100dvh; }
+  .wall-task { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .wall-visual { max-block-size: 75dvh; }
+  #wall-ace { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .wall-drying { grid-column: auto; }
+}
+@media (orientation: portrait), (max-width: 719px) {
+  .wall-header { grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--atelier-space-1) var(--atelier-space-2); }
+  #wall-clock { grid-area: 1 / 2; }
+  #wall-exit { grid-area: 1 / 3; }
+  #wall-state { grid-area: 2 / 1; }
+  #wall-updated { grid-area: 2 / 2 / 3 / 4; }
+  .wall-visual { aspect-ratio: 16 / 9; }
+}

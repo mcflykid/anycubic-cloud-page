@@ -53,7 +53,7 @@ test('la fiche terminée expose l’évaluation et la confirmation de réimpress
  await expect(three).toBeEnabled();
  await three.check();
  await expect(page.locator('#rating-form button[type=submit]')).toBeEnabled();
- await expect(page.locator('#rating-value')).toHaveText('3 sur 5');
+ await expect(page.locator('#rating-value')).toHaveText('3 sur 5 · Correct');
  await expect(three).toBeChecked();
  await three.focus();
  await expect(three).toBeFocused();
@@ -90,7 +90,7 @@ test('une note déjà donnée reste consultable sans renvoi', async ({page}) => 
  await page.getByRole('button',{name:'Voir le détail',exact:true}).first().click();
  await page.getByRole('button',{name:'Évaluer',exact:true}).click();
  const dialog = page.locator('#task-rating-dialog');
- await expect(dialog.locator('#rating-value')).toHaveText('4 sur 5');
+ await expect(dialog.locator('#rating-value')).toHaveText('4 sur 5 · Très bien');
  await expect(dialog.getByRole('radio',{name:'4 ★',exact:true})).toBeChecked();
  await expect(dialog.locator('button[type=submit]')).toBeDisabled();
 });
@@ -625,7 +625,7 @@ test('un préréglage de séchage remplit les champs avant toute confirmation', 
  await temperature.fill('45');
  await dialog.locator('[name=hours]').fill('4');
  await start.click();
- await expect(page.locator('#confirm-text')).toContainText('ces paramètres');
+ await expect(page.locator('#confirm-text')).toHaveText('ACE 2 Pro va sécher les bobines à 45 °C pendant 4 h.');
  await page.locator('#confirm-no').click();
  expect(commands).toHaveLength(0);
  await start.click();

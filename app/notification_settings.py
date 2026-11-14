@@ -167,7 +167,7 @@ def alert_groups(config):
     ]
     for index, (title, note, events) in enumerate(ALERT_GROUPS):
         boxes = "".join(
-            f'<label class="discord-event"><input type="checkbox" name="{key}"'
+            f'<label class="discord-event" id="discord-{key}"><input type="checkbox" name="{key}"'
             f"{' checked' if key in config.ace_events else ''}>"
             f"<span><strong>{label}</strong><span>{description}</span></span></label>"
             for key, label, description in events
@@ -198,6 +198,49 @@ def report_schedule(delivery):
         f"<span>Fuseau de l’atelier</span> <strong>{html.escape(zone_name)}</strong></p>"
         f'<p class="discord-next"><span>{last}</span> <span>Prochain bilan</span> '
         f'<time datetime="{upcoming.isoformat()}">{upcoming.strftime("%d/%m %H:%M")}</time></p></section>'
+    )
+
+
+def ace_discord_preview():
+    """Illustre les alertes avec des exemples fixes qui ne lisent aucune donnée d’installation."""
+    examples = (
+        (
+            "success",
+            "10:31",
+            "Séchage PETG terminé",
+            (("Température", "55 °C"), ("Durée", "6 h"), ("Humidité", "18 %")),
+        ),
+        (
+            "warning",
+            "13:02",
+            "Séchage interrompu",
+            (("Prévu", "PLA · 4 h"), ("Écoulé", "2 h 10"), ("Humidité", "26 %")),
+        ),
+        (
+            "error",
+            "14:47",
+            "Chargement de l’emplacement 3 refusé",
+            (("ACE", "1"), ("Matière", "PETG"), ("Résultat", "Refusé")),
+        ),
+    )
+    messages = []
+    for tone, hour, title, fields in examples:
+        measures = "".join(
+            f"<div><dt>{label}</dt><dd>{value}</dd></div>" for label, value in fields
+        )
+        messages.append(
+            f'<article class="discord-preview-message" data-tone="{tone}">'
+            '<span class="discord-preview-avatar" aria-hidden="true">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 18a4 4 0 0 1-1-7.9 5.5 5.5 0 0 1 10.5-1.4A4.7 4.7 0 0 1 17 18Z"/></svg></span>'
+            "<div><header><strong>Anycubic Cloud Page</strong> <small>APP</small> "
+            f'<span>Aujourd’hui à {hour}</span></header><div class="discord-preview-embed">'
+            f"<strong>{title}</strong><dl>{measures}</dl>"
+            "<p>Kobra S1 · Démonstration · Ouvrir l’atelier</p></div></div></article>"
+        )
+    return (
+        '<section class="discord-preview" aria-labelledby="discord-preview-title">'
+        '<h2 id="discord-preview-title">Aperçu dans Discord</h2>'
+        '<div class="discord-preview-channel">' + "".join(messages) + "</div></section>"
     )
 
 
@@ -236,6 +279,7 @@ def discord_page(delivery, message="", status=200, *, report=False):
     )
     event_fields = "" if report else alert_groups(config)
     schedule = report_schedule(delivery) if report else ""
+    preview = "" if report else ace_discord_preview()
     # Les bilans affichent leur dernier envoi dans « Envois » : l’en-tête ne garde que l’état du webhook.
     if report:
         last_delivery = ""
@@ -289,6 +333,7 @@ def discord_page(delivery, message="", status=200, *, report=False):
     </footer>
   </form>
 </section>
+{preview}
 <a class="discord-back" href="/imprimante.html">Retour à l’atelier</a>
 </main>"""
     return web.Response(

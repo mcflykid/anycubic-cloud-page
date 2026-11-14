@@ -10,12 +10,26 @@
 </head>
 <body>
 <main class="wall">
-  <header><h1 id="wall-printer">Imprimante</h1><p id="wall-state" role="status">Connexion en cours</p><time id="wall-updated"></time><a id="wall-exit" href="/imprimante.html" aria-label="Quitter la Vue mur" title="Quitter la Vue mur"><span aria-hidden="true">×</span></a></header>
+  <header class="wall-header">
+    <h1 id="wall-printer">Imprimante</h1><p id="wall-state" role="status">Connexion en cours</p>
+    <time id="wall-updated"></time><time id="wall-clock"></time>
+    <a id="wall-exit" href="/imprimante.html" aria-label="Quitter la Vue mur" title="Quitter la Vue mur"><span aria-hidden="true">×</span></a>
+  </header>
   <section class="wall-task">
-    <div><h2 id="wall-job">Aucune impression en cours.</h2><p id="wall-progress-text"></p><progress id="wall-progress" max="100" aria-label="Progression" hidden></progress><p id="wall-timing"></p><p id="wall-finish" tabindex="0" hidden></p><p id="wall-last-result"></p></div>
-    <div><img id="wall-camera" alt="" hidden><img id="wall-preview" alt="" hidden></div>
+    <div class="wall-visual"><span id="wall-live" hidden>Caméra en direct</span><img id="wall-camera" alt="" hidden><img id="wall-preview" alt="" hidden></div>
+    <div class="wall-readings">
+      <p class="wall-muted">Tâche d’impression</p><h2 id="wall-job">Aucune impression en cours.</h2>
+      <div class="wall-progress-line"><p id="wall-progress-text"></p><p id="wall-layer" class="wall-muted"></p></div>
+      <progress id="wall-progress" max="100" aria-label="Progression" hidden></progress>
+      <dl id="wall-temperature">
+        <div><dt>Temps restant</dt><dd id="wall-timing">—</dd></div>
+        <div><dt>Fin prévue</dt><dd id="wall-finish" hidden></dd><dd id="wall-no-finish">—</dd></div>
+        <div><dt>Buse</dt><dd id="wall-nozzle">—</dd></div>
+        <div><dt>Plateau</dt><dd id="wall-bed">—</dd></div>
+      </dl>
+      <p id="wall-last-result"></p>
+    </div>
   </section>
-  <dl id="wall-temperature"></dl>
   <section id="wall-ace" aria-label="Bobines"></section>
 </main>
 <script type="module" src="/imprimante-api/ui/js/workshop-wall.mjs"></script>
