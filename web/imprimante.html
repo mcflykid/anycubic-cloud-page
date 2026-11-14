@@ -354,16 +354,19 @@
     <section class="atelier-card settings-security" aria-labelledby="settings-security-title">
       <header class="atelier-card-header"><h2 id="settings-security-title">Sécurité</h2></header>
       <div class="atelier-card-body settings-channels">
-        <div class="settings-channel"><span><strong>Connexion à deux facteurs</strong></span><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
+        <div class="atelier-field">
+          <span>Connexion à deux facteurs</span>
+          <div class="settings-channel-controls"><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
+        </div>
       </div>
       <footer class="atelier-card-footer"><p>Un code temporaire est demandé après le mot de passe.</p></footer>
     </section>
     <section class="atelier-card settings-discord" aria-labelledby="settings-discord-title" <!-- DISCORD_CARD_VISIBILITY -->>
       <header class="atelier-card-header"><h2 id="settings-discord-title">Notifications Discord</h2></header>
       <div class="atelier-card-body settings-channels">
-        <div class="settings-channel settings-channel-pair">
-          <span class="settings-channel-item"><strong>Alertes</strong><span class="atelier-status settings-status-dot" data-state="<!-- DISCORD_BADGE_STATE -->"><span class="sr-only"><!-- DISCORD_STATE --></span></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></span>
-          <span class="settings-channel-item"><strong>Bilans</strong><span class="atelier-status settings-status-dot" data-state="<!-- REPORTS_BADGE_STATE -->"><span class="sr-only"><!-- REPORTS_STATE --></span></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Configurer</a></span>
+        <div class="settings-channel-pair">
+          <div class="atelier-field"><span>Alertes</span><div class="settings-channel-controls"><span class="atelier-status settings-status-dot" data-state="<!-- DISCORD_BADGE_STATE -->"><span class="sr-only"><!-- DISCORD_STATE --></span></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></div></div>
+          <div class="atelier-field"><span>Bilans</span><div class="settings-channel-controls"><span class="atelier-status settings-status-dot" data-state="<!-- REPORTS_BADGE_STATE -->"><span class="sr-only"><!-- REPORTS_STATE --></span></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Configurer</a></div></div>
         </div>
       </div>
       <footer class="atelier-card-footer"><p>Un webhook et un salon distincts par canal.</p></footer>
