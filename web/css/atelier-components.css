@@ -75,9 +75,12 @@ button.atelier-control-icon {
   border-color: var(--atelier-error);
   color: var(--atelier-error);
 }
+/* La bordure pointillée signale l’indisponibilité sans dépendre de la couleur :
+   en contraste élevé, le texte atténué redevient presque blanc. */
 .atelier-control:disabled {
-  background: var(--atelier-bg);
-  color: var(--atelier-muted);
+  background: transparent;
+  border-style: dashed;
+  color: color-mix(in srgb, var(--atelier-muted) 70%, var(--atelier-bg));
   opacity: 1;
 }
 .atelier-status {
