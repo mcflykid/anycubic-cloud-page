@@ -188,4 +188,4 @@ Les fiches personnelles résident dans le navigateur. Dans **ACE et filaments �
 
 ### Originaux tranchés de l’historique
 
-Dans le détail d’une tâche terminée de l’imprimante sélectionnée, ouvrez **Originaux tranchés** pour importer un `.gcode` ou `.gcode.3mf`. L’empreinte SHA-256 distingue les fichiers de même nom et élimine les doublons de contenu. L’archive reste dans le volume privé d’état, avec un quota de 512 Mio et 100 Mio par fichier. Elle est incluse dans la sauvegarde d’`appdata`.
+Dans le détail d’une tâche terminée de l’imprimante sélectionnée, ouvrez **Originaux tranchés** pour importer un `.gcode` ou `.gcode.3mf`. L’empreinte SHA-256 distingue les fichiers de même nom et élimine les doublons de contenu. L’archive reste dans le volume privé d’état, avec un quota de 512 Mio et 100 Mio par fichier. Le détail affiche l’espace utilisé. **Retirer** dissocie un fichier après confirmation et libère sa place quand aucune autre tâche ne le référence. L’archive est incluse dans la sauvegarde d’`appdata`.

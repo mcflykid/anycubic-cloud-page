@@ -826,6 +826,8 @@ export function createHistory(request, command, selectedBox) {
     const read = async () => {
       const result = await request(path, {printerKey:target});
       if (!stillCurrent()) return;
+      set('past-task-archive-usage', formatText('{0} / {1} Mio utilisés',
+        fmt(result.used_bytes / 1024 ** 2), fmt(result.limit_bytes / 1024 ** 2)));
       list.replaceChildren(...result.files.map(file => {
         const entry = node('li');
         const filePath = path + '/' + file.sha256;
@@ -833,7 +835,22 @@ export function createHistory(request, command, selectedBox) {
         download.href = '/imprimante-api' + filePath + '?printer=' + encodeURIComponent(target);
         const label = node('span', file.name + ' · SHA-256 ' + file.sha256.slice(0, 12));
         label.title = file.sha256;
-        entry.append(label, download);
+        const remove = extraButton(tr('Retirer'), async () => {
+          if (pending || !stillCurrent()) return;
+          pending = true;
+          try {
+            if (!(await confirmAction(formatText('Retirer « {0} » de cette tâche ?', file.name), tr('Retirer'))) ||
+                !stillCurrent()) return;
+            await request(filePath, {method:'DELETE', printerKey:target});
+            status(tr('Original retiré.'));
+            await read();
+          } catch (error) {
+            status(error.message);
+          } finally {
+            pending = false;
+          }
+        });
+        entry.append(label, download, remove);
         return entry;
       }));
     };
@@ -1032,6 +1049,7 @@ export function createHistory(request, command, selectedBox) {
     $('past-task-archive-input').onchange = null;
     $('past-task-archive-list').replaceChildren();
     set('past-task-archive-status', '');
+    set('past-task-archive-usage', '');
     extra.dataset.history = 'true';
     extra.hidden = true;
     set('past-task-name', t.name);
@@ -1156,6 +1174,7 @@ export function createHistory(request, command, selectedBox) {
     $('past-task-archive-input').onchange = null;
     $('past-task-archive-list').replaceChildren();
     set('past-task-archive-status', '');
+    set('past-task-archive-usage', '');
     set('rating-task-name', t.name);
     set('rating-task-summary', [t.end ? date(t.end) : '', t.status ? tr(t.status) : ''].filter(Boolean).join(' · '));
     set('rating-state', tr('Vérification auprès d’Anycubic…'));

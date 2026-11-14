@@ -92,5 +92,12 @@ test('les originaux tranchés sont dédupliqués et téléchargés depuis l’hi
   const download = await pendingDownload;
   expect(download.suggestedFilename()).toBe(file.name);
   expect(require('node:fs').readFileSync(await download.path())).toEqual(file.buffer);
-  await expect(archive.locator('li button')).toHaveCount(0);
+  await expect(archive.locator('#past-task-archive-usage')).toContainText('512 Mio');
+  await archive.getByRole('button', {name:'Retirer'}).click();
+  await page.locator('#confirm-no').click();
+  await expect(archive.locator('li')).toHaveCount(1);
+  await archive.getByRole('button', {name:'Retirer'}).click();
+  await page.locator('#confirm-yes').click();
+  await expect(archive.locator('li')).toHaveCount(0);
+  await expect(archive.locator('#past-task-archive-usage')).toContainText('0 / 512 Mio');
 });

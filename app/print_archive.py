@@ -52,6 +52,41 @@ class PrintArchive:
             ).fetchall()
         return [dict(sha256=digest, name=name, size=size) for digest, name, size in rows]
 
+    def _disk_usage(self, referenced=None):
+        used = 0
+        for path in self.root.iterdir():
+            if not DIGEST.fullmatch(path.name):
+                continue
+            if referenced is not None and path.name not in referenced:
+                path.unlink(missing_ok=True)
+            else:
+                used += path.stat().st_size
+        return used
+
+    def usage(self):
+        """Indique l’espace partagé entre toutes les tâches, sans compter deux fois une empreinte."""
+        with self._index() as db:
+            db.execute("BEGIN IMMEDIATE")
+            return {"used_bytes": self._disk_usage(), "limit_bytes": ARCHIVE_LIMIT}
+
+    def remove(self, printer, task, digest):
+        """Retire la référence de cette tâche et libère la copie physique si elle était la dernière."""
+        if not DIGEST.fullmatch(digest):
+            raise web.HTTPNotFound()
+        with self._index() as db:
+            db.execute("BEGIN IMMEDIATE")
+            removed = db.execute(
+                "DELETE FROM originals WHERE printer=? AND task=? AND digest=?",
+                (printer, task, digest),
+            ).rowcount
+            if not removed:
+                raise web.HTTPNotFound()
+            # Valider l’index avant d’effacer le fichier évite une référence cassée après un arrêt.
+            db.commit()
+            db.execute("BEGIN IMMEDIATE")
+            if not db.execute("SELECT 1 FROM originals WHERE digest=?", (digest,)).fetchone():
+                (self.root / digest).unlink(missing_ok=True)
+
     def add(self, printer, task, name, staged):
         """Vérifie l’original puis indexe une copie sans dupliquer son contenu."""
         size = staged.stat().st_size
@@ -83,23 +118,28 @@ class PrintArchive:
         blob = self.root / digest
         with self._index() as db:
             db.execute("BEGIN IMMEDIATE")
-            if db.execute(
+            existing = db.execute(
                 "SELECT 1 FROM originals WHERE printer=? AND task=? AND digest=?",
                 (printer, task, digest),
-            ).fetchone():
+            ).fetchone()
+            if existing and blob.is_file():
                 return digest
             count = db.execute("SELECT COUNT(*) FROM originals").fetchone()[0]
-            used = sum(
-                item.stat().st_size for item in self.root.iterdir() if DIGEST.fullmatch(item.name)
-            )
-            if count >= MAX_ENTRIES or (not blob.exists() and used + size > ARCHIVE_LIMIT):
+            # Récupère aussi les copies restées seules après un arrêt du service.
+            referenced = {row[0] for row in db.execute("SELECT DISTINCT digest FROM originals")}
+            used = self._disk_usage(referenced)
+            if (not existing and count >= MAX_ENTRIES) or (
+                not blob.exists() and used + size > ARCHIVE_LIMIT
+            ):
                 raise ValueError("Le quota d’archivage est atteint")
             os.chmod(staged, 0o600)
             if not blob.exists():
                 os.link(staged, blob)
-            db.execute(
-                "INSERT INTO originals VALUES (?, ?, ?, ?, ?)", (printer, task, digest, name, size)
-            )
+            if not existing:
+                db.execute(
+                    "INSERT INTO originals VALUES (?, ?, ?, ?, ?)",
+                    (printer, task, digest, name, size),
+                )
         return digest
 
     def resolve(self, printer, task, digest):

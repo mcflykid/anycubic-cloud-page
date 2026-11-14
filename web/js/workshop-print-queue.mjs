@@ -61,18 +61,16 @@ export function bindPrintQueue(request, command) {
     next.disabled = pending || Boolean(reason);
   }
 
-  /** Affiche les références de la cible et les entrées à vérifier après redémarrage. */
-  function render() {
-    renderReady();
-    $('queue-empty').hidden = pending || rows.length > 0 || Boolean($('queue-state').textContent);
-    $('queue-count').hidden = !rows.length;
-    set('queue-count', rows.length || '');
+  /** Recalcule l’heure sur chaque relevé sans reconstruire les contrôles de la file. */
+  function renderTotals() {
     const totals = rows.map(row => row.details?.seconds).filter(Number.isFinite);
     const grams = rows.flatMap(row => row.details?.filaments || []).map(row => row.grams).filter(Number.isFinite);
     const seconds = totals.reduce((sum, value) => sum + value, 0);
-    // L’heure de fin n’a de sens que si toutes les durées sont connues.
-    const finish = totals.length === rows.length && seconds
-      ? new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone}).format(Date.now() + seconds * 1000) : '';
+    const printer = workshopState.snapshot?.printer;
+    const remaining = printer?.job_in_progress || printer?.job_is_paused ? printer.job_time_remaining : 0;
+    // Une durée manquante rend l’heure de fin trompeuse, même si la file seule est complète.
+    const finish = totals.length === rows.length && seconds > 0 && Number.isFinite(remaining) && remaining >= 0
+      ? new Intl.DateTimeFormat(locale, {timeStyle:'short', timeZone}).format(Date.now() + seconds * 1000 + remaining * 60000) : '';
     $('queue-totals').hidden = !rows.length;
     $('queue-totals').replaceChildren(...[
       [rows.length === 1 ? tr('1 impression') : formatText('{0} impressions', rows.length)],
@@ -84,6 +82,15 @@ export function bindPrintQueue(request, command) {
       if (value) part.append(node('b', value));
       return part;
     }));
+  }
+
+  /** Affiche les références de la cible et les entrées à vérifier après redémarrage. */
+  function render() {
+    renderReady();
+    $('queue-empty').hidden = pending || rows.length > 0 || Boolean($('queue-state').textContent);
+    $('queue-count').hidden = !rows.length;
+    set('queue-count', rows.length || '');
+    renderTotals();
     $('queue-list').replaceChildren(...rows.map((row, index) => {
       const item = node('li');
       const grip = node('span', null, 'queue-grip');
@@ -188,7 +195,10 @@ export function bindPrintQueue(request, command) {
   return {
     add: handle => load({action:'add', handle}),
     async observe(printer, target) {
-      if (dialog.open && !pending) renderReady();
+      if (dialog.open && !pending && target === queueTarget) {
+        renderReady();
+        renderTotals();
+      }
       if (!target || !printer?.command_project || printer.printer_online !== true) return;
       const previous = observed.get(target);
       const current = {project:printer.command_project, active:printer.job_in_progress === true};
