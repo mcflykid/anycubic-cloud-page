@@ -603,13 +603,15 @@
   <section id="printer-timeline" class="atelier-card-body print-timeline" hidden><div class="timeline-band"><div class="timeline-markers"></div><div class="timeline-phases"></div><div class="timeline-axis"></div><div class="timeline-legend"></div></div><div class="timeline-days"></div></section>
 </dialog>
 <dialog id="queue-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="queue-title">
-  <header class="atelier-card-header"><h2 id="queue-title">File d’attente</h2><span id="queue-totals" class="muted"></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <header class="atelier-card-header"><h2 id="queue-title">File d’attente</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
   <div class="atelier-card-body queue-body">
     <p id="queue-state" role="status"></p>
+    <div id="queue-ready" class="queue-ready" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16h18M5 16l2-6h10l2 6M12 10V5"/></svg><div><strong id="queue-ready-title"></strong><p id="queue-ready-text" class="muted"></p></div><button id="queue-next" class="atelier-control atelier-control-primary" type="button" disabled>Plateau libéré</button></div>
+    <p id="queue-totals" class="queue-totals" hidden></p>
     <div id="queue-empty" class="atelier-empty" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h5l1 3h6l1-3h5M5 5h14l2 8v6H3v-6Z"/></svg><strong>La file d’attente est vide</strong><p>Ajoutez des fichiers depuis l’onglet Fichiers. À la fin d’une impression, la suivante vous sera proposée une fois le plateau libéré.</p></div>
     <ol id="queue-list" class="queue-list"></ol>
   </div>
-  <footer class="atelier-card-footer"><p class="muted">Rien ne démarre seul : chaque lancement repasse par la confirmation.</p><button id="queue-add-files" class="atelier-control" type="button">Ajouter un fichier</button><button id="queue-next" class="atelier-control atelier-control-primary" type="button" hidden disabled>Plateau libéré, préparer la suivante</button></footer>
+  <footer class="atelier-card-footer"><p class="muted">Rien ne démarre seul : chaque lancement repasse par la confirmation.</p><button id="queue-add-files" class="atelier-control" type="button">Ajouter un fichier</button></footer>
 </dialog>
 <dialog id="maintenance-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="maintenance-title">
   <header class="atelier-card-header"><h2 id="maintenance-title">Entretien</h2><span id="maintenance-summary" class="atelier-status" hidden></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
