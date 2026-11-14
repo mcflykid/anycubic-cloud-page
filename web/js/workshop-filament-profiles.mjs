@@ -1,4 +1,3 @@
-import { bindSpoolInventory } from './workshop-spool-inventory.mjs';
 import { $, fmt, formatText, node, set, tr } from './workshop-ui.mjs';
 
 import { communityFilamentVariants, manufacturerProfiles, officialPlaBasicVariants } from './filament-profiles-data.mjs';
@@ -164,7 +163,6 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
 
 /** Les fiches restent consultables sans avoir chargé la matière dans l’ACE. */
 export function bindFilamentCatalogue() {
-  bindSpoolInventory();
   const dialog = $('filament-catalogue-dialog');
   const search = $('filament-catalogue-search');
   const list = $('filament-catalogue-list');

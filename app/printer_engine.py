@@ -416,7 +416,6 @@ class Engine:
         self.lock = asyncio.Lock()
         self.events = collections.deque(maxlen=40)
         self.cloudfiles = {}
-        self.archived_cloudfiles = collections.deque(maxlen=200)
         self.commands = collections.OrderedDict()
         self.preview_cache = {}
         self.mqtt_replies = printer_files.MQTTReplies()

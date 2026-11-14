@@ -418,17 +418,6 @@ async def api(request):
                 return await archive_upload(request, archive, "demo", task)
             except ValueError as error:
                 return web.json_response({"ok": False, "message": str(error)}, status=400)
-        if request.method == "POST" and len(extra) == 2 and extra[1] == "prepare":
-            archive.resolve("demo", task, extra[0])
-            return web.json_response(
-                {
-                    "ok": True,
-                    "handle": "demo-archive",
-                    "details": {
-                        "filaments": [{"material": "PLA", "grams": 1, "color": [235, 235, 235]}]
-                    },
-                }
-            )
         if request.method == "GET" and len(extra) == 1:
             return archive_download(*archive.resolve("demo", task, extra[0]))
         if request.method == "GET" and not extra:

@@ -11,71 +11,11 @@
     "de": "Original importieren",
     "it": "Importa un originale"
   },
-  "Transférer pour réimprimer": {
-    "en": "Transfer to reprint",
-    "es": "Transferir para reimprimir",
-    "de": "Zum erneuten Drucken übertragen",
-    "it": "Trasferisci per ristampare"
-  },
   "Original archivé.": {
     "en": "Original archived.",
     "es": "Original archivado.",
     "de": "Original archiviert.",
     "it": "Originale archiviato."
-  },
-  "Original transféré dans l’espace Cloud.": {
-    "en": "Original transferred to cloud storage.",
-    "es": "Original transferido al almacenamiento en la nube.",
-    "de": "Original in den Cloud-Speicher übertragen.",
-    "it": "Originale trasferito nell’archivio cloud."
-  },
-  "Inventaire des bobines": {
-    "en": "Spool inventory",
-    "es": "Inventario de bobinas",
-    "de": "Spuleninventar",
-    "it": "Inventario delle bobine"
-  },
-  "Nom de la bobine physique": {
-    "en": "Physical spool name",
-    "es": "Nombre de la bobina física",
-    "de": "Name der physischen Spule",
-    "it": "Nome della bobina fisica"
-  },
-  "Référence du filament": {
-    "en": "Filament reference",
-    "es": "Referencia del filamento",
-    "de": "Filamentreferenz",
-    "it": "Riferimento del filamento"
-  },
-  "Identifiant Spoolman facultatif": {
-    "en": "Optional Spoolman ID",
-    "es": "ID de Spoolman opcional",
-    "de": "Optionale Spoolman-ID",
-    "it": "ID Spoolman facoltativo"
-  },
-  "Exporter les associations Spoolman (JSON)": {
-    "en": "Export Spoolman mappings (JSON)",
-    "es": "Exportar asociaciones de Spoolman (JSON)",
-    "de": "Spoolman-Zuordnungen exportieren (JSON)",
-    "it": "Esporta associazioni Spoolman (JSON)"
-  },
-  "Stockage local indisponible.": {
-    "en": "Local storage is unavailable.",
-    "es": "Almacenamiento local no disponible.",
-    "de": "Lokaler Speicher nicht verfügbar.",
-    "it": "Memoria locale non disponibile."
-  },
-  "Cette bobine est déjà enregistrée.": {
-    "en": "This spool is already registered.",
-    "es": "Esta bobina ya está registrada.",
-    "de": "Diese Spule ist bereits erfasst.",
-    "it": "Questa bobina è già registrata."
-  },
-  "Inventaire limité à 500 bobines.": {
-    "en": "The inventory is limited to 500 spools.",
-    "es": "Inventario limitado a 500 bobinas.",
-    "de": "Inventar auf 500 Spulen begrenzt.",
-    "it": "Inventario limitato a 500 bobine."
   },
   "Modes combinés en attente de validation sur l’imprimante.": {
     "en": "Combined modes are pending printer validation.",

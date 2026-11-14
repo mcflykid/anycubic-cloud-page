@@ -19,7 +19,7 @@ from camera_sessions import (
     schedule_camera_expiry as schedule_camera_expiry,
 )
 from file_preview import find_project_preview_url
-from print_archive import PrintArchive, archive_download, archive_upload, prepare_archived_print
+from print_archive import PrintArchive, archive_download, archive_upload
 from file_uploads import purge_abandoned_uploads, upload_operation
 from cloud_extras import download_preview, key as task_key, trusted_url
 from temperature_history import TemperatureHistory, ace_readings
@@ -977,23 +977,6 @@ async def archived_original(req):
             return archive_download(*await asyncio.to_thread(archive.resolve, target, task, digest))
         rows = await asyncio.to_thread(archive.list, target, task)
         return web.json_response({"files": rows}, headers={"Cache-Control": "private, no-store"})
-    if req.match_info.get("digest"):
-        row, path = await asyncio.to_thread(archive.resolve, target, task, req.match_info["digest"])
-        if not row["name"].casefold().endswith(".gcode"):
-            raise ValueError(
-                "La réimpression depuis l’archive accepte uniquement les fichiers .gcode."
-            )
-        async with storage_upload_operation(req, selected):
-            try:
-                return web.json_response(await prepare_archived_print(selected, row, path))
-            except Exception:
-                return web.json_response(
-                    {
-                        "ok": False,
-                        "message": "Transfert non confirmé. Vérifiez les fichiers Cloud avant un nouvel essai.",
-                    },
-                    status=409,
-                )
     if selected.extras is None:
         raise ValueError("Impression historique non disponible")
     known = selected.extras.task(task)
@@ -1295,7 +1278,6 @@ app.add_routes(
         web.get("/imprimante-api/archive/{task}", archived_original, allow_head=False),
         web.post("/imprimante-api/archive/{task}", archived_original),
         web.get("/imprimante-api/archive/{task}/{digest}", archived_original, allow_head=False),
-        web.post("/imprimante-api/archive/{task}/{digest}/prepare", archived_original),
         web.post("/imprimante-api/upload", upload),
         web.post("/imprimante-api/preflight", print_preflight),
         web.post("/imprimante-api/preview", preview),

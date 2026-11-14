@@ -14,8 +14,6 @@ from aiofiles import open as aio_open
 from aiohttp import web
 
 from file_uploads import UPLOAD_LIMIT
-from print_preflight import ensure_storage_ready
-from printer_values import safeget
 from upload_formats import validate_cloud_model
 
 
@@ -161,27 +159,3 @@ def archive_download(row, path):
             "X-Content-Type-Options": "nosniff",
         },
     )
-
-
-async def prepare_archived_print(engine, row, path):
-    """Transfère un G-code seul et identifie le fichier Cloud sans lancer l’imprimante."""
-    client = engine.api
-    ensure_storage_ready(
-        safeget(await client.get_user_cloud_store(), "available_bytes"), row["size"]
-    )
-    with tempfile.TemporaryDirectory(prefix="upload-", dir=engine.state_dir) as directory:
-        transfer = Path(directory) / "original.gcode"
-        os.link(path, transfer)
-        identifier = await client.upload_file_to_cloud(
-            full_file_path=str(transfer), file_name=row["name"]
-        )
-    latest = await client.get_latest_cloud_file()
-    if not latest or latest.id != identifier or not latest.gcode_id:
-        raise ValueError("Le fichier envoyé n’a pas pu être identifié. Vérifiez l’espace Cloud.")
-    handle = hashlib.sha256(str(identifier).encode()).hexdigest()[:20]
-    engine.cloudfiles[handle] = latest
-    engine.archived_cloudfiles.append(handle)
-    from printer_files import cloud_filament_details
-
-    print_details = cloud_filament_details(latest, safeget(engine, "printer.machine_name"))
-    return {"ok": True, "handle": handle, "details": print_details}
