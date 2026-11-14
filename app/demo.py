@@ -3,6 +3,7 @@
 import argparse, base64, csv, io, json, math, os, re, tempfile, time
 from pathlib import Path
 from aiohttp import web
+from print_archive import PrintArchive, archive_download, archive_upload
 from native_controls import TIMELAPSE_GALLERY_ENABLED
 from notification_discord import DiscordResult
 from notification_settings import discord_enabled, install_discord
@@ -28,6 +29,7 @@ from web_host import (
 
 T = time.time()
 NOTICES = web.AppKey("notices", list)
+ARCHIVE = web.AppKey("archive", PrintArchive)
 SLICER_NOTICES = web.AppKey("slicer_notices", list)
 PRINT_TASKS = web.AppKey("print_tasks", list)
 MAINTENANCE = web.AppKey("maintenance", Path)
@@ -282,6 +284,9 @@ SCENARIO_NAMES = (
     "humidite-absente",
     "chauffe-lente",
     "chute-en-impression",
+    "ace-deux-boitiers",
+    "ace-deconnecte",
+    "ace-reconnecte",
     "mise-a-jour-notes",
     "mise-a-jour-obligatoire",
 )
@@ -303,6 +308,30 @@ def scenario_status(name, printer, at):
             for i in range(17)
         ]
         extra["drying_advice"] = drying_advice(printer, DEMO_PRESETS, samples, at)
+    elif name.startswith("ace-"):
+        box["humidity"] = 0
+        box["measurement_freshness"] = {
+            "humidity": {
+                "state": "fresh" if name == "ace-deux-boitiers" else "stale",
+                "source": "mqtt",
+                "age_s": 3 if name == "ace-deux-boitiers" else 140,
+            }
+        }
+        box["spools"][1].update(spool_loaded=False, rfid=False, remaining_percent=None)
+        box["loaded_slot"] = 0
+        box["spools"][2].update(rfid=True, spool_loaded=True, filament_recognition="unknown")
+        box["spools"][2].pop("filament_profile", None)
+        second = {
+            **box,
+            "index": 1,
+            "box_id": 1,
+            "loaded_slot": None,
+            "humidity": None,
+            "measurement_freshness": {"humidity": {"state": "missing"}},
+            "spools": [{**row, "display_slot": i + 5} for i, row in enumerate(box["spools"])],
+        }
+        printer["boxes"] = [box, second]
+        extra["mqtt_connected"] = name != "ace-deconnecte"
     elif name in ("chauffe-lente", "chute-en-impression"):
         slow = name == "chauffe-lente"
         printer.update(
@@ -379,6 +408,21 @@ async def api(request):
                 return web.json_response({"ok": False, "message": "État inconnu"}, status=400)
             request.app[SCENARIO]["name"] = name
         return web.json_response({"name": request.app[SCENARIO]["name"], "names": SCENARIO_NAMES})
+    if path.startswith("archive/"):
+        _, task, *extra = path.split("/")
+        if not any(row["key"] == task and row["status_code"] not in (0, 1) for row in tasks):
+            raise web.HTTPNotFound()
+        archive = request.app[ARCHIVE]
+        if request.method == "POST" and not extra:
+            try:
+                return await archive_upload(request, archive, "demo", task)
+            except ValueError as error:
+                return web.json_response({"ok": False, "message": str(error)}, status=400)
+        if request.method == "GET" and len(extra) == 1:
+            return archive_download(*archive.resolve("demo", task, extra[0]))
+        if request.method == "GET" and not extra:
+            return web.json_response({"files": archive.list("demo", task)})
+        raise web.HTTPNotFound()
     if path == "maintenance":
         file = request.app[MAINTENANCE]
         hours, material = PRINTER["statistics"]["hours"], PRINTER["statistics"]["material"]
@@ -560,7 +604,7 @@ async def api(request):
             },
             "updated_at": T,
             "mqtt_updated_at": T,
-            "mqtt_connected": True,
+            "mqtt_connected": extra.get("mqtt_connected", True),
             "presets": DEMO_PRESETS,
             "notifications": {
                 "source": "slicer",
@@ -712,10 +756,31 @@ async def api(request):
                     "serialized_preparation": {"auto_leveling": 0, "camera_timelapse": 1},
                     "cloud_accepted": True,
                     "matches_active_job": True,
+                    "option_evidence": {
+                        "timelapse_requested": True,
+                        "timelapse_artifact_observed": None,
+                        "combined_drying_available": False,
+                    },
                 },
                 "signals": [{"transport": "mqtt", "phase": "receive", "type": "print", "ms": 1}],
             }
             details = d["developer"]
+            connected = request.app[SCENARIO]["name"] != "ace-deconnecte"
+            details["mqtt_connected"] = connected
+            details["freshness_s"]["mqtt_updated_at"] = 1 if connected else 140
+            details["connection"] = {
+                "cloud": {
+                    "state": "available",
+                    "last_success_age_s": 6,
+                    "session": "idle",
+                    "cause": None,
+                },
+                "mqtt": {
+                    "state": "connected" if connected else "disconnected",
+                    "last_success_age_s": 1 if connected else 140,
+                    "cause": None if connected else "mqtt_disconnected",
+                },
+            }
             details["findings"] = diagnostic_findings(
                 details["freshness_s"],
                 details["ace"],
@@ -737,6 +802,7 @@ def create_demo(authenticated=False):
     app[PRINT_TASKS] = [dict(x) for x in TASKS]
     # Le registre réel écrit un fichier : la démonstration lui donne un dossier jetable.
     app[MAINTENANCE] = Path(tempfile.mkdtemp(prefix="cloud-page-demo-")) / "maintenance.json"
+    app[ARCHIVE] = PrintArchive(app[MAINTENANCE].parent)
     app[MAINTENANCE].write_text(json.dumps(MAINTENANCE_FIXTURE), encoding="utf-8")
     app[QUEUE] = [dict(x) for x in QUEUE_FIXTURE]
     app[SCENARIO] = {"name": "standard"}

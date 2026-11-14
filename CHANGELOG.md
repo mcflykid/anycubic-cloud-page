@@ -1,5 +1,17 @@
 # Changements
 
+## En préparation
+
+- Indique la provenance et la fraîcheur des températures, de la ventilation et des mesures ACE (#412).
+- Suit les demandes de séchage manuel jusqu’à un retour du boîtier ciblé ou un état à vérifier (#413).
+- Ajoute la sauvegarde et la restauration privées d’`appdata` et le transfert des fiches personnelles du navigateur (#414).
+- Explique les associations RFID et ajoute quatre références régionales PLA Basic confirmées par Anycubic (#415, #416).
+
+- Détaille les incidents Cloud et MQTT dans le diagnostic expurgé et ajoute des états fictifs ACE à deux boîtiers (#417, #418).
+- Permet d’importer et de télécharger les originaux tranchés depuis le détail d’une impression (#419).
+- Documente les preuves attendues pour le séchage combiné et le timelapse (#421).
+- Fiabilise la provenance des mesures, l’affichage des valeurs anciennes et la confirmation du séchage, avec des tests d’intégration (#424, #425, #426, #427, #428, #429, #430, #431, #432, #433).
+
 ## 2.0.0 — 2026-11-14
 
 Première version publique de référence d’Anycubic Cloud Page. Cette édition présente les fonctions disponibles dans l’application.

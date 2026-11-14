@@ -16,6 +16,19 @@ def filament_profile_for_sku(sku):
     return _SKU_PROFILES.get(sku) if isinstance(sku, str) else None
 
 
+def filament_recognition(sku, rfid, loaded):
+    """Explique l’association exacte sans exposer un SKU privé ou arbitraire."""
+    if loaded is not True:
+        return "empty" if loaded is False else "unreported"
+    if rfid is not True:
+        return "manual" if rfid is False else "unreported"
+    if not isinstance(sku, str) or not sku.strip():
+        return "missing"
+    if sku not in _SKU_PROFILES:
+        return "unknown"
+    return "exact" if _SKU_PROFILES[sku] else "ambiguous"
+
+
 # Les noms des profils sont des repères de lecture, jamais une preuve de compatibilité ACE.
 FAMILIES = frozenset(
     {

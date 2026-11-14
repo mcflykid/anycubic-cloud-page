@@ -34,6 +34,74 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.e.printer = self.p
         self.e.api = SimpleNamespace()
 
+    async def test_measurement_routing_rejects_retained_and_unprocessed_reports(self):
+        """Le routeur n’attribue la mesure qu’après traitement, sur la boucle du moteur."""
+        import json
+        from unittest.mock import patch
+
+        self.p.key = "device-fixture"
+        self.p.printer_online = True
+        self.p.curr_nozzle_temp = 0
+        self.p.multi_color_box = []
+        self.e.measurement_loop = asyncio.get_running_loop()
+        applied = asyncio.Event()
+        observe = self.e.measurements.mqtt
+
+        def save(*args):
+            observe(*args)
+            applied.set()
+
+        self.e.measurements.mqtt = save
+        api = object.__new__(adapter.CloudPageAPI)
+        api.cloud_engine = self.e
+        api.measurement_epoch = object()
+        self.e.api = api
+        api._mqtt_client = SimpleNamespace(is_connected=lambda: True)
+        message = SimpleNamespace(
+            topic="anycubic/anycubicCloud/v1/printer/app/20025/device-fixture/tempature",
+            payload=json.dumps(
+                {
+                    "type": "tempature",
+                    "action": "auto",
+                    "state": "done",
+                    "data": {"curr_nozzle_temp": 0},
+                }
+            ).encode(),
+            retain=True,
+        )
+
+        def routed(_message):
+            api.cloud_printer_updated()
+
+        def reading():
+            return self.e.snapshot()["printer"]["measurement_freshness"]["curr_nozzle_temp"]
+
+        with patch.object(adapter.AnycubicMQTTAPI, "_mqtt_message_router", side_effect=routed):
+            api._mqtt_message_router(message)
+            await asyncio.sleep(0)
+            self.assertEqual(reading()["state"], "missing")
+            message.retain = False
+            await asyncio.to_thread(api._mqtt_message_router, message)
+        await asyncio.wait_for(applied.wait(), 1)
+        self.assertEqual(reading()["state"], "fresh")
+        api._mqtt_client = SimpleNamespace(is_connected=lambda: False)
+        self.assertEqual(reading()["state"], "stale")
+        self.e.measurements = type(self.e.measurements)()
+        with patch.object(adapter.AnycubicMQTTAPI, "_mqtt_message_router"):
+            api._mqtt_message_router(message)
+            await asyncio.sleep(0)
+        self.assertEqual(reading()["state"], "missing")
+
+    async def test_drying_exception_clears_observation(self):
+        """Un transport interrompu ne laisse pas l’interface en attente d’une confirmation."""
+        from printer_commands import execute_command
+
+        self.e.api.measurement_epoch = object()
+        self.p.multi_color_box_drying_start = AsyncMock(side_effect=TimeoutError)
+        with self.assertRaises(TimeoutError):
+            await execute_command(self.e, "dry-start", {"hours": 2, "temperature": 50})
+        self.assertIsNone(self.e.measurements.drying_observation(0, self.e.api.measurement_epoch))
+
     async def test_retired_axis_query_cannot_update_printer_freshness(self):
         """Un rapport tardif de l’ancienne consultation ne rafraîchit pas la machine."""
         import json
@@ -128,7 +196,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         }
         self.e.stored_print_trace = (
             self.p,
-            {"cloud_accepted": True},
+            {"cloud_accepted": True, "serialized_preparation": {"camera_timelapse": 1}},
             "request",
             "old-project",
             "private-witness.gcode.3mf",
@@ -149,6 +217,9 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(trace["fresh_project_reported"])
         self.assertTrue(trace["expected_file_reported"])
         self.assertFalse(trace["preparation_identified"])
+        self.assertTrue(trace["option_evidence"]["timelapse_requested"])
+        self.assertIsNone(trace["option_evidence"]["timelapse_artifact_observed"])
+        self.assertFalse(trace["option_evidence"]["combined_drying_available"])
 
     async def test_cloud_files_keep_slice_order_and_omit_unusable_mapping(self):
         """Les couleurs suivent l’ordre du fichier et les données illisibles gardent la saisie manuelle."""

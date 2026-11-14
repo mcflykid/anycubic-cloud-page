@@ -1,4 +1,124 @@
 {
+  "Originaux tranchés": {
+    "en": "Sliced originals",
+    "es": "Originales laminados",
+    "de": "Geslicte Originale",
+    "it": "Originali affettati"
+  },
+  "Importer un original": {
+    "en": "Import an original",
+    "es": "Importar un original",
+    "de": "Original importieren",
+    "it": "Importa un originale"
+  },
+  "Original archivé.": {
+    "en": "Original archived.",
+    "es": "Original archivado.",
+    "de": "Original archiviert.",
+    "it": "Originale archiviato."
+  },
+  "Modes combinés en attente de validation sur l’imprimante.": {
+    "en": "Combined modes are pending printer validation.",
+    "es": "Modos combinados pendientes de validación en la impresora.",
+    "de": "Kombinierte Modi warten auf die Prüfung am Drucker.",
+    "it": "Modalità combinate in attesa di convalida sulla stampante."
+  },
+  "Exporter les fiches personnelles": {
+    "en": "Export personal profiles",
+    "es": "Exportar fichas personales",
+    "de": "Eigene Profile exportieren",
+    "it": "Esporta schede personali"
+  },
+  "Restaurer les fiches personnelles": {
+    "en": "Restore personal profiles",
+    "es": "Restaurar fichas personales",
+    "de": "Eigene Profile wiederherstellen",
+    "it": "Ripristina schede personali"
+  },
+  "Remplacer les fiches personnelles de ce navigateur ?": {
+    "en": "Replace personal profiles in this browser?",
+    "es": "¿Reemplazar las fichas personales de este navegador?",
+    "de": "Eigene Profile in diesem Browser ersetzen?",
+    "it": "Sostituire le schede personali di questo browser?"
+  },
+  "Fiches personnelles restaurées": {
+    "en": "Personal profiles restored",
+    "es": "Fichas personales restauradas",
+    "de": "Eigene Profile wiederhergestellt",
+    "it": "Schede personali ripristinate"
+  },
+  "Fiche associée par SKU exact": {
+    "en": "Profile matched by exact SKU",
+    "es": "Ficha asociada por SKU exacto",
+    "de": "Profil durch exakte SKU zugeordnet",
+    "it": "Scheda associata tramite SKU esatto"
+  },
+  "SKU RFID absent": {
+    "en": "RFID SKU missing",
+    "es": "Falta el SKU RFID",
+    "de": "RFID-SKU fehlt",
+    "it": "SKU RFID mancante"
+  },
+  "SKU RFID inconnu du catalogue": {
+    "en": "RFID SKU not in catalogue",
+    "es": "SKU RFID desconocido en el catálogo",
+    "de": "RFID-SKU nicht im Katalog",
+    "it": "SKU RFID assente dal catalogo"
+  },
+  "SKU RFID ambigu": {
+    "en": "Ambiguous RFID SKU",
+    "es": "SKU RFID ambiguo",
+    "de": "Mehrdeutige RFID-SKU",
+    "it": "SKU RFID ambiguo"
+  },
+  "Non relevé": {
+    "en": "Not reported",
+    "es": "Sin lectura",
+    "de": "Nicht gemeldet",
+    "it": "Non rilevato"
+  },
+  "Âge inconnu": {
+    "en": "Unknown age",
+    "es": "Antigüedad desconocida",
+    "de": "Alter unbekannt",
+    "it": "Età sconosciuta"
+  },
+  "Périmé": {
+    "en": "Stale",
+    "es": "Desactualizado",
+    "de": "Veraltet",
+    "it": "Non aggiornato"
+  },
+  "{0} s": {
+    "en": "{0} s",
+    "es": "{0} s",
+    "de": "{0} s",
+    "it": "{0} s"
+  },
+  "Demande d’arrêt envoyée": {
+    "en": "Stop request sent",
+    "es": "Solicitud de parada enviada",
+    "de": "Stoppanfrage gesendet",
+    "it": "Richiesta di arresto inviata"
+  },
+  "Demande de séchage envoyée": {
+    "en": "Drying request sent",
+    "es": "Solicitud de secado enviada",
+    "de": "Trocknungsanfrage gesendet",
+    "it": "Richiesta di asciugatura inviata"
+  },
+  "État du séchage confirmé par l’ACE": {
+    "en": "Drying state confirmed by the ACE",
+    "es": "Estado de secado confirmado por el ACE",
+    "de": "Trocknungsstatus vom ACE bestätigt",
+    "it": "Stato di asciugatura confermato dall’ACE"
+  },
+  "État du séchage à vérifier": {
+    "en": "Check the drying state",
+    "es": "Compruebe el estado de secado",
+    "de": "Trocknungsstatus prüfen",
+    "it": "Verificare lo stato di asciugatura"
+  },
   "Développeur": {
     "en": "Developer",
     "es": "Desarrollo",

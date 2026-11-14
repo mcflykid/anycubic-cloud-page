@@ -19,6 +19,7 @@ from camera_sessions import (
     schedule_camera_expiry as schedule_camera_expiry,
 )
 from file_preview import find_project_preview_url
+from print_archive import PrintArchive, archive_download, archive_upload
 from file_uploads import purge_abandoned_uploads, upload_operation
 from cloud_extras import download_preview, key as task_key, trusted_url
 from temperature_history import TemperatureHistory, ace_readings
@@ -464,6 +465,14 @@ async def diagnostic(req):
                 and stored_print["fresh_project_reported"]
                 and stored_print["expected_file_reported"]
             )
+        if stored_print is not None:
+            preparation = stored_print.get("serialized_preparation") or {}
+            stored_print["option_evidence"] = {
+                # Une option sérialisée et un lancement accepté ne prouvent pas un artefact vidéo.
+                "timelapse_requested": preparation.get("camera_timelapse") == 1,
+                "timelapse_artifact_observed": None,
+                "combined_drying_available": False,
+            }
         primary = getattr(engine.api, "cloud_engine", None)
         sample = engine.mqtt_clock_sample
         signal_age = round(time.monotonic() - sample[0]) if sample else None
@@ -535,6 +544,34 @@ async def diagnostic(req):
             ],
         }
         details = payload["developer"]
+        session_phase = getattr(engine.api, "session_phase", "idle")
+        if session_phase not in ("renewing", "renewed", "deferred", "refused"):
+            session_phase = "idle"
+        mqtt_at = getattr(engine, "mqtt_exchange_at", None)
+        mqtt_age = (
+            max(0, round(now_s - datetime.fromisoformat(mqtt_at).timestamp())) if mqtt_at else None
+        )
+        details["connection"] = {
+            "cloud": {
+                "state": "available" if payload["cloud_available"] else "unavailable",
+                "last_success_age_s": details["freshness_s"]["updated_at"],
+                "last_success_at": snapshot.get("updated_at"),
+                "cause": "reconnect_required"
+                if getattr(getattr(engine, "account", None), "login_blocked", False)
+                else "session_" + session_phase
+                if session_phase in ("renewing", "deferred", "refused")
+                else "cloud_unavailable"
+                if not payload["cloud_available"]
+                else None,
+                "session": session_phase,
+            },
+            "mqtt": {
+                "state": "connected" if details["mqtt_connected"] else "disconnected",
+                "last_success_age_s": mqtt_age,
+                "last_success_at": mqtt_at,
+                "cause": "mqtt_disconnected" if not details["mqtt_connected"] else None,
+            },
+        }
         details["findings"] = diagnostic_findings(
             details["freshness_s"],
             details["ace"],
@@ -925,6 +962,29 @@ async def print_preflight(req):
     )
 
 
+async def archived_original(req):
+    """Limite les originaux à la machine et à la tâche sélectionnées."""
+    selected = request_engine(req)
+    if selected.printer is None:
+        raise ValueError("Imprimante non disponible")
+    task = req.match_info["task"]
+    if not re.fullmatch(r"[a-f0-9]{20}", task):
+        raise web.HTTPNotFound()
+    target = printer_key(selected.printer.id)
+    archive = PrintArchive(selected.state_dir)
+    if req.method == "GET":
+        if digest := req.match_info.get("digest"):
+            return archive_download(*await asyncio.to_thread(archive.resolve, target, task, digest))
+        rows = await asyncio.to_thread(archive.list, target, task)
+        return web.json_response({"files": rows}, headers={"Cache-Control": "private, no-store"})
+    if selected.extras is None:
+        raise ValueError("Impression historique non disponible")
+    known = selected.extras.task(task)
+    if str(known.get("print_status")) not in ("2", "3"):
+        raise ValueError("Attendez la fin de la tâche avant d’importer un original")
+    return await archive_upload(req, archive, target, task)
+
+
 async def upload(req):
     """Renvoie l’acceptation du transfert dédupliqué ; lève ValueError si invalide, trop gros ou machine indisponible."""
     engine = request_engine(req)
@@ -1215,6 +1275,9 @@ app.add_routes(
         web.post("/imprimante-api/camera-session", camera),
         web.post("/imprimante-api/camera-presence", camera_presence),
         web.post("/imprimante-api/camera-close", camera_close),
+        web.get("/imprimante-api/archive/{task}", archived_original, allow_head=False),
+        web.post("/imprimante-api/archive/{task}", archived_original),
+        web.get("/imprimante-api/archive/{task}/{digest}", archived_original, allow_head=False),
         web.post("/imprimante-api/upload", upload),
         web.post("/imprimante-api/preflight", print_preflight),
         web.post("/imprimante-api/preview", preview),

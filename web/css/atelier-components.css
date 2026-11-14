@@ -484,3 +484,6 @@ button.atelier-count { border: 0; cursor: pointer; }
 .ace-drying-advice-actions { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }
 /* La grille de l’Imprimante place les cartes sans espacement de rangée au-dessus d’elles. */
 .printer-workspace > .print-heat-warning { margin-block-end: var(--atelier-space-3); }
+
+/* Le thème fournit le contraste de l’avertissement dans les deux modes. */
+#temperatures [data-stale="true"] { color: var(--atelier-warning); }

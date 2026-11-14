@@ -89,6 +89,7 @@ class RecentReports(unittest.TestCase):
         spools = engine.snapshot()["printer"]["boxes"][0]["spools"]
         self.assertEqual(spools[0]["filament_profile"], "PLA Glow")
         self.assertNotIn("filament_profile", spools[1])
+        self.assertEqual([s["filament_recognition"] for s in spools], ["exact", "unknown"])
 
     def test_preparation_is_busy_and_terminal_project_is_not_revived(self):
         """Toutes les phases connues interdisent une machine libre ; un rapport tardif respecte la fin."""

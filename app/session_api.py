@@ -25,6 +25,7 @@ class SessionRecovery:
     ):
         """Partage le budget HTTP et configure le renouvellement sérialisé de la session."""
         self._cloud_request_budget = cloud_request_budget or CloudRequestBudget()
+        self.session_phase = "idle"
         self._session_lock = asyncio.Lock()
         self._session_generation = 0
         self._session_retry_after = 0
@@ -70,6 +71,7 @@ class SessionRecovery:
             if generation == self._session_generation:
                 if time.monotonic() < self._session_retry_after:
                     raise CloudSessionAuthError("Reconnexion Anycubic en attente")
+                self.session_phase = "renewing"
                 try:
                     try:
                         await self._get_user_token_with_access_token()
@@ -81,8 +83,10 @@ class SessionRecovery:
                         await self._get_user_token_with_access_token()
                     self._session_generation += 1
                     self._session_retry_after = 0
+                    self.session_phase = "renewed"
                 except Exception as error:
                     self._session_retry_after = time.monotonic() + 60
+                    self.session_phase = "deferred"
                     log_event(
                         _log,
                         logging.WARNING,
@@ -104,6 +108,7 @@ class SessionRecovery:
             response = await super()._fetch_api_resp(*args, **kwargs)
         except AnycubicHTTPUnauthorized:
             self._session_retry_after = time.monotonic() + 60
+            self.session_phase = "refused"
             log_event(
                 _log,
                 logging.WARNING,
@@ -114,5 +119,6 @@ class SessionRecovery:
             raise CloudSessionAuthError("Session Anycubic refusée après reconnexion") from None
         if self._expired(response):
             self._session_retry_after = time.monotonic() + 60
+            self.session_phase = "refused"
             raise CloudSessionAuthError("Session Anycubic refusée après reconnexion")
         return response
