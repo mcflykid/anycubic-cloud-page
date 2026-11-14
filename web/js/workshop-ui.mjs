@@ -489,9 +489,10 @@ export function measurement(value, suffix, reading) {
   const age = formatText('{0} s', reading.age_s);
   return [formatted, source + ' · ' + age, reading.state === 'stale' ? tr('Périmé') : null].filter(Boolean).join(' · ');
 }
-/** Formate des minutes arrondies en durée lisible ; une valeur absente reste inconnue. */
+/** Formate des minutes arrondies en durée lisible ; une valeur absente, négative ou illisible reste inconnue. */
 export const mins = (v) => {
-  if (v == null) return '—';
+  // Anycubic envoie -1 pour « non communiqué » : l’afficher en « 0 min » ferait croire à une fin imminente.
+  if (v == null || !(Number(v) >= 0)) return '—';
   const n = Math.max(0, Math.round(v)),
     h = Math.floor(n / 60),
     m = n % 60;
