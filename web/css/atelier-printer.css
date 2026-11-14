@@ -441,6 +441,10 @@
 
 /* Sur les écrans bas, la frise tient avec les quatre cartes grâce aux marges réduites. */
 @media (max-height: 800px) and (min-width: 900px) {
+  html[data-style] .workshop-frame #atelier > #tab-overview {
+    padding-block: var(--atelier-space-2);
+    gap: var(--atelier-space-2);
+  }
   #tab-overview .atelier-card-body { padding-block: var(--atelier-space-2); }
   #tab-overview .atelier-card-header, #tab-overview .atelier-card-footer { padding-block: var(--atelier-space-2); }
   .printer-task-info { gap: var(--atelier-space-1); }
