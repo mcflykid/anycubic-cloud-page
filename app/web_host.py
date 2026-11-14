@@ -865,7 +865,7 @@ def render_page(
     content = build_web_assets(ROOT)[0]["imprimante.html"].replace(
         "<!-- APP_VERSION -->", html.escape(APP_VERSION)
     )
-    content = content.replace("<!-- TOTP_BADGE_STATE -->", "normal" if totp_active else "unknown")
+    content = content.replace("<!-- TOTP_BADGE_STATE -->", "normal" if totp_active else "disabled")
     content = content.replace("<!-- TOTP_STATE -->", "Activée" if totp_active else "Désactivée")
     content = (
         content.replace(
