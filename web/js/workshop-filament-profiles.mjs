@@ -93,22 +93,47 @@ function remainingValue(percent) {
   return value;
 }
 
+const KEY_FACTS = new Set(['Buse', 'Plateau', 'Vitesse d’impression', 'Débit volumique maximal']);
+
+/** En-tête produit : la fenêtre dit d’abord de quel filament il s’agit, puis d’où vient la bobine. */
+function showIdentity(spool, hex, product, sku) {
+  const body = $('filament-profile-dialog').querySelector('.filament-profile-body');
+  let identity = $('filament-profile-identity');
+  if (!identity) {
+    identity = node('section', null, 'filament-identity');
+    identity.id = 'filament-profile-identity';
+    body.prepend(identity);
+  }
+  const swatch = node('span', null, 'filament-identity-swatch');
+  if (hex[0]) swatch.style.setProperty('--swatch', hex[0]);
+  else swatch.dataset.unknown = 'true';
+  const text = node('div', null, 'filament-identity-text');
+  text.append(node('strong', product));
+  if (sku) text.append(node('span', sku, 'muted'));
+  identity.replaceChildren(swatch, text);
+  if (spool) {
+    const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
+      ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
+    rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
+    identity.append(rfid);
+  }
+}
+
 /** Affiche la bobine lue par l’ACE, puis les valeurs d’impression et de séchage de la fiche. */
 function showProfile(spool, title, hex, name, profile, personal, variant = null) {
   set('filament-slot-title', title);
   set('filament-profile-reference', formatText(personal ? 'Fiche personnelle « {0} »' : 'Valeurs du fabricant pour {0}', name));
   $('filament-slot-title').closest('section').hidden = !spool;
   if (spool) {
-    const rfid = node('span', tr(spool.rfid === true ? 'RFID reconnu' : spool.rfid === false
-      ? 'Configuration manuelle' : 'Inconnu'), 'atelier-count');
-    rfid.dataset.state = spool.rfid === true ? 'ok' : 'unknown';
+    const remaining = item('Filament restant', remainingValue(spool.remaining_percent));
+    remaining.dataset.wide = 'true';
     $('filament-profile-reading').replaceChildren(
       item('Matériau', spool.material_type || '—'),
       item('Couleur du filament', colorValue(hex)),
-      item('Filament restant', remainingValue(spool.remaining_percent)),
-      item('Identification', rfid),
+      remaining,
     );
   }
+  showIdentity(spool, variant?.hex ? [variant.hex] : hex, variant && !name.endsWith(variant.color) ? name + ' · ' + variant.color : name, variant?.sku);
   const source = $('filament-profile-source');
   source.href = variant?.url ?? (variant?.productId ? profile.url + '?variant=' + variant.productId : profile.url);
   const communitySource = $('filament-profile-community-source');
@@ -125,7 +150,13 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
   const range = ([min, max], unit) => fmt(min) + '–' + fmt(max, unit);
   const fill = (id, values) => {
     const shown = values.filter(([, value]) => value != null);
-    $(id).replaceChildren(...shown.map(([label, value]) => item(label, value)));
+    // Les quatre réglages qu’on recopie dans le slicer passent devant, en tuiles.
+    const ranked = [...shown.filter(([label]) => KEY_FACTS.has(label)), ...shown.filter(([label]) => !KEY_FACTS.has(label))];
+    $(id).replaceChildren(...ranked.map(([label, value]) => {
+      const pair = item(label, value);
+      if (KEY_FACTS.has(label)) pair.dataset.key = 'true';
+      return pair;
+    }));
     $(id).closest('section').hidden = !shown.length;
   };
   fill('filament-profile-facts', [
@@ -159,6 +190,13 @@ function showProfile(spool, title, hex, name, profile, personal, variant = null)
     ['Résistance à la flexion', withTolerance(properties.bending, ' MPa')],
   ] : []);
   $('filament-profile-dialog').showModal();
+}
+
+/** Met en évidence le texte recherché sans interpréter le nom comme du HTML. */
+function highlight(text, query) {
+  const index = query ? text.toLocaleLowerCase().indexOf(query) : -1;
+  if (index < 0) return [text];
+  return [text.slice(0, index), node('mark', text.slice(index, index + query.length)), text.slice(index + query.length)];
 }
 
 /** Les fiches restent consultables sans avoir chargé la matière dans l’ACE. */
@@ -208,22 +246,70 @@ export function bindFilamentCatalogue() {
     for (const variant of communityFilamentVariants) {
       variants.set(variant.sku, {...variants.get(variant.sku), ...variant});
     }
-    const rows = [...variants.values()]
+    const all = [...variants.values()];
+    const rows = all
       .filter(({profile, color, sku}) => [profile, color, sku].some(value => value.toLocaleLowerCase().includes(query)))
       .sort((left, right) => left.profile.localeCompare(right.profile) || left.color.localeCompare(right.color));
-    list.replaceChildren(...rows.map(variant => {
-      const entry = node('li');
-      const name = variant.profile + ' · ' + variant.color;
-      const button = node('button', name + ' · ' + variant.sku, 'atelier-control');
-      button.type = 'button';
-      button.onclick = () => showProfile(null, '', [], name, manufacturerProfiles[variant.profile], false, variant);
-      entry.append(button);
-      return entry;
+    renderRanges(all, rows);
+    const groups = Map.groupBy(rows.filter(variant => !range || variant.profile === range), variant => variant.profile);
+    list.replaceChildren(...[...groups].map(([profile, items]) => {
+      const group = node('li', null, 'catalogue-group');
+      const heading = node('p', null, 'catalogue-group-title');
+      heading.append(node('b', profile), node('span', items.length === 1 ? tr('1 référence') : formatText('{0} références', items.length)));
+      const entries = node('ul', null, 'catalogue-entries');
+      entries.append(...items.map(variant => {
+        const entry = node('li');
+        const name = variant.profile + ' · ' + variant.color;
+        const button = node('button', null, 'catalogue-entry');
+        button.type = 'button';
+        // Le nom accessible garde la gamme, absente du libellé visible regroupé sous son titre.
+        button.title = name + ' · ' + variant.sku;
+        button.setAttribute('aria-label', button.title);
+        const swatch = node('i', null, 'catalogue-swatch');
+        if (variant.hex) swatch.style.setProperty('--swatch', variant.hex);
+        else swatch.dataset.unknown = 'true';
+        const label = node('span', null, 'catalogue-name');
+        label.append(...highlight(variant.color, query));
+        button.append(swatch, label, node('code', variant.sku), node('span', '›', 'catalogue-chevron'));
+        button.onclick = () => showProfile(null, '', [], name, manufacturerProfiles[variant.profile], false, variant);
+        entry.append(button);
+        return entry;
+      }));
+      group.append(heading, entries);
+      return group;
     }));
+    set('filament-catalogue-count', formatText('{0} références', rows.length));
+    $('filament-catalogue-empty').hidden = rows.length > 0;
   };
+  let range = '';
+  /** Pastilles de gamme créées ici pour laisser intact le gabarit partagé de la fenêtre. */
+  const ranges = node('div', null, 'catalogue-ranges');
+  ranges.setAttribute('role', 'group');
+  ranges.setAttribute('aria-label', tr('Gamme'));
+  const count = node('span', null, 'muted');
+  count.id = 'filament-catalogue-count';
+  dialog.querySelector('.dialog-close').before(count);
+  const empty = node('p', tr('Aucune référence ne correspond à cette recherche.'), 'catalogue-empty');
+  empty.id = 'filament-catalogue-empty';
+  list.before(ranges);
+  list.after(empty);
+  function renderRanges(all, rows) {
+    const totals = Map.groupBy(rows, variant => variant.profile);
+    const names = [...new Set(all.map(variant => variant.profile))].sort((a, b) => a.localeCompare(b));
+    ranges.replaceChildren(...[['', rows.length], ...names.map(name => [name, totals.get(name)?.length || 0])].map(([name, total]) => {
+      const chip = node('button', name || tr('Toutes'), 'catalogue-range');
+      chip.type = 'button';
+      chip.setAttribute('aria-pressed', String(range === name));
+      chip.append(node('span', String(total)));
+      chip.disabled = !total && range !== name;
+      chip.onclick = () => { range = name; render(); };
+      return chip;
+    }));
+  }
   search.addEventListener('input', render);
   $('filament-catalogue-open').onclick = () => {
     search.value = '';
+    range = '';
     render();
     dialog.showModal();
   };

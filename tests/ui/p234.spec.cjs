@@ -522,8 +522,9 @@ test('les détails de la tâche partagent trois bandes et trois axes sans défil
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth && [...el.querySelectorAll('dt,dd')].every(item => getComputedStyle(item).whiteSpace === 'nowrap'))).toBe(true);
     if (locale === 'fr') {
       await expect(dialog.locator('#past-task-name')).toHaveCSS('text-overflow','ellipsis');
-      const axes = await dialog.locator(core).evaluateAll(bands => bands.map(band => [...band.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
-      const parameterAxes = await dialog.locator('.task-detail-parameters-column').evaluateAll(columns => columns.map(column => [...column.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return (label.right + value.left) / 2; })));
+      // Libellé au-dessus de la valeur : les colonnes s’alignent sur leur bord gauche d’une bande à l’autre.
+      const axes = await dialog.locator(core).evaluateAll(bands => bands.map(band => [...band.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return Math.abs(label.left - value.left) < 1 ? label.left : NaN; })));
+      const parameterAxes = await dialog.locator('.task-detail-parameters-column').evaluateAll(columns => columns.map(column => [...column.querySelectorAll('.task-detail-metric')].map(row => { const label = row.querySelector('dt').getBoundingClientRect(); const value = row.querySelector('dd').getBoundingClientRect(); return Math.abs(label.left - value.left) < 1 ? label.left : NaN; })));
       for (let column = 0; column < 3; column++) {
         const expected = axes[0][column];
         expect(Math.abs(axes[1][column] - expected)).toBeLessThan(2);

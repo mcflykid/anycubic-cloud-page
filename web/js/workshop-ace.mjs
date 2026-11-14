@@ -411,15 +411,24 @@ export function createAce(command, refresh) {
     set('spool-catalog-color', variant ? tr(variant.name) : '');
     spoolSave.disabled = material.disabled || !material.value ||
       (material.value === spoolInitial?.material && color.value === spoolInitial?.color);
+    // Un bouton grisé dit toujours pourquoi, juste à côté de lui.
+    set('spool-save-reason', !spoolSave.disabled ? '' : tr(material.disabled
+      ? 'Les données RFID viennent de la bobine : rien à enregistrer.'
+      : 'Modifiez le matériau ou la couleur pour enregistrer.'));
   }
+  const saveReason = node('p', null, 'muted');
+  saveReason.id = 'spool-save-reason';
+  spoolSave.before(saveReason);
   /** Interdit les actions de filament pendant une impression ou une perte de connexion. */
   function updateSpoolActions() {
     const printer = workshopState.snapshot?.printer;
     const reason = !printer?.printer_online ? 'Hors ligne'
       : printer.job_in_progress ? 'Indisponible pendant une impression' : '';
     for (const id of ['feed', 'retract', 'feed-finish']) $(id).disabled = !!reason;
-    set('spool-action-state', tr(reason));
-    $('spool-action-state').hidden = !reason;
+    // Sans blocage, la ligne rappelle la règle d’une commande à la fois au lieu de disparaître.
+    set('spool-action-state', tr(reason || 'Une commande à la fois : l’ACE confirme chaque étape avant la suivante.'));
+    $('spool-action-state').hidden = false;
+    $('spool-action-state').dataset.state = reason ? 'blocked' : 'hint';
   }
   spoolForm.addEventListener('input', event => {
     if (event.target.name !== 'slot') updateSpoolSave();
@@ -554,7 +563,7 @@ export function createAce(command, refresh) {
     set('spool-remaining', fmt(data.remaining_percent, ' %'));
     $('spool-remaining-progress').hidden = !Number.isFinite(data.remaining_percent);
     $('spool-remaining-progress').value = data.remaining_percent ?? 0;
-    set('spool-action-title', formatText('Filament de l’emplacement {0}', slot));
+    set('spool-action-title', formatText('Chargement · emplacement {0}', slot));
     set('spool-selected-state', selectedBox()?.loaded_slot === Number(slot) - 1 ? tr('Bobine engagée') : '');
     // La fiche indique la couleur de base, même si la liste représente plusieurs composantes.
     $('spool-dialog-preview').replaceChildren(spoolIllustration(data.color?.slice(0, 3), 'dialog', automatic));
@@ -584,7 +593,17 @@ export function createAce(command, refresh) {
       dot.style.backgroundColor = spoolColors(data?.color)[0] || 'transparent';
       const title = data?.spool_loaded === false || !data ? tr('Vide') : data.material_type || tr('Non renseigné');
       const origin = data?.rfid === true ? 'RFID' : data?.rfid === false ? tr('Manuel') : tr('Inconnu');
-      label.append(input, dot, node('strong', number + ' · ' + title), node('small', origin));
+      const meta = node('small', null, 'spool-slot-meta');
+      meta.append(node('span', origin));
+      label.append(input, dot, node('strong', number + ' · ' + title), meta);
+      // Le restant rend les quatre cartes comparables d’un coup d’œil.
+      if (Number.isFinite(data?.remaining_percent) && data.spool_loaded !== false) {
+        meta.append(node('span', fmt(data.remaining_percent, ' %')));
+        const gauge = node('span', null, 'spool-slot-gauge');
+        gauge.style.setProperty('--remaining', Math.max(0, Math.min(100, data.remaining_percent)) + '%');
+        gauge.setAttribute('aria-hidden', 'true');
+        label.append(gauge);
+      }
       return label;
     }));
     fillSpool(slot);

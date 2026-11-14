@@ -286,3 +286,79 @@ body:has(.workshop-frame) > dialog.ace-detail-dialog {
 #filament-profile-import-state:empty { display: none; }
 #filament-profile-import-state { margin: 0; color: var(--atelier-error); }
 #filament-profile-create .atelier-card-footer { justify-content: flex-start; }
+
+/* Catalogue Anycubic : références groupées par gamme, pastille de couleur et référence alignée, sans puce native. */
+#filament-catalogue-dialog .atelier-card-header > .muted { margin-inline-start: auto; font: var(--atelier-caption); }
+.catalogue-ranges { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); margin-block: var(--atelier-space-3); }
+.catalogue-range { display: inline-flex; align-items: center; gap: var(--atelier-space-2); min-block-size: var(--atelier-compact-control); padding: 0 var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-pill-radius); background: var(--atelier-surface); color: var(--atelier-fg); font: var(--atelier-compact-label); font-weight: var(--atelier-semibold); }
+.catalogue-range span { color: var(--atelier-muted); font-weight: var(--atelier-regular); }
+.catalogue-range[aria-pressed="true"] { border-color: color-mix(in srgb, var(--atelier-accent) 45%, var(--atelier-line)); background: color-mix(in srgb, var(--atelier-accent) 10%, var(--atelier-surface)); color: var(--atelier-accent); }
+.catalogue-range[aria-pressed="true"] span { color: inherit; }
+#filament-catalogue-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--atelier-space-4); margin: 0; padding: 0; list-style: none; }
+.catalogue-group-title { display: flex; align-items: center; gap: var(--atelier-space-2); margin: 0 0 var(--atelier-space-2); font: var(--atelier-compact-text); }
+.catalogue-group-title span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.catalogue-group-title::after { content: ""; flex: 1 1 auto; block-size: var(--atelier-rule); background: var(--atelier-line); }
+.catalogue-entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--atelier-content-min)), 1fr)); gap: var(--atelier-space-1) var(--atelier-space-2); margin: 0; padding: 0; list-style: none; }
+.catalogue-entry { display: flex; align-items: center; gap: var(--atelier-space-3); inline-size: 100%; min-block-size: var(--atelier-touch-control); padding: 0 var(--atelier-space-3);
+  border: var(--atelier-rule) solid transparent; border-radius: var(--atelier-control-radius); background: transparent; color: var(--atelier-fg); text-align: start; }
+.catalogue-entry:hover, .catalogue-entry:focus-visible { border-color: color-mix(in srgb, var(--atelier-accent) 40%, var(--atelier-line)); background: color-mix(in srgb, var(--atelier-accent) 6%, var(--atelier-surface)); }
+.catalogue-swatch { flex: 0 0 var(--atelier-icon); inline-size: var(--atelier-icon); block-size: var(--atelier-icon); border-radius: 50%; background: var(--swatch);
+  box-shadow: inset 0 0 0 var(--atelier-rule) color-mix(in srgb, var(--atelier-fg) 22%, transparent); }
+/* Couleur non publiée : motif neutre plutôt qu’une teinte inventée. */
+.catalogue-swatch[data-unknown] { background: repeating-linear-gradient(45deg, var(--atelier-line) 0 var(--atelier-hairline-gap), var(--atelier-surface) var(--atelier-hairline-gap) calc(2 * var(--atelier-hairline-gap))); }
+.catalogue-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--atelier-semibold); }
+.catalogue-name mark { border-radius: var(--atelier-hairline-gap); background: color-mix(in srgb, var(--atelier-warning) 25%, transparent); color: inherit; }
+.catalogue-entry code { color: var(--atelier-muted); font: var(--atelier-caption); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.catalogue-chevron { color: var(--atelier-muted); }
+.catalogue-empty { margin: var(--atelier-space-4) 0; color: var(--atelier-muted); text-align: center; }
+.catalogue-empty[hidden] { display: none; }
+
+/* Fiche filament : en-tête produit, réglages clés en tuiles, séchage et propriétés côte à côte. */
+.filament-profile-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.filament-profile-body > * { grid-column: 1 / -1; }
+.filament-profile-body > #filament-profile-drying-band:not([hidden]) + .filament-band:not([hidden]) { grid-column: 2; border-inline-start: var(--atelier-rule) solid var(--atelier-line); }
+.filament-profile-body > #filament-profile-drying-band:has(+ .filament-band:not([hidden])) { grid-column: 1; }
+#filament-profile-dialog #filament-profile-drying-band dl { grid-template-columns: minmax(0, 1fr); }
+.filament-identity { display: flex; align-items: center; gap: var(--atelier-space-3); padding: var(--atelier-space-4); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+.filament-identity-swatch { flex: 0 0 var(--atelier-print-swatch-size); inline-size: var(--atelier-print-swatch-size); block-size: var(--atelier-print-swatch-size); border-radius: 50%;
+  background: var(--swatch); box-shadow: inset 0 0 0 var(--atelier-rule) color-mix(in srgb, var(--atelier-fg) 25%, transparent); }
+.filament-identity-swatch[data-unknown] { background: var(--atelier-line); }
+.filament-identity-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.filament-identity-text strong { font: var(--atelier-card-title); font-weight: var(--atelier-semibold); }
+.filament-identity-text .muted { font: var(--atelier-caption); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+#filament-profile-dialog #filament-profile-reading > [data-wide] { grid-column: span 2; }
+#filament-profile-facts > [data-key] { padding: var(--atelier-space-3); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
+#filament-profile-facts > [data-key] dd { font: var(--atelier-card-title); font-weight: var(--atelier-semibold); font-variant-numeric: tabular-nums; }
+#filament-profile-dialog #filament-profile-properties { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+#filament-profile-properties > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--atelier-space-3); padding-block: var(--atelier-space-2); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+#filament-profile-properties dt { font: var(--atelier-label); }
+#filament-profile-properties dd { flex: 0 0 auto; text-align: end; white-space: nowrap; }
+#filament-profile-properties dt { min-width: 0; }
+/* La mention de provenance prend sa ligne : les trois liens tiennent alors sur une seule rangée. */
+#filament-profile-dialog .atelier-card-footer { flex-wrap: wrap; }
+#filament-profile-reference { flex-basis: 100%; }
+#filament-profile-dialog .atelier-card-footer > a { white-space: nowrap; }
+@media (max-width: 760px) {
+  .filament-profile-body { grid-template-columns: minmax(0, 1fr); }
+  .filament-profile-body > #filament-profile-drying-band:not([hidden]) + .filament-band:not([hidden]),
+  .filament-profile-body > #filament-profile-drying-band:has(+ .filament-band:not([hidden])) { grid-column: 1 / -1; border-inline-start: 0; }
+}
+
+/* Configurer une bobine : légende de groupe, restant par emplacement, lecture seule explicite. */
+.spool-slots legend { padding: 0; margin-block-end: var(--atelier-space-2); color: var(--atelier-muted); font: var(--atelier-caption); font-weight: var(--atelier-semibold); text-transform: uppercase; letter-spacing: var(--atelier-caps-tracking); text-decoration: none; }
+.spool-slot-option { row-gap: var(--atelier-space-1); }
+.spool-slot-meta { display: flex; justify-content: space-between; gap: var(--atelier-space-2); font-variant-numeric: tabular-nums; }
+.spool-slot-gauge { grid-column: 1 / -1; block-size: var(--atelier-space-1); border-radius: var(--atelier-pill-radius);
+  background: linear-gradient(90deg, var(--atelier-accent) var(--remaining), var(--atelier-line) var(--remaining)); }
+.spool-lock { display: inline-flex; align-items: center; gap: var(--atelier-space-1); color: var(--atelier-muted); font: var(--atelier-caption); }
+.spool-lock .ui-icon { inline-size: var(--atelier-timeline-marker-icon); block-size: var(--atelier-timeline-marker-icon); }
+.spool-readonly { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; border: var(--atelier-rule) solid var(--atelier-line); }
+.spool-readonly > span:first-child { color: var(--atelier-muted); }
+.spool-actions h3 { color: var(--atelier-muted); font: var(--atelier-caption); font-weight: var(--atelier-semibold); text-transform: uppercase; letter-spacing: var(--atelier-caps-tracking); }
+#spool-selected-state:not(:empty) { padding: 0 var(--atelier-space-2); border-radius: var(--atelier-pill-radius); background: color-mix(in srgb, var(--atelier-accent) 12%, var(--atelier-surface)); color: var(--atelier-accent); font: var(--atelier-caption); font-weight: var(--atelier-semibold); }
+#spool-action-state { font: var(--atelier-caption); }
+#spool-action-state[data-state="blocked"] { color: var(--atelier-warning); }
+#spool-dialog .atelier-card-footer { align-items: center; }
+#spool-save-reason { flex: 1 1 auto; margin: 0; font: var(--atelier-caption); }
+#spool-save-reason:empty { display: none; }

@@ -85,8 +85,10 @@ export function createSettings(request, command, camera) {
     if (!image.hidden) image.src = $('job-preview').src;
     fallback.hidden = !image.hidden;
     $('past-task-extra').hidden = true;
+    $('past-task-diagnostic').hidden = true;
     printTimeline('past-print-timeline', p.print_timeline);
     renderTaskBands({
+      name: p.job_name,
       progress: p.job_progress,
       currentLayer: p.job_current_layer,
       totalLayers: p.job_total_layers,

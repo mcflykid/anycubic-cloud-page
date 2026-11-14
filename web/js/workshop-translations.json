@@ -10312,5 +10312,155 @@
     "es": "Resistencia a la flexión",
     "de": "Biegefestigkeit",
     "it": "Resistenza a flessione"
+  },
+  "Préparation": {
+    "en": "Preparation",
+    "es": "Preparación",
+    "de": "Vorbereitung",
+    "it": "Preparazione"
+  },
+  "Durée {0}": {
+    "en": "Duration {0}",
+    "es": "Duración {0}",
+    "de": "Dauer {0}",
+    "it": "Durata {0}"
+  },
+  "Pauses {0}": {
+    "en": "Pauses {0}",
+    "es": "Pausas {0}",
+    "de": "Pausen {0}",
+    "it": "Pause {0}"
+  },
+  "d’après le nom du fichier": {
+    "en": "from the file name",
+    "es": "según el nombre del archivo",
+    "de": "laut Dateiname",
+    "it": "dal nome del file"
+  },
+  "Métadonnées partielles : le Cloud n’a pas transmis toutes les valeurs de ce fichier.": {
+    "en": "Partial metadata: the Cloud did not send every value for this file.",
+    "es": "Metadatos parciales: la nube no envió todos los valores de este archivo.",
+    "de": "Unvollständige Metadaten: Die Cloud hat nicht alle Werte dieser Datei übermittelt.",
+    "it": "Metadati parziali: il Cloud non ha inviato tutti i valori di questo file."
+  },
+  "Plateau libéré": {
+    "en": "Plate cleared",
+    "es": "Placa despejada",
+    "de": "Druckplatte frei",
+    "it": "Piatto libero"
+  },
+  "Cette file appartient à une autre imprimante.": {
+    "en": "This queue belongs to another printer.",
+    "es": "Esta cola pertenece a otra impresora.",
+    "de": "Diese Warteschlange gehört zu einem anderen Drucker.",
+    "it": "Questa coda appartiene a un’altra stampante."
+  },
+  "L’imprimante est occupée ou hors ligne.": {
+    "en": "The printer is busy or offline.",
+    "es": "La impresora está ocupada o desconectada.",
+    "de": "Der Drucker ist beschäftigt oder offline.",
+    "it": "La stampante è occupata o offline."
+  },
+  "Aucune entrée prête : vérifiez les avertissements ci-dessous.": {
+    "en": "No entry is ready: check the warnings below.",
+    "es": "Ninguna entrada lista: revise las advertencias de abajo.",
+    "de": "Kein Eintrag bereit: Prüfen Sie die Warnungen unten.",
+    "it": "Nessuna voce pronta: controlla gli avvisi qui sotto."
+  },
+  "Suivante : {0}": {
+    "en": "Next: {0}",
+    "es": "Siguiente: {0}",
+    "de": "Nächster: {0}",
+    "it": "Successiva: {0}"
+  },
+  "Prochaine impression": {
+    "en": "Next print",
+    "es": "Próxima impresión",
+    "de": "Nächster Druck",
+    "it": "Prossima stampa"
+  },
+  "Retirez la pièce, puis confirmez : la fenêtre de lancement s’ouvrira.": {
+    "en": "Remove the part, then confirm: the print window will open.",
+    "es": "Retire la pieza y confirme: se abrirá la ventana de inicio.",
+    "de": "Entfernen Sie das Teil und bestätigen Sie: Das Startfenster öffnet sich.",
+    "it": "Rimuovi il pezzo, poi conferma: si aprirà la finestra di avvio."
+  },
+  "Filament": {
+    "en": "Filament",
+    "es": "Filamento",
+    "de": "Filament",
+    "it": "Filamento"
+  },
+  "Fin si enchaînée": {
+    "en": "Finish if chained",
+    "es": "Fin si se encadena",
+    "de": "Ende bei Verkettung",
+    "it": "Fine se in sequenza"
+  },
+  "Aucune bobine {0} chargée : chargez-la avant le lancement.": {
+    "en": "No {0} spool loaded: load it before starting.",
+    "es": "Ninguna bobina {0} cargada: cárguela antes de iniciar.",
+    "de": "Keine {0}-Spule geladen: vor dem Start einlegen.",
+    "it": "Nessuna bobina {0} caricata: caricala prima dell’avvio."
+  },
+  "1 référence": {
+    "en": "1 reference",
+    "es": "1 referencia",
+    "de": "1 Referenz",
+    "it": "1 riferimento"
+  },
+  "{0} références": {
+    "en": "{0} references",
+    "es": "{0} referencias",
+    "de": "{0} Referenzen",
+    "it": "{0} riferimenti"
+  },
+  "Gamme": {
+    "en": "Range",
+    "es": "Gama",
+    "de": "Serie",
+    "it": "Gamma"
+  },
+  "Aucune référence ne correspond à cette recherche.": {
+    "en": "No reference matches this search.",
+    "es": "Ninguna referencia coincide con esta búsqueda.",
+    "de": "Keine Referenz entspricht dieser Suche.",
+    "it": "Nessun riferimento corrisponde a questa ricerca."
+  },
+  "Lu sur la puce": {
+    "en": "Read from the chip",
+    "es": "Leído del chip",
+    "de": "Vom Chip gelesen",
+    "it": "Letto dal chip"
+  },
+  "Les données RFID viennent de la bobine : rien à enregistrer.": {
+    "en": "RFID data comes from the spool: nothing to save.",
+    "es": "Los datos RFID vienen de la bobina: nada que guardar.",
+    "de": "RFID-Daten stammen von der Spule: nichts zu speichern.",
+    "it": "I dati RFID provengono dalla bobina: niente da salvare."
+  },
+  "Modifiez le matériau ou la couleur pour enregistrer.": {
+    "en": "Change the material or colour to save.",
+    "es": "Cambie el material o el color para guardar.",
+    "de": "Ändern Sie Material oder Farbe zum Speichern.",
+    "it": "Modifica il materiale o il colore per salvare."
+  },
+  "Une commande à la fois : l’ACE confirme chaque étape avant la suivante.": {
+    "en": "One command at a time: the ACE confirms each step before the next.",
+    "es": "Una orden a la vez: el ACE confirma cada paso antes del siguiente.",
+    "de": "Ein Befehl nach dem anderen: Die ACE bestätigt jeden Schritt vor dem nächsten.",
+    "it": "Un comando alla volta: l’ACE conferma ogni passaggio prima del successivo."
+  },
+  "Chargement · emplacement {0}": {
+    "en": "Loading · slot {0}",
+    "es": "Carga · ranura {0}",
+    "de": "Laden · Fach {0}",
+    "it": "Caricamento · slot {0}"
+  },
+  "{0} · d’après le nom du fichier": {
+    "en": "{0} · from the file name",
+    "es": "{0} · según el nombre del archivo",
+    "de": "{0} · laut Dateiname",
+    "it": "{0} · dal nome del file"
   }
 }

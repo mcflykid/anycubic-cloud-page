@@ -1,6 +1,14 @@
 import { $, fmt, formatText, locale, mins, node, set, tr } from './workshop-ui.mjs';
 import { workshopState } from './workshop-state.mjs';
 import { openErrorSheet } from './workshop-error-catalogue.mjs';
+import { fileNameHints } from './workshop-task-details.mjs';
+
+/** Encre lisible sur une couleur de bobine : la tuile reprend la teinte réelle du filament. */
+function tone(color) {
+  if (color?.length !== 3) return 'neutral';
+  const [r, g, b] = color.map(value => value / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6 ? 'light' : 'dark';
+}
 
 let printTarget;
 let statusAvailable = false;
@@ -71,11 +79,16 @@ function renderAssignments() {
     const swatch = node('span', undefined, 'material-color');
     title.prepend(swatch);
     const updateColor = () => {
-      const color = assignment.colors[index] || spools.find(
-        spool => (spool.display_slot ?? spool.slot) === assignment.slots[index],
-      )?.color;
+      const chosen = spools.find(spool => (spool.display_slot ?? spool.slot) === assignment.slots[index])?.color?.slice(0, 3);
+      const color = assignment.colors[index] || chosen;
       swatch.hidden = color?.length !== 3;
       if (!swatch.hidden) swatch.style.backgroundColor = `rgb(${color.join(',')})`;
+      // Tuile à la Slicer Next : haut à la couleur du fichier, bas à celle de la bobine choisie.
+      for (const [part, value] of [['file', assignment.colors[index]], ['slot', chosen]]) {
+        if (value?.length === 3) label.style.setProperty(`--${part}-color`, `rgb(${value.join(',')})`);
+        else label.style.removeProperty(`--${part}-color`);
+        label.dataset[part + 'Tone'] = tone(value);
+      }
     };
     const select = node('select');
     select.dataset.filament = index;
@@ -220,6 +233,10 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   $('print-ace-rows').replaceChildren();
   $('print-ace').disabled = false;
   $('print-options').open = true;
+  // Les options restent toujours visibles : le titre du volet n’est plus un interrupteur.
+  const summary = $('print-options').querySelector('summary');
+  summary.tabIndex = -1;
+  summary.onclick = event => event.preventDefault();
   storedOptions = stored;
   for (const option of $('print-options').querySelectorAll('input[type="checkbox"]')) {
     option.checked = option.name === 'auto_leveling';
@@ -231,7 +248,10 @@ export function confirmPrint({target, name, details = {}, image, advice = '', qu
   const printerName = workshopState.snapshot?.printer?.name || tr('Imprimante sélectionnée');
   set('print-printer', printerName);
   set('print-destination-name', printerName);
-  set('print-duration', Number.isFinite(details.seconds) ? mins(details.seconds / 60) : tr('Donnée inconnue'));
+  // Sans métadonnées, le nom produit par le slicer porte encore la durée (« _3h8m1s ») : elle est signalée comme telle.
+  const named = fileNameHints(name).seconds;
+  set('print-duration', Number.isFinite(details.seconds) ? mins(details.seconds / 60)
+    : Number.isFinite(named) && named > 0 ? formatText('{0} · d’après le nom du fichier', mins(named / 60)) : tr('Donnée inconnue'));
   const grams = Number.isFinite(details.grams) ? fmt(details.grams, ' g') : tr('Masse inconnue');
   const metres = Number.isFinite(details.metres)
     ? `${details.metres.toLocaleString(locale, {maximumFractionDigits: 2})} m` : tr('Longueur inconnue');
