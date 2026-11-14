@@ -1,0 +1,96 @@
+name: Publish Docker image
+on:
+  push:
+    tags: ['v*.*.*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Vérifier la fermeture des issues avant la 2.0.0
+        if: github.ref_name == 'v2.0.0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 1 --json number --jq length)
+          if [ "$issues" != 0 ]; then
+            echo "La 2.0.0 attend la fermeture de toutes les issues."
+            exit 1
+          fi
+      - id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/release_metadata.py "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --check-unpublished >> "$GITHUB_OUTPUT"
+  tests:
+    needs: metadata
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+  publish:
+    needs: [metadata, tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      discussions: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Valider de nouveau le tag et préparer les notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/release_metadata.py "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --check-unpublished
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/mcflykid/anycubic-cloud-page:${{ needs.metadata.outputs.version }}
+            ghcr.io/mcflykid/anycubic-cloud-page:latest
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Download the published image anonymously and test the application
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          docker logout ghcr.io
+          docker pull "ghcr.io/mcflykid/anycubic-cloud-page@$IMAGE_DIGEST"
+          docker tag "ghcr.io/mcflykid/anycubic-cloud-page@$IMAGE_DIGEST" anycubic-cloud-page:test
+          docker manifest inspect "ghcr.io/mcflykid/anycubic-cloud-page@$IMAGE_DIGEST" > /tmp/published-manifest.json
+          python3 - <<'PY_MANIFEST'
+          import json
+          manifest = json.load(open('/tmp/published-manifest.json'))
+          platforms = {(entry.get('platform', {}).get('os'), entry.get('platform', {}).get('architecture')) for entry in manifest.get('manifests', [])}
+          assert {('linux', 'amd64'), ('linux', 'arm64')} <= platforms, 'Architectures attendues absentes'
+          print('Image publique : linux/amd64 et linux/arm64 disponibles.')
+          PY_MANIFEST
+          python3 scripts/ci_compose.py host
+      - name: Publier la release et son annonce dans les Discussions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          category=$(gh api graphql \
+            -f query='query($id: ID!) { node(id: $id) { ... on DiscussionCategory { name } } }' \
+            -f id=DIC_kwDOVj9Xvc4DKg5T --jq '.data.node.name')
+          test -n "$category"
+          gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" --latest --discussion-category "$category" \
+            compose.yaml ".env.example#.env.example"

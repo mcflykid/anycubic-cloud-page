@@ -1,0 +1,7 @@
+services:
+  # ============================================================================
+  # Anycubic Cloud Page — démonstration isolée, sans compte cloud ni commande réelle.
+  # ============================================================================
+  anycubic-cloud-page:
+    image: "anycubic-cloud-page:test"
+    command: ["python", "/app/app/demo.py", "--auth", "--host", "0.0.0.0", "--port", "8080"]

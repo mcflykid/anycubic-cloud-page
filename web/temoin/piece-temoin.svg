@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120">
+  <title>Plaque témoin, vue de dessus</title>
+  <path d="M 15,10 H 135 V 40 H 165 V 110 H 15 Z" fill="#619e94" stroke="#204d46" stroke-width="2"/>
+  <path d="M 135,10 H 165 V 40" stroke="#204d46" stroke-dasharray="3 3" fill="none"/>
+</svg>

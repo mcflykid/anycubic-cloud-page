@@ -1,0 +1,16 @@
+/* La connexion et le code temporaire partagent la géométrie des cartes de l’atelier. */
+.login-body .login-card {
+  width: min(100%, var(--atelier-access-width));
+  padding: var(--atelier-space-5);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-card-radius);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.login-body .login-card :is(input, button, select) {
+  min-height: var(--atelier-control);
+  border-radius: var(--atelier-control-radius);
+}

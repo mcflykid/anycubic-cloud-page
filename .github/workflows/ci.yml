@@ -1,0 +1,76 @@
+name: Tests and publication safety
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+    secrets:
+      PUBLICATION_PRIVATE_PATTERNS:
+        required: false
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: pip install -r app/requirements.txt ruff==0.17.4
+      - run: ruff format --check app scripts && ruff check app scripts
+      - run: python -m unittest discover -s app -p 'test_*.py' -q
+      - run: python -m unittest discover -s scripts -p 'test_*.py' -q
+      - run: |
+          for script in web/js/imprimante.js web/js/*.mjs; do node --check "$script" || exit; done
+          python scripts/update_assets.py --check
+      - name: Check publication without private configuration
+        run: python scripts/check_publication.py
+      - name: Check publication with private CI rules
+        env:
+          PUBLICATION_PRIVATE_PATTERNS: ${{ secrets.PUBLICATION_PRIVATE_PATTERNS }}
+        run: python scripts/check_publication.py
+      - run: docker compose config --quiet
+  docker:
+    name: Installation vide (${{ matrix.arch }}, ${{ matrix.variant }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, variant: host, runner: ubuntu-24.04 }
+          - { arch: amd64, variant: proxy-network, runner: ubuntu-24.04 }
+          - { arch: arm64, variant: host, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: docker build -t anycubic-cloud-page:test .
+      - name: Vérifier que les archives de référence restent hors de l’image
+        run: docker run --rm --network none --entrypoint python anycubic-cloud-page:test -c "from pathlib import Path; assert not Path('/app/web/vendor').exists()"
+      - run: docker run --rm --network none --entrypoint python anycubic-cloud-page:test -m unittest discover -s app -p 'test_*.py' -q
+      - name: Démarrage, stockage privé et redémarrage
+        run: python scripts/ci_compose.py "${{ matrix.variant }}"
+
+  ui:
+    name: Interface de démonstration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: python -m pip install -r app/requirements.txt
+      - run: npm ci --ignore-scripts
+      # Le verrou npm détermine également la révision du navigateur téléchargé.
+      - run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Lancer la démonstration
+        run: UI_PYTHON="$(command -v python)" ./node_modules/.bin/playwright test

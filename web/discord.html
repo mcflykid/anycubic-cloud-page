@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr" data-theme="system">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Notifications Discord — Anycubic Cloud Page</title>
+<link rel="icon" href="/imprimante-api/ui/icons/cloud-page.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/imprimante-api/ui/css/imprimante.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/landing.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-tokens.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-components.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-frame.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/workshop-navigation.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-access.css">
+<link rel="stylesheet" href="/imprimante-api/ui/css/atelier-discord.css">
+</head>
+<body class="discord-settings-page">
+<header class="portal-nav">
+  <a class="document-brand" href="/imprimante.html"><img src="/imprimante-api/ui/icons/cloud-page.svg" width="32" height="32" alt="" decoding="async"><span>Anycubic Cloud Page</span></a>
+  <div class="nav-actions">
+    <select id="interface-theme" aria-label="Thème de l’interface" hidden><option value="system">Système</option><option value="light">Clair</option><option value="dark">Sombre</option></select>
+    <button type="button" id="interface-mode-toggle" class="atelier-control atelier-control-icon" aria-label="Activer le mode sombre"><svg class="ui-icon mode-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11Z"/></svg><svg class="ui-icon mode-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></svg></button>
+    <select class="atelier-control" id="interface-language" aria-label="Langue de l’interface" data-language-options><option value="fr">Français</option><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="it">Italiano</option></select>
+    <a class="atelier-control atelier-control-icon" href="/imprimante.html#notifications" aria-label="Notifications" title="Retourner aux notifications de l’atelier"><svg viewBox="0 0 24 24" class="ui-icon" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5zM10 20h4"/></svg></a>
+    <form action="/logout" method="post" class="logout-form"><button class="atelier-control" type="submit">Se déconnecter</button></form>
+  </div>
+</header>
+<!-- DISCORD_CONTENT -->
+<noscript>JavaScript est nécessaire pour cette page.</noscript>
+<script id="workshop-language" type="module" src="/imprimante-api/ui/js/workshop-ui.mjs"></script>
+<script type="module" src="/imprimante-api/ui/js/discord-settings.mjs"></script>
+</body>
+</html>

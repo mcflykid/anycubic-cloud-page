@@ -1,0 +1,231 @@
+/* Référentiel commun. Les composants consomment ces valeurs par leur rôle. */
+@font-face {
+  font-family: Inter;
+  src: url("./fonts/Inter-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Inter;
+  src: url("./fonts/Inter-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+:root {
+  --atelier-font: Inter, system-ui, sans-serif;
+  --motion-fast: 180ms;
+  --motion-panel: 240ms;
+  --motion-tile-stagger: 24ms;
+  --motion-ease: cubic-bezier(.18,.72,.28,1);
+  --ease: cubic-bezier(.2,.65,.3,1);
+  /* Les affichages hors texte courant conservent leur échelle propre. */
+  --atelier-micro-size: 11px;
+  --atelier-machine-responsive-size: clamp(2rem, 5vw, 3.4rem);
+  --atelier-job-title-size: 1.9rem;
+  --atelier-reset-code-size: 32px;
+  --atelier-display-size: 1.8rem;
+  --atelier-illustration-size: 2.5rem;
+  --atelier-compact-tab-size: clamp(var(--atelier-micro-size), .78vw, var(--atelier-label-size));
+  --atelier-brand-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  --atelier-document-title-size: clamp(2rem, 4.2vw, 3.25rem);
+  --atelier-brand-mobile-size: 2.125rem;
+  --atelier-monitor-value-size: clamp(var(--atelier-title-size), 2vw, var(--atelier-display-size));
+  --atelier-workshop-title-size: clamp(var(--atelier-machine-size), 3vw, 2.35rem);
+  --atelier-reading-font: 1rem/1.6 var(--atelier-font);
+  --atelier-swatch-border: #0002;
+  /* Les fenêtres et leurs colonnes suivent les cotes des maquettes de l’atelier. */
+  --atelier-dialog-alert-icon: 20px;
+  --atelier-ace-slot-height: 56px;
+  --atelier-modal-bar-height: 61px;
+  --atelier-journal-time-width: 72px;
+  --atelier-journal-result-width: 96px;
+  --atelier-ace-spool-illustration: 128px;
+  --atelier-filament-fact-min-width: 130px;
+  --atelier-journal-action-width: 216px;
+  --atelier-download-row-height: 48px;
+  --atelier-downloads-list-height: calc(6 * var(--atelier-download-row-height));
+  --atelier-confirmation-width: 400px;
+  --atelier-compact-dialog-width: 480px;
+  --atelier-print-dialog-width: 550px;
+  --atelier-print-spool-select-width: 224px;
+  --atelier-print-drying-field-width: 80px;
+  --atelier-print-swatch-size: 24px;
+  --atelier-print-swatch-ink: #fff;
+  --atelier-print-swatch-shadow: 0 0 2px #000, 0 1px 2px #000;
+  --atelier-print-preview-height: 164px;
+  --atelier-print-preview-start: #263749;
+  --atelier-print-preview-end: #647b90;
+  --atelier-download-dialog-width: 560px;
+  --atelier-ai-dialog-width: 600px;
+  --atelier-ace-dialog-width: 640px;
+  --atelier-journal-dialog-width: 880px;
+  --atelier-ai-switch-size: 1.2em;
+  --atelier-destructive-fill: #b42318;
+  --atelier-journal-sent-color: light-dark(#2059a5, #99c0ff);
+  --atelier-detail-dialog-width: 960px;
+  --atelier-maintenance-gauge: 208px;
+  --atelier-maintenance-counter: 192px;
+  --atelier-menu-min: 160px;
+  --atelier-compact-control: 32px;
+  --atelier-compact-text: 13px/18px var(--atelier-font);
+  --atelier-compact-label: 12px/16px var(--atelier-font);
+  --atelier-compact-caption: 11px/15px var(--atelier-font);
+  --atelier-compact-title: 15px/22px var(--atelier-font);
+  --atelier-maintenance-state: 136px;
+  --atelier-controls-device: 304px;
+  --atelier-controls-diagram-width: 320px;
+  --atelier-controls-illustration: 255px;
+  --atelier-controls-mobile-illustration: 128px;
+  --atelier-controls-label: 140px;
+  --atelier-controls-unit: 40px;
+  --atelier-controls-stroke: 1.5px;
+  --atelier-controls-nozzle: light-dark(#C2410C, #FB9C70);
+  --atelier-controls-part: light-dark(#1D4ED8, #86AAFF);
+  --atelier-controls-auxiliary: light-dark(#7C3AED, #BD9EFF);
+  --atelier-discord-nav-height: 52px;
+  --atelier-discord-width: 720px;
+  --atelier-discord-title-offset: 26px;
+  --atelier-discord-header-inset: 14px;
+  --atelier-discord-feedback-width: 430px;
+  --atelier-discord-body-top: 18px;
+  --atelier-discord-body-bottom: 10px;
+  --atelier-discord-secret-tracking: .04em;
+  --atelier-discord-placeholder-tracking: .08em;
+  --atelier-discord-link-offset: 11px;
+  --atelier-discord-footer-offset: 9px;
+  --atelier-discord-footer-inset: 7px;
+  --atelier-discord-footer-height: 60px;
+  --atelier-discord-mobile-language-width: 112px;
+  --atelier-discord-mobile-header-width: 122px;
+  --atelier-discord-mobile-logout-width: 86px;
+  --atelier-video-idle: #161618;
+  --atelier-backdrop: #0005;
+  --atelier-relay-texture: #a5aab0;
+  --atelier-regular: 400;
+  --atelier-semibold: 600;
+  --atelier-machine-size: 28px;
+  --atelier-machine: var(--atelier-machine-size)/36px var(--atelier-font);
+  --atelier-title-size: 20px;
+  --atelier-title: var(--atelier-title-size)/28px var(--atelier-font);
+  --atelier-card-title-size: 16px;
+  --atelier-card-title: var(--atelier-card-title-size)/24px var(--atelier-font);
+  --atelier-text-size: 14px;
+  --atelier-text: var(--atelier-text-size)/20px var(--atelier-font);
+  --atelier-label-size: 13px;
+  --atelier-label: var(--atelier-label-size)/20px var(--atelier-font);
+  --atelier-caption-size: 12px;
+  --atelier-caption: var(--atelier-caption-size)/16px var(--atelier-font);
+  --atelier-space-1: 4px;
+  --atelier-space-2: 8px;
+  --atelier-space-3: 12px;
+  --atelier-space-4: 16px;
+  --atelier-space-5: 24px;
+  --atelier-space-6: 32px;
+  --atelier-control-radius: 6px;
+  --atelier-pill-radius: 999px;
+  --atelier-card-radius: 10px;
+  --atelier-rule: 1px;
+  --atelier-active-rule: 2px;
+  --atelier-control: 36px;
+  --atelier-touch-control: 44px;
+  --atelier-icon: 18px;
+  --atelier-stroke: 1.8;
+  --atelier-dot: 8px;
+  --atelier-progress: 6px;
+  --atelier-content-min: 15rem;
+  --atelier-job-min: 12rem;
+  --atelier-bg: light-dark(#f3f4f6, #11151a);
+  --atelier-surface: light-dark(#ffffff, #1b222a);
+  --atelier-fg: light-dark(#14181d, #eef2f6);
+  --atelier-muted: light-dark(#55606c, #b6c0cc);
+  --atelier-line: light-dark(#d9dee3, #414c59);
+  --atelier-accent: light-dark(#0b6b5d, #70d8c1);
+  --atelier-normal: light-dark(#1a7a4c, #6bd6a1);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+  /* Les composants historiques et les écrans de connexion partagent ces mêmes rôles. */
+  --bg: var(--atelier-bg);
+  --surface: var(--atelier-surface);
+  --text: var(--atelier-fg);
+  --muted: var(--atelier-muted);
+  --line: var(--atelier-line);
+  --accent: var(--atelier-accent);
+  --font: var(--atelier-font);
+  --atelier-access-width: 480px;
+  --atelier-login-halo: light-dark(#f5eee5, #252530);
+  --atelier-loading-glint: light-dark(rgb(255 255 255 / .75), rgb(255 255 255 / .13));
+  --atelier-dialog-shadow: 0 20px 80px #0002;
+  --atelier-popover-shadow: 0 12px 36px rgb(0 0 0 / .18);
+  --atelier-focus-glow: 0 0 0 var(--atelier-control-radius)
+    color-mix(in srgb, var(--atelier-accent) 12%, transparent);
+  /* Le relief fait partie du retour visuel des interrupteurs. */
+  --atelier-track-shadow: inset 0 1px 3px rgb(0 0 0 / .22);
+  --atelier-switch-thumb-shadow: 0 1px 3px rgb(0 0 0 / .2);
+  --atelier-relay-thumb-shadow: inset 0 -2px 2px rgb(0 0 0 / .2),
+    inset 0 2px 1px rgb(255 255 255 / .5), 0 2px 2px rgb(0 0 0 / .45);
+  --atelier-glider-shadow: 0 2px 9px color-mix(in srgb, var(--atelier-accent) 24%, transparent),
+    inset 0 1px 3px rgb(255 255 255 / .25);
+  --atelier-on-accent: light-dark(var(--atelier-surface), var(--atelier-bg));
+}
+@media (pointer: coarse), (max-width: 760px) {
+  :root { --atelier-control: var(--atelier-touch-control); }
+}
+:root {
+  --atelier-device-image: 128px;
+  --atelier-ace-module-image-max: 240px;
+  --atelier-job-thumbnail: 56px;
+}
+:root {
+  --atelier-axis-size: 64px;
+  --atelier-video-ratio: 16 / 9;
+  --atelier-video-max-height: 48dvh;
+}
+:root {
+  --atelier-file-thumbnail: 40px;
+  --atelier-quota-width: 360px;
+}
+
+:root[data-style="aurora"] {
+  --atelier-bg: light-dark(#f0effa, #121321);
+  --atelier-surface: light-dark(#fcfbff, #1d2035);
+  --atelier-fg: light-dark(#292b4d, #f0efff);
+  --atelier-muted: light-dark(#565975, #b6b8d5);
+  --atelier-line: light-dark(#c9cbea, #474a70);
+  --atelier-accent: light-dark(#5145a0, #bcb2ff);
+  --atelier-normal: light-dark(#19744f, #86d6b5);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}
+
+:root[data-style="lab"] {
+  --atelier-bg: light-dark(#edf3f2, #0d1a1d);
+  --atelier-surface: light-dark(#ffffff, #14272c);
+  --atelier-fg: light-dark(#142f33, #e6f6f2);
+  --atelier-muted: light-dark(#476468, #b3cac9);
+  --atelier-line: light-dark(#cadbd7, #365259);
+  --atelier-accent: light-dark(#136f69, #6edfd0);
+  --atelier-normal: light-dark(#19744f, #7de0ac);
+  --atelier-warning: light-dark(#8a5300, #ffc274);
+  --atelier-error: light-dark(#b42318, #ffada5);
+}
+
+/* La palette forcée du système garde la priorité sur les couleurs choisies dans l’atelier. */
+@media (forced-colors: none) {
+  :root[data-contrast="high"] {
+    --atelier-rule: 2px;
+    --atelier-focus-width: 3px;
+    --atelier-muted: light-dark(#353a40, #f1f3f5);
+    --atelier-line: light-dark(#555b62, #adb5bd);
+    --atelier-accent: light-dark(#004f42, #a5ffec);
+    --atelier-normal: light-dark(#145c3a, #a1f4bf);
+    --atelier-warning: light-dark(#663a00, #ffd59b);
+    --atelier-error: light-dark(#8c1812, #ffd0cb);
+  }
+  :root[data-contrast="high"] :is(a, button, select, input, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--atelier-focus-width) solid var(--atelier-accent);
+    outline-offset: var(--atelier-focus-width);
+  }
+  :root[data-contrast="high"] :is(progress, .badge, .unread-dot) {
+    outline: var(--atelier-active-rule) solid var(--atelier-line);
+  }
+}

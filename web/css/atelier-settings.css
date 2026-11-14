@@ -1,0 +1,366 @@
+/* Les cartes voisines partagent leurs lignes de titre, de contenu et de pied. */
+#tab-settings { container: settings / inline-size; }
+.atelier-settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--atelier-space-4);
+}
+.atelier-settings-row + .atelier-settings-row { margin-block-start: var(--atelier-space-4); }
+#tab-settings .atelier-settings-row .atelier-card:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+}
+#tab-settings .atelier-card-header h2 {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+#tab-settings .atelier-settings-row .atelier-card-body { min-inline-size: 0; }
+#tab-settings .atelier-settings-row p {
+  color: var(--atelier-muted);
+  margin: 0;
+  font: var(--atelier-label);
+}
+#tab-settings #token-expiry:not([hidden]) { margin-block-start: var(--atelier-space-3); }
+/* La description du thème est une note de pied de carte, alignée sur celles des cartes voisines. */
+#tab-settings #theme-description { margin: 0; }
+#tab-settings .atelier-card-footer p { margin-inline: 0; }
+.settings-control-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--atelier-space-4);
+  font-weight: var(--atelier-semibold);
+  text-decoration: none;
+}
+.settings-follow-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--atelier-space-2);
+}
+#tab-settings .settings-printer-name,
+.settings-factor {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2);
+  margin: 0;
+}
+#tab-settings .settings-printer-name label { flex: 1 1 var(--atelier-content-min); margin: 0; }
+#tab-settings .settings-printer-name input { min-height: var(--atelier-control); }
+#tab-settings .settings-appearance-fields select { appearance: auto; }
+.settings-firmwares { padding-inline: var(--atelier-space-4); }
+.settings-firmware-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--atelier-space-2) var(--atelier-space-4);
+  padding-block: var(--atelier-space-3);
+}
+.settings-firmware-row + .settings-firmware-row {
+  border-block-start: var(--atelier-rule) solid var(--atelier-line);
+}
+.settings-firmware-row strong { overflow-wrap: anywhere; }
+/* Nouveautés du micrologiciel : versions, notes constructeur puis rappel de sécurité, comme la maquette notes-version. */
+.firmware-notes-body { display: grid; gap: var(--atelier-space-3); }
+.firmware-notes-body p { margin: 0; }
+.firmware-notes-versions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--atelier-space-2) var(--atelier-space-5);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+.firmware-notes-versions > div:not(.firmware-notes-meta) { display: grid; }
+.firmware-notes-versions span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.firmware-notes-versions strong { font: var(--atelier-card-title); font-weight: var(--atelier-semibold); font-variant-numeric: tabular-nums; }
+#firmware-notes-target { color: var(--atelier-accent); }
+.firmware-notes-arrow { color: var(--atelier-muted); }
+.firmware-notes-meta { display: grid; justify-items: end; gap: var(--atelier-space-1); margin-inline-start: auto; }
+.firmware-notes-versions .atelier-count[data-state="required"] { background: color-mix(in srgb, var(--atelier-error) 14%, transparent); color: var(--atelier-error); }
+.firmware-notes-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--atelier-space-2); }
+.firmware-notes-heading h3 { margin: 0; font: var(--atelier-text); font-weight: var(--atelier-semibold); }
+.firmware-notes-heading p { color: var(--atelier-muted); font: var(--atelier-caption); }
+.firmware-notes-text, .firmware-notes-empty {
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+  border-radius: var(--atelier-control-radius);
+  background: color-mix(in srgb, var(--atelier-muted) 8%, transparent);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.firmware-notes-empty { display: grid; gap: var(--atelier-space-1); text-align: center; background: none; border: var(--atelier-rule) dashed var(--atelier-line); white-space: normal; }
+.firmware-notes-empty[hidden], .firmware-notes-text[hidden] { display: none; }
+.firmware-notes-empty span { color: var(--atelier-muted); font: var(--atelier-caption); }
+.firmware-notes-warning {
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border-radius: var(--atelier-control-radius);
+  background: color-mix(in srgb, var(--atelier-warning) 12%, transparent);
+  color: var(--atelier-warning);
+  font: var(--atelier-caption);
+}
+.firmware-notes-dialog > .atelier-card-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--atelier-space-2); }
+.firmware-notes-actions { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); margin-inline-start: auto; }
+.atelier-status[data-state="warning"]::before { background: var(--atelier-warning); }
+.atelier-status[data-state="unknown"]::before {
+  background: transparent;
+  border: var(--atelier-active-rule) solid var(--atelier-muted);
+  box-sizing: border-box;
+}
+.settings-container-values, .settings-appearance-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--atelier-space-2) var(--atelier-space-5);
+}
+.settings-container-values > div { flex-wrap: wrap; }
+@media (min-width: 1000px) {
+  #tab-settings .settings-appearance-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.settings-container-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2) var(--atelier-space-5);
+  margin-block-start: var(--atelier-space-3);
+}
+.settings-factor { margin-block-end: var(--atelier-space-3); }
+.settings-factor strong {
+  color: var(--atelier-fg);
+  font: var(--atelier-label);
+  font-weight: var(--atelier-semibold);
+}
+.settings-factor .atelier-status { min-block-size: var(--atelier-control); }
+/* Une ligne par canal : usage décrit, état, puis « Configurer », comme la double authentification. */
+#tab-settings .settings-channels { container: settings-channels / inline-size; display: grid; align-content: start; padding: 0; }
+.settings-channel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--atelier-space-2) var(--atelier-space-4);
+  padding: var(--atelier-space-3) var(--atelier-space-4);
+}
+.settings-channel + .settings-channel { border-block-start: var(--atelier-rule) solid var(--atelier-line); }
+.settings-channel > span:first-child { display: grid; min-width: 0; }
+.settings-channel strong { font-weight: var(--atelier-semibold); }
+.settings-channel .muted { font: var(--atelier-caption); }
+.settings-channel .atelier-status { white-space: nowrap; }
+#tab-settings .settings-discord .atelier-card-footer > .muted { margin: 0; font: var(--atelier-caption); }
+/* Dans une colonne étroite, le titre et l’état suffisent : la description détaillée reste sur la page du canal. */
+@container settings-channels (max-width: 520px) {
+  .settings-channel { gap: var(--atelier-space-2) var(--atelier-space-3); padding-block: var(--atelier-space-2); }
+  .settings-channel .muted { display: none; }
+}
+@container settings (min-width: 900px) {
+  .atelier-settings-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+    row-gap: 0;
+  }
+  #tab-settings .atelier-settings-row .atelier-card:not([hidden]) {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+  }
+  /* Apparence, Sécurité et Discord partagent la dernière rangée, en trois colonnes alignées. */
+  .atelier-settings-row:has(.settings-discord:not([hidden])) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container settings (max-width: 420px) {
+  .settings-follow-actions, .settings-firmware-row, .settings-appearance-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.settings-log-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--atelier-accent);
+  text-decoration: underline;
+  font: var(--atelier-text);
+}
+
+/* Jusqu’à 1 100 px de haut, des bandes plus fines gardent la page Réglages sans défilement. */
+@media (min-width: 961px) and (max-height: 1100px) {
+  #tab-settings .atelier-card-header, #tab-settings .atelier-card-footer { min-block-size: 0; padding-block: var(--atelier-space-2); }
+  #tab-settings .atelier-card-body:not(.settings-channels) { padding-block: var(--atelier-space-2); }
+}
+@media (min-width: 961px) and (max-height: 800px) {
+  /* Écran bas : texte et contrôles réduits plutôt qu’une autre disposition. */
+  #tab-settings {
+    --atelier-control: var(--atelier-compact-control);
+    --atelier-text: var(--atelier-compact-text);
+    --atelier-label: var(--atelier-compact-label);
+    --atelier-caption: var(--atelier-compact-caption);
+    --atelier-card-title: var(--atelier-compact-title);
+    font: var(--atelier-text);
+  }
+  #tab-settings .settings-container-links > * { min-block-size: 0; }
+  #tab-settings .settings-channel { padding-block: var(--atelier-space-1); }
+  #tab-settings .settings-firmware-row { margin-block-start: var(--atelier-space-1); }
+  html[data-style] .workshop-frame #atelier > #tab-settings { padding-block: var(--atelier-space-1); }
+  #tab-settings .settings-firmware-row { padding-block: var(--atelier-space-1); }
+  #tab-settings .atelier-settings-row + .atelier-settings-row { margin-block-start: var(--atelier-space-2); }
+  #tab-settings .settings-factor, #tab-settings .settings-container-links { margin-block: var(--atelier-space-2) 0; }
+}
+
+/* Le journal conserve ses filtres et son export à portée pendant le défilement. */
+body:has(.workshop-frame) > dialog.journal-dialog {
+  box-sizing: border-box;
+  width: min(var(--atelier-journal-dialog-width), calc(100% - var(--atelier-space-6)));
+  max-width: none;
+  max-height: calc(100dvh - var(--atelier-space-6));
+  padding: 0;
+  overflow: hidden;
+}
+.journal-dialog[open] { display: flex; flex-direction: column; }
+.journal-dialog .atelier-card-footer { flex-wrap: wrap; }
+.journal-controls { padding: var(--atelier-space-3) var(--atelier-space-4); }
+.journal-controls p, #journal-state { margin: 0; color: var(--atelier-muted); }
+#journal-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: var(--atelier-space-2);
+  margin-block-start: var(--atelier-space-3);
+}
+#journal-filters label { margin: 0; }
+.journal-table-region { min-height: 0; overflow: auto; }
+.journal-table-region table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.journal-table-region :is(th, td) {
+  text-align: start;
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+  overflow-wrap: anywhere;
+}
+.journal-table-region thead { position: sticky; top: 0; background: var(--atelier-bg); }
+.journal-table-region thead th:nth-child(1) { width: var(--atelier-journal-time-width); }
+.journal-table-region thead th:nth-child(2) { width: var(--atelier-journal-action-width); }
+.journal-table-region thead th:nth-child(4) { width: var(--atelier-journal-result-width); }
+.journal-day th { color: var(--atelier-muted); font: var(--atelier-label); font-weight: var(--atelier-semibold); }
+.journal-mark { margin-inline-end: var(--atelier-space-2); color: var(--atelier-accent); }
+.journal-parameters { display: flex; flex-wrap: wrap; gap: var(--atelier-space-1) var(--atelier-space-2); color: var(--atelier-muted); }
+.journal-filename { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.journal-filename:focus { white-space: normal; overflow-wrap: anywhere; }
+.journal-badge {
+  --result-color: var(--atelier-muted);
+  display: inline-block;
+  padding: calc(var(--atelier-rule) * 2) var(--atelier-space-2);
+  border-radius: var(--atelier-pill-radius);
+  background: color-mix(in srgb, var(--result-color) 12%, var(--atelier-surface));
+  color: var(--result-color);
+}
+.journal-badge[data-outcome="confirmée"] { --result-color: var(--atelier-normal); }
+.journal-badge[data-outcome="acceptée"] { --result-color: var(--atelier-accent); }
+.journal-badge[data-outcome="envoyée"] { --result-color: var(--atelier-journal-sent-color); }
+.journal-badge[data-outcome="refusée"] { --result-color: var(--atelier-error); }
+.journal-badge[data-outcome="expirée"] { --result-color: var(--atelier-warning); }
+@media (max-width: 620px) {
+  #journal-filters { grid-template-columns: minmax(0, 1fr); }
+  .journal-controls { overflow-y: auto; flex-shrink: 0; max-height: 45dvh; }
+  .journal-table-region thead { position: absolute; width: var(--atelier-rule); height: var(--atelier-rule); clip-path: inset(50%); overflow: hidden; }
+  .journal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: var(--atelier-space-2); border-block-end: var(--atelier-rule) solid var(--atelier-line); }
+  .journal-row td { border: 0; padding: var(--atelier-space-1); }
+  .journal-action { grid-row: 1; grid-column: 1; }
+  .journal-result { grid-row: 1; grid-column: 2; }
+  .journal-time { grid-row: 2; grid-column: 2; }
+  .journal-details { grid-row: 2; grid-column: 1; }
+}
+
+body:has(.workshop-frame) > #ai-dialog { width: min(var(--atelier-ai-dialog-width), calc(100% - var(--atelier-space-6))); }
+.ai-detail-body, #ai-form { display: grid; gap: var(--atelier-space-3); }
+#ai-dialog .ai-option {
+  display: grid;
+  gap: var(--atelier-space-2);
+  margin: 0;
+  padding: var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+#ai-dialog .ai-option[hidden] { display: none; }
+.ai-option p, .ai-option fieldset, .ai-detail-body > p { margin: 0; }
+.ai-option fieldset { display: grid; gap: var(--atelier-space-2); border: 0; padding: 0; min-width: 0; }
+.ai-switch { display: flex; align-items: center; gap: var(--atelier-space-2); font-weight: var(--atelier-semibold); }
+.ai-switch input { width: var(--atelier-ai-switch-size); height: var(--atelier-ai-switch-size); accent-color: var(--atelier-accent); }
+.ai-segments { display: flex; align-items: center; flex-wrap: wrap; gap: var(--atelier-space-2); }
+.ai-segments label { position: relative; display: flex; align-items: center; margin: 0; }
+.ai-segments input { position: absolute; opacity: 0; }
+.ai-segments label span { display: flex; align-items: center; min-height: var(--atelier-control); padding-inline: var(--atelier-space-2); border: var(--atelier-rule) solid var(--atelier-line); border-radius: var(--atelier-control-radius); }
+.ai-segments input:checked + span { color: var(--atelier-accent); border-color: var(--atelier-accent); }
+.ai-segments input:focus-visible + span { outline: var(--atelier-active-rule) solid var(--atelier-accent); outline-offset: var(--atelier-active-rule); }
+.ai-segments input:disabled + span { opacity: .6; }
+.ai-read-error { padding: var(--atelier-space-3); color: var(--atelier-warning); background: color-mix(in srgb, var(--atelier-warning) 10%, var(--atelier-surface)); }
+.ai-read-error p { margin-block-start: 0; }
+@media (max-width: 560px) {
+  .ai-segments > span { flex-basis: 100%; }
+  .ai-segments label, .ai-segments label span { flex: 1; }
+}
+
+/* Pied de carte en ligne : libellé et description à gauche, action à droite, comme les lignes des canaux. */
+#tab-settings .settings-row-footer { justify-content: space-between; }
+.settings-row-footer > div { display: grid; min-width: 0; }
+.settings-row-footer strong { font-weight: var(--atelier-semibold); }
+#tab-settings .settings-row-footer p { margin: 0; color: var(--atelier-muted); font: var(--atelier-caption); }
+
+/* Le mode développeur reste discret : un simple « Ω » en texte, que le style commun des boutons enfoncés remplirait. */
+#tab-settings #developer-mode[aria-pressed] { border: 0; background: none; color: var(--atelier-muted); box-shadow: none; text-decoration: none; }
+#tab-settings #developer-mode[aria-pressed="true"] { color: var(--atelier-accent); font-weight: var(--atelier-semibold); }
+/* L’onglet Développeur réutilise les panneaux de l’atelier : un volet par outil, deux colonnes sur grand écran. */
+.developer-card { margin-block-start: var(--atelier-space-4); }
+.developer-card > .atelier-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(calc(15 * var(--atelier-compact-control)), 100%), 1fr));
+  align-items: start;
+  gap: var(--atelier-space-3);
+}
+.developer-card details {
+  min-inline-size: 0;
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: var(--atelier-control-radius);
+}
+.developer-card details[open] > summary { margin-block-end: var(--atelier-space-2); }
+.developer-card details > :not(summary) + :not(summary) { margin-block-start: var(--atelier-space-2); }
+.developer-card [data-feedback], .developer-card [data-wide] { grid-column: 1 / -1; }
+.developer-card [data-feedback]:empty { display: none; }
+.developer-card .atelier-card-footer { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }
+.developer-card label { display: inline-grid; gap: var(--atelier-space-1); color: var(--atelier-muted); font: var(--atelier-caption); }
+.developer-card .developer-filters { display: flex; flex-wrap: wrap; gap: var(--atelier-space-3); }
+.developer-card pre, .developer-card .developer-log {
+  margin: 0;
+  max-block-size: calc(8 * var(--atelier-compact-control));
+  overflow: auto;
+  font: var(--atelier-caption);
+  font-family: var(--atelier-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.developer-card pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.developer-card .developer-log { padding: 0; list-style: none; }
+.developer-card .developer-log li { padding-block: var(--atelier-space-1); border-block-end: var(--atelier-rule) solid var(--atelier-line); overflow-wrap: anywhere; }
+.developer-card .developer-log li:last-child { border-block-end: 0; }
+.developer-card .developer-log:empty::before { content: attr(data-empty); color: var(--atelier-muted); font: var(--atelier-caption); }
+.developer-card .developer-log [data-attention="true"] { color: var(--atelier-warning); font-weight: var(--atelier-semibold); }
+.developer-card [data-ace-summary]:empty, .developer-card [data-finish-summary]:empty { display: none; }
+.developer-card [data-witness] img { display: block; max-inline-size: 100%; block-size: auto; }
+.developer-card [data-witness] ul { padding-inline-start: var(--atelier-space-4); }
+.developer-card code { overflow-wrap: anywhere; }
+.developer-card textarea { inline-size: 100%; box-sizing: border-box; }
+#atelier-tabs [data-tab="developer"][hidden], #atelier-tabs .developer-unread[hidden] { display: none; }
+#atelier-tabs .developer-unread {
+  display: inline-block;
+  flex: 0 0 var(--atelier-dot);
+  inline-size: var(--atelier-dot);
+  block-size: var(--atelier-dot);
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.developer-card [data-summary] { display: flex; flex-wrap: wrap; gap: var(--atelier-space-2); }

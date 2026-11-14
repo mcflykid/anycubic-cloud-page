@@ -1,0 +1,147 @@
+"""Tests des destinations de navigation, sans accès cloud ni modification des scripts statiques."""
+
+import base64, hashlib, os, pathlib, re, shutil, tempfile, unittest
+from unittest.mock import patch
+from aiohttp import web
+from aiohttp.test_utils import TestClient, TestServer
+from web_host import access_control, home_url, install_static
+from web_assets import build_web_assets
+
+
+class Navigation(unittest.IsolatedAsyncioTestCase):
+    """Vérifie le rendu réel des liens et le refus des destinations dangereuses."""
+
+    def test_unsafe_urls_are_rejected(self):
+        """Une configuration ne doit pas injecter de script, d’identifiant ou de schéma implicite."""
+        for value in [
+            "javascript:alert(1)",
+            "data:text/html,test",
+            "//example.test",
+            "https:example.test",
+            "https://user:password@example.test",
+            "/\\example.test",
+            "/page\nnext",
+        ]:
+            with self.subTest(scheme=value.split(":")[0]):
+                with self.assertRaises(ValueError):
+                    home_url(value)
+
+    def test_safe_relative_and_http_urls_are_accepted(self):
+        """Les liens relatifs et HTTP(S) explicites restent utilisables, y compris une destination vide."""
+        for value in [
+            "",
+            "/imprimante.html",
+            "atelier/page",
+            "https://example.test/atelier",
+            "http://localhost:8080",
+        ]:
+            self.assertEqual(home_url(value), value)
+
+    async def test_rendered_links_are_escaped_and_about_is_reachable(self):
+        """La destination de marque est échappée, sans casser la notice ni l’intégrité des scripts."""
+        with patch.dict(os.environ, {"HOME_URL": '/atelier?x="demo"&a=1'}):
+            app = web.Application()
+            install_static(app)
+        async with TestClient(TestServer(app)) as client:
+            page = await (await client.get("/imprimante.html")).text()
+            self.assertEqual(page.count('href="/atelier?x=&quot;demo&quot;&amp;a=1"'), 1)
+            self.assertIn('action="/logout"', page)
+            self.assertNotIn("Atelier autonome", page)
+            url = re.search(r'id="workshop-script"[^>]+src="([^"]+)"', page)[1]
+            self.assertRegex(url, r"\?v=[0-9a-f]{12}$")
+            script = await client.get(url)
+            self.assertEqual(script.status, 200)
+            body = await script.read()
+            digest = base64.b64encode(hashlib.sha256(body).digest()).decode()
+            self.assertIn('integrity="sha256-' + digest + '"', page)
+            source = pathlib.Path(__file__).resolve().parents[1] / "web/js/imprimante.js"
+            self.assertFalse("?v=" in source.read_text())
+            module = await client.get("/imprimante-api/ui/js/workshop-ui.mjs")
+            self.assertEqual(module.status, 200)
+            self.assertIn(url.rsplit("?", 1)[1], await module.text())
+            response = await client.get("/about")
+            self.assertEqual(response.status, 200)
+            self.assertIn("auto-hébergée", await response.text())
+
+    async def test_only_current_asset_fingerprints_receive_immutable_cache(self):
+        """Le cache des octets figés reste privé et les pages gardent no-store."""
+        with tempfile.TemporaryDirectory() as directory:
+            password = pathlib.Path(directory) / "web-password"
+            password.write_text("mot-de-passe-fictif")
+            with patch.dict(os.environ, {"WEB_PASSWORD_FILE": str(password)}):
+                app = web.Application(middlewares=[access_control])
+                install_static(app)
+                async with TestClient(TestServer(app)) as client:
+                    page = await client.get("/login")
+                    self.assertEqual(page.headers["Cache-Control"], "no-store")
+                    content = await page.text()
+                    for kind in ("css/landing.css", "js/workshop-ui.mjs"):
+                        url = re.search(rf'"([^"]+{re.escape(kind)}\?v=[0-9a-f]{{12}})"', content)[
+                            1
+                        ]
+                        current = await client.get(url)
+                        self.assertEqual(current.status, 200)
+                        self.assertEqual(
+                            current.headers["Cache-Control"], "private, max-age=31536000, immutable"
+                        )
+                        plain = url.split("?")[0]
+                        for previous in (plain, plain + "?v=ancienne"):
+                            stale = await client.get(previous)
+                            self.assertEqual(stale.headers["Cache-Control"], "no-store")
+                    forbidden = await client.get(
+                        "/imprimante-api/ui/css/atelier-summary.css?v=ancienne",
+                        allow_redirects=False,
+                    )
+                    self.assertEqual(forbidden.status, 303)
+                    self.assertEqual(forbidden.headers["Cache-Control"], "no-store")
+
+    async def test_empty_url_removes_links_and_default_stays_in_workshop(self):
+        """Une valeur vide retire les liens ; une variable absente ne renvoie pas vers un autre site."""
+        for value in ["", None]:
+            with patch.dict(os.environ, {}, clear=True):
+                if value is not None:
+                    os.environ["HOME_URL"] = value
+                app = web.Application()
+                install_static(app)
+            async with TestClient(TestServer(app)) as client:
+                page = await (await client.get("/")).text()
+                self.assertEqual('class="document-brand"' in page, value is None)
+                if value is None:
+                    self.assertEqual(page.count('href="/imprimante.html"'), 1)
+
+
+class AssetRevision(unittest.TestCase):
+    """Vérifie qu’un changement de dépendance suffit à renouveler les URL."""
+
+    def test_stylesheet_change_updates_module_revision(self):
+        """Deux instantanés de CSS différents ne servent pas la même URL de script."""
+        source = pathlib.Path(__file__).resolve().parents[1] / "web"
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "web"
+            shutil.copytree(source, root)
+            pages, scripts, _, _ = build_web_assets(root)
+            stylesheet = root / "css/landing.css"
+            stylesheet.write_bytes(stylesheet.read_bytes() + b"\n")
+            build_web_assets.cache_clear()
+            changed_pages, changed_scripts, _, _ = build_web_assets(root)
+            self.assertNotEqual(pages["login.html"], changed_pages["login.html"])
+            self.assertNotEqual(scripts["js/imprimante.js"], changed_scripts["js/imprimante.js"])
+
+
+class TimeZone(unittest.IsolatedAsyncioTestCase):
+    """Les dates transmises restent UTC ; leur affichage suit le fuseau IANA configuré."""
+
+    async def test_timezone_is_injected_for_history_and_charts(self):
+        """Un navigateur dans un autre fuseau reçoit la même référence temporelle pour toutes les vues."""
+        with patch.dict(os.environ, {"TZ": "America/Montreal"}):
+            app = web.Application()
+            install_static(app)
+        async with TestClient(TestServer(app)) as client:
+            page = await (await client.get("/")).text()
+            self.assertTrue('data-time-zone="America/Montreal"' in page)
+
+    def test_invalid_timezone_fails_before_serving(self):
+        """Une faute de fuseau ne doit pas revenir silencieusement à l’heure du navigateur."""
+        with patch.dict(os.environ, {"TZ": "Invalid/Fixture"}):
+            with self.assertRaises(ValueError):
+                install_static(web.Application())

@@ -1,0 +1,243 @@
+#monitoring {
+  margin-block: var(--atelier-space-6);
+  padding: var(--atelier-space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-card-radius);
+  background: color-mix(in srgb, var(--panel, Canvas) 94%, var(--atelier-accent));
+}
+
+#monitor-grid.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--atelier-space-3);
+}
+
+.monitor-card {
+  min-width: 0;
+  min-height: 9.5rem;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: var(--atelier-space-1);
+  padding: var(--atelier-space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-card-radius);
+  background: var(--panel, Canvas);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.monitor-card:hover {
+  border-color: color-mix(in srgb, currentColor 35%, var(--line));
+  box-shadow: none;
+  transform: translateY(-2px);
+}
+
+.monitor-card:focus-visible,
+.monitor-detail button:focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 3px;
+}
+
+.monitor-card-label {
+  color: var(--atelier-muted);
+  font-size: var(--atelier-text-size);
+  font-weight: 650;
+}
+
+.monitor-card-value {
+  font-size: var(--atelier-monitor-value-size);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-card-context {
+  align-self: end;
+  color: var(--atelier-muted);
+  font-size: var(--atelier-caption-size);
+}
+
+.monitor-card-graph {
+  grid-column: 1;
+  grid-row: 3;
+  align-self: end;
+  justify-self: end;
+  width: 42%;
+  height: 2.4rem;
+  color: var(--monitor-line, var(--atelier-accent));
+  pointer-events: none;
+}
+
+.monitor-sparkline {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.monitor-chart-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.monitor-chart-point {
+  fill: currentColor;
+}
+
+#monitor-pause {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--atelier-space-2);
+}
+.monitor-switch-track {
+  --monitor-switch-travel: 16px;
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-pill-radius);
+  background: var(--surface);
+  box-shadow: var(--atelier-track-shadow);
+}
+.monitor-switch-knob {
+  position: absolute;
+  inset: 2px auto auto 2px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, var(--surface), var(--muted) 180%);
+  box-shadow: var(--atelier-switch-thumb-shadow);
+}
+#monitor-pause[aria-pressed="true"] .monitor-switch-track {
+  background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+  border-color: var(--accent);
+}
+#monitor-pause[aria-pressed="true"] .monitor-switch-knob {
+  transform: translateX(var(--monitor-switch-travel)) rotate(2rad);
+  border-color: var(--accent);
+}
+
+.monitor-detail {
+  width: min(48rem, calc(100vw - 2rem));
+  max-height: min(88vh, 54rem);
+  padding: var(--atelier-space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-card-radius);
+  background: var(--panel, Canvas);
+  color: inherit;
+  box-shadow: var(--atelier-dialog-shadow);
+}
+
+.monitor-detail::backdrop {
+  background: var(--atelier-backdrop);
+  backdrop-filter: blur(3px);
+}
+
+.monitor-detail-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--atelier-space-4);
+}
+
+.monitor-detail-top h2 {
+  margin: 0;
+}
+
+.monitor-detail-value {
+  margin: var(--atelier-space-2) 0;
+  font-size: var(--atelier-title-size);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-detail-description,
+.monitor-detail-printers,
+.monitor-detail-range {
+  color: var(--atelier-muted);
+  line-height: 1.5;
+}
+
+.monitor-detail-windows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2);
+  margin-block: var(--atelier-space-3);
+}
+
+#monitor-detail .monitor-detail-windows button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--text);
+}
+
+.monitor-detail-summary:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--atelier-space-2);
+  margin: 0 0 var(--atelier-space-3);
+}
+.monitor-detail-summary > div {
+  min-width: 0;
+  padding: var(--atelier-space-2) var(--atelier-space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-card-radius);
+}
+.monitor-detail-summary dt { color: var(--muted); font-size: var(--atelier-caption-size); }
+.monitor-detail-summary dd { margin: .2rem 0 0; font-variant-numeric: tabular-nums; }
+
+.monitor-detail-chart {
+  min-height: 4rem;
+  padding: var(--atelier-space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--atelier-card-radius);
+  color: var(--monitor-line, var(--atelier-accent));
+  background: color-mix(in srgb, var(--panel, Canvas) 94%, currentColor);
+}
+
+.monitor-chart-large {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.monitor-chart-gridline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.monitor-chart-axis {
+  fill: var(--atelier-muted);
+  font-size: var(--atelier-micro-size);
+}
+
+.monitor-detail-range {
+  margin-bottom: 0;
+  font-size: var(--atelier-text-size);
+}
+
+@media (max-width: 820px) {
+  #monitor-grid.monitor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  #monitoring { padding: var(--atelier-space-3); }
+  #monitor-grid.monitor-grid { grid-template-columns: 1fr; }
+  .monitor-card { min-height: 7.8rem; }
+  .monitor-card-graph { width: 34%; }
+  .monitor-detail { padding: var(--atelier-space-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monitor-card,
+  .monitor-detail[open] { animation: none; transition: none; }
+  .monitor-card:hover { transform: none; }
+}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instrumental · Moxen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- una hoja por familia -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="instrumental.css">
+<script>if (/[?&]tema=claro/.test(location.search)) document.documentElement.dataset.tema = 'claro';</script>
+</head>
+<body>
+  <main class="in-escena" data-instrumental>
+    <div class="in-fondo" aria-hidden="true"><i class="in-resplandor"></i><i class="in-grano"></i></div>
+
+    <section class="in-panel" aria-labelledby="in-titulo">
+      <header class="in-cab">
+        <div class="in-ident">
+          <span class="in-glifo" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1.2 3.1" stroke-linecap="round"/><path d="M16 16l6-7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.4" fill="currentColor"/><circle cx="22" cy="8.5" r="1.9" class="in-glifo-punto"/></svg>
+          </span>
+          <div>
+            <h1 id="in-titulo">API principal</h1>
+            <p class="in-sub">Producción · región norte · 3 réplicas</p>
+          </div>
+        </div>
+        <div class="in-cab-der">
+          <p class="in-chip" role="status" data-estado-g><i class="in-punto" aria-hidden="true"></i><span data-estado-txt>En línea</span></p>
+          <p class="in-reloj" aria-hidden="true">Clic en una celda para abrirla</p>
+          <button class="in-tema" type="button" data-tema-btn aria-label="Cambiar entre tema claro y oscuro">
+            <svg class="in-i-luna" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.2A7.8 7.8 0 0 1 9.8 4.5a7.8 7.8 0 1 0 9.7 9.7z"/></svg>
+            <svg class="in-i-sol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- las nueve celdas: cada una dibuja su dato a su manera (instrumental.js) -->
+      <div class="in-rejilla" data-rejilla>
+        <button class="in-celda" type="button" data-m="peticiones" aria-label="Peticiones por segundo: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Peticiones</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>1.284</b><small>req/s</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="latencia" aria-label="Latencia: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Latencia p95</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>86</b><small>ms</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="errores" aria-label="Errores: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Errores</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>0,28</b><small>%</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="cpu" aria-label="CPU: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">CPU</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>47</b><small>%</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="memoria" aria-label="Memoria: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Memoria</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>6,2</b><small>GB</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="cola" aria-label="Cola de trabajos: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Cola</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>214</b><small>en espera</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="cache" aria-label="Caché: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Caché</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>96,4</b><small>% aciertos</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="red" aria-label="Red: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Red</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>38</b><small>MB/s</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+        <button class="in-celda" type="button" data-m="disco" aria-label="Disco: ver detalle" aria-expanded="false" aria-controls="in-det">
+          <span class="in-c-cab"><span class="in-c-nombre">Disco</span><i class="in-c-abre" aria-hidden="true"></i></span>
+          <span class="in-c-valor" aria-hidden="true"><b data-valor>68</b><small>% usado</small></span>
+          <span class="in-c-viz"><canvas aria-hidden="true"></canvas></span>
+        </button>
+
+        <!-- el detalle: crece desde la celda con un resorte (clip-path) y trae lecturas, rango y umbral -->
+        <div class="in-det" id="in-det" data-det role="region" aria-label="Detalle de la métrica">
+          <div class="in-det-clip" data-clip>
+            <div class="in-det-cuerpo">
+              <header class="in-d-cab in-r" style="--r:0">
+                <div>
+                  <h2 class="in-d-nombre" data-d-nombre>Peticiones por segundo</h2>
+                  <p class="in-d-desc" data-d-desc>Solicitudes que entran al servicio.</p>
+                </div>
+                <button class="in-cierra" type="button" data-cierra aria-label="Cerrar el detalle">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+                </button>
+              </header>
+              <div class="in-d-cols">
+                <aside class="in-d-lect in-r" style="--r:1" aria-label="Lecturas">
+                  <p class="in-d-actual"><b data-d-valor>1.284</b><small data-d-unidad>req/s</small></p>
+                  <p class="in-d-delta" data-d-delta>↑ 4,2 % frente al periodo anterior</p>
+                  <dl class="in-lecturas">
+                    <div><dt>Promedio</dt><dd data-l="prom">—</dd></div>
+                    <div><dt>Mínimo</dt><dd data-l="min">—</dd></div>
+                    <div><dt>Máximo</dt><dd data-l="max">—</dd></div>
+                    <div><dt>Percentil 95</dt><dd data-l="p95">—</dd></div>
+                  </dl>
+                  <p class="in-d-pista"><kbd>↑</kbd><kbd>↓</kbd> ajustan el umbral<br><kbd>Esc</kbd> cierra el detalle</p>
+                </aside>
+                <div class="in-d-graf">
+                  <div class="in-d-barra in-r" style="--r:2">
+                    <p class="in-estado" data-d-estado><i class="in-punto" aria-hidden="true"></i><span data-d-estado-txt>Dentro del umbral</span></p>
+                    <div class="in-rango" role="radiogroup" aria-label="Rango de tiempo" data-rango>
+                      <i class="in-rango-pildora" aria-hidden="true"></i>
+                      <button type="button" role="radio" aria-checked="true" data-r="5m" tabindex="0">5 min</button>
+                      <button type="button" role="radio" aria-checked="false" data-r="1h" tabindex="-1">1 h</button>
+                      <button type="button" role="radio" aria-checked="false" data-r="1d" tabindex="-1">1 día</button>
+                    </div>
+                  </div>
+                  <div class="in-d-lienzo in-r" style="--r:3" data-area>
+                    <canvas data-d-lienzo aria-hidden="true"></canvas>
+                    <div class="in-umbral" role="slider" tabindex="0" aria-orientation="vertical" aria-label="Umbral de alerta" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" data-umbral>
+                      <span class="in-um-pastilla"><small>Umbral</small><b data-um-txt>1.750</b></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <i class="in-pulso" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+    </section>
+    <p class="in-oculto" role="status" aria-live="polite" data-aviso></p>
+  </main>
+  <script src="instrumental.js"></script>
+  <script>Instrumental(document.querySelector('[data-instrumental]'));</script>
+</body>
+</html>

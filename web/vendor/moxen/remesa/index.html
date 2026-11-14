@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remesa · Moxen</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=switzer@400,500,600&display=swap">
+<link rel="stylesheet" href="remesa.css">
+<!-- ?tema=claro es la paleta de siempre; ?tema=oscuro, la misma pantalla de noche -->
+<script>if (/[?&]tema=claro/.test(location.search)) document.documentElement.dataset.tema = 'claro'; else if (/[?&]tema=oscuro/.test(location.search)) document.documentElement.dataset.tema = 'oscuro';</script>
+</head>
+<body>
+  <!-- data-remesa: la escena entera. data-acepta=".pdf,image/*" y data-max-mb="25" son opcionales.
+       Para subir de verdad, pasa onSube(archivo, progreso, señal) → promesa (ver la cabecera de remesa.js) -->
+  <main class="rm-escena" data-remesa data-max-mb="25">
+    <!-- el fondo: manchas de color que derivan, una trama de puntos y grano -->
+    <div class="rm-fondo" aria-hidden="true">
+      <i class="rm-mancha rm-mancha--1"></i><i class="rm-mancha rm-mancha--2"></i><i class="rm-mancha rm-mancha--3"></i>
+      <div class="rm-puntos"></div><div class="rm-grano"></div>
+    </div>
+
+    <section class="rm-tarjeta" aria-labelledby="rm-titulo">
+      <!-- a la izquierda: la zona de soltar (es un botón: Intro o Espacio abren el selector) y el atajo de ejemplo -->
+      <div class="rm-izq">
+        <div class="rm-zona" role="button" tabindex="0" aria-describedby="rm-zona-txt" data-zona>
+          <svg class="rm-borde" aria-hidden="true"><rect data-borde/></svg>
+          <span class="rm-pulso" aria-hidden="true"></span><span class="rm-pulso rm-pulso--2" aria-hidden="true"></span>
+
+          <!-- la ilustración: una carpeta de la que sale una nube. Al arrastrar encima la nube crece y respira;
+               al terminar todo, la nube se vuelve de un azul pleno y se dibuja un ✓ -->
+          <div class="rm-ilu-caja" data-ilu>
+            <svg class="rm-ilu" viewBox="0 0 260 210" aria-hidden="true">
+              <defs>
+                <linearGradient id="rm-g-fondo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8eacff"/><stop offset="1" stop-color="#4b77ff"/></linearGradient>
+                <linearGradient id="rm-g-tapa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3d5ff"/><stop offset="1" stop-color="#7d9fff"/></linearGradient>
+                <linearGradient id="rm-g-nube" gradientUnits="userSpaceOnUse" x1="0" y1="40" x2="0" y2="130"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d6e3ff"/></linearGradient>
+                <linearGradient id="rm-g-nube-e" gradientUnits="userSpaceOnUse" x1="0" y1="40" x2="0" y2="130"><stop offset="0" stop-color="#6d90ff"/><stop offset="1" stop-color="#2c56d6"/></linearGradient>
+                <filter id="rm-f-nube" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#3b6cff" flood-opacity=".28"/></filter>
+                <filter id="rm-f-carp" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="12" stdDeviation="9" flood-color="#2a4fd0" flood-opacity=".3"/></filter>
+              </defs>
+              <ellipse class="rm-i-suelo" cx="130" cy="198" rx="92" ry="9"/>
+              <!-- el fondo de la carpeta, con su pestaña -->
+              <g filter="url(#rm-f-carp)"><path class="rm-i-carp" d="M42 124a10 10 0 0 1 10-10h38a8 8 0 0 1 5.7 2.4L108 126h100a10 10 0 0 1 10 10v50a12 12 0 0 1-12 12H54a12 12 0 0 1-12-12z" fill="url(#rm-g-fondo)"/></g>
+              <!-- la nube y su flecha (la del ✓ aparece al terminar) -->
+              <g transform="translate(130 112) scale(1.32) translate(-130 -100)"><g class="rm-i-nube-g"><g class="rm-i-nube">
+                <g filter="url(#rm-f-nube)" class="rm-i-n-azul">
+                  <rect x="88" y="94" width="84" height="26" rx="13" fill="url(#rm-g-nube)"/>
+                  <circle cx="107" cy="98" r="19" fill="url(#rm-g-nube)"/><circle cx="132" cy="80" r="28" fill="url(#rm-g-nube)"/><circle cx="157" cy="98" r="17" fill="url(#rm-g-nube)"/>
+                </g>
+                <g class="rm-i-n-exito">
+                  <rect x="88" y="94" width="84" height="26" rx="13" fill="url(#rm-g-nube-e)"/>
+                  <circle cx="107" cy="98" r="19" fill="url(#rm-g-nube-e)"/><circle cx="132" cy="80" r="28" fill="url(#rm-g-nube-e)"/><circle cx="157" cy="98" r="17" fill="url(#rm-g-nube-e)"/>
+                </g>
+                <path class="rm-i-flecha" d="M130 108V76M118.5 87.5 130 75.5l11.5 12" />
+                <path class="rm-i-tic" pathLength="1" d="M114 96l11.5 11.5L148 82"/>
+              </g></g></g>
+              <g class="rm-i-chorro"></g>
+              <!-- la tapa delantera de la carpeta -->
+              <g class="rm-i-tapa">
+                <path d="M38 144a10 10 0 0 1 10-10h164a10 10 0 0 1 10 10l-5 42a12 12 0 0 1-12 11H55a12 12 0 0 1-12-11z" fill="url(#rm-g-tapa)"/>
+                <path d="M48.5 135.5h163" stroke="#fff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+                <rect x="112" y="158" width="36" height="6" rx="3" fill="#fff" fill-opacity=".5"/>
+              </g>
+              <g class="rm-i-chispas">
+                <path d="M54 62l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/><path d="M212 54l2.4 6.4 6.4 2.4-6.4 2.4-2.4 6.4-2.4-6.4-6.4-2.4 6.4-2.4z"/><path d="M196 104l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="M70 104l1.8 4.5 4.5 1.8-4.5 1.8-1.8 4.5-1.8-4.5-4.5-1.8 4.5-1.8z"/>
+              </g>
+            </svg>
+          </div>
+          <h2 class="rm-zona-tit" data-zona-tit>Suelta tus archivos aquí</h2>
+          <p class="rm-zona-txt" id="rm-zona-txt" data-zona-txt>o elígelos desde tu equipo</p>
+          <span class="rm-boton" aria-hidden="true" data-boton><svg viewBox="0 0 24 24"><path d="M12 15.5V5M7.5 9.2 12 4.7l4.5 4.5M5 15v2.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg><b data-boton-txt>Elegir archivos</b></span>
+        </div>
+        <button class="rm-ejemplo" type="button" data-ejemplo>Probar con archivos de ejemplo</button>
+        <input class="rm-oculto" type="file" multiple tabindex="-1" aria-hidden="true" data-entrada>
+      </div>
+
+      <!-- a la derecha: el estado global y las filas; cada fila sale de remesa.js -->
+      <div class="rm-der">
+        <header class="rm-cab">
+          <div class="rm-cab-txt">
+            <h1 id="rm-titulo">Tu remesa</h1>
+            <p class="rm-estado" data-estado>Aún no hay archivos</p>
+          </div>
+          <div class="rm-pct" data-pct aria-hidden="true"><span class="rm-d" data-d="0"></span><span class="rm-d" data-d="1"></span><span class="rm-d" data-d="2"></span><b>%</b></div>
+        </header>
+        <div class="rm-barra" role="progressbar" aria-label="Progreso total" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-barra><i></i></div>
+        <div class="rm-cuerpo">
+          <ul class="rm-lista" data-lista></ul>
+          <!-- la lista vacía: tres filas fantasma -->
+          <div class="rm-vacio" data-vacio aria-hidden="true">
+            <i></i><i></i><i></i>
+            <p>Tus archivos aparecerán aquí</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="rm-pista"><span class="rm-solo-raton">Arrastra archivos sobre la zona, pulsa para elegirlos o prueba con los de ejemplo · desliza una fila para quitarla</span><span class="rm-solo-dedo">Toca la zona para elegir archivos · desliza una fila para quitarla</span></p>
+    <div class="rm-vuelos" aria-hidden="true"></div>
+    <p class="rm-oculto" aria-live="polite" data-vivo></p>
+  </main>
+
+  <script src="remesa.js"></script>
+  <script>
+    /* Sin opciones, la subida es simulada (no sale nada de tu equipo). Para subir de verdad:
+       Remesa(el, { onSube: (archivo, progreso, señal) => fetch(...) }) — ver remesa.js */
+    Remesa(document.querySelector('[data-remesa]'));
+  </script>
+</body>
+</html>

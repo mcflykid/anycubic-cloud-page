@@ -1,0 +1,189 @@
+/* Les deux cartes partagent leurs lignes d’en-tête, de contenu et de pied. */
+#tab-camera { container: camera / inline-size; }
+.camera-workspace {
+  display: grid;
+  gap: var(--atelier-space-4);
+}
+.camera-workspace > .atelier-card {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.camera-workspace :is(h4, p) { margin: 0; }
+.camera-workspace h4 {
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+}
+.camera-workspace .atelier-status { min-inline-size: 0; }
+.camera-workspace [hidden] { display: none; }
+/* Des colonnes latérales égales gardent l’aide centrée quel que soit le libellé d’état. */
+.camera-feed-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.camera-feed-header #camera-state { justify-self: end; }
+#camera-state.atelier-status {
+  min-block-size: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: var(--atelier-text);
+}
+#camera-state.atelier-status::before,
+#axis-state:not([data-available="true"])::before {
+  flex: none;
+  box-sizing: border-box;
+  inline-size: var(--atelier-dot);
+  block-size: var(--atelier-dot);
+  background: transparent;
+  border: var(--atelier-active-rule) solid var(--atelier-muted);
+  clip-path: none;
+}
+#camera-state.atelier-status[data-visual-state="error"]::before { border-color: var(--atelier-error); }
+#camera-state.atelier-status[data-visual-state="ready"]::before {
+  border-color: var(--atelier-normal);
+  background: var(--atelier-normal);
+}
+.camera-picture { display: grid; flex: 1; align-items: center; min-inline-size: 0; }
+#tab-camera .camera-picture #camera-wrapper {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  inline-size: min(100%, calc(var(--atelier-video-max-height) * 16 / 9));
+  max-block-size: none;
+  min-block-size: 0;
+  aspect-ratio: var(--atelier-video-ratio);
+  border-radius: var(--atelier-control-radius);
+  background: light-dark(var(--atelier-fg), var(--atelier-bg));
+  color: light-dark(var(--atelier-surface), var(--atelier-fg));
+}
+#tab-camera .camera-picture #camera-wrapper:fullscreen {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.camera-picture #camera-video { position: absolute; inset: 0; }
+#camera-wrapper:has(#camera-video > *) .camera-placeholder { visibility: hidden; }
+.camera-feed-actions { justify-content: center; }
+.camera-command-content { flex: 1; min-inline-size: 0; }
+.camera-command-row, .camera-move-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2);
+}
+.camera-command-row {
+  padding: var(--atelier-space-2) var(--atelier-space-4);
+  border-block-end: var(--atelier-rule) solid var(--atelier-line);
+}
+.camera-command-content p, .camera-warning p {
+  color: var(--atelier-muted);
+  font: var(--atelier-label);
+}
+.camera-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-2);
+}
+#zoom-label { font-variant-numeric: tabular-nums; }
+.camera-move { display: grid; gap: var(--atelier-space-3); }
+.camera-move .axis-step-control {
+  display: inline-flex;
+  width: auto;
+  margin: 0;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: var(--atelier-control-radius);
+}
+.camera-move .axis-step-control label { position: relative; margin: 0; white-space: nowrap; }
+.camera-move .axis-step-control span {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-block-size: var(--atelier-control);
+  border: var(--atelier-rule) solid var(--atelier-line);
+  border-radius: 0;
+  padding: 0 var(--atelier-space-4);
+  background: var(--atelier-surface);
+  color: var(--atelier-fg);
+  font: var(--atelier-text);
+  font-weight: var(--atelier-semibold);
+}
+.camera-move .axis-step-control label + label span { border-inline-start: 0; }
+.camera-move .axis-step-control label:first-child span {
+  border-start-start-radius: var(--atelier-control-radius);
+  border-end-start-radius: var(--atelier-control-radius);
+}
+.camera-move .axis-step-control label:last-child span {
+  border-start-end-radius: var(--atelier-control-radius);
+  border-end-end-radius: var(--atelier-control-radius);
+}
+.camera-move .axis-step-control input:checked + span {
+  background: var(--atelier-accent);
+  color: var(--atelier-on-accent);
+  border-color: var(--atelier-accent);
+}
+.camera-axis-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--atelier-space-6);
+}
+.camera-axis-xy, .camera-axis-z, .camera-axis-home { display: grid; gap: var(--atelier-space-2); }
+.camera-axis-xy {
+  grid-template-areas: ". north ." "west origin east" ". south .";
+}
+.camera-axis-xy > :nth-child(1) { grid-area: north; }
+.camera-axis-xy > :nth-child(2) { grid-area: west; }
+.camera-axis-xy > :nth-child(3) { grid-area: east; }
+.camera-axis-xy > :nth-child(4) { grid-area: south; }
+.camera-axis-xy > :nth-child(5) { grid-area: origin; }
+.camera-axis-grid :is(.camera-axis-xy, .camera-axis-z) button {
+  inline-size: var(--atelier-axis-size);
+  block-size: var(--atelier-axis-size);
+  padding: 0;
+}
+.camera-warning { min-block-size: calc(var(--atelier-control) + 2 * var(--atelier-space-3)); }
+.camera-warning p {
+  display: flex;
+  align-items: baseline;
+  gap: var(--atelier-space-2);
+  margin-inline: 0;
+}
+.camera-warning p::before {
+  content: "";
+  flex: none;
+  inline-size: var(--atelier-dot);
+  block-size: var(--atelier-dot);
+  background: var(--atelier-warning);
+}
+@container camera (min-width: 960px) {
+  .camera-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+    column-gap: var(--atelier-space-4);
+    row-gap: 0;
+  }
+  .camera-workspace > .atelier-card {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+  }
+}
+@container camera (max-width: 560px) {
+  .camera-axis-grid { --atelier-axis-size: var(--atelier-touch-control); }
+}
+#tab-camera .atelier-card-header :is(h2, h3) {
+  margin: 0;
+  font: var(--atelier-card-title);
+  font-weight: var(--atelier-semibold);
+}
+.camera-move .axis-step-control span { width: auto; }
+.camera-warning > p:only-child { margin-inline: 0; }
+
+@media (min-width: 961px) and (max-height: 800px) {
+  .camera-axis-grid { gap: var(--atelier-space-4); }
+}

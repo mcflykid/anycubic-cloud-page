@@ -1,0 +1,1132 @@
+"""Modèles des périphériques, bobines, réglages et versions de micrologiciel."""
+from __future__ import annotations
+
+from typing import Any
+from time import monotonic
+from math import ceil
+
+from ..exceptions.error_strings import ErrorsDataParsing
+from ..exceptions.exceptions import AnycubicAPIError, AnycubicDataParsingError
+
+
+class AnycubicMaterialMapping:
+    """Association entre matériau de tranche et emplacement de bobine constructeur."""
+    __slots__ = (
+        "_spool_index",
+        "_filament_used",
+        "_material_type",
+        "_color_red",
+        "_color_green",
+        "_color_blue",
+        "_paint_index",
+    )
+
+    def __init__(
+        self,
+        spool_index: int,
+        filament_used: float,
+        material_type: str,
+        color_red: int,
+        color_green: int,
+        color_blue: int,
+        paint_index: int = 0,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._spool_index = int(spool_index)
+        self._filament_used = float(filament_used)
+        self._material_type = str(material_type)
+        self._color_red = int(color_red)
+        self._color_green = int(color_green)
+        self._color_blue = int(color_blue)
+        self._paint_index = int(paint_index)
+
+    @property
+    def spool_index(self) -> int:
+        """Indice interne de bobine utilisé pour la correspondance des matériaux."""
+        return self._spool_index
+
+    @property
+    def filament_used(self) -> float:
+        """Quantité de filament annoncée par le modèle de tranche."""
+        return self._filament_used
+
+    @property
+    def material_type(self) -> str:
+        """Type de matériau rapporté par le constructeur."""
+        return self._material_type
+
+    @property
+    def paint_index(self) -> int:
+        """Indice de matériau utilisé dans les données de peinture du G-code."""
+        return self._paint_index
+
+    @property
+    def color_data(self) -> list[int]:
+        """Couleur sous forme de dictionnaire compatible avec les commandes."""
+        return list([
+            self._color_red,
+            self._color_green,
+            self._color_blue,
+        ])
+
+    def as_box_mapping_data(self) -> dict[str, Any]:
+        """Renvoie la correspondance matériau/bobine au format requis par la commande cloud."""
+        return {
+            'ams_color': self.color_data,
+            'ams_index': self._spool_index,
+            'filament_used': self._filament_used,
+            'material_type': self._material_type,
+            'paint_color': self.color_data,
+            'paint_index': self._paint_index,
+        }
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicMaterialMapping("
+            f"spool_index={self._spool_index}, "
+            f"filament_used={self._filament_used}, "
+            f"material_type={self._material_type}, "
+            f"color_red={self._color_red}, "
+            f"color_green={self._color_green}, "
+            f"color_blue={self._color_blue}, "
+            f"paint_index={self._paint_index})"
+        )
+
+
+class AnycubicMaterialColor:
+    """Couleur RGB d’une bobine, sérialisable pour les commandes constructeur."""
+    __slots__ = (
+        "_red",
+        "_green",
+        "_blue",
+    )
+
+    def __init__(
+        self,
+        red: int,
+        green: int,
+        blue: int,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._red: int = red
+        self._green: int = green
+        self._blue: int = blue
+
+    @property
+    def red(self) -> int:
+        """Composante rouge de la couleur RGB."""
+        return self._red
+
+    @property
+    def green(self) -> int:
+        """Composante verte de la couleur RGB."""
+        return self._green
+
+    @property
+    def blue(self) -> int:
+        """Composante bleue de la couleur RGB."""
+        return self._blue
+
+    @property
+    def data(self) -> list[int]:
+        """Composantes RGB dans l’ordre rouge, vert, bleu attendu par les commandes constructeur."""
+        return list([
+            self._red,
+            self._green,
+            self._blue,
+        ])
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicMaterialColor("
+            f"red={self._red}, "
+            f"green={self._green}, "
+            f"blue={self._blue})"
+        )
+
+
+
+
+
+
+
+class AnycubicMachineToolInfo:
+    """Caractéristiques d’un outil ou d’une tête annoncés par la machine."""
+    __slots__ = (
+        "_id",
+        "_typd_id",
+        "_model_id",
+        "_type_function_id",
+        "_parent_id",
+        "_function_name",
+        "_function_des",
+        "_control",
+        "_param",
+        "_icon_url",
+        "_function_type",
+        "_status",
+        "_show_place",
+    )
+
+    def __init__(
+        self,
+        id: int,
+        typd_id: int,
+        model_id: int,
+        type_function_id: int,
+        parent_id: int,
+        function_name: str,
+        function_des: str,
+        control: int,
+        param: Any,
+        icon_url: str,
+        function_type: int,
+        status: int,
+        show_place: int,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._id = int(id)
+        self._typd_id = int(typd_id)
+        self._model_id = int(model_id)
+        self._type_function_id = int(type_function_id)
+        self._parent_id = int(parent_id)
+        self._function_name = str(function_name)
+        self._function_des = str(function_des)
+        self._control = int(control)
+        self._param = param
+        self._icon_url = str(icon_url)
+        self._function_type = int(function_type)
+        self._status = int(status)
+        self._show_place = int(show_place)
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicMachineToolInfo | None:
+        """Construit AnycubicMachineToolInfo depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            id=data['id'],
+            typd_id=data['typd_id'],
+            model_id=data['model_id'],
+            type_function_id=data['type_function_id'],
+            parent_id=data['parent_id'],
+            function_name=data['function_name'],
+            function_des=data['function_des'],
+            control=data['control'],
+            param=data['param'],
+            icon_url=data['icon_url'],
+            function_type=data['function_type'],
+            status=data['status'],
+            show_place=data['show_place'],
+        )
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicMachineToolInfo(id={self._id}, typd_id={self._typd_id}, model_id={self._model_id}, "
+            f"type_function_id={self._type_function_id}, parent_id={self._parent_id},\n "
+            f"function_name={self._function_name}, function_des={self._function_des}, control={self._control}, "
+            f"param={self._param}, icon_url={self._icon_url},\n "
+            f"function_type={self._function_type}, status={self._status}, show_place={self._show_place})"
+        )
+
+
+class AnycubicMachineExternalShelves:
+    """État du support de filament externe quand il est attribué par le cloud."""
+    __slots__ = (
+        "_id",
+        "_type",
+        "_color",
+        "_loaded",
+        "_status_type",
+        "_current_status",
+    )
+
+    def __init__(
+        self,
+        id: int,
+        type: str,
+        color: list[int],
+        loaded: int | None,
+        status_type: int | None,
+        current_status: int | None,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._id = int(id)
+        self._type = str(type)
+        self._color = list([
+            int(x) for x in color
+        ])
+        self._set_status(loaded, status_type, current_status)
+
+    def _set_status(self, loaded: int | None, status_type: int | None, current_status: int | None) -> None:
+        # Le cloud utilise null comme un champ omis, sans état annoncé.
+        self._loaded = int(loaded) if loaded is not None else 0
+        self._status_type = int(status_type) if status_type is not None else 0
+        self._current_status = int(current_status) if current_status is not None else 0
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicMachineExternalShelves | None:
+        # Un support externe non attribué peut être représenté par un objet dont id vaut null.
+        """Construit le support attribué ; renvoie None sans data ou sans id, lève KeyError si un autre champ requis manque."""
+        if data is None or data.get('id') is None:
+            return None
+
+        return cls(
+            id=data['id'],
+            type=data['type'],
+            color=data['color'],
+            loaded=data.get('loaded', False),
+            status_type=data.get('status_type', False),
+            current_status=data.get('current_status', False),
+        )
+
+    def update_with_mqtt_data(self, data: dict[str, Any] | None) -> None:
+        """Applique les champs MQTT disponibles sans effacer les valeurs absentes."""
+        if data is None:
+            return None
+
+        self._type = data['type']
+        self._color = data['color']
+        self._set_status(
+            data.get('loaded', self._loaded),
+            data.get('status_type', self._status_type),
+            data.get('current_status', self._current_status),
+        )
+
+    @property
+    def spool_info_object(self) -> list[dict[str, Any]]:
+        """Bobines sérialisées pour l’affichage."""
+        return [
+            {
+                "material_type": self._type,
+                "color": self._color,
+                "status": self._current_status,
+                "spool_loaded": bool(self._loaded),
+                "local_slot": 1,
+                "slot": 1,
+                "display_slot": 1,
+                "box_id": -1,
+                "source": "external",
+                "reserved_by_ace": False,
+            }
+        ]
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicMachineExternalShelves(id={self._id}, type={self._type}, color={self._color}, loaded={self._loaded}, "
+            f"status_type={self._status_type}, current_status={self._current_status})"
+        )
+
+
+class AnycubicFeedStatus:
+    """État de l’opération de chargement du filament ACE."""
+    __slots__ = (
+        "_code",
+        "_type",
+        "_current_status",
+        "_slot_index",
+    )
+
+    def __init__(
+        self,
+        code: int,
+        type: int,
+        current_status: int,
+        slot_index: int,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._code = int(code)
+        self._type = int(type)
+        self._current_status = int(current_status)
+        self._slot_index = int(slot_index)
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicFeedStatus | None:
+        """Construit AnycubicFeedStatus depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            code=data.get('code', -1),
+            type=data['type'],
+            current_status=data['current_status'],
+            slot_index=data['slot_index'],
+        )
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicFeedStatus(code={self._code}, type={self._type}, current_status={self._current_status}, "
+            f"slot_index={self._slot_index})"
+        )
+
+
+class AnycubicDryingStatus:
+    """Température, durée et progression du séchage ACE."""
+    __slots__ = (
+        "_status",
+        "_target_temp",
+        "_duration",
+        "_remain_time",
+        "_expires_at",
+    )
+
+    def __init__(
+        self,
+        status: int,
+        target_temp: int,
+        duration: int,
+        remain_time: int,
+        *,
+        count_down: bool = False,
+    ) -> None:
+        """Initialise le séchage ; count_down active une échéance monotone à partir de remain_time en minutes."""
+        self._status = int(status)
+        self._target_temp = int(target_temp)
+        self._duration = int(duration)
+        self._remain_time = int(remain_time)
+        self._expires_at = monotonic() + self._remain_time * 60 if count_down and self._remain_time > 0 else None
+
+    @classmethod
+    def from_json(
+        cls, data: dict[str, Any] | None, *, duration_in_seconds: bool = False, count_down: bool = False,
+    ) -> AnycubicDryingStatus | None:
+        """Construit AnycubicDryingStatus depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        duration = int(data.get('duration', 0))
+        data.get('humidity')
+        return cls(
+            status=data['status'],
+            target_temp=data.get('target_temp', 0),
+            duration=duration // 60 if duration_in_seconds else duration,
+            remain_time=data.get('remain_time', 0),
+            count_down=count_down,
+        )
+
+    @property
+    def is_drying(self) -> bool:
+        """Indique si le séchage ACE est actif."""
+        return self._status == 1 and (self._expires_at is None or monotonic() < self._expires_at)
+
+    @property
+    def raw_status_code(self) -> int:
+        """Code brut d’état transmis par le périphérique."""
+        return self._status
+
+    @property
+    def target_temperature(self) -> int:
+        """Consigne de température de séchage ACE en degrés Celsius."""
+        return self._target_temp if self.is_drying else 0
+
+    @property
+    def total_duration(self) -> int:
+        """Durée de séchage ACE programmée en minutes."""
+        return self._duration if self.is_drying else 0
+
+    @property
+    def remaining_time(self) -> int:
+        """Temps de séchage restant en minutes."""
+        if self._status == 1 and self._expires_at is not None:
+            return max(0, ceil((self._expires_at - monotonic()) / 60))
+        return self._remain_time if self.is_drying else 0
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicDryingStatus(is_drying={self.is_drying}, status={self._status}, target_temp={self._target_temp}, "
+            f"duration={self._duration}, remain_time={self._remain_time})"
+        )
+
+
+class AnycubicSpoolInfo:
+    """Couleur, matériau et état de chargement d’un emplacement de bobine."""
+    __slots__ = (
+        "_index",
+        "_sku",
+        "_material_type",
+        "_color",
+        "_edit_status",
+        "_status",
+    )
+
+    def __init__(
+        self,
+        index: int,
+        sku: str,
+        material_type: str,
+        color: list[int],
+        edit_status: int,
+        status: int,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._index = int(index)
+        self._sku = str(sku)
+        self._material_type = str(material_type)
+        self._color = list([
+            int(x) for x in color
+        ])
+        self._edit_status = int(edit_status)
+        self._status = int(status)
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicSpoolInfo | None:
+        """Construit AnycubicSpoolInfo depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            index=data['index'],
+            sku=data['sku'],
+            material_type=data['type'],
+            color=data['color'],
+            edit_status=data['edit_status'],
+            status=data['status'],
+        )
+
+    @property
+    def index(self) -> int:
+        """Indice interne de l’élément, distinct du numéro affiché."""
+        return self._index
+
+    @property
+    def sku(self) -> str:
+        """Référence constructeur brute, réservée à la résolution de fiche côté serveur."""
+        return self._sku
+
+    @property
+    def material_type(self) -> str:
+        """Type de matériau rapporté par le constructeur."""
+        return self._material_type
+
+    @property
+    def color(self) -> list[int]:
+        """Couleur telle que représentée par ce modèle constructeur."""
+        return self._color
+
+    @property
+    def color_red(self) -> int:
+        """Composante rouge de la couleur RGB."""
+        return self._color[0]
+
+    @property
+    def color_green(self) -> int:
+        """Composante verte de la couleur RGB."""
+        return self._color[1]
+
+    @property
+    def color_blue(self) -> int:
+        """Composante bleue de la couleur RGB."""
+        return self._color[2]
+
+    @property
+    def status(self) -> int:
+        """Code d’état conservé par le modèle constructeur."""
+        return self._status
+
+    @property
+    def rfid(self) -> bool | None:
+        """Distingue l’identification verrouillée par l’ACE des réglages manuels et états inconnus."""
+        return {0: True, 1: False}.get(self._edit_status)
+
+    @property
+    def spool_loaded(self) -> bool:
+        """Indique si la bobine est actuellement chargée."""
+        return self._status == 5
+
+    def set_spool_loaded(self, is_loaded: bool) -> None:
+        """Mémorise si la bobine est chargée, sans commande physique."""
+        if is_loaded:
+            self._status = 5
+        else:
+            self._status = 4
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicSpoolInfo(index={self._index}, sku={self._sku}, material_type={self.material_type}, color={self._color}, "
+            f"edit_status={self._edit_status}, status={self._status})"
+        )
+
+
+class AnycubicMultiColorBox:
+    """État d’un boîtier multicolore et correspondances de ses emplacements."""
+    __slots__ = (
+        "_id",
+        "_status",
+        "_model_id",
+        "_auto_feed",
+        "_loaded_slot",
+        "_feed_status",
+        "_temp",
+        "_drying_status",
+        "_curr_nozzle_temp",
+        "_target_nozzle_temp",
+        "_slots",
+    )
+
+    def __init__(
+        self,
+        id: int,
+        status: int,
+        model_id: int,
+        auto_feed: int,
+        loaded_slot: int,
+        feed_status: dict[str, Any] | None,
+        temp: int,
+        drying_status: dict[str, Any] | None,
+        curr_nozzle_temp: int | None,
+        target_nozzle_temp: int | None,
+        slots: list[dict[str, Any]],
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis. Lève AnycubicDataParsingError si les paramètres sont incompatibles."""
+        self._id: int = int(id)
+        self._status: int = int(status)
+        self._model_id: int = int(model_id)
+        self._auto_feed: int = int(auto_feed)
+        self._loaded_slot: int = int(loaded_slot)
+        self.set_feed_status(feed_status)
+        self.set_current_temperature(temp)
+        self.set_drying_status(drying_status)
+        self._curr_nozzle_temp: int | None = int(curr_nozzle_temp) if curr_nozzle_temp is not None else None
+        self._target_nozzle_temp: int | None = int(target_nozzle_temp) if target_nozzle_temp is not None else None
+        self._slots: list[AnycubicSpoolInfo] = list()
+        for x in slots:
+            if spool := AnycubicSpoolInfo.from_json(x):
+                self._slots.append(spool)
+            else:
+                raise AnycubicDataParsingError(ErrorsDataParsing.ace.format(slots))
+
+    def set_auto_feed(self, auto_feed: int) -> None:
+        """Mémorise l’état du remplacement automatique annoncé pour le boîtier."""
+        self._auto_feed = int(auto_feed)
+
+    def set_drying_status(
+        self, drying_status: dict[str, Any] | None, *, duration_in_seconds: bool = False, count_down: bool = False,
+    ) -> AnycubicDryingStatus | None:
+        """Renvoie le nouvel état ; les rapports Kobra X peuvent exprimer duration en secondes et nécessiter un décompte local."""
+        self._drying_status = AnycubicDryingStatus.from_json(
+            drying_status, duration_in_seconds=duration_in_seconds, count_down=count_down,
+        )
+        return self._drying_status
+
+    def set_feed_status(self, feed_status: dict[str, Any] | None) -> None:
+        """Reconstruit l’état de chargement depuis les données constructeur reçues."""
+        self._feed_status = AnycubicFeedStatus.from_json(feed_status)
+
+    def set_slot_loaded(self, slot_num: int) -> None:
+        """Mémorise l’emplacement chargé à partir du numéro constructeur reçu."""
+        self._loaded_slot = slot_num
+
+    def set_current_temperature(self, temp: int) -> None:
+        """Mémorise la température ACE rapportée en degrés Celsius."""
+        self._temp = int(temp)
+
+    def update_slots_with_mqtt_data(self, slot_list: list[dict[str, Any]] | None) -> None:
+        """Actualise les bobines concernées par un rapport MQTT partiel. Lève AnycubicDataParsingError si les données ou l’état requis sont invalides."""
+        if slot_list is None:
+            return
+
+        # Les rapports partiels identifient le logement, même quand la liste initiale est incomplète.
+        slots = {spool.index: spool for spool in self._slots}
+        for slot in slot_list:
+            if spool := AnycubicSpoolInfo.from_json(slot):
+                slots[spool.index] = spool
+            else:
+                raise AnycubicDataParsingError(ErrorsDataParsing.ace.format(slot_list))
+        self._slots = [slots[index] for index in sorted(slots)]
+
+    def build_mapping_for_material_list(
+        self,
+        slot_index_list: list[int],
+        material_list: list[dict[str, Any]],
+    ) -> list[AnycubicMaterialMapping]:
+        """Associe les matériaux aux indices physiques ; lève AnycubicAPIError si un logement manque."""
+        box_slots = {slot.index: slot for slot in self.slots}
+        ams_box_mapping = list()
+
+        for x, mat_conf in enumerate(material_list):
+            slot_index = slot_index_list[x]
+            spool_index = slot_index
+            slot_index = slot_index - (4 * self.box_id)
+
+            if slot_index < 0 or slot_index > 3:
+                continue
+
+            if slot_index not in box_slots:
+                raise AnycubicAPIError("Emplacement ACE absent du relevé.")
+            ams_slot = box_slots[slot_index]
+            material = AnycubicMaterialMapping(
+                spool_index=spool_index,
+                filament_used=mat_conf['filament_used'],
+                material_type=mat_conf['material_type'],
+                color_red=ams_slot.color_red,
+                color_green=ams_slot.color_green,
+                color_blue=ams_slot.color_blue,
+                paint_index=mat_conf['paint_index'],
+            )
+            ams_box_mapping.append(material)
+
+        return ams_box_mapping
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicMultiColorBox | None:
+        """Construit AnycubicMultiColorBox depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            id=data['id'],
+            status=data['status'],
+            model_id=data['model_id'],
+            auto_feed=data['auto_feed'],
+            loaded_slot=data['loaded_slot'],
+            feed_status=data.get('feed_status'),
+            temp=data['temp'],
+            drying_status=data['drying_status'],
+            curr_nozzle_temp=data.get('curr_nozzle_temp'),
+            target_nozzle_temp=data.get('target_nozzle_temp'),
+            slots=data['slots'],
+        )
+
+    @property
+    def current_temperature(self) -> int:
+        """Température actuelle du périphérique en degrés Celsius."""
+        return self._temp
+
+    @property
+    def box_id(self) -> int:
+        """Identifiant constructeur du boîtier ACE."""
+        return self._id
+
+    @property
+    def loaded_slot(self) -> int:
+        """Indice brut de bobine à partir de zéro ; -1 signifie qu’aucune bobine n’est chargée."""
+        return self._loaded_slot
+
+    @property
+    def auto_feed(self) -> int:
+        """État du remplacement automatique de bobine annoncé par l’ACE."""
+        return self._auto_feed
+
+    @property
+    def slots(self) -> list[AnycubicSpoolInfo]:
+        """Emplacements de bobines connus du boîtier."""
+        return self._slots
+
+    @property
+    def total_slots(self) -> int:
+        """Nombre total d’emplacements annoncé par le boîtier."""
+        return len(self._slots)
+
+    @property
+    def drying_status(self) -> AnycubicDryingStatus | None:
+        """État détaillé du séchage ACE."""
+        return self._drying_status
+
+    @property
+    def spool_info_object(self) -> list[dict[str, Any]] | None:
+        """Bobines sérialisées pour l’affichage."""
+        if not self._slots or len(self._slots) < 1:
+            return None
+
+        spool_list = list([
+            {
+                "material_type": slot.material_type,
+                "color": slot.color,
+                "status": slot.status,
+                "spool_loaded": slot.spool_loaded,
+                "rfid": slot.rfid,
+                "local_slot": slot.index + 1,
+                "slot": slot.index + 1,
+                "display_slot": slot.index + 1,
+                "box_id": self.box_id,
+            } for slot in self._slots
+        ])
+        return spool_list
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicMultiColorBox(id={self._id}, status={self._status}, model_id={self._model_id}, auto_feed={self._auto_feed}, "
+            f"loaded_slot={self._loaded_slot},\n "
+            f"temp={self._temp}, curr_nozzle_temp={self._curr_nozzle_temp}, target_nozzle_temp={self._target_nozzle_temp},\n "
+            f"feed_status={self._feed_status},\n "
+            f"drying_status={self._drying_status},\n "
+            f"slots={self._slots})"
+        )
+
+
+class AnycubicMachineData:
+    """Caractéristiques matérielles détaillées reçues avec les informations de machine."""
+    __slots__ = (
+        "_name",
+        "_pixel",
+        "_res_x",
+        "_res_y",
+        "_format",
+        "_size_x",
+        "_size_y",
+        "_size_z",
+        "_suffix",
+        "_anti_max",
+    )
+
+    def __init__(
+        self,
+        name: str,
+        pixel: float,
+        res_x: int,
+        res_y: int,
+        format: str,
+        size_x: float,
+        size_y: float,
+        size_z: float,
+        suffix: str,
+        anti_max: int,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._name = str(name)
+        self._pixel = float(pixel)
+        self._res_x = int(res_x)
+        self._res_y = int(res_y)
+        self._format = str(format)
+        self._size_x = float(size_x)
+        self._size_y = float(size_y)
+        self._size_z = float(size_z)
+        self._suffix = str(suffix)
+        self._anti_max = int(anti_max)
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicMachineData | None:
+        """Construit AnycubicMachineData depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            pixel=data['pixel'],
+            res_x=data['res_x'],
+            res_y=data['res_y'],
+            format=data['format'],
+            size_x=data['size_x'],
+            size_y=data['size_y'],
+            size_z=data['size_z'],
+            suffix=data['suffix'],
+            anti_max=data['anti_max'],
+        )
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return (
+            f"AnycubicMachineData(name={self._name}, pixel={self._pixel}, format={self._format}, suffix={self._suffix},\n "
+            f"res_x={self._res_x}, res_y={self._res_y}, size_x={self._size_x}, size_y={self._size_y}, size_z={self._size_z}, "
+            f"anti_max={self._anti_max})"
+        )
+
+
+class AnycubicMachineParameter:
+    """Paramètres et températures d’une imprimante reçus du constructeur."""
+    __slots__ = (
+        "_curr_hotbed_temp",
+        "_curr_nozzle_temp",
+    )
+
+    def __init__(
+        self,
+        curr_hotbed_temp: int,
+        curr_nozzle_temp: int,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._curr_hotbed_temp = int(curr_hotbed_temp)
+        self._curr_nozzle_temp = int(curr_nozzle_temp)
+
+    @property
+    def curr_hotbed_temp(self) -> int:
+        """Température actuelle du plateau en degrés Celsius."""
+        return self._curr_hotbed_temp
+
+    @property
+    def curr_nozzle_temp(self) -> int:
+        """Température actuelle de la buse en degrés Celsius."""
+        return self._curr_nozzle_temp
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicMachineParameter | None:
+        """Construit AnycubicMachineParameter depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            curr_hotbed_temp=data['curr_hotbed_temp'],
+            curr_nozzle_temp=data['curr_nozzle_temp'],
+        )
+
+    def update_current_temps(self, new_hotbed_temp: int, new_nozzle_temp: int) -> None:
+        """Mémorise les températures reçues du plateau et de la buse en degrés Celsius."""
+        self._curr_hotbed_temp = int(new_hotbed_temp)
+        self._curr_nozzle_temp = int(new_nozzle_temp)
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return f"AnycubicMachineParameter(curr_hotbed_temp={self._curr_hotbed_temp}, curr_nozzle_temp={self._curr_nozzle_temp})"
+
+
+class AnycubicMachineFirmwareInfo:
+    """Versions et progression de téléchargement ou d’installation d’un micrologiciel."""
+    __slots__ = (
+        "_need_update",
+        "_firmware_version",
+        "_update_progress",
+        "_update_date",
+        "_update_status",
+        "_update_desc",
+        "_force_update",
+        "_target_version",
+        "_time_cost",
+        "_box_id",
+        "_download_progress",
+        "_is_downloading",
+        "_is_updating",
+    )
+
+    def __init__(
+        self,
+        need_update: int,
+        firmware_version: str,
+        update_progress: int | None = None,
+        update_date: int | None = None,
+        update_status: str | None = None,
+        update_desc: str | None = None,
+        force_update: str | None = None,
+        target_version: str | None = None,
+        time_cost: int | None = None,
+        box_id: int | None = None,
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self.set_need_update(need_update)
+        self.set_firmware_version(firmware_version)
+        self.set_update_progress(update_progress)
+        self.set_update_date(update_date)
+        self.set_update_status(update_status)
+        self.set_update_desc(update_desc)
+        self.set_force_update(force_update)
+        self.set_target_version(target_version)
+        self.set_time_cost(time_cost)
+        self.set_box_id(box_id)
+
+        self._download_progress: int = 0
+        self._is_downloading: bool = False
+        self._is_updating: bool = False
+
+    @property
+    def firmware_version(self) -> str:
+        """Version de micrologiciel actuellement rapportée."""
+        return self._firmware_version
+
+    @property
+    def update_available(self) -> bool:
+        """Indique si une mise à jour de micrologiciel est annoncée."""
+        return self._need_update == 1
+
+    @property
+    def update_progress(self) -> int:
+        """Avancement de l’installation du micrologiciel."""
+        return self._update_progress
+
+    @property
+    def download_progress(self) -> int:
+        """Avancement brut du téléchargement de micrologiciel."""
+        return self._download_progress
+
+    @property
+    def total_progress(self) -> int | float | bool:
+        """Avancement combiné du téléchargement et de l’installation du micrologiciel."""
+        if self._is_updating or self._is_downloading:
+            if self._update_progress == 0 and self._download_progress > 0:
+                return min(self._download_progress / 2, 100)
+            elif self._update_progress > 0:
+                return min(self._update_progress / 2 + 50, 100)
+            return 1
+        return False
+
+    @property
+    def available_version(self) -> str | None:
+        """Version de micrologiciel proposée par le constructeur."""
+        return self._target_version
+
+    @property
+    def is_updating(self) -> bool:
+        """Indique si une mise à jour de micrologiciel est en cours."""
+        return self._is_updating
+
+    @property
+    def is_downloading(self) -> bool:
+        """Indique si un téléchargement de micrologiciel est en cours."""
+        return self._is_downloading
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any] | None) -> AnycubicMachineFirmwareInfo | None:
+        """Construit AnycubicMachineFirmwareInfo depuis data ; renvoie None si data vaut None, lève KeyError si un champ requis manque."""
+        if data is None:
+            return None
+
+        return cls(
+            need_update=data['need_update'],
+            firmware_version=data['firmware_version'],
+            update_progress=data.get('update_progress'),
+            update_date=data.get('update_date'),
+            update_status=data.get('update_status'),
+            update_desc=data.get('update_desc'),
+            force_update=data.get('force_update'),
+            target_version=data.get('target_version'),
+            time_cost=data.get('time_cost'),
+            box_id=data.get('box_id'),
+        )
+
+    def update_from_json(self, data: dict[str, Any] | None) -> None:
+        """Applique les données de version disponibles sans déclencher de mise à jour physique."""
+        if data is None:
+            return
+
+        self.set_need_update(data['need_update'])
+        self.set_firmware_version(data['firmware_version'])
+
+        if data.get('update_progress') is not None:
+            self.set_update_progress(data['update_progress'])
+
+        self.set_update_date(data.get('update_date'))
+        self.set_update_status(data.get('update_status'))
+        self.set_update_desc(data.get('update_desc'))
+        self.set_force_update(data.get('force_update'))
+        self.set_target_version(data.get('target_version'))
+        self.set_time_cost(data.get('time_cost'))
+        self.set_box_id(data.get('box_id'))
+
+    def update_version(self, new_version: str) -> None:
+        """Mémorise la version rapportée après une opération de micrologiciel."""
+        if self._firmware_version != str(new_version):
+            self.set_firmware_version(new_version)
+
+            if self._is_updating:
+                self.set_is_updating(False)
+
+            if self._is_downloading:
+                self.set_is_downloading(False)
+
+            self.set_download_progress(0)
+            self.set_update_progress(0)
+            self.set_need_update(0)
+
+    def set_need_update(self, need_update: int) -> None:
+        """Mémorise l’indicateur constructeur d’une mise à jour disponible."""
+        self._need_update = int(need_update)
+
+    def set_firmware_version(self, firmware_version: str) -> None:
+        """Mémorise la version courante rapportée par le constructeur."""
+        self._firmware_version = str(firmware_version)
+
+    def set_update_date(self, update_date: int | None) -> None:
+        """Mémorise la date de mise à jour fournie par le constructeur."""
+        self._update_date = int(update_date) if update_date is not None else None
+
+    def set_update_status(self, update_status: str | None) -> None:
+        """Mémorise le statut brut de mise à jour fourni par le constructeur."""
+        self._update_status = str(update_status) if update_status is not None else None
+
+    def set_update_desc(self, update_desc: str | None) -> None:
+        """Mémorise la description de version fournie par le constructeur."""
+        self._update_desc = str(update_desc) if update_desc is not None else None
+
+    def set_force_update(self, force_update: str | None) -> None:
+        """Mémorise l’indicateur constructeur de mise à jour obligatoire."""
+        self._force_update = str(force_update) if force_update is not None else None
+
+    def set_target_version(self, target_version: str | None) -> None:
+        """Mémorise la version cible annoncée par le constructeur."""
+        self._target_version = str(target_version) if target_version is not None else None
+
+    def set_time_cost(self, time_cost: int | None) -> None:
+        """Mémorise la durée d’installation estimée par le constructeur."""
+        self._time_cost = int(time_cost) if time_cost is not None else None
+
+    def set_box_id(self, box_id: int | None) -> None:
+        """Associe les informations de version au boîtier identifié par box_id."""
+        self._box_id = int(box_id) if box_id is not None else None
+
+    def set_is_updating(self, is_updating: bool) -> None:
+        """Mémorise si l’installation du micrologiciel est en cours."""
+        self._is_updating = bool(is_updating)
+
+    def set_is_downloading(self, is_downloading: bool) -> None:
+        """Mémorise si le téléchargement du micrologiciel est en cours."""
+        self._is_downloading = bool(is_downloading)
+
+    def set_update_progress(self, update_progress: int | None) -> None:
+        """Mémorise l’avancement d’installation rapporté par le constructeur."""
+        self._update_progress = int(update_progress) if update_progress is not None else 0
+
+    def set_download_progress(self, download_progress: int) -> None:
+        """Mémorise l’avancement de téléchargement rapporté par le constructeur."""
+        self._download_progress = int(download_progress)
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return f"AnycubicMachineFirmwareInfo(need_update={self._need_update}, firmware_version={self._firmware_version})"
+
+
+class AnycubicMachineColorInfo:
+    """Palette de couleurs annoncée par le constructeur pour une machine."""
+    __slots__ = (
+        "_raw_color_list",
+        "_color_list",
+    )
+
+    def __init__(
+        self,
+        color_list: list[list[int]],
+    ) -> None:
+        """Initialise le modèle et ses données locales depuis les paramètres fournis."""
+        self._raw_color_list: list[list[int]] = color_list
+        self._color_list: list[list[int]] = list()
+        self._set_color_list()
+
+    def _set_color_list(
+        self,
+    ) -> None:
+        extended_colors_found = False
+        if len(self._raw_color_list) > 4:
+            for x in self._raw_color_list[4:]:
+                if any([c != -2 for c in x]):
+                    extended_colors_found = True
+
+        self._color_list = (
+            self._raw_color_list[:4]
+            if not extended_colors_found else
+            self._raw_color_list[:]
+        )
+
+    @classmethod
+    def from_json(cls, data: list[list[int]] | None) -> AnycubicMachineColorInfo | None:
+        """Construit la palette depuis une liste RGB ; renvoie None si data est absent ou n’est pas une liste."""
+        if data is None or not isinstance(data, list):
+            return None
+
+        return cls(
+            color_list=data,
+        )
+
+    @property
+    def color_list(self) -> list[list[int]]:
+        """Composantes RGB sous forme de liste."""
+        return self._color_list
+
+    def __repr__(self) -> str:
+        """Renvoie une représentation de diagnostic du modèle ; peut contenir des données constructeur privées."""
+        return f"AnycubicMachineColorInfo(color_list={self.color_list})"

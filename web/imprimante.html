@@ -1,0 +1,692 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="light dark"><title>Anycubic Cloud Page</title><link rel="icon" href="/imprimante-api/ui/icons/cloud-page.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/imprimante-api/ui/icons/cloud-page.svg"><link rel="stylesheet" href="/imprimante-api/ui/css/landing.css"><link rel="stylesheet" href="/imprimante-api/ui/css/imprimante.css"><link rel="stylesheet" href="/imprimante-api/ui/css/monitoring.css"><link rel="stylesheet" href="/imprimante-api/ui/css/interactions.css"><link rel="stylesheet" href="/imprimante-api/ui/css/workshop-navigation.css"><link rel="stylesheet" href="/imprimante-api/ui/css/visual-states.css"><link rel="stylesheet" href="/imprimante-api/ui/css/notifications.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-tokens.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-components.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-frame.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-summary.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-settings.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-camera.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-files.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-history.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-statistics.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-upload.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-printer.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-current-controls.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-ace.css"><link rel="stylesheet" href="/imprimante-api/ui/css/atelier-fleet.css"></head><body>
+<a class="skip-link" href="#atelier">Aller à l’imprimante</a><div class="shell printer-shell workshop-frame"><nav class="portal-nav" aria-label="Navigation principale"><a class="document-brand" href="/"><img src="/imprimante-api/ui/icons/cloud-page.svg" width="32" height="32" alt="" decoding="async"><span>Anycubic Cloud Page</span></a><div class="nav-actions"><button type="button" id="interface-mode-toggle" class="atelier-control atelier-control-icon" disabled aria-label="Activer le mode sombre"><svg class="ui-icon mode-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11Z"/></svg><svg class="ui-icon mode-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></svg></button><select class="atelier-control" id="interface-language" aria-label="Langue de l’interface" data-language-options disabled><option value="fr">Français</option><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="it">Italiano</option></select><button id="quick-open" type="button" class="atelier-control atelier-control-icon quick-open" aria-label="Accès rapide" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg></button><div class="notifications"><button id="notifications-toggle" class="atelier-control atelier-control-icon" type="button" aria-label="Notifications" aria-expanded="false" aria-controls="notifications-panel"><svg viewBox="0 0 24 24" class="ui-icon" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5zM10 20h4"/></svg><span id="notifications-dot" class="unread-dot" hidden aria-hidden="true"></span></button><section id="notifications-panel" class="notifications-panel" aria-label="Messages" hidden><div class="notifications-heading"><h2 id="notifications-title">Messages (0)</h2></div><div class="notice-toolbar"><div class="notice-filters" role="group" aria-label="Filtrer les messages"><button data-notice-filter="all" aria-pressed="true" type="button">Tous</button><button data-notice-filter="unread" aria-pressed="false" type="button">Non lu <span id="notifications-filter-dot" class="unread-dot" hidden aria-hidden="true"></span></button><button data-notice-filter="read" aria-pressed="false" type="button">Lu</button></div><label class="notice-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><span class="sr-only">Rechercher un message par nom de fichier</span><input id="notification-search" type="search" placeholder="Nom de fichier"></label></div><p id="history-state" role="status"></p><ol id="history-list" class="notification-list"></ol><div class="notification-actions"><button id="history-read-all" type="button">Tout marquer comme lu</button><button id="history-delete-all" type="button" class="danger">Supprimer tous les messages</button><button id="notifications-more" type="button" hidden>Charger les messages suivants</button></div></section></div><form action="/logout" method="post" class="logout-form"><button class="atelier-control" type="submit"><svg class="ui-icon logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M11 4H5v16h6m3-12 4 4-4 4m-4-4h10"/></svg><span>Se déconnecter</span></button></form></div></nav>
+<header class="atelier-title"><div class="atelier-device-heading"><h1 id="printer-model">Imprimante</h1><p id="printer-accessory" hidden></p><label id="printer-selector-wrap" class="printer-selector" hidden><span class="sr-only">Imprimante</span><select id="printer-selector" class="atelier-control" aria-label="Imprimante"></select></label></div><span id="connection" class="atelier-status offline">Connexion…</span></header>
+<div class="atelier-navigation"><button id="section-menu-toggle" type="button" disabled aria-expanded="false" aria-controls="atelier-tabs"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Sections</span></button><button type="button" id="lab-navigation-toggle" class="atelier-control atelier-control-icon" hidden aria-expanded="true" aria-controls="atelier-tabs" aria-label="Réduire les sections"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button><nav id="atelier-tabs" class="atelier-tabs" aria-label="Sections de l’atelier">
+<div class="atelier-nav-group lab-nav-group" role="group" aria-label="Accueil" style="--section-count:1">
+<span class="atelier-nav-label lab-nav-heading" aria-hidden="true">Accueil</span>
+<button type="button" disabled data-tab="summary" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18m-11 0v10"/></svg><span>Résumé</span></button>
+</div>
+<div class="atelier-nav-group lab-nav-group" role="group" aria-label="Appareils" style="--section-count:2">
+<span class="atelier-nav-label lab-nav-heading" aria-hidden="true">Appareils</span>
+<button type="button" disabled data-tab="overview"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v7H6z"/><path d="M17 11h1"/></svg><span>Imprimante</span></button>
+<button type="button" disabled data-tab="ace" aria-label="ACE et filaments"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 10h18M7 13v4m5-4v4m5-4v4"/></svg><span>ACE</span></button>
+</div>
+<div class="atelier-nav-group lab-nav-group" role="group" aria-label="Impressions" style="--section-count:4">
+<span class="atelier-nav-label lab-nav-heading" aria-hidden="true">Impressions</span>
+<button type="button" disabled data-tab="files"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h7l2 3h9v12H3z"/></svg><span>Fichiers</span></button>
+<button type="button" disabled data-tab="upload" aria-label="Envoyer et imprimer"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/></svg><span>Envoyer</span></button>
+<button type="button" disabled data-tab="camera"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6l2-3h4l2 3h5v14H3V6z"/><circle cx="12" cy="12" r="4"/></svg><span>Caméra</span></button>
+<button type="button" disabled data-tab="history" aria-label="Historique d’impression"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v5h5M3 9a9 9 0 1 1 1 9M12 7v6l4 2"/></svg><span>Historique</span></button>
+</div>
+<div class="atelier-nav-group lab-nav-group" role="group" aria-label="Suivi" style="--section-count:2">
+<span class="atelier-nav-label lab-nav-heading" aria-hidden="true">Suivi</span>
+<button type="button" disabled data-tab="fleet"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="3" width="8" height="8" rx="2"/><rect x="14" y="3" width="8" height="8" rx="2"/><rect x="8" y="15" width="8" height="7" rx="2"/></svg><span>Parc et santé</span></button>
+<button type="button" disabled data-tab="statistics"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 3v18h18M5 16l5-6 4 3 6-8"/></svg><span>Statistiques</span></button>
+</div>
+<div class="atelier-nav-group lab-nav-group" role="group" aria-label="Configuration" style="--section-count:1">
+<span class="atelier-nav-label lab-nav-heading" aria-hidden="true">Configuration</span>
+<button type="button" disabled data-tab="settings"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="white"/><circle cx="15" cy="17" r="3" fill="white"/></svg><span>Réglages</span></button>
+<button type="button" data-tab="developer" aria-controls="tab-developer" hidden disabled><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 8-4 4 4 4m8-8 4 4-4 4M14 5l-4 14"/></svg><span>Développeur</span><span class="developer-unread" aria-label="Nouvel incident HTTP" hidden></span></button>
+</div>
+</nav></div>
+<div id="message" class="notice" role="status" hidden><span id="message-text"></span><button type="button" id="message-error-help" aria-haspopup="dialog" hidden>Voir la fiche d’erreur</button><button type="button" id="message-close" aria-label="Fermer le message">Fermer</button></div><main id="atelier">
+<section id="tab-summary" class="tab-panel" aria-labelledby="summary-title">
+  <h2 class="sr-only" id="summary-title">Résumé</h2>
+  <div class="summary-grid atelier-summary-grid">
+    <div id="summary-heat-warning" class="print-heat-warning" role="status" hidden></div>
+    <section class="atelier-card summary-printer">
+      <header class="atelier-card-header"><h3>Imprimante</h3><span id="summary-printer-status" class="atelier-status offline">Chargement…</span></header>
+      <div class="atelier-card-body summary-device">
+        <img id="summary-printer-image" class="summary-device-image" src="/imprimante-api/ui/icons/printer.svg" alt="" decoding="async">
+        <div class="summary-device-information">
+          <div class="summary-job-heading">
+            <img id="summary-preview" alt="Aperçu de l’impression" hidden>
+            <div><h4 id="summary-job">L’imprimante se connecte.</h4><p id="summary-job-state" class="muted"></p></div>
+          </div>
+          <div class="atelier-progress-group" id="summary-progress-wrap" hidden><label for="summary-progress">Progression <strong id="summary-progress-text"></strong></label><progress id="summary-progress" value="0" max="100"></progress></div>
+          <p id="summary-finish" class="muted" tabindex="0" hidden></p>
+          <dl id="summary-printer-values" class="atelier-measures"></dl><button type="button" id="summary-maintenance-due" class="atelier-count" data-state="due" hidden>Entretien</button>
+        </div>
+      </div>
+      <footer class="atelier-card-footer"><button type="button" class="atelier-control" data-summary-open="overview">Ouvrir l’imprimante</button><a class="atelier-control" href="/imprimante-api/ui/mur">Vue mur</a></footer>
+    </section>
+    <section class="atelier-card summary-ace">
+      <header class="atelier-card-header"><h3>ACE</h3><span id="summary-ace-status" class="atelier-status offline">Chargement…</span></header>
+      <div id="summary-ace-boxes" class="atelier-card-body"></div>
+      <footer class="atelier-card-footer"><button type="button" class="atelier-control" data-summary-open="ace">Ouvrir l’ACE</button></footer>
+    </section>
+  </div>
+</section>
+<section id="tab-overview" class="tab-panel" hidden>
+  <div class="printer-workspace">
+    <div id="printer-heat-warning" class="print-heat-warning" role="status" hidden></div>
+    <section class="atelier-card" aria-labelledby="printer-task-title">
+      <header class="atelier-card-header"><h2 id="printer-task-title">Impression</h2><p id="printer-status" class="atelier-status offline">Chargement…</p></header>
+      <div class="atelier-card-body printer-task-body">
+        <img id="printer-illustration" src="/imprimante-api/ui/icons/printer.svg" class="summary-device-image" alt="" width="380" height="380">
+        <div class="printer-task-info"><div><h3 id="job-name" tabindex="0">L’imprimante se connecte.</h3><p id="job-state" class="muted"></p></div>
+          <div class="atelier-progress-group" id="job-progress-wrap" hidden><label for="job-progress">Progression <strong id="job-progress-text"></strong></label><progress id="job-progress" value="0" max="100"></progress></div>
+          <p id="printer-finish" class="muted" tabindex="0" hidden></p>
+          <dl id="job-stats" class="atelier-measures"></dl>
+        </div>
+        <div class="printer-task-preview"><img id="job-preview" alt="Aperçu de l’impression" hidden><p id="job-preview-state" class="preview-state" role="status" hidden></p></div>
+      </div>
+      <footer class="atelier-card-footer printer-task-actions"><button class="atelier-control" data-command="pause" disabled data-confirm="Mettre l’impression en pause ?"><span>Pause</span></button><button class="atelier-control" data-command="resume" disabled data-confirm="Reprendre l’impression ?"><span>Reprendre</span></button><button class="atelier-control atelier-control-danger" data-command="cancel" disabled data-confirm="Arrêter l’impression en cours ? Cette action ne reprend pas le travail arrêté."><span>Arrêter</span></button><button class="atelier-control" type="button" id="task-details-open" title="Consulter les dimensions, la consommation et les paramètres du G-code."><span>Détails</span></button></footer>
+    </section>
+    <section class="atelier-card" aria-labelledby="printer-metrics-title">
+      <header class="atelier-card-header"><h2 id="printer-metrics-title">Températures et ventilation</h2></header>
+      <div class="atelier-card-body printer-metrics">
+      <table id="temperatures"><thead><tr><th scope="col"><span class="sr-only">Mesure</span></th><th scope="col">Actuelle</th><th scope="col">Cible</th></tr></thead><tbody>
+          <tr id="printer-nozzle-row"><th scope="row">Buse</th><td id="printer-nozzle-current">—</td><td id="printer-nozzle-target">—</td></tr>
+          <tr id="printer-bed-row"><th scope="row">Plateau</th><td id="printer-bed-current">—</td><td id="printer-bed-target">—</td></tr>
+        </tbody></table>
+        <dl id="printer-fans" class="atelier-measures"></dl>
+      </div>
+      <footer class="atelier-card-footer"><button class="atelier-control" type="button" id="controls-open">Commandes courantes</button></footer>
+    </section>
+  </div>
+  <section class="atelier-card printer-materials" aria-labelledby="printer-materials-title">
+    <header class="atelier-card-header"><h2 id="printer-materials-title">Matériel et compteurs</h2></header>
+    <div class="atelier-card-body"><dl id="details" class="atelier-measures"></dl></div><footer class="atelier-card-footer printer-material-actions"><button id="maintenance-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3Z"/></svg><span>Entretien</span><span id="maintenance-count" class="atelier-count" data-state="due" hidden></span></button><button id="queue-open" class="atelier-control" type="button" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>File d’attente</span><span id="queue-count" class="atelier-count" hidden></span></button><button id="printer-timeline-open" class="atelier-control" type="button" aria-haspopup="dialog" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Chronologie de l’impression</span></button><p class="muted">Registre local : aucune commande envoyée à l’imprimante.</p></footer>
+  </section>
+</section>
+<section id="tab-ace" class="tab-panel" hidden>
+  <div class="ace-workspace">
+    <section class="atelier-card" aria-labelledby="ace-model">
+      <header class="atelier-card-header"><h2 id="ace-model">Module ACE</h2><p id="ace-status" class="atelier-status offline">Connexion au module…</p></header>
+      <div class="atelier-card-body ace-module-body">
+        <div class="summary-device">
+          <img id="ace-illustration" src="/imprimante-api/ui/icons/ace.svg" width="380" height="300" class="summary-device-image" alt="" hidden>
+          <div class="summary-device-information">
+            <div><h3 id="ace-module-name">Module ACE</h3><p id="ace-loaded-count"></p></div>
+            <div id="ace-drying-progress" class="atelier-progress-group" hidden><label for="ace-drying-bar"><span id="ace-drying-title">Séchage en cours</span><strong id="ace-drying-remaining"></strong></label><progress id="ace-drying-bar" max="100" value="0"></progress></div>
+            <dl id="ace-stats" class="atelier-measures"></dl>
+          </div>
+        </div>
+        <div id="ace-drying-advice" class="ace-drying-advice" hidden><p id="ace-drying-advice-text" role="status"></p><div class="ace-drying-advice-actions"><button id="ace-drying-prepare" type="button" class="atelier-control atelier-control-primary">Préparer le séchage</button><button id="ace-drying-dismiss" type="button" class="atelier-control">Masquer 24 h</button></div></div>
+        <div class="ace-relay-row"><div><strong>Relais automatique</strong><p id="ace-relay-state">—</p><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-tooltip-trigger="true" title="Quand une bobine se termine, l’ACE passe à une autre bobine chargée de même matière et couleur." aria-label="Aide sur le relais automatique des bobines">?</button></div><button type="button" id="ace-relay-open" class="atelier-control">Activer</button></div>
+      </div>
+      <footer class="atelier-card-footer ace-module-actions"><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="ace" aria-haspopup="dialog" aria-label="Aide">?</button><button type="button" id="go-drying" class="atelier-control">Régler le séchage</button><button type="button" id="go-spool" class="atelier-control">Configurer une bobine</button></footer>
+    </section>
+    <section class="atelier-card" id="ace-filament-card" aria-labelledby="ace-filament-title">
+      <header class="atelier-card-header"><h2 id="ace-filament-title">Filaments</h2><button type="button" id="filament-catalogue-open">Catalogue Anycubic</button></header>
+      <div id="spools" class="ace-filament-list"></div>
+      <footer class="atelier-card-footer"><p>Les matériaux identifiés par RFID ne peuvent pas être modifiés.</p></footer>
+    </section>
+  </div>
+</section>
+<section id="tab-files" class="tab-panel" hidden>
+  <form id="files-form" class="files-filters">
+    <div class="files-location">
+      <span id="files-location-label">Emplacement</span>
+      <div class="files-sources" role="group" aria-labelledby="files-location-label">
+        <button class="atelier-control" type="button" data-source="local" aria-pressed="true" aria-label="Mémoire imprimante">Mémoire</button>
+        <button class="atelier-control" type="button" data-source="usb" aria-pressed="false">Clé USB</button>
+        <button class="atelier-control" type="button" data-source="cloud" aria-pressed="false" aria-label="Cloud Anycubic">Cloud</button>
+      </div>
+    </div>
+    <div class="files-directory">
+      <label id="file-path-label" class="atelier-field">Dossier<input id="file-path" value="/" autocomplete="off"></label>
+      <label id="cloud-folder-label" class="atelier-field" hidden>Dossier<select id="cloud-folder" aria-label="Dossier Cloud"><option value="">/</option><option value="root">Racine (/)</option></select></label>
+      <button type="button" id="parent-folder" class="atelier-control atelier-control-icon" aria-label="Dossier parent"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6"/></svg></button>
+      <button type="button" id="cloud-folder-parent" class="atelier-control atelier-control-icon" aria-label="Dossier parent" hidden disabled><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6"/></svg></button>
+      <button type="submit" class="atelier-control atelier-control-icon" aria-label="Actualiser la liste" title="Actualiser la liste"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m-4-2a7 7 0 0 1 12-3l3 5M4 12l3 5a7 7 0 0 0 12-3"/></svg></button>
+    </div>
+    <label class="atelier-field">Rechercher sur cette page<input id="files-search" type="search"></label>
+    <label class="atelier-field">Trier<select id="files-sort"><option value="">Ordre d’origine</option><option value="name">Nom</option><option value="size">Taille</option><option value="date">Date d’ajout</option><option value="duration">Durée estimée</option></select></label>
+  </form>
+  <details id="file-advanced">
+    <summary class="atelier-disclosure">Filtres avancés <span id="file-filter-count" hidden></span></summary>
+    <div class="file-advanced-fields">
+      <label class="atelier-field">Matière<select id="file-material" multiple size="3"></select></label>
+      <label class="atelier-field">Nombre de couleurs<select id="file-colors"><option value="">Toutes</option><option value="one">Une couleur</option><option value="few">Deux à quatre couleurs</option><option value="many">Plus de quatre couleurs</option><option value="unknown">Inconnu</option></select></label>
+      <label class="atelier-field">Durée estimée<select id="file-duration"><option value="">Toutes</option><option value="short">Moins d’une heure</option><option value="medium">Une à quatre heures</option><option value="long">Plus de quatre heures</option><option value="unknown">Inconnu</option></select></label>
+      <label class="atelier-field">Date d’ajout<select id="file-added"><option value="">Toutes</option><option value="7">7 derniers jours</option><option value="30">30 derniers jours</option><option value="unknown">Inconnu</option></select></label>
+      <button type="button" id="file-filters-clear">Effacer les filtres</button>
+    </div>
+    <div id="file-filter-chips" class="file-filter-chips"></div>
+    <p id="file-count" role="status"></p>
+  </details>
+  <section class="atelier-card files-card" aria-labelledby="files-title">
+    <header class="atelier-card-header">
+      <h2 id="files-title">Mémoire imprimante</h2><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="files" aria-haspopup="dialog" aria-label="Aide">?</button><p id="files-state" class="atelier-status" role="status">Sélectionnez une source puis actualisez la liste.</p><div id="cloud-tools" hidden><div class="cloud-selection-anchor"><div class="actions cloud-bulk"><span id="cloud-selected-count" class="sr-only">0 sélection</span><span class="count-badge selection-count" aria-hidden="true"><span id="cloud-selection-prefix"></span><span id="cloud-selection-digits"></span><span id="cloud-selection-suffix"></span></span><span id="cloud-selected-size" class="muted"></span><label id="cloud-destination-label" class="atelier-field" hidden>Dossier de destination<select id="cloud-destination"></select></label><button id="cloud-move-selected" type="button" hidden disabled>Déplacer la sélection</button><button id="cloud-download-selected" type="button" disabled title="Préparer le téléchargement des fichiers sélectionnés.">Télécharger</button><button id="cloud-delete-selected" type="button" class="danger" disabled title="Supprimer les fichiers sélectionnés du Cloud après confirmation.">Supprimer</button><button id="cloud-clear-selection" type="button" disabled>Décocher</button></div></div></div>
+    </header>
+    <div class="files-table-region" role="region" aria-label="Liste des fichiers" tabindex="0">
+      <table class="files-table">
+        <thead><tr>
+          <th id="file-selection-column" scope="col" class="files-selection-cell" hidden><input id="cloud-select-page" type="checkbox" aria-label="Sélectionner les fichiers de cette page"></th>
+          <th scope="col" class="files-identity-heading">Fichier</th><th scope="col" class="files-size">Taille</th><th id="file-actions-column" scope="col" class="files-actions-cell">Actions</th>
+        </tr></thead>
+        <tbody id="file-rows"></tbody>
+      </table>
+      <div id="files-loading" class="list-loading list-loading-files" hidden aria-hidden="true"><span class="skeleton-file"><i class="skeleton-piece skeleton-file-icon"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i></span><span class="skeleton-file"><i class="skeleton-piece skeleton-file-icon"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i></span><span class="skeleton-file"><i class="skeleton-piece skeleton-file-icon"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i></span></div>
+    </div>
+    <footer class="atelier-card-footer files-footer" id="files-footer" hidden>
+      <div class="files-quota">
+        <div><span>Stockage Cloud</span><strong id="cloud-quota">Chargement de l’espace disponible…</strong></div>
+        <progress id="cloud-quota-bar" max="100" value="0" aria-label="Stockage Cloud utilisé"></progress>
+      </div>
+      <div class="files-pages"><span id="cloud-page"></span><button type="button" class="atelier-control" id="prev-page" aria-label="Page précédente">Précédente</button><button type="button" class="atelier-control" id="next-page" aria-label="Page suivante">Suivante</button></div>
+    </footer>
+  </section>
+</section>
+<section id="tab-upload" class="tab-panel" hidden>
+  <form id="upload-form" class="atelier-upload-grid">
+    <section class="atelier-card" aria-labelledby="upload-file-title">
+      <header class="atelier-card-header"><h2 id="upload-file-title">Fichier</h2><span id="upload-file-name" class="atelier-status" data-state="unknown" role="status">Aucun fichier choisi</span></header>
+      <div class="atelier-card-body upload-drop-body">
+        <label class="upload-file"><span class="upload-drop-light-frame" aria-hidden="true"><span class="upload-drop-light"></span></span><svg class="upload-progress-outline" aria-hidden="true"><rect x="1" y="1" rx="12"></rect></svg><span class="atelier-control upload-choose">Choisir un fichier</span><span>ou déposer un fichier ici</span><input class="sr-only" name="file" type="file" accept=".gcode,.stl,.3mf" aria-label="Choisir un fichier" required></label>
+      </div>
+      <footer class="atelier-card-footer"><p>G-code, STL ou 3MF, jusqu’à 100 Mo. Seul le G-code peut être imprimé.</p></footer>
+    </section>
+    <section class="atelier-card" aria-labelledby="upload-send-title">
+      <header class="atelier-card-header"><h2 id="upload-send-title">Envoi</h2></header>
+      <div class="atelier-card-body upload-send-body">
+        <div class="upload-options"><label class="atelier-field">Action<select name="mode"><option value="upload">Enregistrer dans le cloud, sans imprimer</option><option value="save-print">Envoyer, conserver dans le cloud et imprimer</option><option value="temp-print">Envoyer et imprimer, sans conservation dans le cloud</option></select></label><label class="atelier-field" hidden>Ordre des bobines pour l’impression<input name="slots" placeholder="Exemple : 1, 3, 2" aria-describedby="upload-slots-help" disabled><span id="upload-slots-help" class="muted">Indiquez un emplacement de l’ACE par couleur, dans l’ordre du G-code.</span></label></div>
+        <div class="files-quota">
+          <div><span>Stockage Cloud</span><strong id="upload-cloud-quota">Chargement de l’espace disponible…</strong></div>
+          <progress id="upload-cloud-quota-bar" max="100" value="0" aria-label="Stockage Cloud utilisé"></progress>
+        </div>
+        <p id="upload-state" role="status"></p>
+      </div>
+      <footer class="atelier-card-footer"><button type="submit" class="atelier-control atelier-control-primary">Envoyer</button></footer>
+    </section>
+  </form>
+</section>
+<section id="tab-camera" class="tab-panel" hidden>
+  <div class="camera-workspace">
+    <section class="atelier-card camera-feed" aria-labelledby="camera-title">
+      <header class="atelier-card-header camera-feed-header"><h2 id="camera-title">Caméra</h2><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="camera" aria-haspopup="dialog" aria-label="Aide">?</button><p id="camera-state" class="atelier-status" role="status" data-visual-state="idle">Caméra éteinte</p></header>
+      <div class="atelier-card-body camera-picture">
+        <div id="camera-wrapper"><span class="camera-placeholder">Flux vidéo de la caméra</span><div id="camera-video"></div></div>
+      </div>
+      <footer class="atelier-card-footer camera-feed-actions">
+        <button type="button" class="atelier-control atelier-control-primary" id="camera-start">Allumer la caméra</button>
+        <button type="button" class="atelier-control" id="camera-stop" disabled hidden>Éteindre la caméra</button>
+      </footer>
+    </section>
+    <section class="atelier-card camera-command-card" aria-labelledby="camera-command-title">
+      <header class="atelier-card-header"><h3 id="camera-command-title">Commandes</h3><p id="axis-state" class="atelier-status" role="status">En attente de l’imprimante</p></header>
+      <div class="camera-command-content">
+      <div class="camera-command-row">
+        <div><h4>Éclairage</h4><p id="camera-light-state">État inconnu</p></div>
+        <div class="camera-row-actions"><button type="button" class="atelier-control" id="light-on">Allumer</button><button type="button" class="atelier-control" id="light-off">Éteindre</button></div>
+      </div>
+      <div class="camera-command-row">
+        <div><h4>Affichage</h4><p>Zoom de la vidéo</p></div>
+        <div class="camera-row-actions">
+          <button type="button" id="zoom-out" class="atelier-control atelier-control-icon" aria-label="Réduire le zoom"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          <button type="button" id="zoom-reset" class="atelier-control" title="Réinitialiser le zoom"><span id="zoom-label">100 %</span></button>
+          <button type="button" id="zoom-in" class="atelier-control atelier-control-icon" aria-label="Augmenter le zoom"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+          <button type="button" id="fullscreen" class="atelier-control atelier-control-icon" aria-label="Plein écran"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4m0 8v4h-4m-8 0H4v-4"/></svg></button>
+        </div>
+      </div>
+      <div class="atelier-card-body camera-move">
+        <div class="camera-move-heading"><div><h4>Déplacer</h4><p>Distance par appui</p></div><div id="axis-step" class="axis-step-control" role="radiogroup" aria-label="Pas"><label><input type="radio" name="axis-step" value="1" checked><span>1 mm</span></label><label><input type="radio" name="axis-step" value="15"><span>15 mm</span></label><label><input type="radio" name="axis-step" value="50"><span>50 mm</span></label></div></div>
+        <div class="camera-axis-grid"><div class="camera-axis-xy" role="group" aria-label="Déplacement XY"><button class="atelier-control" type="button" data-axis="2" data-direction="1" title="Déplacer la tête vers Y positif.">Y +</button><button class="atelier-control" type="button" data-axis="1" data-direction="0" title="Déplacer la tête vers X négatif.">X −</button><button class="atelier-control" type="button" data-axis="1" data-direction="1" title="Déplacer la tête vers X positif.">X +</button><button class="atelier-control" type="button" data-axis="2" data-direction="0" title="Déplacer la tête vers Y négatif.">Y −</button><button class="atelier-control axis-origin" type="button" data-axis="4" data-direction="2" aria-label="Origine XY" title="Référencer les axes X et Y."><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7M5 10v10h5v-5h4v5h5V10"/></svg></button></div><div class="camera-axis-z" role="group" aria-label="Déplacement Z"><button class="atelier-control" type="button" data-axis="3" data-direction="1" title="Déplacer dans le sens Z positif.">Z +</button><button class="atelier-control axis-origin" type="button" data-axis="3" data-direction="2" aria-label="Origine Z" title="Référencer l’axe Z."><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7M5 10v10h5v-5h4v5h5V10"/></svg></button><button class="atelier-control" type="button" data-axis="3" data-direction="0" title="Déplacer dans le sens Z négatif.">Z −</button></div><div class="camera-axis-home"><button class="atelier-control" type="button" data-axis="5" data-direction="2" title="Référencer les trois axes.">Origine de tous les axes</button><button class="atelier-control" type="button" id="axis-release" title="Désactiver les moteurs pour permettre un déplacement manuel.">Désactiver les moteurs</button></div></div>
+      </div>
+      </div>
+      <footer class="atelier-card-footer camera-warning"><p class="settings-help">Surveillez la distance buse-plateau pendant un déplacement.</p></footer>
+    </section>
+  </div>
+  <section class="form-panel timelapse-panel" hidden><div class="section-title"><h3>▣ Timelapse</h3><button id="timelapse-load" type="button">Afficher les vidéos</button></div><p id="timelapse-state" class="muted">Les vidéos disponibles seront demandées à l’imprimante.</p><form id="timelapse-search"><label>Rechercher une vidéo<input name="keyword" type="search" maxlength="120"></label><button type="submit">Rechercher</button></form><div id="timelapse-list"></div><div class="actions"><button id="timelapse-previous" type="button" disabled>Page précédente</button><button id="timelapse-next" type="button" disabled>Page suivante</button></div></section></section>
+<section id="tab-history" class="tab-panel" hidden>
+  <div class="history-toolbar">
+    <div class="files-location">
+      <span id="history-status-label">État</span>
+      <div class="files-sources" role="group" aria-labelledby="history-status-label">
+        <button class="atelier-control" type="button" data-task-status="all" aria-pressed="true">Tout</button>
+        <button class="atelier-control" type="button" data-task-status="2" aria-pressed="false">Terminées</button>
+        <button class="atelier-control" type="button" data-task-status="3" aria-pressed="false">Arrêtées</button>
+        <button class="atelier-control" type="button" data-task-status="1" aria-pressed="false">En cours</button>
+      </div>
+    </div>
+    <label class="atelier-field">Appareil<select id="tasks-printer"><option value="all">Tous les appareils</option></select></label>
+    <div class="atelier-field"><span id="history-period-label">Période</span><button class="atelier-control" id="history-period-open" type="button" aria-labelledby="history-period-label history-period-open" aria-haspopup="dialog">Choisir une période</button></div>
+    <label class="atelier-field">Nom du fichier<input id="tasks-search" type="search" placeholder="Rechercher une impression"></label>
+    <button class="atelier-control" id="historical-notifications-open" type="button">Journal des notifications</button>
+    <div class="files-sources" role="group" aria-label="Vue de l’historique"><button type="button" class="atelier-control" id="history-list-view" aria-pressed="true">Liste</button><button type="button" class="atelier-control" id="history-gallery-view" aria-pressed="false">Galerie</button></div>
+  </div>
+  <section id="tasks-section" class="atelier-card" aria-labelledby="tasks-title">
+    <header class="atelier-card-header"><h2 id="tasks-title">Impressions</h2><p class="atelier-status" id="tasks-page"></p></header>
+    <div class="history-table-region" role="region" aria-label="Liste des impressions" tabindex="0">
+      <table class="history-table files-table">
+        <thead><tr><th class="files-selection-cell" scope="col"><input id="tasks-select-page" type="checkbox" aria-label="Tout sélectionner"></th><th class="files-identity-heading" scope="col">Impression</th><th scope="col">État</th><th scope="col">Début</th><th class="files-size" scope="col">Durée</th><th class="files-actions-cell" scope="col">Actions</th></tr></thead>
+        <tbody id="tasks-list"></tbody>
+      </table>
+      <p id="tasks-state" class="muted" role="status"></p>
+      <ul id="tasks-gallery" hidden></ul>
+      <div id="tasks-loading" class="list-loading list-loading-tasks history-table-loading" hidden aria-hidden="true"><span class="task-history-item"><span class="history-card-select"><i class="skeleton-piece skeleton-check"></i></span><i class="task-thumbnail skeleton-piece"></i><span class="history-card-body"><i class="skeleton-piece skeleton-badge"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-detail"></i></span></span><span class="task-history-item"><span class="history-card-select"><i class="skeleton-piece skeleton-check"></i></span><i class="task-thumbnail skeleton-piece"></i><span class="history-card-body"><i class="skeleton-piece skeleton-badge"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-detail"></i></span></span><span class="task-history-item"><span class="history-card-select"><i class="skeleton-piece skeleton-check"></i></span><i class="task-thumbnail skeleton-piece"></i><span class="history-card-body"><i class="skeleton-piece skeleton-badge"></i><i class="skeleton-piece skeleton-label"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-meta"></i><i class="skeleton-piece skeleton-detail"></i></span></span></div>
+    </div>
+    <footer class="atelier-card-footer history-table-footer">
+      <div class="history-footer-selection"><span id="tasks-selected-count">Aucune sélection</span><button id="tasks-delete" class="atelier-control atelier-control-danger" type="button" disabled>Supprimer la sélection</button></div>
+      <button class="atelier-control" id="tasks-next" type="button" hidden>Charger les impressions suivantes</button>
+    </footer>
+  </section>
+</section>
+<section id="tab-statistics" class="tab-panel" hidden>
+  <div class="statistics-toolbar">
+    <label class="atelier-field">Période<select id="temperature-hours" aria-label="Période des courbes"><option value="1">1 heure</option><option value="6">6 heures</option><option value="24">24 heures</option><option value="48">2 jours</option><option value="168">7 jours</option><option value="720">30 jours</option></select></label>
+    <button id="temperature-export" class="atelier-control" type="button"><span class="csv-export-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5m0 14-4-4m4 4 4-4" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor"/></svg></span><span>Télécharger CSV</span></button>
+  </div>
+  <p id="temperature-export-state" role="status" class="muted"></p>
+  <div class="atelier-statistics-grid">
+    <section id="statistics-printer" class="atelier-card" aria-labelledby="statistics-printer-name">
+      <header class="atelier-card-header"><h2 id="statistics-printer-name">Imprimante</h2></header>
+      <div class="atelier-card-body statistics-plots"><article class="temperature-card"><div class="temperature-card-title"><h4 class="metric-label" data-metric-icon="nozzle">Buse</h4><strong id="temperature-nozzle-current">—</strong></div><div id="chart-nozzle" class="temperature-plot"></div></article><article class="temperature-card"><div class="temperature-card-title"><h4 class="metric-label" data-metric-icon="bed">Plateau</h4><strong id="temperature-bed-current">—</strong></div><div id="chart-bed" class="temperature-plot"></div></article></div>
+    </section>
+    <section id="statistics-ace" class="atelier-card" aria-labelledby="statistics-ace-name">
+      <header class="atelier-card-header"><h2 id="statistics-ace-name">ACE</h2></header>
+      <div class="atelier-card-body statistics-plots">
+        <div class="ace-temperature"><article class="temperature-card"><div class="temperature-card-title"><h4 class="metric-label" data-metric-icon="ace"><span>Température</span></h4><strong id="temperature-ace-current">—</strong></div><div id="chart-ace" class="temperature-plot"></div></article></div>
+        <div id="chart-humidity"></div>
+        <div id="statistics-other-ace" class="ace-chart-groups" hidden></div>
+      </div>
+    </section>
+    <section id="statistics-filament" class="atelier-card" aria-labelledby="statistics-filament-name">
+      <header class="atelier-card-header"><h2 id="statistics-filament-name">Filament restant</h2></header>
+      <div class="atelier-card-body" id="chart-filament"></div>
+      <footer class="atelier-card-footer"><p id="temperature-note">Les relevés sont conservés pendant 24 heures sur la page web.</p></footer>
+    </section>
+  </div>
+</section>
+<section id="tab-fleet" class="tab-panel" hidden>
+  <div class="fleet-workspace">
+    <section class="atelier-card" aria-labelledby="fleet-machines-title">
+      <header class="atelier-card-header"><h2 id="fleet-machines-title">Machines</h2></header>
+      <div class="atelier-card-body"><p id="fleet-state" role="status"></p><div id="fleet-cards" class="fleet-machine-list"></div></div>
+      <footer class="atelier-card-footer"><p>Résumé des machines déjà suivies, sans collecte supplémentaire.</p></footer>
+    </section>
+    <section class="atelier-card" aria-labelledby="fleet-events-title">
+      <header class="atelier-card-header"><h2 id="fleet-events-title">Événements de connexion</h2><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="network" aria-haspopup="dialog" aria-label="Aide">?</button></header>
+      <div class="atelier-card-body"><p id="fleet-events-empty" role="status">Aucun événement de connexion.</p><ol id="fleet-events"></ol></div>
+      <footer class="atelier-card-footer"><p>Alertes après trois minutes de problème observé. Historique limité à cette session serveur.</p></footer>
+    </section>
+  </div>
+  <section id="monitoring" class="atelier-card" aria-labelledby="monitor-heading">
+    <header class="atelier-card-header"><h2 id="monitor-heading">Supervision de l’application</h2><p id="monitor-state" role="status">Chargement des mesures locales…</p></header>
+    <div class="monitor-settings">
+      <label class="atelier-field">Historique<select id="monitor-window"><option value="120" selected>120 relevés</option><option value="30">30 relevés</option></select></label><button id="monitor-pause" class="atelier-control" type="button" aria-pressed="false"><span class="monitor-switch-track" aria-hidden="true"><span class="monitor-switch-knob"></span></span><span id="monitor-pause-label">Suspendre les mesures</span></button>
+    </div>
+    <div id="monitor-grid" class="monitor-grid"></div>
+    <dialog id="monitor-detail" class="monitor-detail"></dialog>
+  </section>
+</section>
+<section id="tab-settings" class="tab-panel" hidden>
+  <div class="atelier-settings-row">
+    <section class="atelier-card" aria-labelledby="settings-follow-title">
+      <header class="atelier-card-header"><h2 id="settings-follow-title">Connexion et suivi</h2><span id="settings-follow-state" class="atelier-status offline">État inconnu</span></header>
+      <div class="atelier-card-body">
+        <div class="atelier-field"><span id="settings-follow-label">Suivi de l’imprimante</span><div class="settings-follow-actions" role="group" aria-labelledby="settings-follow-label">
+          <button type="button" class="atelier-control" data-command="query" title="Récupérer les dernières informations.">Actualiser</button>
+          <button type="button" class="atelier-control" data-command="mqtt-on" title="Rétablir les mises à jour en direct.">Reconnecter</button>
+          <button type="button" class="atelier-control atelier-control-danger" data-command="mqtt-off" data-confirm="Déconnecter le suivi en direct ? Cette action n’arrête pas l’impression.">Déconnecter</button>
+        </div></div>
+        <p id="token-expiry" class="muted" role="status" hidden></p>
+      </div>
+      <footer class="atelier-card-footer settings-row-footer"><div><strong>Diagnostic</strong><p>Informations techniques, sans identifiant ni secret.</p></div><a class="atelier-control settings-control-link" id="diagnostic-download" href="/imprimante-api/diagnostic" download aria-label="Télécharger le diagnostic">Télécharger</a></footer>
+    </section>
+    <section class="atelier-card" aria-labelledby="settings-printer-title">
+      <header class="atelier-card-header"><h2 id="settings-printer-title">Imprimante</h2></header>
+      <div class="atelier-card-body"><form id="rename-form" class="settings-printer-name">
+        <label class="atelier-field">Nom affiché dans le compte Anycubic<input name="name" maxlength="64" required></label>
+        <button class="atelier-control atelier-control-primary" type="submit">Enregistrer le nom</button>
+      </form></div>
+      <footer class="atelier-card-footer settings-row-footer"><div><strong>Détection IA (BETA)</strong><p>Surveillance des défauts par la caméra</p></div><button type="button" class="atelier-control" id="ai-open" aria-label="Détection IA (BETA)">Régler</button></footer>
+    </section>
+  </div>
+  <div class="atelier-settings-row">
+    <section class="atelier-card" aria-labelledby="settings-updates-title">
+      <header class="atelier-card-header"><h2 id="settings-updates-title">Mises à jour</h2></header>
+      <div class="settings-firmwares"><div class="settings-firmware-row"><div><strong id="firmware-printer-model">Imprimante</strong><p id="firmware-printer-version">—</p><button type="button" id="firmware-printer-notes" hidden>Voir les nouveautés</button></div><span id="firmware-printer-status" class="atelier-status" data-state="unknown">Vérification…</span><button type="button" class="atelier-control" data-command="firmware" aria-label="Mettre à jour l’imprimante" disabled>Mettre à jour</button></div><div class="settings-firmware-row"><div><strong id="firmware-ace-model">Module ACE</strong><p id="firmware-ace-version">—</p><button type="button" id="firmware-ace-notes" hidden>Voir les nouveautés</button></div><span id="firmware-ace-status" class="atelier-status" data-state="unknown">Vérification…</span><button type="button" class="atelier-control" data-command="ace-firmware" aria-label="Mettre à jour le module ACE" disabled>Mettre à jour</button></div></div>
+      <footer class="atelier-card-footer"><p>Une mise à jour proposée par Anycubic s’installe lorsque l’imprimante est libre.</p></footer>
+    </section>
+    <section class="atelier-card" id="settings-container" aria-labelledby="settings-container-title">
+      <header class="atelier-card-header"><h2 id="settings-container-title">Conteneur</h2></header>
+      <div class="atelier-card-body">
+        <dl class="atelier-measures settings-container-values">
+          <div><dt>Version</dt><dd><!-- APP_VERSION --></dd></div>
+          <div><dt>Fuseau horaire</dt><dd><!-- CONTAINER_TIME_ZONE --></dd></div>
+          <div><dt>Niveau des journaux</dt><dd><!-- CONTAINER_LOG_LEVEL --></dd></div>
+          <div><dt>Format des journaux</dt><dd><!-- CONTAINER_LOG_FORMAT --></dd></div>
+        </dl>
+        <div class="settings-container-links"><a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/INSTALLATION.md">Guide d’installation</a><button type="button" class="settings-log-link" id="settings-logs-open" aria-haspopup="dialog">Journaux du conteneur</button><button type="button" class="settings-log-link" id="developer-mode" aria-label="Mode développeur" aria-pressed="false">Ω</button></div>
+      </div>
+      <footer class="atelier-card-footer"><p>Ces paramètres se règlent dans le fichier Compose.</p></footer>
+    </section>
+  </div>
+  <div class="atelier-settings-row">
+    <section class="atelier-card settings-appearance" aria-labelledby="settings-appearance-title">
+      <header class="atelier-card-header"><h2 id="settings-appearance-title">Apparence</h2></header>
+      <div class="atelier-card-body">
+        <div class="settings-appearance-fields"><label class="atelier-field">Thème<select id="interface-theme" aria-label="Thème de l’interface"><option value="system">Système</option><option value="light">Clair</option><option value="dark">Sombre</option></select></label><label class="atelier-field">Style<select id="interface-style" aria-label="Style de l’interface"><option value="standard">Par défaut</option><option value="aurora">Aurore</option><option value="lab">Laboratoire</option></select></label><label class="atelier-field">Contraste<select id="interface-contrast"><option value="system">Système</option><option value="standard">Standard</option><option value="high">Élevé</option></select></label></div>
+      </div>
+      <footer class="atelier-card-footer"><p id="theme-description" aria-live="polite"></p></footer>
+    </section>
+    <section class="atelier-card settings-security" aria-labelledby="settings-security-title">
+      <header class="atelier-card-header"><h2 id="settings-security-title">Sécurité</h2></header>
+      <div class="atelier-card-body settings-channels">
+        <div class="settings-channel"><span><strong>Connexion à deux facteurs</strong></span><span id="settings-totp-state" class="atelier-status" data-state="<!-- TOTP_BADGE_STATE -->"><!-- TOTP_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/security" aria-label="Configurer la connexion à deux facteurs">Configurer</a></div>
+      </div>
+      <footer class="atelier-card-footer"><p>Un code temporaire est demandé après le mot de passe.</p></footer>
+    </section>
+    <section class="atelier-card settings-discord" aria-labelledby="settings-discord-title" <!-- DISCORD_CARD_VISIBILITY -->>
+      <header class="atelier-card-header"><h2 id="settings-discord-title">Notifications Discord</h2></header>
+      <div class="atelier-card-body settings-channels">
+        <div class="settings-channel"><span><strong>Alertes</strong></span><span class="atelier-status" data-state="<!-- DISCORD_BADGE_STATE -->"><!-- DISCORD_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord" aria-label="Configurer les notifications Discord">Configurer</a></div>
+        <div class="settings-channel"><span><strong>Bilans</strong></span><span class="atelier-status" data-state="<!-- REPORTS_BADGE_STATE -->"><!-- REPORTS_STATE --></span><a class="atelier-control settings-control-link" href="/imprimante-api/discord/reports" aria-label="Configurer les bilans Discord">Configurer</a></div>
+      </div>
+      <footer class="atelier-card-footer"><p>Un webhook et un salon distincts par canal.</p></footer>
+    </section>
+  </div>
+<div class="section-title extras-settings-heading" hidden><div><h3>Réglages de la machine</h3><p id="device-options-state" class="muted">Lisez les options disponibles sur votre imprimante.</p></div><button id="device-options-load" type="button">Lire les options</button></div>
+<div class="extras-settings-grid" hidden>
+<section class="form-panel"><h3>◎ Calibrations</h3><p class="muted" id="calibration-help">Les calibrations disponibles dépendent du modèle et du firmware.</p><button type="button" class="atelier-control atelier-control-icon context-help-trigger" data-context-help="calibration" aria-haspopup="dialog" aria-label="Aide">?</button><form id="calibration-form"><fieldset disabled id="calibration-fields"><div id="calibration-choices"></div><button type="submit">Démarrer</button></fieldset></form></section>
+<section class="form-panel"><h3>⚙ Matériel</h3><p class="muted" id="hardware-help">Configuration de la buse et du plateau.</p><form id="hardware-form"><fieldset disabled><div class="modal-field-grid"><label>Buse<select name="diameter"><option value="0.2">0,2 mm</option><option value="0.4" selected>0,4 mm</option><option value="0.6">0,6 mm</option><option value="0.8">0,8 mm</option></select></label><label>Matériau de la buse<select name="material"><option value="1">Laiton</option><option value="2">Acier trempé</option></select></label></div><label>Plateau<select name="bed"><option value="1">PEI texturé</option><option value="2">Lisse / transfert</option><option value="3">Basse température</option></select></label><button type="submit">Enregistrer</button></fieldset></form></section>
+<section class="form-panel"><h3>◈ Assistance à l’impression</h3><p class="muted" id="assist-help">Options communiquées par l’imprimante.</p><form id="assist-form"><fieldset disabled><div id="assist-options"></div><button type="submit">Enregistrer</button></fieldset></form></section>
+<section class="form-panel"><h3>◷ Veille de l’écran</h3><p id="screen-help" class="muted">Délai avant la mise en veille.</p><form id="screen-form"><fieldset disabled><label>Fonction<select name="option" id="screen-option"></select></label><label>Délai<select name="minutes"><option value="0">Jamais</option><option value="1">1 minute</option><option value="2">2 minutes</option><option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 heure</option></select></label><button type="submit">Enregistrer</button></fieldset></form></section>
+<section class="form-panel reset-card"><h3>↺ Réinitialisation usine</h3><p class="muted" id="reset-help">Rétablit les réglages d’usine. Une confirmation puis un code à recopier sont nécessaires.</p><button id="reset-open" type="button" class="danger" disabled>Réinitialiser</button></section>
+</div>
+</section>
+<section id="tab-developer" class="tab-panel" hidden></section>
+</main><footer class="printer-footer"><div class="footer-status"><a id="app-version" href="https://github.com/mcflykid/anycubic-cloud-page/releases/tag/v<!-- APP_VERSION -->"><span>Version</span>&nbsp;<!-- APP_VERSION --></a><p id="updated">Source : Anycubic Cloud et MQTT.</p></div><nav class="footer-links" aria-label="Informations sur le site"><a href="/imprimante-api/ui/about">Confidentialité</a><a href="/imprimante-api/ui/conditions">Conditions</a><a href="/imprimante-api/ui/cookies">Cookies</a><a class="footer-credits" href="/imprimante-api/ui/credits">Crédits</a></nav></footer></div>
+<dialog id="context-help-dialog" class="settings-dialog" aria-labelledby="context-help-title">
+  <div class="dialog-top"><h2 id="context-help-title"></h2><button type="button" class="dialog-close" autofocus>Fermer</button></div>
+  <p id="context-help-text"></p><a id="context-help-source" target="_blank" rel="noopener noreferrer">Documentation officielle Anycubic</a>
+</dialog>
+<dialog id="filament-catalogue-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="filament-catalogue-title">
+  <header class="atelier-card-header"><h2 id="filament-catalogue-title">Catalogue Anycubic</h2><button type="button" class="dialog-close">Fermer</button></header>
+  <div class="atelier-card-body">
+    <label class="atelier-field">Rechercher un filament<input type="search" id="filament-catalogue-search"></label>
+    <ul class="detail-list" id="filament-catalogue-list"></ul>
+  </div>
+</dialog>
+<dialog id="filament-profile-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="filament-profile-title">
+  <header class="atelier-card-header"><h2 id="filament-profile-title">Fiche filament</h2><button type="button" class="dialog-close">Fermer</button></header>
+  <div class="atelier-card-body filament-profile-body">
+    <section class="filament-band"><h3 id="filament-slot-title" class="atelier-band-title"></h3><dl id="filament-profile-reading"></dl></section>
+    <section class="filament-band" id="filament-profile-print-band"><h3 class="atelier-band-title">Impression</h3><dl id="filament-profile-facts"></dl></section>
+    <section class="filament-band" id="filament-profile-drying-band"><h3 class="atelier-band-title">Séchage</h3><dl id="filament-profile-drying"></dl></section>
+    <section class="filament-band" hidden><h3 class="atelier-band-title">Propriétés du matériau</h3><dl id="filament-profile-properties"></dl></section>
+  </div>
+  <footer class="atelier-card-footer"><p id="filament-profile-reference" class="muted"></p><a id="filament-profile-datasheet" class="atelier-control" target="_blank" rel="noopener noreferrer" hidden>Fiche technique du fabricant (PDF)</a><a id="filament-profile-community-source" class="atelier-control" target="_blank" rel="noopener noreferrer" hidden>3D Filament Profiles</a><a id="filament-profile-source" class="atelier-control" target="_blank" rel="noopener noreferrer">Fiche fabricant</a></footer>
+</dialog>
+<dialog id="filament-profile-create" class="settings-dialog ace-detail-dialog" aria-labelledby="filament-profile-create-title">
+  <header class="atelier-card-header"><h2 id="filament-profile-create-title">Créer sa fiche filament</h2><button type="button" class="dialog-close">Fermer</button></header>
+  <div class="atelier-card-body filament-create-body">
+    <p class="filament-create-slot"><span id="filament-profile-create-swatch" class="filament-swatch" hidden></span><strong id="filament-profile-create-slot"></strong><span class="muted">Aucune fiche fabricant connue pour cette bobine.</span></p>
+    <label class="filament-drop" for="filament-profile-import"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 20h16"/></svg><strong>Déposer une fiche JSON ici</strong><span class="muted">ou</span><span class="atelier-control">Choisir un fichier</span><span class="muted filament-drop-hint">Format .json, 16 Ko au plus. La fiche reste dans ce navigateur.</span></label>
+    <input type="file" id="filament-profile-import" class="filament-drop-input" accept=".json,application/json" aria-label="Importer une fiche JSON">
+    <p id="filament-profile-import-state" role="status"></p>
+  </div>
+  <footer class="atelier-card-footer"><a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/FICHES-FILAMENT.md" target="_blank" rel="noopener noreferrer">Tutoriel : rédiger une fiche filament</a></footer>
+</dialog>
+<dialog id="spool-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="spool-title">
+  <header class="atelier-card-header"><h2 id="spool-title">Configurer une bobine</h2><span id="spool-dialog-count"></span><button type="button" class="dialog-close" aria-label="Fermer les réglages de la bobine">Fermer</button></header>
+  <form id="spool-form" class="atelier-card-body">
+    <fieldset class="spool-slots"><legend>Emplacement</legend><div id="spool-slot-options" role="radiogroup" aria-label="Emplacement"></div></fieldset>
+    <div class="spool-detail">
+      <div id="spool-dialog-preview"></div>
+      <div class="spool-fields">
+        <p id="spool-rfid-note" role="status"></p>
+        <label id="spool-material-edit" class="atelier-field">Matériau<select id="spool-material" name="material"><option>PLA</option><option>PETG</option><option>ABS</option><option>PACF</option><option>PC</option><option>ASA</option><option>HIPS</option><option>PA</option><option>PLA SE</option></select></label>
+        <p id="spool-material-read" class="spool-readonly" hidden><span>Matériau</span><strong id="spool-material-value"></strong><span role="img" aria-label="Lecture seule">🔒</span></p>
+        <label id="spool-color-edit" class="atelier-field">Couleur du filament<input id="spool-color" type="color" name="color" value="#b1b3b3"><output id="spool-color-value" for="spool-color">#B1B3B3</output></label>
+        <p id="spool-color-read" class="spool-readonly" hidden><span>Couleur du filament</span><strong id="spool-color-read-value"></strong><span role="img" aria-label="Lecture seule">🔒</span></p>
+        <p id="spool-catalog-color" class="muted" hidden></p>
+        <button type="button" id="spool-profile-open" class="atelier-control" aria-haspopup="dialog" hidden>Fiche filament</button>
+        <div class="spool-remaining"><span>Filament restant</span><strong id="spool-remaining"></strong><progress id="spool-remaining-progress" max="100" aria-label="Filament restant"></progress></div>
+      </div>
+    </div>
+    <section class="spool-actions"><header><h3 id="spool-action-title"></h3><span id="spool-selected-state"></span></header><div class="spool-action-buttons"><button type="button" id="feed">Charger</button><button type="button" id="retract">Retirer</button><button type="button" id="feed-finish">Terminer le chargement</button></div><p id="spool-action-state" class="muted" hidden></p></section>
+  </form>
+  <footer class="atelier-card-footer"><button type="submit" form="spool-form" id="spool-save" class="primary" disabled>Enregistrer la bobine</button></footer>
+</dialog><dialog id="dry-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="dry-title">
+  <header class="atelier-card-header"><h2 id="dry-title">Régler le séchage</h2><span id="drying-state" class="badge offline" role="status">État du séchage inconnu</span><button type="button" class="dialog-close" aria-label="Fermer les réglages du séchage">Fermer</button></header>
+  <div class="atelier-card-body dry-detail-body">
+    <section class="dry-summary"><p id="drying-detail"></p><p id="dry-remaining" hidden></p><progress id="dry-progress" max="100" aria-label="Progression du séchage" hidden></progress><dl id="dry-measurements"></dl></section>
+    <section class="dry-presets-section"><header><h3>Préréglages de séchage</h3><button type="button" id="dry-edit-presets">Modifier les préréglages</button></header>
+      <div id="dry-presets" role="radiogroup" aria-label="Préréglages de séchage"></div>
+      <form id="presets-form" hidden><div id="preset-fields"></div><div class="actions"><button type="button" id="dry-cancel-presets">Annuler</button><button type="submit">Enregistrer les préréglages</button></div></form>
+    </section>
+    <form id="dry-form"><div class="inline-fields"><label class="atelier-field">Température (°C)<input name="temperature" type="number" min="35" max="70" value="45" required><small>35–70 °C</small></label><label class="atelier-field">Durée (heures)<input name="hours" type="number" min="1" max="24" value="4" required><small>1–24 h</small></label></div></form>
+  </div>
+  <footer class="atelier-card-footer"><button type="button" id="dry-stop" class="danger" hidden>Arrêter le séchage</button><button type="submit" form="dry-form" id="dry-start" class="primary" disabled>Démarrer le séchage</button></footer>
+</dialog>
+<dialog id="ai-dialog" class="settings-dialog ace-detail-dialog" aria-labelledby="ai-title">
+  <header class="atelier-card-header"><h2 id="ai-title">Détection IA (BETA)</h2><span id="ai-state" role="status"></span><button type="button" class="dialog-close" aria-label="Fermer la détection IA">Fermer</button></header>
+  <div class="atelier-card-body ai-detail-body">
+    <div class="ai-read-error" id="ai-read-error" hidden><p id="ai-error-detail"></p><button id="ai-retry" type="button">Réessayer la lecture</button></div>
+    <form id="ai-form">
+      <section class="ai-option">
+        <label class="ai-switch"><input name="spaghetti" type="checkbox" role="switch" disabled> Détection de filament enchevêtré</label>
+        <p>Signale un enchevêtrement de filament pendant l’impression.</p>
+        <fieldset id="ai-spaghetti-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="spaghetti_level" value="0"><span>Faible</span></label><label><input type="radio" name="spaghetti_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="spaghetti_level" value="2"><span>Élevée</span></label></div><div class="ai-segments" role="group" aria-label="En cas de détection"><span>En cas de détection</span><label><input type="radio" name="pause" value="false" checked><span>Notifier seulement</span></label><label><input type="radio" name="pause" value="true"><span>Mettre l’impression en pause</span></label></div></fieldset>
+      </section>
+      <section class="ai-option" id="ai-foreign-option">
+        <label class="ai-switch"><input name="foreign" type="checkbox" role="switch" disabled> Détection d’objets étrangers</label>
+        <p>Signale les objets étrangers détectés sur le plateau.</p>
+        <fieldset id="ai-foreign-controls" disabled><div class="ai-segments" role="group" aria-label="Sensibilité"><span>Sensibilité</span><label><input type="radio" name="foreign_level" value="0"><span>Faible</span></label><label><input type="radio" name="foreign_level" value="1" checked><span>Normale</span></label><label><input type="radio" name="foreign_level" value="2"><span>Élevée</span></label></div></fieldset>
+      </section>
+    </form>
+    <p id="ai-camera-note">La détection IA utilise la caméra. <button id="ai-camera-open" type="button">Ouvrir l’onglet Caméra</button></p>
+  </div>
+  <footer class="atelier-card-footer"><span>Les réglages sont envoyés à l’imprimante.</span><button type="submit" form="ai-form" id="ai-save" class="primary" disabled>Enregistrer</button></footer>
+</dialog>
+<dialog id="settings-logs-dialog" aria-labelledby="settings-logs-title" class="settings-dialog journal-dialog">
+  <header class="atelier-card-header"><h2 id="settings-logs-title">Journal des commandes</h2><button class="dialog-close" type="button">Fermer</button></header>
+  <div class="journal-controls">
+    <p>Le journal consigne les commandes de l’atelier. L’export exclut les adresses et les références de session. <a href="https://github.com/mcflykid/anycubic-cloud-page/blob/main/docs/TROUBLESHOOTING.md#journaux-du-conteneur">Guide de dépannage</a></p>
+    <form id="journal-filters">
+      <label class="atelier-field">Imprimante<select name="printer"><option value="">Toutes les imprimantes</option></select></label>
+      <label class="atelier-field">Action<select name="action"><option value="">Toutes les actions</option></select></label>
+      <label class="atelier-field">Résultat<select name="outcome"><option value="">Tous les résultats</option><option value="refusée">Refusée</option><option value="expirée">Expirée</option><option value="inconnue">Inconnue</option><option value="envoyée">Envoyée</option><option value="acceptée">Acceptée</option><option value="confirmée">Confirmée</option></select></label>
+      <button type="submit" class="atelier-control atelier-control-icon" aria-label="Actualiser le journal"><svg viewBox="0 0 24 24" class="ui-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg></button>
+    </form>
+    <details class="settings-history"><summary>Événements de connexion</summary><ul id="events"></ul></details>
+  </div>
+  <div class="journal-table-region" role="region" aria-label="Entrées du journal" tabindex="0"><table>
+    <thead><tr><th scope="col">Heure</th><th scope="col">Action</th><th scope="col">Détails et imprimante</th><th scope="col">Résultat</th></tr></thead>
+    <tbody id="journal-entries"></tbody>
+  </table></div>
+  <footer class="atelier-card-footer"><p id="journal-state" role="status"></p><button id="journal-more" type="button" hidden>Afficher les entrées précédentes</button><a id="journal-export" hidden>Exporter le journal expurgé</a></footer>
+</dialog>
+<dialog id="cloud-rename-dialog" class="settings-dialog ace-detail-dialog file-detail-dialog" aria-labelledby="cloud-rename-title">
+  <header class="atelier-card-header"><h2 id="cloud-rename-title">Renommer le fichier</h2></header>
+  <form id="cloud-rename-form" class="atelier-card-body"><p><strong id="cloud-rename-current"></strong> <span>·</span> <span>Cloud Anycubic</span></p>
+    <label for="cloud-rename-name">Nouveau nom</label><div class="file-name-field"><input id="cloud-rename-name" name="name" required maxlength="200" autocomplete="off" aria-describedby="cloud-rename-state"><span id="cloud-rename-extension"></span></div>
+    <p id="cloud-rename-state" role="status"></p>
+  </form>
+  <footer class="atelier-card-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="cloud-rename-form" id="cloud-rename-save" class="primary" disabled>Enregistrer</button></footer>
+</dialog>
+<dialog id="cloud-download-dialog" class="settings-dialog ace-detail-dialog file-detail-dialog" aria-labelledby="cloud-download-title">
+  <header class="atelier-card-header"><h2 id="cloud-download-title">Téléchargements</h2><button class="dialog-close" type="button">Fermer</button></header>
+  <div class="atelier-card-body"><p id="cloud-download-state" role="status"></p><ul id="cloud-download-links" class="download-list"></ul></div>
+</dialog>
+<dialog id="notification-error-dialog" class="task-dialog" aria-labelledby="notification-error-dialog-title" aria-describedby="notification-error-explanation">
+<div class="dialog-top"><h2 id="notification-error-dialog-title"></h2><button class="dialog-close" type="button" autofocus>Fermer</button></div>
+<p id="notification-error-subject" class="muted"></p>
+<h3 id="notification-error-heading"></h3>
+<p id="notification-error-explanation"></p>
+<div id="notification-error-message" hidden><h3>Message reçu de l’imprimante</h3><p id="notification-error-message-text"></p></div>
+<p id="notification-error-models" class="muted" hidden><strong>Modèles documentés</strong> · <span id="notification-error-models-list"></span></p><div id="notification-error-checks" hidden><h3>Vérifications conseillées</h3><ol id="notification-error-steps"></ol></div>
+<a id="notification-error-source" target="_blank" rel="noopener noreferrer" hidden>Documentation officielle Anycubic</a>
+</dialog>
+<dialog id="historical-notifications-dialog" class="journal-dialog" aria-labelledby="historical-notifications-title">
+  <header class="atelier-card-header"><h2 id="historical-notifications-title">Journal historique</h2><button type="button" class="dialog-close" autofocus>Fermer</button></header>
+  <div id="historical-notifications-filters" class="journal-controls">
+    <label class="atelier-field">Type<select id="historical-notifications-kind"><option value="">Tous les types</option><option value="success">Réussite</option><option value="interrupted">Interruption</option><option value="info">Information</option></select></label>
+    <label class="atelier-field">Imprimante<select id="historical-notifications-printer"><option value="">Toutes les imprimantes</option></select></label>
+  </div>
+</dialog>
+<dialog id="notification-preview-dialog" class="task-dialog"><div class="dialog-top"><h2>Aperçu de l’impression</h2><button class="dialog-close" type="button">Fermer</button></div><h3 id="notification-preview-name"></h3><p id="notification-preview-state" class="muted" role="status"></p><img id="notification-preview-image" class="past-task-preview" alt="Aperçu de l’impression" hidden><button id="notification-task-open" type="button" hidden>Voir le détail</button></dialog>
+<dialog id="history-period-dialog" aria-labelledby="history-period-title"><div class="dialog-top"><h2 id="history-period-title">Période de l’historique</h2><button type="button" class="dialog-close">Fermer</button></div><div id="history-range-presets" role="group" aria-label="Période de l’historique"><button type="button" data-range="7">7 jours</button><button type="button" data-range="30">30 jours</button><button type="button" data-range="90">3 mois</button><button type="button" data-range="year">Cette année</button><button type="button" data-range="custom">Personnalisée</button></div><div id="history-custom-range" hidden><div class="history-period-inputs"><label>Du<input id="tasks-from" type="date"></label><label>Au<input id="tasks-to" type="date"></label></div><div class="history-calendar-toolbar"><button type="button" id="history-month-prev" aria-label="Mois précédent">‹</button><button type="button" id="history-month-next" aria-label="Mois suivant">›</button></div><div id="history-months" class="history-months"></div></div><p id="history-range-summary" role="status"></p><div class="actions history-period-actions"><button type="button" id="history-period-reset">Réinitialiser</button><button type="button" id="history-period-apply" class="primary">Appliquer</button></div></dialog>
+<dialog id="past-task-dialog" class="task-detail-dialog" aria-labelledby="task-dialog-title"><header class="dialog-top"><h2 id="task-dialog-title">Détails de la tâche</h2><span id="past-task-state" class="task-detail-status" role="status"><i aria-hidden="true"></i><span></span></span><button class="dialog-close" type="button" aria-label="Fermer les détails de la tâche">Fermer</button></header>
+<div class="task-detail-band task-detail-primary"><div class="task-detail-identity"><span class="task-detail-thumbnail"><img id="past-task-preview" alt="Aperçu de l’impression" hidden><span id="past-task-preview-state" class="task-detail-preview-fallback" role="status" aria-label="Aperçu indisponible">⬡</span></span><h3 id="past-task-name"></h3></div><dl id="task-detail-progress" class="task-detail-metrics"></dl></div>
+<section class="task-detail-band"><h3>Informations du fichier</h3><dl id="past-task-data" class="task-detail-metrics"></dl></section>
+<section class="task-detail-band"><h3>Paramètres</h3><div id="past-task-parameters" class="task-detail-parameter-grid"></div></section>
+<section id="past-print-timeline" class="task-detail-band print-timeline" hidden><h3>Chronologie de l’impression</h3><div class="timeline-days"></div></section>
+<div id="past-task-extra" class="task-detail-extra" hidden><details id="past-task-materials" hidden><summary class="atelier-disclosure">Filaments estimés par matière</summary><ul id="past-task-material-list"></ul></details><section id="past-task-diagnostic" class="task-detail-diagnostic" hidden><h3>Diagnostic</h3><p id="past-task-reason"></p><button id="past-task-error" type="button" aria-haspopup="dialog" hidden>Voir la fiche d’erreur</button><a id="past-task-help" target="_blank" rel="noopener noreferrer" hidden>Aide Anycubic</a></section><div class="task-detail-actions"><button id="past-task-rate" hidden>Évaluer</button><button id="past-task-reprint" hidden>Imprimer à nouveau</button><p id="past-task-actions-state" class="muted"></p></div></div></dialog>
+<dialog id="task-rating-dialog" class="settings-dialog" aria-labelledby="rating-title"><div class="dialog-top"><h2 id="rating-title">Évaluer l’impression</h2><button class="dialog-close" type="button">Fermer</button></div><div class="rating-task"><img id="rating-preview" alt="" hidden><div><strong id="rating-task-name"></strong><p id="rating-task-summary" class="muted"></p></div></div><p id="rating-state" class="muted" role="status"></p><form id="rating-form"><fieldset disabled><legend>Votre note</legend><div class="rating-stars" role="radiogroup" aria-label="Note sur cinq étoiles"><label><input type="radio" name="stars" value="1" required><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">1 ★</span></label><label><input type="radio" name="stars" value="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">2 ★</span></label><label><input type="radio" name="stars" value="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">3 ★</span></label><label><input type="radio" name="stars" value="4"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">4 ★</span></label><label><input type="radio" name="stars" value="5"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="360" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.62 12 2 9.19 8.62 2 9.24 7.45 13.97 5.82 21Z"/></svg><span class="sr-only">5 ★</span></label></div><p id="rating-value" role="status"></p><button type="submit" class="primary" disabled>Envoyer à Anycubic</button></fieldset></form></dialog>
+<dialog id="reset-dialog" class="settings-dialog reset-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reset-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reset-title">Réinitialisation usine</h2></div><div class="confirmation-body"><p>Les réglages de l’imprimante seront remis à zéro. L’imprimante pourra devoir être reconnectée au compte Anycubic.</p><label class="check"><input id="reset-understood" type="checkbox"> Je veux réinitialiser cette imprimante</label><button id="reset-get-code" type="button" disabled>Obtenir le code</button><form id="reset-form" hidden><p>Recopiez ce code avant deux minutes :</p><div class="reset-challenge"><output id="reset-code" class="reset-code"></output><time id="reset-countdown"></time></div><label>Code de confirmation<input name="code" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reset-password-state" class="muted" role="status"></p><p id="reset-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reset-form" id="reset-submit" class="danger" disabled>Confirmer la réinitialisation</button></div></dialog>
+<dialog id="controls-dialog" class="settings-dialog controls-dialog" aria-labelledby="controls-title">
+  <header class="atelier-card-header current-controls-header">
+    <h2 id="controls-title">Commandes courantes</h2>
+    <span id="controls-machine-state" class="atelier-status" role="status">État inconnu</span>
+    <button type="button" class="atelier-control dialog-close">Fermer</button>
+  </header>
+  <form id="settings-form" class="current-controls-form">
+    <div class="current-controls-body">
+      <div class="current-controls-device">
+        <svg id="controls-s1-diagram" aria-hidden="true" width="320" height="368" viewBox="0 0 320 368" fill="none" stroke-linecap="round" stroke-linejoin="round" hidden>
+          <rect class="diagram-case" x="150" y="26" width="50" height="18" rx="3"/>
+          <rect class="diagram-case" x="36" y="44" width="180" height="260" rx="8"/>
+          <rect class="diagram-interior" x="48" y="56" width="156" height="212" rx="4"/>
+          <path d="M48 76H204"/>
+          <rect class="diagram-interior" x="100" y="68" width="30" height="26" rx="3"/>
+          <path d="M110 94 115 102 120 94M56 228H196M126 228V268M90 286H162"/>
+          <rect class="diagram-case" x="196" y="120" width="8" height="40" rx="4"/>
+          <circle class="diagram-case" cx="78" cy="175" r="13"/>
+          <path d="M78 162v26M65 175h26"/>
+        </svg>
+        <img id="controls-illustration" width="200" height="170" alt="" hidden>
+      </div>
+      <svg id="controls-connectors" aria-hidden="true" focusable="false"></svg>
+      <div class="current-controls-rows">
+        <div class="current-control-row current-control-separator" data-organ="nozzle">
+          <label for="current-nozzle" data-metric-icon="nozzle">Buse</label>
+          <div class="current-control-field"><input id="current-nozzle" name="target_nozzle_temp" type="number" min="0" step="1" placeholder="Inchangé" aria-describedby="current-nozzle-reading"><span id="current-nozzle-reading" class="current-reading">—</span><span class="current-unit">°C</span></div>
+        </div>
+        <div class="current-control-row current-control-separator" data-organ="part">
+          <label for="current-part" data-metric-icon="fan">Pièce</label>
+          <div class="current-control-field"><input id="current-part" name="fan_speed_pct" type="number" min="0" max="100" step="1" placeholder="Inchangé" aria-describedby="current-part-reading"><span id="current-part-reading" class="current-reading">—</span><span class="current-unit">%</span></div>
+        </div>
+        <div class="current-control-row" data-organ="auxiliary">
+          <label for="current-auxiliary" data-metric-icon="fan">Auxiliaire</label>
+          <div class="current-control-field"><input id="current-auxiliary" name="aux_fan_speed_pct" type="number" min="0" max="100" step="1" placeholder="Inchangé" aria-describedby="current-auxiliary-reading"><span id="current-auxiliary-reading" class="current-reading">—</span><span class="current-unit">%</span></div>
+        </div>
+        <div class="current-control-row" data-organ="circulation">
+          <label for="current-circulation" data-metric-icon="fan">Circulation</label>
+          <div class="current-control-field"><input id="current-circulation" name="box_fan_level" type="number" min="0" max="100" step="1" placeholder="Inchangé" aria-describedby="current-circulation-reading"><span id="current-circulation-reading" class="current-reading">—</span><span class="current-unit">%</span></div>
+        </div>
+        <div class="current-control-row current-control-separator" data-organ="bed">
+          <label for="current-bed" data-metric-icon="bed">Plateau</label>
+          <div class="current-control-field"><input id="current-bed" name="target_hotbed_temp" type="number" min="0" step="1" placeholder="Inchangé" aria-describedby="current-bed-reading"><span id="current-bed-reading" class="current-reading">—</span><span class="current-unit">°C</span></div>
+        </div>
+        <div class="current-control-row current-control-separator">
+          <label for="speed-mode" data-metric-icon="gauge">Mode de vitesse</label>
+          <select name="print_speed_mode" id="speed-mode"><option value="">Inchangé</option></select>
+        </div>
+        <div class="current-control-row current-control-separator">
+          <span class="current-control-label" data-metric-icon="light">Éclairage</span>
+          <div class="current-light">
+            <span id="control-light-state" class="atelier-status" role="status">État inconnu</span>
+            <div><button type="button" id="control-light-on" class="atelier-control" disabled>Allumer</button><button type="button" id="control-light-off" class="atelier-control" disabled>Éteindre</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="current-controls-feedback" class="current-controls-feedback">
+      <p id="control-feedback" role="status"></p><button type="button" id="control-error-help" class="atelier-control" hidden>Voir la fiche d’erreur</button>
+    </div>
+    <footer class="atelier-card-footer">
+      <p>Seuls les champs renseignés sont modifiés. Zéro coupe la chauffe.</p>
+      <button type="submit" class="atelier-control atelier-control-primary">Appliquer les réglages</button>
+    </footer>
+  </form>
+</dialog>
+<dialog id="reauth-dialog" class="settings-dialog confirmation-dialog" data-severity="critical" aria-labelledby="reauth-title" aria-describedby="reauth-question"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="reauth-title">Confirmer avec le mot de passe web</h2></div><div class="confirmation-body"><p id="reauth-question" hidden></p><form id="reauth-form" method="dialog"><label>Mot de passe web<input name="password" type="password" autocomplete="current-password" required></label><p id="reauth-state" class="muted" role="status"></p></form></div><div class="confirmation-footer"><button class="dialog-close" type="button">Annuler</button><button type="submit" form="reauth-form" id="reauth-submit" class="danger">Installer la mise à jour</button></div></dialog>
+<dialog id="confirm-dialog" class="confirmation-dialog" aria-labelledby="confirm-title"><div class="confirmation-heading"><svg class="confirmation-alert" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="confirm-title">Confirmer</h2></div><div class="confirmation-body"><p id="confirm-text"></p></div><div class="confirmation-footer"><button type="button" id="confirm-no">Annuler</button><button type="button" id="confirm-yes" class="primary">Confirmer</button></div></dialog>
+<dialog id="printer-timeline-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="printer-timeline-title">
+  <header class="atelier-card-header"><h2 id="printer-timeline-title">Chronologie de l’impression</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <section id="printer-timeline" class="atelier-card-body print-timeline" hidden><div class="timeline-markers"></div><div class="timeline-days"></div></section>
+</dialog>
+<dialog id="queue-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="queue-title">
+  <header class="atelier-card-header"><h2 id="queue-title">File d’attente</h2><span id="queue-totals" class="muted"></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body queue-body">
+    <p id="queue-state" role="status"></p>
+    <div id="queue-empty" class="atelier-empty" hidden><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h5l1 3h6l1-3h5M5 5h14l2 8v6H3v-6Z"/></svg><strong>La file d’attente est vide</strong><p>Ajoutez des fichiers depuis l’onglet Fichiers. À la fin d’une impression, la suivante vous sera proposée une fois le plateau libéré.</p></div>
+    <ol id="queue-list" class="queue-list"></ol>
+  </div>
+  <footer class="atelier-card-footer"><p class="muted">Rien ne démarre seul : chaque lancement repasse par la confirmation.</p><button id="queue-add-files" class="atelier-control" type="button">Ajouter un fichier</button><button id="queue-next" class="atelier-control atelier-control-primary" type="button" hidden disabled>Plateau libéré, préparer la suivante</button></footer>
+</dialog>
+<dialog id="maintenance-dialog" class="settings-dialog atelier-panel-dialog" aria-labelledby="maintenance-title">
+  <header class="atelier-card-header"><h2 id="maintenance-title">Entretien</h2><span id="maintenance-summary" class="atelier-status" hidden></span><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body maintenance-body">
+    <p class="maintenance-hours"><strong id="maintenance-hours"></strong><span class="muted">Calculé sur le temps d’impression cumulé. Aucune commande n’est envoyée à l’imprimante.</span><a href="https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/maintenance-recommendations" target="_blank" rel="noopener noreferrer">Wiki Anycubic Kobra S1</a></p>
+    <p id="maintenance-state" role="status"></p>
+    <ul id="maintenance-list" class="maintenance-list"></ul>
+    <form id="maintenance-done" class="maintenance-panel" aria-labelledby="maintenance-done-title" hidden>
+      <h3 id="maintenance-done-title">Opération faite</h3><p id="maintenance-done-text"></p>
+      <div class="maintenance-fields"><label class="atelier-field">Compteur de l’intervention<input id="maintenance-last-hours" type="number" min="0" step="0.1" required></label>
+      <label class="atelier-field">Note (facultative)<textarea id="maintenance-note" maxlength="500" rows="2"></textarea></label></div>
+      <div class="maintenance-panel-actions"><button type="button" class="atelier-control" data-maintenance-cancel>Annuler</button><button type="submit" class="atelier-control atelier-control-primary">Enregistrer l’intervention</button></div>
+    </form>
+    <form id="maintenance-form" class="maintenance-panel" aria-labelledby="maintenance-form-title" hidden>
+      <h3 id="maintenance-form-title">Nouvelle opération</h3>
+      <div class="maintenance-fields"><label class="atelier-field">Opération<input name="name" required maxlength="100"></label>
+      <div class="atelier-field"><label for="maintenance-interval">Intervalle</label><span class="maintenance-interval"><input id="maintenance-interval" name="interval" type="number" required min="1" max="10000"><select name="unit" aria-label="Unité de l’intervalle"><option value="hours">heures d’impression</option><option value="days">jours</option><option value="kg">kg de filament</option></select></span></div></div>
+      <label class="maintenance-check"><input name="enabled" type="checkbox" checked> Activer le rappel</label>
+      <div class="maintenance-panel-actions"><button type="button" class="atelier-control" data-maintenance-cancel>Annuler</button><button type="submit" class="atelier-control atelier-control-primary">Enregistrer</button></div>
+    </form>
+  </div>
+  <footer class="atelier-card-footer"><button id="maintenance-history-toggle" class="atelier-control" type="button" aria-pressed="false">Historique des interventions</button><button id="maintenance-add" class="atelier-control" type="button">Ajouter une opération</button></footer>
+</dialog>
+<dialog id="firmware-notes-dialog" class="settings-dialog atelier-panel-dialog firmware-notes-dialog" aria-labelledby="firmware-notes-title">
+  <header class="atelier-card-header"><h2 id="firmware-notes-title">Nouveautés</h2><button class="dialog-close atelier-control" type="button">Fermer</button></header>
+  <div class="atelier-card-body firmware-notes-body">
+    <div class="firmware-notes-versions">
+      <div><span>Version installée</span><strong id="firmware-notes-current">—</strong></div>
+      <span class="firmware-notes-arrow" aria-hidden="true">→</span>
+      <div><span>Version proposée</span><strong id="firmware-notes-target">—</strong></div>
+      <div class="firmware-notes-meta"><span id="firmware-notes-date"></span><span id="firmware-notes-optional" class="atelier-count">Facultative</span><span id="firmware-notes-required" class="atelier-count" data-state="required" hidden>Obligatoire</span></div>
+    </div>
+    <div class="firmware-notes-heading"><h3>Nouveautés</h3><p id="firmware-notes-source">Texte fourni par Anycubic</p></div>
+    <p id="firmware-notes-text" class="firmware-notes-text"></p>
+    <p id="firmware-notes-empty" class="firmware-notes-empty" hidden><strong>Anycubic ne fournit pas de notes pour cette version.</strong><span>Consultez la page officielle du produit pour en savoir plus.</span></p>
+    <p class="firmware-notes-warning" role="note">L’installation n’est possible que lorsque l’imprimante est libre. Ne l’éteignez pas pendant la mise à jour.</p>
+  </div>
+  <footer class="atelier-card-footer"><a id="firmware-notes-official" href="https://wiki.anycubic.com/en/fdm-3d-printer" target="_blank" rel="noopener noreferrer">Page officielle du produit</a><span class="firmware-notes-actions"><button type="button" class="atelier-control" id="firmware-notes-later">Plus tard</button><button type="button" class="atelier-control atelier-control-primary" id="firmware-notes-install">Mettre à jour</button></span></footer>
+</dialog>
+<dialog id="print-dialog" class="confirmation-dialog" aria-labelledby="print-title">
+  <header class="confirmation-heading"><h2 id="print-title">Lancer l’impression</h2></header>
+  <div class="confirmation-body">
+    <div class="print-task"><strong>Tâche d’impression</strong><span id="print-name" tabindex="0"></span></div>
+    <div class="print-preview">
+      <span id="print-printer"></span>
+      <img id="print-image" alt="" hidden>
+      <span id="print-no-preview">Aperçu indisponible</span>
+      <dl class="print-estimates">
+        <div><dt>Durée estimée</dt><dd id="print-duration"></dd></div>
+        <div><dt>Filament estimé</dt><dd id="print-filament"></dd></div>
+      </dl>
+    </div>
+    <p id="print-mapping-summary" hidden></p>
+    <fieldset id="print-ace" hidden><legend>Affectations ACE</legend><div id="print-ace-rows"></div><button id="print-add-slot" class="atelier-control" type="button" hidden>Ajouter un filament</button></fieldset>
+    <div class="print-destination">
+      <div><strong>Imprimante sélectionnée</strong><div id="print-destination-name" class="atelier-control"></div></div>
+      <ul id="print-destination-spools" aria-label="Filaments" hidden></ul>
+    </div>
+    <p id="print-advice" hidden></p>
+    <details id="print-options">
+      <summary>Options de préparation et de séchage</summary>
+      <p class="print-options-live-note">Ces réglages de lancement attendent une validation pour cette imprimante.</p>
+      <div class="print-option-list">
+        <label><input id="print-auto-leveling" name="auto_leveling" type="checkbox" disabled> <span>Mise à niveau du plateau</span></label>
+        <label><input name="vibration_compensation" type="checkbox" disabled> <span>Compensation de résonance</span></label>
+        <label><input name="ai_detect" type="checkbox" disabled> <span>Détection IA (BETA)</span></label>
+        <label><input name="camera_timelapse" type="checkbox" disabled> <span>Timelapse</span></label>
+        <label><input name="flow_calibration" type="checkbox" disabled> <span>Calibration du débit</span></label>
+      </div>
+      <div class="print-drying-settings">
+        <label class="atelier-field">Options de séchage<select id="print-drying-mode"><option value="off">Désactivé</option><option value="together" disabled>Impression avec séchage simultané</option><option value="before" disabled>Séchage puis impression</option></select></label>
+        <input type="text" disabled aria-label="Température de séchage">
+        <input type="text" disabled aria-label="Durée">
+      </div>
+    </details>
+    <p id="print-question"></p>
+    <p id="print-target" role="status"></p>
+  </div>
+  <footer class="confirmation-footer"><button id="print-no" type="button" autofocus>Annuler</button><button id="print-queue-add" type="button" hidden>Ajouter à la file</button><button id="print-yes" type="button" class="primary">Lancer l’impression</button><p id="print-result" tabindex="-1" role="status" hidden></p><button id="print-cancel-transfer" type="button" hidden>Annuler le lancement</button><button id="print-close" type="button" hidden>Fermer</button><button id="print-error-help" type="button" hidden>Aide</button><progress id="print-progress" aria-labelledby="print-result" hidden></progress></footer>
+</dialog>
+<noscript>JavaScript est nécessaire pour cet atelier.</noscript><script id="workshop-script" type="module" src="/imprimante-api/ui/js/imprimante.js"></script></body></html>

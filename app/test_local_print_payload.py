@@ -1,0 +1,242 @@
+"""Contrat local de sérialisation des demandes d’impression depuis la mémoire."""
+
+import unittest
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+from anycubic_cloud_api.api.functions import AnycubicAPIFunctions
+from anycubic_cloud_api.const.enums import AnycubicOrderID
+from anycubic_cloud_api.data_models.orders import (
+    AnycubicProjectCtrlOrderRequest,
+    AnycubicStartPrintRequestLocal,
+)
+from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+from anycubic_cloud_api.data_models.printer_properties import AnycubicMultiColorBox
+
+
+class LocalPrintPayloadTests(unittest.TestCase):
+    """Fige le contrat de sérialisation établi sans prétendre prouver son acceptation par le firmware."""
+
+    def test_local_file_payload_uses_rooted_path_and_filetype_one(self):
+        """Le nom et le dossier natifs doivent rester distincts dans une demande de fichier mémoire."""
+        request = AnycubicStartPrintRequestLocal(
+            filename="piece.gcode",
+            filepath="/jobs/ready/",
+        )
+
+        self.assertEqual(
+            request.data,
+            {
+                "filetype": 1,
+                "file_key": "",
+                "file_name": "",
+                "task_settings": {"ai_detect": 0, "camera_timelapse": 0},
+                "filename": "piece.gcode",
+                "filepath": "/jobs/ready",
+            },
+        )
+
+    def test_local_file_payload_uses_root_for_empty_path(self):
+        """Un dossier vide conserve la sémantique de la racine attendue par le protocole."""
+        request = AnycubicStartPrintRequestLocal(filename="piece.gcode")
+
+        self.assertEqual(request.filepath, "/")
+        self.assertEqual(request.data["filetype"], 1)
+
+    def test_start_print_envelope_wraps_local_payload_without_plate_fields(self):
+        """Aucun champ de plateau ou de mode non établi ne doit être ajouté au lancement local."""
+        payload = AnycubicStartPrintRequestLocal(
+            filename="piece.gcode",
+            filepath="jobs/ready",
+        )
+        request = AnycubicProjectCtrlOrderRequest(
+            order_id=AnycubicOrderID.START_PRINT,
+            printer_id=7,
+            project_id=0,
+            order_data=payload.data,
+            ams_box_mapping=None,
+            print_settings=None,
+        )
+
+        self.assertEqual(
+            request.order_request_data,
+            {
+                "order_id": int(AnycubicOrderID.START_PRINT),
+                "printer_id": 7,
+                "project_id": 0,
+                "data": {
+                    "filetype": 1,
+                    "file_key": "",
+                    "file_name": "",
+                    "task_settings": {"ai_detect": 0, "camera_timelapse": 0},
+                    "filename": "piece.gcode",
+                    "filepath": "/jobs/ready",
+                },
+                "ams_info": None,
+                "settings": None,
+            },
+        )
+        self.assertNotIn("plate_index", request.order_request_data["data"])
+
+
+class StoredPrintSpoolTests(unittest.IsolatedAsyncioTestCase):
+    """Vérifie l’ordre mémoire à la sortie de Cloud Page, avant transmission."""
+
+    async def test_selected_slot_is_independent_of_loaded_filament(self):
+        """Le filament présent dans la tête ne doit pas remplacer le choix affiché."""
+        from printer_commands import slot_indices
+
+        send = AsyncMock()
+        api = SimpleNamespace(_send_anycubic_order=send)
+        api._send_order_start_print = AnycubicAPIFunctions._send_order_start_print.__get__(api)
+        api._send_order_print_local_file = (
+            AnycubicAPIFunctions._send_order_print_local_file.__get__(api)
+        )
+        printer = AnycubicPrinter(api, 1, "Anycubic Kobra S1", id=7)
+        printer._multi_color_box = [
+            AnycubicMultiColorBox(
+                id=0,
+                status=1,
+                model_id=1,
+                auto_feed=0,
+                loaded_slot=2,
+                feed_status=None,
+                temp=25,
+                drying_status=None,
+                curr_nozzle_temp=None,
+                target_nozzle_temp=None,
+                slots=[
+                    {
+                        "index": index,
+                        "sku": "",
+                        "type": "PLA",
+                        "color": [50 * index, 10, 10],
+                        "edit_status": 0,
+                        "status": 5,
+                    }
+                    for index in range(4)
+                ],
+            )
+        ]
+        target = SimpleNamespace(printer=printer)
+
+        for selection, expected in (([], None), ([1], (0, 0)), ([3], (0, 2))):
+            with self.subTest(selection=selection):
+                indices = slot_indices(target, {"slots": selection})
+                await printer.print_local_file("piece.gcode", slot_index_list=indices)
+                order = send.await_args.kwargs["order_request"].order_request_data
+                if expected is None:
+                    self.assertIsNone(order["ams_info"])
+                else:
+                    self.assertTrue(order["ams_info"]["use_ams"])
+                    (row,) = order["ams_info"]["ams_box_mapping"]
+                    self.assertEqual((row["paint_index"], row["ams_index"]), expected)
+
+
+class StoredFormatSafetyTests(unittest.IsolatedAsyncioTestCase):
+    """Un modèle non qualifié ne doit jamais parvenir à l’ordre physique de lancement."""
+
+    def test_ai_read_probe_is_scoped_to_the_current_printer(self):
+        """Une lecture IA qualifie la S1 courante et ne qualifie aucune autre cible."""
+        from print_preflight import stored_print_options
+
+        printer = SimpleNamespace(machine_name="Anycubic Kobra S1")
+        engine = SimpleNamespace(printer=printer, stored_print_ai_printer=printer)
+        self.assertEqual(stored_print_options(engine), ["ai_detect"])
+        engine.printer = SimpleNamespace(machine_name="Anycubic Kobra S1")
+        self.assertEqual(stored_print_options(engine), [])
+
+    async def test_memory_preparation_requires_supported_options_and_preserves_false(self):
+        """Vérifie le trajet jusqu’à l’ordre, avec un nivellement explicitement désactivé."""
+        from printer_commands import execute_command
+
+        send = AsyncMock(return_value="order")
+        api = SimpleNamespace(_send_anycubic_order=send)
+        api._send_order_start_print = AnycubicAPIFunctions._send_order_start_print.__get__(api)
+        api._send_order_print_local_file = (
+            AnycubicAPIFunctions._send_order_print_local_file.__get__(api)
+        )
+        printer = AnycubicPrinter(api, 1, "Anycubic Kobra S1", id=7)
+        printer._device_status = 1
+        printer._is_printing = 1
+        features = {
+            f"{name}_support": True
+            for name in (
+                "auto_leveling",
+                "vibration_compensation",
+                "ai_detect",
+                "camera_timelapse",
+                "flow_calibration",
+            )
+        }
+        target = SimpleNamespace(
+            printer=printer,
+            api=api,
+            slots=lambda data: None,
+            extras=SimpleNamespace(features=lambda: features),
+        )
+        choices = {name.removesuffix("_support"): True for name in features}
+        choices["auto_leveling"] = False
+        await execute_command(
+            target, "print-local", {"name": "piece.gcode", "preparation": choices}
+        )
+        order = send.await_args.kwargs["order_request"].order_request_data
+        self.assertEqual(
+            order["data"]["task_settings"], {**{name: 1 for name in choices}, "auto_leveling": 0}
+        )
+        features["flow_calibration_support"] = False
+        with self.assertRaises(ValueError):
+            await execute_command(
+                target, "print-local", {"name": "piece.gcode", "preparation": choices}
+            )
+        send.assert_awaited_once()
+
+    async def test_unverified_formats_are_rejected_before_any_send(self):
+        """Les modèles non tranchés ne peuvent pas emprunter le parcours mémoire."""
+        from printer_commands import execute_command
+
+        for filename in ("piece.3mf", "piece.stl", "piece.bin"):
+            printer = SimpleNamespace(
+                id=7,
+                connected_ace_units=0,
+                is_available=True,
+                print_local_file=AsyncMock(),
+                fw_version=None,
+            )
+            target = SimpleNamespace(
+                printer=printer, api=SimpleNamespace(), slots=lambda data: None
+            )
+            with self.subTest(filename=filename), self.assertRaises(ValueError):
+                await execute_command(target, "print-local", {"name": filename, "path": "/"})
+            printer.print_local_file.assert_not_awaited()
+
+    async def test_sliced_package_uses_the_internal_file_order_on_kobra_s1(self):
+        """Préserve le nom du paquet et l’affectation ACE du lancement mémoire."""
+        from printer_commands import execute_command
+
+        printer = SimpleNamespace(
+            id=7,
+            machine_name="Anycubic Kobra S1",
+            connected_ace_units=1,
+            is_available=True,
+            print_local_file=AsyncMock(return_value="order"),
+            print_udisk_file=AsyncMock(),
+            fw_version=None,
+        )
+        target = SimpleNamespace(printer=printer, api=SimpleNamespace(), slots=lambda data: [0])
+        data = {"name": "piece.GCODE.3MF", "path": "/jobs", "slots": [1]}
+
+        await execute_command(target, "print-local", data)
+        printer.print_local_file.assert_awaited_once_with(
+            file_name="piece.GCODE.3MF", file_path="jobs", slot_index_list=[0]
+        )
+        with self.assertRaises(ValueError):
+            await execute_command(target, "print-usb", data)
+        printer.print_udisk_file.assert_not_awaited()
+        printer.machine_name = "Anycubic Kobra X"
+        with self.assertRaises(ValueError):
+            await execute_command(target, "print-local", data)
+
+
+if __name__ == "__main__":
+    unittest.main()

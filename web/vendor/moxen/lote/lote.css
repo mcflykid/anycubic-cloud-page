@@ -1,0 +1,359 @@
+/* Lote · Moxen — estilos de la tabla que se selecciona pintando y de la demostración.
+   Todos los colores están aquí arriba. --lo-fondo es la porcelana de la escena;
+   --lo-panel, la tarjeta de la tabla; --lo-azul, la selección (el relleno, la
+   casilla, el pincel y el botón principal); --lo-verde, --lo-ambar y --lo-azul
+   también son los estados de los envíos (cada uno con su fondo suave y su tono
+   de texto con contraste AA). Las --lo-av*-f / -t son los pares fondo / letra de
+   los discos de iniciales. --lo-barra* son los de la barra flotante, que es
+   oscura de día y clara de noche. ?tema=oscuro redefine todo para la noche. */
+:root {
+  --lo-fondo: #f4f5f7;
+  --lo-panel: #ffffff;
+  --lo-cab: #f8f9fb;                   /* la franja de los títulos de columna */
+  --lo-hover: rgba(20, 24, 40, .035);
+  --lo-tinta: #14161b;
+  --lo-suave: #566072;
+  --lo-tenue: #6b7385;
+  --lo-linea: rgba(20, 24, 40, .08);
+  --lo-linea-fuerte: rgba(20, 24, 40, .16);
+  --lo-caja-borde: #b7bdc9;
+
+  --lo-azul: #2f6bff;
+  --lo-azul-t: #2456d6;
+  --lo-azul-suave: rgba(47, 107, 255, .10);
+  --lo-sel-a: rgba(47, 107, 255, .12);        /* el relleno de la fila elegida, de un extremo al otro */
+  --lo-sel-b: rgba(47, 107, 255, .05);
+  --lo-pincel: rgba(47, 107, 255, .22);
+  --lo-pincel-borde: rgba(47, 107, 255, .5);
+  --lo-verde: #1f9d55;
+  --lo-verde-t: #12713c;
+  --lo-verde-suave: rgba(31, 157, 85, .12);
+  --lo-ambar: #e8a21b;
+  --lo-ambar-t: #8a5600;
+  --lo-ambar-suave: rgba(232, 162, 27, .18);
+  --lo-gris-suave: rgba(20, 24, 40, .06);
+
+  --lo-av1-f: #fbe7c4; --lo-av1-t: #85550a;     /* amarillo mantequilla */
+  --lo-av2-f: #fadde6; --lo-av2-t: #a02a50;     /* rosa */
+  --lo-av3-f: #dbe6ff; --lo-av3-t: #2456d6;     /* azul */
+  --lo-av4-f: #e6e0fb; --lo-av4-t: #5640bd;     /* violeta */
+  --lo-av5-f: #d3efe0; --lo-av5-t: #12713c;     /* menta */
+  --lo-av6-f: #e1e5ec; --lo-av6-t: #3a4558;     /* pizarra */
+
+  --lo-barra: #16181e;
+  --lo-barra-tinta: #f3f5f9;
+  --lo-barra-suave: #a8afbf;
+  --lo-barra-linea: rgba(255, 255, 255, .15);
+  --lo-barra-hover: rgba(255, 255, 255, .09);
+  --lo-barra-ok: #3bd480;
+
+  --lo-sombra: 34, 46, 84;             /* r, g, b de las sombras: un azul grisáceo, no negro */
+  --lo-brillo-1: rgba(47, 107, 255, .11);
+  --lo-brillo-2: rgba(232, 162, 27, .12);
+  --lo-foco: #2f6bff;
+
+  --lo-curva: cubic-bezier(.22, 1, .36, 1);
+  --lo-muelle: cubic-bezier(.34, 1.56, .64, 1);   /* lote.js lo cambia por un resorte de verdad */
+  --lo-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --lo-mono: "Source Code Pro", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --lo-cols: 56px minmax(0, 1.45fr) minmax(0, 1fr) 156px 100px 104px;
+}
+:root[data-tema="oscuro"] {
+  --lo-fondo: #0d0f14;
+  --lo-panel: #171a21;
+  --lo-cab: #1b1f27;
+  --lo-hover: rgba(255, 255, 255, .04);
+  --lo-tinta: #eceef3;
+  --lo-suave: #a3abbb;
+  --lo-tenue: #8d96a8;
+  --lo-linea: rgba(255, 255, 255, .08);
+  --lo-linea-fuerte: rgba(255, 255, 255, .18);
+  --lo-caja-borde: #4a5262;
+
+  --lo-azul: #4a80ff;
+  --lo-azul-t: #8fb0ff;
+  --lo-azul-suave: rgba(74, 128, 255, .16);
+  --lo-sel-a: rgba(74, 128, 255, .22);
+  --lo-sel-b: rgba(74, 128, 255, .08);
+  --lo-pincel: rgba(74, 128, 255, .34);
+  --lo-pincel-borde: rgba(110, 155, 255, .6);
+  --lo-verde: #34c778;
+  --lo-verde-t: #5fdc97;
+  --lo-verde-suave: rgba(52, 199, 120, .15);
+  --lo-ambar: #f2b035;
+  --lo-ambar-t: #f6c25f;
+  --lo-ambar-suave: rgba(242, 176, 53, .16);
+  --lo-gris-suave: rgba(255, 255, 255, .07);
+
+  --lo-av1-f: #4a3a1a; --lo-av1-t: #f6cf85;
+  --lo-av2-f: #4a2230; --lo-av2-t: #f5a6bf;
+  --lo-av3-f: #1f3262; --lo-av3-t: #a9c2ff;
+  --lo-av4-f: #35295f; --lo-av4-t: #c4b6fa;
+  --lo-av5-f: #1b4430; --lo-av5-t: #8be0b3;
+  --lo-av6-f: #2c3341; --lo-av6-t: #bdc6d6;
+
+  --lo-barra: #eef0f5;
+  --lo-barra-tinta: #14161b;
+  --lo-barra-suave: #505869;
+  --lo-barra-linea: rgba(20, 24, 40, .18);
+  --lo-barra-hover: rgba(20, 24, 40, .08);
+  --lo-barra-ok: #14a85c;
+
+  --lo-sombra: 0, 2, 8;
+  --lo-brillo-1: rgba(74, 128, 255, .16);
+  --lo-brillo-2: rgba(242, 176, 53, .07);
+  --lo-foco: #8fb0ff;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--lo-fondo); color: var(--lo-tinta); }
+body { font-family: var(--lo-sans); font-size: 15px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; transition: background-color .5s; }
+button { font: inherit; color: inherit; }
+svg { display: block; }
+h1, p, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+.lo-oculto { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--lo-foco); outline-offset: 3px; border-radius: 10px; }
+
+/* ── la escena: porcelana con dos luces suaves y grano fino ───────── */
+.lo-escena { position: relative; isolation: isolate; display: grid; place-items: center; min-height: 100vh; min-height: 100svh; padding: 28px 24px; overflow: hidden; background: var(--lo-fondo); transition: background-color .5s; }
+.lo-fondo { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.lo-b1, .lo-b2 { position: absolute; border-radius: 50%; }
+.lo-b1 { left: -10%; top: -34%; width: 64%; aspect-ratio: 1; background: radial-gradient(closest-side, var(--lo-brillo-1), transparent); }
+.lo-b2 { right: -12%; bottom: -40%; width: 62%; aspect-ratio: 1; background: radial-gradient(closest-side, var(--lo-brillo-2), transparent); }
+.lo-grano { position: absolute; inset: 0; opacity: .5; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1  0 0 0 0 .12  0 0 0 0 .18  0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+:root[data-tema="oscuro"] .lo-grano { mix-blend-mode: screen; opacity: .35; }
+
+/* ── la tarjeta de la tabla ────────────────────────────────────────── */
+.lo-panel {
+  position: relative; width: min(1140px, 100%); border-radius: 26px; background: var(--lo-panel);
+  box-shadow: 0 60px 90px -52px rgba(var(--lo-sombra), .42), 0 26px 44px -30px rgba(var(--lo-sombra), .34), 0 0 0 1px var(--lo-linea), inset 0 1px 0 rgba(255, 255, 255, .7);
+  transition: background-color .5s, box-shadow .5s;
+}
+:root[data-tema="oscuro"] .lo-panel { box-shadow: 0 60px 90px -50px rgba(0, 0, 0, .7), 0 0 0 1px var(--lo-linea), inset 0 1px 0 rgba(255, 255, 255, .05); }
+
+.lo-cab { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 32px 22px; }
+.lo-tit { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.lo-ico { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; color: var(--lo-azul-t); background: linear-gradient(160deg, var(--lo-azul-suave), rgba(47, 107, 255, .03)); box-shadow: inset 0 0 0 1px rgba(47, 107, 255, .16); }
+.lo-ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.lo-tit h1 { font: 600 25px/1.15 var(--lo-sans); letter-spacing: -.02em; }
+.lo-sub { display: flex; align-items: center; gap: 6px; margin-top: 5px; font: 400 14px/1 var(--lo-mono); color: var(--lo-suave); }
+.lo-total { display: inline-flex; font-weight: 400; color: var(--lo-tinta); }
+
+/* un contador que rueda: cada dígito es una columna con una tira del 0 al 9 */
+.lo-col { display: block; height: 1em; overflow: hidden; }
+.lo-tira { display: block; line-height: 1; transform: translateY(calc(var(--d, 0) * -1em)); transition: transform .8s var(--lo-muelle); transition-delay: calc(var(--i, 0) * 70ms); }
+.lo-n, .lo-num, .lo-total { display: inline-flex; height: 1em; overflow: hidden; font-variant-numeric: tabular-nums; }
+
+.lo-resumen { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.lo-pill { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px 0 11px; border-radius: 999px; background: var(--lo-gris-suave); font: 600 13px/1 var(--lo-sans); color: var(--lo-suave); white-space: nowrap; }
+.lo-pill { transition: opacity .4s; }
+.lo-pill.is-cero { opacity: .5; }
+.lo-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--lo-pill, var(--lo-tenue)); }
+.lo-pill .lo-n { font: 400 13px/1 var(--lo-mono); color: var(--lo-tinta); }
+.lo-pill-transito { --lo-pill: var(--lo-azul); }
+.lo-pill-retrasado { --lo-pill: var(--lo-ambar); }
+.lo-pill-entregado { --lo-pill: var(--lo-verde); }
+.lo-pill-preparando { --lo-pill: #9aa2b2; }
+
+/* ── la tabla ──────────────────────────────────────────────────────── */
+.lo-tabla { position: relative; border-top: 1px solid var(--lo-linea); }
+.lo-cols, .lo-fila { display: grid; grid-template-columns: var(--lo-cols); align-items: center; margin: 0 10px; }
+.lo-cols { height: 46px; margin-top: 6px; font: 600 12px/1 var(--lo-sans); letter-spacing: .08em; text-transform: uppercase; color: var(--lo-tenue); }
+.lo-c { min-width: 0; padding: 0 8px; }
+.lo-c-chk { padding: 0; }
+.lo-c-peso, .lo-c-fecha { text-align: right; }
+.lo-c-peso { padding-right: 18px; }
+.lo-c-fecha { padding-right: 16px; }
+
+.lo-cuerpo { position: relative; min-height: 470px; padding-bottom: 6px; }
+.lo-lista { position: relative; }
+.lo-fila {
+  position: relative; isolation: isolate; height: 58px; border-radius: 14px; font-size: 15px;
+  -webkit-user-select: none; user-select: none; cursor: default; transition: background-color .25s;
+}
+.lo-fila.is-arch { display: none; }
+/* el relleno de la fila elegida entra de izquierda a derecha, como una pincelada */
+.lo-fila::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: linear-gradient(90deg, var(--lo-sel-a), var(--lo-sel-b));
+  clip-path: inset(0 100% 0 0 round 14px);
+  transition: clip-path .55s var(--lo-curva) var(--lo-d, 0ms);
+}
+.lo-fila.is-sel::before { clip-path: inset(0 0 0 0 round 14px); }
+.lo-fila::after {
+  content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 3px; background: var(--lo-azul);
+  transform: scaleY(0); transition: transform .45s var(--lo-muelle) var(--lo-d, 0ms);
+}
+.lo-fila.is-sel::after { transform: scaleY(1); }
+@media (hover: hover) { .lo-fila:hover:not(.is-sel) { background: var(--lo-hover); } }
+
+.lo-c-chk { align-self: stretch; display: grid; touch-action: none; cursor: pointer; }
+.lo-casilla { display: grid; place-items: center; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: pointer; touch-action: none; }
+.lo-casilla:focus-visible { outline: none; }
+.lo-casilla:focus-visible .lo-caja { outline: 2px solid var(--lo-foco); outline-offset: 3px; }
+.lo-caja {
+  position: relative; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--lo-panel);
+  box-shadow: inset 0 0 0 1.5px var(--lo-caja-borde);
+  transition: background-color .25s var(--lo-d, 0ms), box-shadow .25s var(--lo-d, 0ms);
+}
+@media (hover: hover) { .lo-casilla:hover .lo-caja { box-shadow: inset 0 0 0 1.5px var(--lo-azul); } }
+.lo-caja svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.lo-caja path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .3s var(--lo-curva); }
+.lo-vis { transition-delay: calc(var(--lo-d, 0ms) + 80ms); }
+.lo-casilla[aria-checked="true"] .lo-caja, .lo-casilla[aria-checked="mixed"] .lo-caja { background: var(--lo-azul); box-shadow: inset 0 0 0 1.5px var(--lo-azul), 0 6px 12px -5px rgba(47, 107, 255, .7); }
+.lo-casilla[aria-checked="true"] .lo-caja { animation: lo-pop .5s var(--lo-muelle) var(--lo-d, 0ms) backwards; }
+.lo-casilla[aria-checked="true"] .lo-vis, .lo-casilla[aria-checked="mixed"] .lo-gui { stroke-dashoffset: 0; }
+@keyframes lo-pop { from { transform: scale(.72); } }
+
+/* el pincel: una pastilla azul en la columna de casillas que se estira con resorte entre la fila donde empezaste y la del puntero */
+.lo-pincel { position: absolute; left: 20px; top: 0; z-index: 0; width: 36px; height: 100%; overflow: visible; opacity: 0; transition: opacity .5s .1s; pointer-events: none; filter: drop-shadow(0 8px 12px rgba(47, 107, 255, .28)); }
+.lo-pincel rect { fill: var(--lo-pincel); stroke: var(--lo-pincel-borde); stroke-width: 1; }
+.lo-pincel.is-activo { opacity: 1; transition-duration: .12s; transition-delay: 0s; }
+.lo-lista, .lo-vacio { position: relative; z-index: 1; }
+
+/* la celda del envío: disco de iniciales y dos líneas */
+.lo-c-env { display: flex; align-items: center; gap: 13px; overflow: hidden; }
+.lo-c-env > div { min-width: 0; }
+.lo-av { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--lo-av-f); color: var(--lo-av-t); font: 600 15px/1 var(--lo-sans); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5), 0 2px 6px -3px rgba(var(--lo-sombra), .4); }
+.lo-cuenta { font: 600 15.5px/1.2 var(--lo-sans); letter-spacing: -.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lo-id { margin-top: 4px; font: 400 13px/1 var(--lo-mono); color: var(--lo-tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lo-mini { display: none; }
+.lo-c-dest { color: var(--lo-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lo-fila .lo-c-peso, .lo-fila .lo-c-fecha { font: 400 14px/1 var(--lo-mono); font-variant-numeric: tabular-nums; }
+.lo-fila .lo-c-peso { color: var(--lo-tinta); }
+.lo-fila .lo-c-fecha { color: var(--lo-suave); }
+
+.lo-chip { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px 0 10px; border-radius: 999px; font: 600 13px/1 var(--lo-sans); white-space: nowrap; background: var(--lo-gris-suave); color: var(--lo-suave); }
+.lo-chip i { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #9aa2b2; }
+.lo-chip-transito { background: var(--lo-azul-suave); color: var(--lo-azul-t); }
+.lo-chip-transito i { background: var(--lo-azul); }
+.lo-chip-transito i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--lo-azul); animation: lo-late 2.4s ease-out infinite; }
+.lo-chip-retrasado { background: var(--lo-ambar-suave); color: var(--lo-ambar-t); }
+.lo-chip-retrasado i { background: var(--lo-ambar); }
+.lo-chip-entregado { background: var(--lo-verde-suave); color: var(--lo-verde-t); }
+.lo-chip-entregado i { background: var(--lo-verde); }
+@keyframes lo-late { 0% { transform: scale(1); opacity: .55; } 70%, 100% { transform: scale(2.7); opacity: 0; } }
+
+/* ── el estado vacío ───────────────────────────────────────────────── */
+.lo-vacio { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+.lo-vacio[hidden] { display: none; }
+.lo-vacio svg { width: 54px; height: 54px; fill: none; stroke: var(--lo-tenue); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.lo-vacio p { font: 400 14px/1.5 var(--lo-sans); color: var(--lo-suave); }
+.lo-vacio p b { display: block; font-weight: 600; font-size: 17px; color: var(--lo-tinta); letter-spacing: -.01em; }
+
+/* ── el pie: la pista y, cuando hay selección, la barra flotante ───── */
+.lo-pie { position: relative; display: grid; place-items: center; height: 82px; border-top: 1px solid var(--lo-linea); }
+.lo-pista { display: flex; align-items: center; gap: 8px; font: 400 13px/1 var(--lo-sans); color: var(--lo-tenue); transition: opacity .3s, transform .5s var(--lo-curva); }
+.lo-pista kbd { display: inline-block; padding: 4px 7px; border-radius: 6px; font: 400 11.5px/1 var(--lo-mono); color: var(--lo-suave); background: var(--lo-cab); box-shadow: inset 0 0 0 1px var(--lo-linea-fuerte), 0 1px 0 var(--lo-linea-fuerte); }
+.lo-pie.is-barra .lo-pista { opacity: 0; transform: translateY(-8px); }
+
+.lo-barra {
+  position: absolute; left: 50%; top: 10px; z-index: 5; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; height: 62px; width: var(--lo-w, 420px); overflow: hidden;
+  border-radius: 22px; background: var(--lo-barra); color: var(--lo-barra-tinta);
+  box-shadow: 0 34px 46px -22px rgba(var(--lo-sombra), .62), 0 12px 22px -12px rgba(var(--lo-sombra), .46), inset 0 1px 0 rgba(255, 255, 255, .09), 0 0 0 1px rgba(20, 24, 40, .1);
+  opacity: 0; visibility: hidden; transform: translate(-50%, 26px) scale(.94); transform-origin: 50% 100%;
+  transition: transform .5s var(--lo-curva), opacity .22s, visibility 0s .5s, width .6s var(--lo-muelle);
+}
+.lo-barra:not([data-modo=""]) { opacity: 1; visibility: visible; transform: translate(-50%, 0) scale(1); transition: transform .75s var(--lo-muelle), opacity .2s, visibility 0s, width .6s var(--lo-muelle); }
+.lo-capa { grid-area: 1 / 1; justify-self: center; display: flex; align-items: center; gap: 14px; width: max-content; height: 100%; padding: 0 10px 0 10px; white-space: nowrap; transition: opacity .25s, transform .55s var(--lo-curva); }
+.lo-capa-hecho { opacity: 0; transform: translateY(16px); pointer-events: none; padding: 0 10px 0 14px; }
+.lo-barra[data-modo="hecho"] .lo-capa-sel { opacity: 0; transform: translateY(-16px); pointer-events: none; }
+.lo-barra[data-modo="hecho"] .lo-capa-hecho { opacity: 1; transform: none; pointer-events: auto; transition-delay: .06s; }
+
+.lo-x { flex: none; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 11px; background: transparent; color: var(--lo-barra-suave); cursor: pointer; transition: background-color .2s, color .2s; }
+.lo-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+@media (hover: hover) { .lo-x:hover { background: var(--lo-barra-hover); color: var(--lo-barra-tinta); } }
+.lo-cuenta { display: flex; align-items: baseline; gap: 7px; font: 600 16.5px/1 var(--lo-sans); letter-spacing: -.005em; }
+.lo-cuenta .lo-num { align-self: center; font: 600 16.5px/1 var(--lo-sans); }
+.lo-sep { width: 1px; height: 22px; background: var(--lo-barra-linea); }
+.lo-peso { min-width: 66px; font: 400 14px/1 var(--lo-mono); color: var(--lo-barra-suave); font-variant-numeric: tabular-nums; }
+.lo-peso span { color: var(--lo-barra-tinta); }
+
+.lo-btn { position: relative; display: inline-flex; background: transparent; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 17px; border: 0; border-radius: 13px; font: 600 14.5px/1 var(--lo-sans); letter-spacing: -.003em; cursor: pointer; white-space: nowrap; transition: background-color .2s, box-shadow .2s, transform .35s var(--lo-muelle); }
+.lo-btn:active { transform: scale(.96); }
+.lo-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.lo-btn-azul { background: var(--lo-azul); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 16px -8px rgba(47, 107, 255, .9); }
+@media (hover: hover) { .lo-btn-azul:hover { background: #4b80ff; } }
+.lo-btn-linea { color: var(--lo-barra-tinta); box-shadow: inset 0 0 0 1px var(--lo-barra-linea); overflow: hidden; min-width: 108px; }
+@media (hover: hover) { .lo-btn-linea:hover { background: var(--lo-barra-hover); } }
+.lo-btn-claro { background: var(--lo-tinta); color: var(--lo-panel); }
+.lo-btn-deshacer { margin-left: 2px; padding: 0 14px; color: var(--lo-barra-tinta); box-shadow: inset 0 0 0 1px var(--lo-barra-linea); }
+@media (hover: hover) { .lo-btn-deshacer:hover { background: var(--lo-barra-hover); } }
+.lo-ex-ic { display: none; }
+.lo-btn-linea .lo-t { display: inline-flex; align-items: center; gap: 6px; transition: transform .5s var(--lo-curva), opacity .25s; }
+.lo-btn-linea .lo-t2 { position: absolute; inset: 0; justify-content: center; opacity: 0; transform: translateY(16px); color: var(--lo-barra-ok); }
+.lo-btn-linea .lo-t2 svg { stroke-width: 2.2; }
+.lo-btn-linea.is-ok .lo-t1 { opacity: 0; transform: translateY(-16px); }
+.lo-btn-linea.is-ok .lo-t2 { opacity: 1; transform: none; }
+
+/* el aviso de «archivados»: ✓ que se dibuja, texto y una línea que se vacía mientras se puede deshacer */
+.lo-ok { position: relative; flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--lo-barra-ok); }
+.lo-ok svg { width: 16px; height: 16px; fill: none; stroke: #0b1a10; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.lo-ok path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.lo-ok::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 2px var(--lo-barra-ok); opacity: 0; }
+.lo-hecho-txt { font: 600 16px/1 var(--lo-sans); letter-spacing: -.005em; padding-right: 4px; }
+.lo-tiempo { position: absolute; left: 14px; right: 14px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--lo-azul); transform-origin: 0 50%; transform: scaleX(0); }
+.lo-barra[data-modo="hecho"].is-corre .lo-ok path { animation: lo-visto .5s .22s var(--lo-curva) forwards; }
+.lo-barra[data-modo="hecho"].is-corre .lo-ok::after { animation: lo-onda .8s .3s ease-out; }
+.lo-barra[data-modo="hecho"].is-corre .lo-tiempo { animation: lo-drena var(--lo-espera, 6500ms) linear forwards; }
+@keyframes lo-visto { to { stroke-dashoffset: 0; } }
+@keyframes lo-onda { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.1); opacity: 0; } }
+@keyframes lo-drena { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ── pantallas medianas y móviles: la tabla pierde columnas, no funciones ── */
+@media (max-width: 1040px) {
+  .lo-cab { padding: 22px 24px 18px; }
+  :root { --lo-cols: 52px minmax(0, 1.4fr) minmax(0, 1fr) 150px 92px 0; }
+  .lo-c-fecha { display: none; }
+}
+@media (max-width: 800px) {
+  .lo-escena { padding: 16px 12px; }
+  .lo-panel { border-radius: 22px; }
+  .lo-cab { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px 18px 16px; }
+  .lo-resumen { justify-content: flex-start; gap: 6px; }
+  .lo-pill { height: 28px; padding: 0 10px 0 9px; font-size: 12px; }
+  :root { --lo-cols: 48px minmax(0, 1fr) auto; }
+  .lo-c-dest, .lo-c-peso, .lo-c-fecha { display: none; }
+  .lo-mini { display: inline; }
+  .lo-c-est { padding: 0 10px 0 6px; }
+  .lo-cols { margin-top: 2px; }
+  .lo-cuerpo { min-height: 0; }
+  .lo-fila { height: 62px; }
+  .lo-pie { height: 84px; }
+  .lo-pista { flex-wrap: wrap; justify-content: center; padding: 0 16px; line-height: 1.5; text-align: center; }
+  .lo-capa { gap: 10px; }
+  .lo-sep, .lo-peso { display: none; }
+  /* en el móvil la barra queda fija abajo, a la vista aunque la tabla sea larga */
+  .lo-escena { padding-bottom: 92px; }
+  .lo-barra { position: fixed; top: auto; bottom: 14px; max-width: calc(100vw - 24px); }
+}
+@media (max-width: 460px) {
+  .lo-tit h1 { font-size: 21px; }
+  .lo-ico { width: 40px; height: 40px; border-radius: 12px; }
+  .lo-resumen .lo-pill:nth-child(n+3) { display: none; }
+  .lo-mini { display: none; }
+  .lo-c-est { padding-right: 8px; }
+  .lo-chip { padding: 0 10px 0 9px; font-size: 12.5px; }
+  .lo-pista { font-size: 12.5px; }
+  /* la barra: «Exportar» pasa a ser solo el ícono y la cuenta se acorta */
+  .lo-barra { height: 58px; }
+  .lo-capa { gap: 8px; padding: 0 9px 0 6px; }
+  .lo-cuenta { font-size: 15px; }
+  .lo-cuenta .lo-num { font-size: 15px; }
+  .lo-btn { height: 40px; padding: 0 13px; }
+  .lo-btn-linea { min-width: 40px; padding: 0; }
+  .lo-ex-tx { display: none; }
+  .lo-ex-ic { display: block; }
+  .lo-hecho-txt { font-size: 14.5px; padding-right: 0; }
+  .lo-capa-hecho { padding: 0 9px 0 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lo-tira, .lo-fila::before, .lo-fila::after, .lo-caja, .lo-caja path, .lo-barra, .lo-capa, .lo-pista, .lo-pincel, .lo-btn, .lo-btn-linea .lo-t { transition-duration: .01s !important; transition-delay: 0s !important; }
+  .lo-casilla[aria-checked="true"] .lo-caja, .lo-chip-transito i::after { animation: none; }
+  .lo-barra { transform: translate(-50%, 0); }
+  .lo-barra[data-modo="hecho"].is-corre .lo-ok::after { animation: none; }
+  .lo-barra[data-modo="hecho"].is-corre .lo-ok path { animation-duration: .01s; animation-delay: 0s; }
+}

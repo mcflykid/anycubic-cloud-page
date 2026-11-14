@@ -1,0 +1,92 @@
+const { createHash } = require('node:crypto');
+const { readFile } = require('node:fs/promises');
+const { test, expect } = require('@playwright/test');
+const { login, openSection } = require('./helpers.cjs');
+
+test('Ω retrouve le diagnostic et le témoin sans envoyer de commande', async ({page}) => {
+  const changes = [];
+  page.on('request', request => {
+    if (request.url().includes('/imprimante-api/') && request.method() !== 'GET') changes.push(new URL(request.url()).pathname);
+  });
+  await login(page, 'settings');
+  const mutations = () => changes.filter(path => !['/imprimante-api/preview', '/imprimante-api/camera-close'].includes(path));
+  const toggle = page.locator('#developer-mode');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  const devTab = page.locator('#atelier-tabs [data-tab=developer]');
+  await expect(devTab).toBeHidden();
+  await expect(page.locator('.developer-card')).toHaveCount(0);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(devTab).toBeVisible();
+  await expect(page.locator('#tab-developer')).toBeHidden();
+  await expect(page.locator('#diagnostic-download')).toBeVisible();
+  await openSection(page, 'developer');
+  const tools = page.locator('#tab-developer .developer-card');
+  await expect(tools).toBeVisible();
+  await expect(page.locator('.developer-card')).toHaveCount(1);
+  await tools.getByText('Contrôles relevés', {exact:true}).click();
+  await expect(tools.getByRole('combobox', {name:'Onglet relevé'})).toHaveValue('settings');
+  await expect(tools.getByText(/Dernier relevé : Réglages, il y a \d+ s/)).toBeVisible();
+  const inventory = JSON.parse(await tools.getByLabel('Contrôles de l’onglet relevé').textContent());
+  expect(inventory.contrôles.find(row => row.repère === 'diagnostic-download').masqué).toBe(false);
+  await tools.getByRole('button', {name:'Relever le diagnostic'}).click();
+  await expect(tools.getByLabel('Diagnostic du serveur')).toContainText('serialized_mapping');
+  await expect(tools.getByLabel('Diagnostic du serveur')).toContainText('"observed_slot": 3');
+  await tools.getByLabel('Route').selectOption('/diagnostic');
+  await expect(tools.getByLabel('Requêtes')).toContainText('GET /diagnostic · réponse 200');
+  await tools.getByText('Simulation (démo uniquement)', {exact:true}).click();
+  await tools.getByLabel('Simulation GET en démo').selectOption('timeout');
+  await tools.getByRole('button', {name:'Armer la simulation'}).click();
+  await tools.getByLabel('Statut').selectOption('retry');
+  await expect(tools.getByLabel('Requêtes')).toContainText('Reprise · GET /diagnostic · interruption');
+  await tools.getByText('Rapport expurgé', {exact:true}).click();
+  await tools.getByRole('button', {name:'Copier un rapport expurgé'}).click();
+  const report = JSON.parse(await tools.getByLabel('Aperçu du rapport expurgé').inputValue());
+  expect(report.version).toMatch(/^\d+\.\d+\.\d+$/);
+  expect(report.ace[0].observed_slot).toBe(3);
+  expect(report.requêtes.every(row => !row.route.includes('?'))).toBe(true);
+  expect(report.requêtes.length).toBeLessThanOrEqual(20);
+
+  await tools.getByText('Pièce témoin', {exact:true}).click();
+  await expect(tools.getByText(/10 couches/)).toBeVisible();
+  for (const format of ['STL', '3MF', 'GCODE', 'GCODE.3MF']) {
+    const link = tools.getByRole('link', {name:format, exact:true});
+    const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+    const bytes = await readFile(await download.path());
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    await expect(link.locator('..').locator('code')).toHaveText(digest);
+  }
+  expect(mutations()).toEqual([]);
+  await page.reload();
+  await openSection(page, 'settings');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(devTab).toBeVisible();
+  await openSection(page, 'developer');
+  await tools.getByRole('button', {name:'Désactiver le mode développeur'}).click();
+  await expect(devTab).toBeHidden();
+  await expect(page.locator('#tab-settings')).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('.developer-card')).toHaveCount(0);
+  expect(mutations()).toEqual([]);
+});
+
+test('une interruption hors de l’onglet signale un incident jusqu’à son ouverture', async ({page}) => {
+  await login(page, 'settings');
+  await page.locator('#developer-mode').click();
+  const dot = page.locator('[data-tab=developer] .developer-unread');
+  await expect(dot).toBeHidden();
+  await page.route('**/imprimante-api/files/local?**', route => route.abort());
+  await openSection(page, 'files');
+  await page.locator('[data-source=local]').click();
+  await expect(dot).toBeVisible();
+  await openSection(page, 'developer');
+  await expect(dot).toBeHidden();
+  await expect(page.getByLabel('Requêtes')).toContainText('interruption');
+  await page.getByText('Contrôles relevés', {exact:true}).click();
+  const picker = page.getByRole('combobox', {name:'Onglet relevé'});
+  await expect(picker).toHaveValue('files');
+  await picker.selectOption('settings');
+  await expect(page.getByText(/Dernier relevé : Réglages/)).toBeVisible();
+  await picker.selectOption('files');
+  await expect(page.getByText(/Dernier relevé : Fichiers/)).toBeVisible();
+});
